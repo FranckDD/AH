@@ -1,7 +1,7 @@
+from passlib.context import CryptContext
 from sqlalchemy import Column, Integer, String, Boolean, ForeignKey
 from sqlalchemy.orm import relationship
 from .database import Base
-from passlib.context import CryptContext
 import models
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -19,7 +19,7 @@ class User(Base):
     role_id = Column(Integer, ForeignKey('application_roles.role_id'))
 
     from models.application_role import ApplicationRole
-    role = relationship("ApplicationRole", back_populates="users")
+    application_role = relationship("ApplicationRole", back_populates="users", lazy="joined")
 
     appointments = relationship(
         "Appointment",

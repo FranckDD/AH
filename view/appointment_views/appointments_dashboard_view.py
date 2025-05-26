@@ -5,9 +5,10 @@ from datetime import date
 import calendar
 
 class AppointmentsDashboard(ctk.CTkFrame):
-    def __init__(self, master, controller):
+    def __init__(self, master, controller, on_day_selected):
         super().__init__(master)
         self.controller = controller
+        self.on_day_selected = on_day_selected 
         today = date.today()
         self.current_year  = today.year
         self.current_month = today.month
@@ -70,8 +71,7 @@ class AppointmentsDashboard(ctk.CTkFrame):
 
     def on_day_click(self, dt: date):
         # Appelle la vue liste avec la date sélectionnée
-        if hasattr(self.master, 'show_appointments_list'):
-            self.master.show_appointments_list(dt)
+        self.on_day_selected(dt)
 
     def prev_month(self):
         m = self.current_month - 1

@@ -5,8 +5,7 @@ from models.database import DatabaseManager
 
 class AppointmentRepository:
     def __init__(self, session: Session):
-        self.db = DatabaseManager("postgresql://postgres:Admin_2025@localhost/AH2")
-        self.session: Session = self.db.get_session()
+        self.session = session
 
     def create(self, appointment: Appointment) -> Appointment:
         self.session.add(appointment)

@@ -6,10 +6,8 @@ from models.database import DatabaseManager
 from models.patient import Patient
 
 class PatientRepository:
-    def __init__(self, db_url=None):
-        # Permet d'injecter une URL différente pour tests
-        self.db: DatabaseManager = DatabaseManager(db_url or "postgresql://postgres:Admin_2025@localhost/AH2")
-        self.session: Session    = self.db.get_session()
+    def __init__(self, session: Session):
+        self.session = session
 
     def generate_patient_code(self, birth_date: date, last_name: str, first_name: str, mother_name: str) -> str:
         prefix = "AH2-"

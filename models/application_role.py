@@ -11,7 +11,7 @@ class ApplicationRole(Base):
     __tablename__ = 'application_roles'
 
     role_id = Column(Integer, primary_key=True)
-    name = Column('role_name', String(50), unique=True, nullable=False)
+    role_name = Column('role_name', String(50), unique=True, nullable=False)
     
     # Relation avec User
-    users = relationship("User", back_populates="role")
+    users = relationship("User", back_populates="application_role")

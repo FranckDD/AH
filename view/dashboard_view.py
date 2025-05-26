@@ -35,16 +35,17 @@ ctk.set_appearance_mode("light")
 ctk.set_default_color_theme("blue")
 
 class DashboardView(ctk.CTkFrame):
-    def __init__(self, parent, user, on_logout=None):
+    def __init__(self, parent, user, controller, on_logout=None):
         super().__init__(parent)
         self.parent = parent
         self.user = user
         # juste après self.user = user
-        repo = PatientRepository()
-        self.patient_controller = PatientController(repo, user)
+        self.controller = controller
         self.on_logout = on_logout
         self.sidebar_expanded = True
         self.active_menu_btn = None
+
+        self.patient_controller = self.controller.patient_controller
 
         # Configuration grille
         self.grid_rowconfigure(0, weight=0)
@@ -276,18 +277,21 @@ class DashboardView(ctk.CTkFrame):
         self._clear_content()
         self._set_active_menu(self.apps_btn)
         appt_ctrl = self.parent.controller.appointment_controller
-        dash = AppointmentsDashboard(self.content, controller=appt_ctrl)
-        dash.grid(sticky="nsew", padx=10, pady=10)
+        AppointmentsDashboard(
+        master = self.content,
+        controller = appt_ctrl,
+        on_day_selected = self.show_appointments_list).grid(sticky="nsew", padx=10, pady=10)
         self.content.grid_rowconfigure(0, weight=1)
         self.content.grid_columnconfigure(0, weight=1)
 
-    def show_appointments_list(self):
+    def show_appointments_list(self, target_date=None):
         self._clear_content()
         self._set_active_menu(self.apps_btn)
         appt_ctrl = self.parent.controller.appointment_controller
         lst = AppointmentsList(
         self.content, 
-        controller=appt_ctrl, 
+        controller=appt_ctrl,
+        target_date = target_date, 
         on_book=lambda: self.show_appointments_book(),
         on_edit=lambda appt_id: self.show_appointments_book(appointment=appt_ctrl.repo.get_by_id(appt_id))
         )
@@ -332,6 +336,9 @@ class DashboardView(ctk.CTkFrame):
     # Prescription
     def show_prescription_form(self, patient_id=None, medical_record_id=None):
         popup = ctk.CTkToplevel(self.content)
+        popup.transient(self.winfo_toplevel())
+        popup.attributes('-topmost', True)
+        popup.grab_set()
         form = PrescriptionFormView(
             popup,
             controller=self.parent.controller,

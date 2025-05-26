@@ -3,9 +3,10 @@ from tkinter import ttk
 from datetime import date
 
 class AppointmentsList(ctk.CTkFrame):
-    def __init__(self, master, controller, *, on_book, on_edit, per_page=20):
+    def __init__(self, master, controller, *, on_book, on_edit, per_page=20, target_date=None):
         super().__init__(master, fg_color="transparent")
         self.controller = controller
+        target_date = target_date
         self.on_book = on_book
         self.on_edit = on_edit
         self.page = 1

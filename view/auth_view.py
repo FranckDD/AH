@@ -1,5 +1,6 @@
 import customtkinter as ctk
 from PIL import Image
+from view.factory.dashboard_factory import get_dashboard_class
 import os
 
 # Appliquer thème plus doux
@@ -53,24 +54,44 @@ class AuthView(ctk.CTk):
 
     def _on_login(self):
         try:
-            user = self.controller.authenticate(
-                self.username_entry.get().strip(),
-                self.password_entry.get().strip()
-            )
+            username = self.username_entry.get().strip()
+            password = self.password_entry.get().strip()
+
+            # On vérifie d'abord l'existence et l'état actif du compte
+            tmp = self.controller.user_repo.get_user_by_username(username)
+            if tmp and not tmp.is_active:
+                # Compte désactivé : on l’affiche clairement
+                self._show_error("Votre compte a été désactivé. Contactez l'administrateur.")
+                return
+
+            user = self.controller.authenticate(username, password)
             if not user:
                 raise ValueError("Identifiants incorrects")
+            
+            #print(f"[Console] Rôle métier récupéré : {user.application_role.role_name}")
 
-            # Détruire le login
+            # Importer et afficher DashboardView
+            from view.dashboard_view import DashboardView
+            
+            # → ICI : on choisit la bonne classe de Dashboard
+            role_key = user.application_role.role_name
+            DashboardCls = get_dashboard_class(role_key)
+
+            # et on l’affiche
+            self.dashboard_frame  = DashboardCls(
+            self,              # parent
+            user,              # User SQLAlchemy
+            self.controller,   # AuthController
+            self._on_logout    # callback
+            )
+            self.dashboard_frame.pack(expand=True, fill="both")
+
+             # Détruire le login
             self.main_frame.destroy()
 
             # Ajuster la taille pour le dashboard
             self.geometry("1024x768")
             self.resizable(True, True)
-
-            # Importer et afficher DashboardView
-            from view.dashboard_view import DashboardView
-            self.dashboard_frame = DashboardView(self, user, on_logout=self._on_logout)
-            self.dashboard_frame.pack(expand=True, fill="both")
 
         except Exception as e:
             # Afficher l'erreur

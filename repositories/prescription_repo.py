@@ -3,11 +3,13 @@ from sqlalchemy import text
 from models.database import DatabaseManager
 from sqlalchemy.orm import Session
 from models.prescription import Prescription
+from sqlalchemy import func
+from datetime import date
+from typing import List
 
 class PrescriptionRepository:
-    def __init__(self):
-        self.db = DatabaseManager("postgresql://postgres:Admin_2025@localhost/AH2")
-        self.session: Session = self.db.get_session()
+    def __init__(self, session: Session):
+        self.session = session
 
     def list(self, patient_id=None, page=1, per_page=20):
         q = self.session.query(Prescription)
@@ -86,3 +88,12 @@ class PrescriptionRepository:
         except Exception:
             self.session.rollback()
             raise
+
+    def find_by_date_range(self, start_date: date, end_date: date) -> List[Prescription]:
+        return (
+            self.session
+                .query(Prescription)
+                .filter(func.date(Prescription.start_date) >= start_date)
+                .filter(func.date(Prescription.end_date) <= end_date)
+                .all()
+        )

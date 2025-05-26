@@ -1,5 +1,7 @@
 # controllers/auth_controller.py
 from repositories.user_repo import UserRepository
+from controller.user_controller import UserController
+from repositories.role_repo import RoleRepository
 from models.user import pwd_context
 from controller.patient_controller import PatientController
 from repositories.patient_repo import PatientRepository
@@ -9,17 +11,21 @@ from controller.prescription_controller import PrescriptionController
 from repositories.prescription_repo import PrescriptionRepository
 from repositories.appointment_repo import AppointmentRepository
 from controller.appointment_controller import AppointmentController
+from models.database import DatabaseManager
 
 
 class AuthController:
     def __init__(self):
-        self.user_repo = UserRepository()
-        self.current_user = None
-        # sous-contrôleurs initialisés après authentification
-        self.patient_controller = None
-        self.medical_record_controller = None
-        self.prescription_controller = None
-        self.appointment_controller = None
+        self.db = DatabaseManager("postgresql://postgres:Admin_2025@localhost/AH2")
+        self.session = self.db.get_session()
+
+        # 2) Passe la session à TOUS tes repositories
+        self.user_repo = UserRepository(self.session)
+        self.role_repo         = RoleRepository(self.session) 
+        self.patient_repo = PatientRepository(self.session)
+        self.medical_repo = MedicalRecordRepository(self.session)
+        self.prescription_repo = PrescriptionRepository(self.session)
+        self.appointment_repo = AppointmentRepository(self.session)
 
     def authenticate(self, username: str, password: str):
         try:
@@ -37,17 +43,18 @@ class AuthController:
             self.current_user = user
 
             # instanciation des sous-contrôleurs
-            pat_repo = PatientRepository()
+            self.user_controller         = UserController(self.user_repo, self.role_repo)
+            pat_repo = PatientRepository(self.session)
             self.patient_controller = PatientController(pat_repo, self.current_user)
 
-            med_repo = MedicalRecordRepository()
+            med_repo = MedicalRecordRepository(self.session)
             self.medical_record_controller = MedicalRecordController(
                 repo=med_repo,
                 patient_controller=self.patient_controller,
                 current_user=self.current_user
             )
 
-            presc_repo = PrescriptionRepository()
+            presc_repo = PrescriptionRepository(self.session)
             self.prescription_controller = PrescriptionController(
                 repo=presc_repo,
                 patient_controller=self.patient_controller,

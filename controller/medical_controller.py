@@ -1,6 +1,7 @@
 # controllers/medical_controller.py
 import logging
 from repositories.medical_repo import MedicalRecordRepository
+from datetime import date, timedelta
 
 class MedicalRecordController:
     def __init__(self, repo=None, patient_controller=None, current_user=None):
@@ -39,5 +40,8 @@ class MedicalRecordController:
         if query.isdigit():
             return self.patient_ctrl.get_patient(int(query))
         return self.patient_ctrl.find_by_code(query)
+    
+    def get_by_day(self, target_date: date) -> list:
+        return self.repo.find_by_date_range(target_date, target_date)
     
     

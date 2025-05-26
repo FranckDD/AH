@@ -1,13 +1,14 @@
-from sqlalchemy import text
+from sqlalchemy import text, func
 from models.database import DatabaseManager
 from sqlalchemy.orm import Session
 from models.medical_record import MedicalRecord
 from sqlalchemy.orm import joinedload
+from datetime import date, timedelta
+from typing import List
 
 class MedicalRecordRepository:
-    def __init__(self):
-        self.db = DatabaseManager("postgresql://postgres:Admin_2025@localhost/AH2")
-        self.session: Session = self.db.get_session()
+    def __init__(self, session: Session):
+        self.session = session
 
 
     def list_records(self, patient_id=None, page=1, per_page=20):
@@ -76,3 +77,12 @@ class MedicalRecordRepository:
         ))
                 # row here is a Row; use mappings() to get dict-like rows
         return [dict(row) for row in result.mappings()]
+    
+    def find_by_date_range(self, start_date: date, end_date: date) -> List[MedicalRecord]:
+        return (
+            self.session
+                .query(MedicalRecord)
+                .filter(func.date(MedicalRecord.consultation_date) >= start_date)
+                .filter(func.date(MedicalRecord.consultation_date) <= end_date)
+                .all()
+        )
