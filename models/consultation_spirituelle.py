@@ -18,7 +18,12 @@ class ConsultationSpirituel(Base):
     type_consultation = Column(String(30), nullable=False)
     presc_generic         = Column(ARRAY(String(20)))    # <--- devenu tableau
     presc_med_spirituel   = Column(ARRAY(String(10)))    # <--- devenu tableau
-    mp_type               = Column(ARRAY(String(10))) 
+      # ───────► Voici la correction majeure :
+    mp_type               = Column(
+        String(10),
+        ForeignKey('prayer_book_type.type_code'),
+        nullable=True
+    ) 
     psaume = Column(String(50))  # Psaume choisi
 
     fr_registered_at = Column(DateTime)
