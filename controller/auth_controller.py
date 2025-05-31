@@ -11,6 +11,12 @@ from controller.prescription_controller import PrescriptionController
 from repositories.prescription_repo import PrescriptionRepository
 from repositories.appointment_repo import AppointmentRepository
 from controller.appointment_controller import AppointmentController
+from repositories.cs_repo import ConsultationSpirituelRepository
+from controller.cs_controller import ConsultationSpirituelController
+from repositories.pharmacy_repo import PharmacyRepository
+from controller.pharmacy_controller import PharmacyController
+from repositories.caisse_repo import CaisseRepository
+from controller.caisse_controller import CaisseController
 from models.database import DatabaseManager
 
 
@@ -26,6 +32,9 @@ class AuthController:
         self.medical_repo = MedicalRecordRepository(self.session)
         self.prescription_repo = PrescriptionRepository(self.session)
         self.appointment_repo = AppointmentRepository(self.session)
+        self.cs_repo = ConsultationSpirituelRepository(self.session)
+        self.pharmacy_repo = PharmacyRepository(self.session)
+
 
     def authenticate(self, username: str, password: str):
         try:
@@ -41,6 +50,7 @@ class AuthController:
                 return None
 
             self.current_user = user
+            
 
             # instanciation des sous-contrôleurs
             self.user_controller         = UserController(self.user_repo, self.role_repo)
@@ -66,7 +76,23 @@ class AuthController:
                 repo=repo,
                 patient_controller=self.patient_controller,
                 current_user=self.current_user
-        )
+            )
+            cs_repo = ConsultationSpirituelRepository(self.session)
+            self.consultation_spirituel_controller = ConsultationSpirituelController(
+                repo=cs_repo,
+                patient_controller=self.patient_controller,
+                current_user=self.current_user
+            )
+            pharm_repo = PharmacyRepository(self.session)
+            self.pharmacy_controller = PharmacyController(
+                pharm_repo,
+                self.current_user
+            )
+
+            self.stock_controller = self.pharmacy_controller
+
+            caisse_repo = CaisseRepository(self.session)
+            self.caisse_controller = CaisseController(caisse_repo, self.current_user)
 
             return user
 

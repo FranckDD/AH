@@ -8,9 +8,12 @@ from view.patient_view.patients_edit_view import PatientsEditView
 from view.patient_view.patient_profile_view import PatientProfileView
 
 class PatientListView(ctk.CTkFrame):
-    def __init__(self, parent, controller):
-        super().__init__(parent)
-        # Allow frame to expand and fill when resized
+    def __init__(self, parent, controller=None, patients=None, **kwargs):
+        super().__init__(parent, **kwargs)
+        self.controller       = controller
+        self.patients_override = patients
+        self.selected_patient = None
+        self.page             = 1
         self.pack(expand=True, fill='both')
 
         # Determine patient controller
@@ -154,5 +157,3 @@ class PatientListView(ctk.CTkFrame):
         ).pack(expand=True, fill='both')
         # After edit, refresh list on close
         popup.protocol("WM_DELETE_WINDOW", lambda: (popup.destroy(), self.refresh()))
-
-

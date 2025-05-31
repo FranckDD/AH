@@ -41,4 +41,19 @@ class Patient(Base):
         back_populates="patient",
         cascade="all, delete-orphan"
     )
+    spiritual_consultations = relationship(
+        'ConsultationSpirituel',
+        back_populates='patient',
+        cascade='all, delete-orphan'
+    )
+    pharmacies = relationship(
+        'Pharmacy',
+        back_populates='patient',
+        cascade='all, delete-orphan'
+    )
+    caisse_entries_by_id = relationship(
+        'Caisse',
+        back_populates='patient_by_id',
+        cascade='all, delete-orphan'
+    )
 

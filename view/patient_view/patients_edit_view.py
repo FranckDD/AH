@@ -99,6 +99,13 @@ class PatientsEditView(ctk.CTkFrame):
 
     def _on_save(self):
         data = self._collect_data()
+        for fld in (
+        'national_id','contact_phone',
+        'assurance','residence',
+        'father_name','mother_name'):
+            if data.get(fld) == '' or data.get(fld) is None:
+                data[fld] = None
+
         try:
             if self.patient_id:
                 # update without passing current_user (controller handles user internally)

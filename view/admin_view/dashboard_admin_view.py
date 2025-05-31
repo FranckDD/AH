@@ -10,6 +10,13 @@ from view.admin_view.user_form_view import UserFormView
 class AdminDashboardView(ctk.CTkFrame):
     def __init__(self, parent, user, controller, on_logout=None):
         super().__init__(parent)
+
+        # Réglage de la grille : topbar en row=0, sidebar+content en row=1
+        self.grid_rowconfigure(0, weight=0)   # topbar fixe
+        self.grid_rowconfigure(1, weight=1)   # sidebar + content
+        self.grid_columnconfigure(0, weight=0)  # sidebar fixe
+        self.grid_columnconfigure(1, weight=1)  # content extensible
+
         self.user            = user
         self.controller      = controller
         self.on_logout       = on_logout
@@ -20,10 +27,6 @@ class AdminDashboardView(ctk.CTkFrame):
         self.expanded_width   = 200
         self.collapsed_width  = 60
 
-        # Layout grid
-        self.grid_rowconfigure(1, weight=1)
-        self.grid_columnconfigure(1, weight=1)
-
         self._build_sidebar()
         self._build_topbar()
         self._build_content()
@@ -31,7 +34,8 @@ class AdminDashboardView(ctk.CTkFrame):
 
     def _build_sidebar(self):
         self.sidebar = ctk.CTkFrame(self, width=self.expanded_width, fg_color="#F8F9FA")
-        self.sidebar.grid(row=0, column=0, rowspan=2, sticky="nsw")
+        # on place la sidebar en row=1 pour laisser le topbar en row=0
+        self.sidebar.grid(row=1, column=0, sticky="nsw")
         self.sidebar.grid_propagate(False)
 
         # Logo
@@ -49,18 +53,6 @@ class AdminDashboardView(ctk.CTkFrame):
                 text_color="#333"
             ).grid(row=0, column=0, pady=(10, 20))
 
-        # Toggle button
-        self.toggle_btn = ctk.CTkButton(
-            self.sidebar,
-            text="⮜",
-            width=30,
-            fg_color="transparent",
-            text_color="#333",
-            hover_color="#E0E0E0",
-            command=self._toggle_sidebar
-        )
-        self.toggle_btn.grid(row=1, column=0, pady=5)
-
         # Menu buttons
         self.menu_defs = [
             ("Synthèses",   "📈", self.show_overview),
@@ -68,7 +60,7 @@ class AdminDashboardView(ctk.CTkFrame):
             ("Utilisateurs","👤", self.show_user_management),
         ]
         self.menu_buttons = []
-        for idx, (label, icon, cmd) in enumerate(self.menu_defs, start=2):
+        for idx, (label, icon, cmd) in enumerate(self.menu_defs, start=1):
             btn = ctk.CTkButton(
                 self.sidebar,
                 text=f"  {icon}  {label}",
@@ -81,25 +73,25 @@ class AdminDashboardView(ctk.CTkFrame):
             btn.grid(row=idx, column=0, sticky="ew", padx=10, pady=5)
             self.menu_buttons.append(btn)
 
-    def _toggle_sidebar(self):
-        if self.sidebar_expanded:
-            # collapse
-            self.sidebar.configure(width=self.collapsed_width)
-            self.toggle_btn.configure(text="⮞")
-            for btn, (_, icon, _) in zip(self.menu_buttons, self.menu_defs):
-                btn.configure(text=f"  {icon}")
-        else:
-            # expand
-            self.sidebar.configure(width=self.expanded_width)
-            self.toggle_btn.configure(text="⮜")
-            for btn, (label, icon, _) in zip(self.menu_buttons, self.menu_defs):
-                btn.configure(text=f"  {icon}  {label}")
-        self.sidebar_expanded = not self.sidebar_expanded
-
     def _build_topbar(self):
+        # Topbar en row=0 sur les 2 colonnes
         top = ctk.CTkFrame(self, height=60, fg_color="#007bff")
-        top.grid(row=0, column=1, sticky="ew")
+        top.grid(row=0, column=0, columnspan=2, sticky="ew")
         top.grid_propagate(False)
+
+        # Toggle sidebar
+        self.toggle_btn = ctk.CTkButton(
+            top,
+            text="⮜" if self.sidebar_expanded else "⮞",
+            width=30,
+            fg_color="transparent",
+            text_color="white",
+            hover_color="#0056b3",
+            command=self._toggle_sidebar
+        )
+        self.toggle_btn.pack(side="left", padx=10, pady=10)
+
+        # Bouton déconnexion
         ctk.CTkButton(
             top,
             text="Déconnexion",
@@ -113,6 +105,21 @@ class AdminDashboardView(ctk.CTkFrame):
         self.content = ctk.CTkScrollableFrame(self, fg_color="#F5F5F5")
         self.content.grid(row=1, column=1, sticky="nsew", padx=10, pady=10)
         self.content.grid_columnconfigure(0, weight=1)
+
+    def _toggle_sidebar(self):
+        if self.sidebar_expanded:
+            # collapse
+            self.sidebar.configure(width=self.collapsed_width)
+            self.toggle_btn.configure(text="⮞")
+            for btn, (_, icon, _) in zip(self.menu_buttons, self.menu_defs):
+                btn.configure(text=f"{icon}")
+        else:
+            # expand
+            self.sidebar.configure(width=self.expanded_width)
+            self.toggle_btn.configure(text="⮜")
+            for btn, (label, icon, _) in zip(self.menu_buttons, self.menu_defs):
+                btn.configure(text=f"  {icon}  {label}")
+        self.sidebar_expanded = not self.sidebar_expanded
 
     def _switch(self, fn):
         for w in self.content.winfo_children():
