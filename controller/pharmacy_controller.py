@@ -24,6 +24,7 @@ class PharmacyController:
           - quantity (int)
           - threshold (int)
           - medication_type (str, libre)
+          - forme (str,Autre)
           - dosage_mg (float) [facultatif]
           - expiry_date (datetime) [facultatif]
           - prescribed_by (int) [facultatif]

@@ -16,6 +16,7 @@ class Pharmacy(Base):
     quantity         = Column(Integer, nullable=False, default=0)
     threshold        = Column(Integer, nullable=False, default=0)
     medication_type  = Column(String(20), nullable=False)
+    forme            = Column(String(50), nullable=False, default='Autre')
     dosage_mg        = Column(Numeric(10, 2), nullable=True)
     expiry_date      = Column(DateTime, nullable=True)
     stock_status     = Column(String(20), nullable=False, default='normal')

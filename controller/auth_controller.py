@@ -34,6 +34,7 @@ class AuthController:
         self.appointment_repo = AppointmentRepository(self.session)
         self.cs_repo = ConsultationSpirituelRepository(self.session)
         self.pharmacy_repo = PharmacyRepository(self.session)
+        self.caisse_repo = CaisseRepository(self.session)
 
 
     def authenticate(self, username: str, password: str):

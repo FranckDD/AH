@@ -9,8 +9,8 @@ from view.secretaire.cs_form import CSFormView
 from view.secretaire.cs_list import CSListView
 from view.secretaire.stock_form import StockFormView
 from view.secretaire.stock_list import StockListView
-from view.secretaire.tx_form import TxFormView
-from view.secretaire.tx_list import TxListView
+from view.secretaire.caisse_form import CaisseFormView
+from view.secretaire.caisse_list import CaisseListView
 
 ctk.set_appearance_mode("light")
 ctk.set_default_color_theme("blue")
@@ -30,6 +30,8 @@ class SecretaireDashboardView(ctk.CTkFrame):
         self.cs_ctrl = controllers.consultation_spirituel_controller
         self.stock_ctrl = controllers.stock_controller
         self.tx_ctrl = controllers.caisse_controller
+        self.pharmacy_ctrl = controllers.pharmacy_controller
+        
 
         # grid config
         self.grid_rowconfigure(0, weight=0)
@@ -271,15 +273,16 @@ class SecretaireDashboardView(ctk.CTkFrame):
 
     def show_tx_form(self):
         self._set_active_menu(self.btn_tx_add)
-        modal = TxFormView(
-            master=self,
-            controller=self.tx_ctrl,
-            patient_ctrl=self.patient_ctrl,
-            on_save=self.show_tx_list
-        )
+        modal = CaisseFormView(
+                master=self,
+                controller=self.tx_ctrl,
+                patient_ctrl=self.patient_ctrl,
+                pharmacy_ctrl=self.pharmacy_ctrl,   # ← on passe bien le controller pharmacie
+                on_save=self.show_tx_list
+            )
         modal.grab_set()
 
     def show_tx_list(self):
         self._set_active_menu(self.btn_tx_list)
-        view = TxListView(self.content, controller=self.tx_ctrl)
+        view = CaisseListView(self.content, controller=self.tx_ctrl)
         view.pack(fill="both", expand=True)

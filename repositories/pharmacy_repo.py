@@ -35,37 +35,32 @@ class PharmacyRepository:
 
     def create(self, data: dict, current_user=None) -> Pharmacy:
         """
-        Crée un nouveau produit en stock, et génère un mouvement correspondant.
-        Attendu dans data : 
+        data doit désormais inclure :
           - drug_name (str)
           - quantity (int)
           - threshold (int)
-          - medication_type (str) [libre]
-          - dosage_mg (float) – facultatif
-          - expiry_date (datetime) – facultatif
-          - prescribed_by (int) – facultatif
-          - name_dr (str) – facultatif
+          - medication_type (str)
+          - forme (str)
+          - dosage_mg (float) [facultatif]
+          - expiry_date (datetime) [facultatif]
+          - prescribed_by, name_dr…
         """
         prod = Pharmacy(
             drug_name       = data['drug_name'],
             quantity        = data.get('quantity', 0),
             threshold       = data.get('threshold', 0),
             medication_type = data['medication_type'],
+            forme           = data.get('forme', 'Autre'),   # ← prendre la forme depuis data
             dosage_mg       = data.get('dosage_mg'),
             expiry_date     = data.get('expiry_date'),
-            stock_status    = 'normal',  # On corrigera après update_stock_status() si nécessaire
+            stock_status    = 'normal',
             prescribed_by   = data.get('prescribed_by'),
             name_dr         = data.get('name_dr')
         )
-
-        # 1) Calcul du statut (normal / critique / épuisé)
         prod.update_stock_status()
-
-        # 2) Ajout en base
         self.session.add(prod)
-        self.session.commit()  # prod.medication_id est disponible après commit
+        self.session.commit()
 
-        # 3) Création d’un mouvement stock correspondant à la mise en place initiale
         movement = StockMovement(
             medication_id = prod.medication_id,
             change_qty    = prod.quantity,
@@ -76,41 +71,30 @@ class PharmacyRepository:
         )
         self.session.add(movement)
         self.session.commit()
-
         return prod
 
     def update(self, medication_id: int, data: dict, current_user=None) -> Pharmacy:
-        """
-        Met à jour un produit existant. data peut contenir un sous-ensemble de :
-          - drug_name, quantity, threshold, medication_type, dosage_mg, expiry_date, prescribed_by, name_dr
-        Si 'quantity' est modifié, on enregistre un mouvement correspondant.
-        """
         prod = self.get_by_id(medication_id)
         if not prod:
             raise ValueError(f"Aucun produit trouvé pour l'ID {medication_id}")
 
-        # 1) Si quantity change, on conserve l'ancienne valeur pour créer un mouvement
         old_qty = prod.quantity
         new_qty = data.get('quantity', old_qty)
 
-        # 2) Mise à jour des champs
+        # Mettre à jour tous les champs passés, y compris 'forme'
         for key, value in data.items():
             setattr(prod, key, value)
 
-        # 3) Recalcul du statut
         prod.update_stock_status()
-
-        # 4) Commit pour la mise à jour du produit
         self.session.commit()
 
-        # 5) Si quantity a changé, on ajoute un mouvement
         if new_qty != old_qty:
             diff = new_qty - old_qty
             movement = StockMovement(
                 medication_id = medication_id,
                 change_qty    = diff,
                 movement_type = 'update',
-                note          = f"Mise à jour manuelle par {current_user.username if current_user else 'système'}",
+                note          = f"Mise à jour par {current_user.username if current_user else 'système'}",
                 created_by    = current_user.username if current_user else 'système',
                 created_at    = datetime.utcnow()
             )
