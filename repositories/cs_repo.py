@@ -2,10 +2,13 @@
 from sqlalchemy.orm import Session
 from models.consultation_spirituelle import ConsultationSpirituel
 from datetime import datetime
+from sqlalchemy import desc
+#from models.consultation_spirituelle import ConsultationSpirituel
 
 class ConsultationSpirituelRepository:
     def __init__(self, session: Session):
         self.session = session
+        self.model = ConsultationSpirituel
 
     def list_all(self):
         return self.session.query(ConsultationSpirituel).all()
@@ -66,3 +69,12 @@ class ConsultationSpirituelRepository:
             self.session.delete(cs)
             self.session.commit()
         return cs
+    
+    def get_last_for_patient(self, patient_id: int):
+        return (
+            self.session
+                .query(self.model)
+                .filter(self.model.patient_id == patient_id)
+                .order_by(desc(self.model.date))
+                .first()
+        )

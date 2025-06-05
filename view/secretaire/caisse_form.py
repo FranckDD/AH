@@ -1,56 +1,84 @@
 import tkinter as tk
 import customtkinter as ctk
 from tkinter import ttk, messagebox
-from tkcalendar import DateEntry
 from datetime import datetime
-from typing import Optional
 from view.secretaire.transaction_view import AddItemDialog
+import traceback
 
-# --- Formulaire principal pour créer/éditer une transaction caisse ---
+
 class CaisseFormView(ctk.CTkToplevel):
-    def __init__(self, master, controller, patient_ctrl=None, pharmacy_ctrl=None, on_save=None, transaction=None, locale: str = "fr"):
+    def __init__(
+        self,
+        master,
+        controller,
+        patient_ctrl=None,
+        pharmacy_ctrl=None,
+        consultation_spirituel_ctrl=None,
+        medical_record_ctrl=None,
+        on_save=None,
+        transaction=None,
+        locale: str = "fr"
+    ):
         """
-        - controller    : instance de CaisseController, doit contenir un attribut `pharmacy_ctrl`
-        - patient_ctrl  : instance de PatientController (pour find_patient_by_code)
-        - on_save       : callback à exécuter après création/mise à jour réussie (p.ex. recharger la liste)
-        - transaction   : objet Transaction SQLAlchemy si on édite, sinon None pour création
-        - locale        : "fr" ou "en"
+        - master                       : fenêtre parente
+        - controller                   : instance de CaisseController
+        - patient_ctrl                 : instance de PatientController
+        - pharmacy_ctrl                : instance de PharmacyController
+        - consultation_spirituel_ctrl  : instance de ConsultationSpirituelController
+        - medical_record_ctrl          : instance de MedicalRecordController
+        - on_save                      : callback à exécuter après création/mise à jour
+        - transaction                  : objet Caisse SQLAlchemy si édition, sinon None
+        - locale                       : "fr" ou "en"
         """
         super().__init__(master)
-        self.controller   = controller
+        self.controller = controller
         self.patient_ctrl = patient_ctrl
         self.pharmacy_ctrl = pharmacy_ctrl
-        self.on_save      = on_save
-        self.transaction  = transaction
-        self.locale       = locale  # "fr" ou "en"
-        self.patient_id   = None    # chargé si on renseigne un code patient
-        self.items        = []      # liste locale des lignes (dict)
+        self.consultation_spirituel_ctrl = consultation_spirituel_ctrl
+        self.medical_record_ctrl = medical_record_ctrl
+        self.on_save = on_save
+        self.transaction = transaction
+        self.locale = locale
+        self.patient_id = None
+        self.items = []  # liste des lignes (dict)
 
         self._init_vars()
         self._build_ui()
 
-        # Si on édite : préremplir les champs
         if self.transaction:
             self._load_transaction_into_form()
 
         self.grab_set()
+        self.after(50, lambda: self.focus_force())
+
 
     def _init_vars(self):
-        # Variables communes
-        self.var_code       = ctk.StringVar(value="")
-        self.var_payment    = ctk.StringVar(value=("Espèces" if self.locale == "fr" else "Cash"))
-        self.var_type_trans = ctk.StringVar(value=("Consultation" if self.locale == "fr" else "Consultation"))
-        self.var_note       = tk.StringVar(value="")
-        # Date/heure par défaut = UTC now
-        self.var_date       = ctk.StringVar(value=datetime.utcnow().strftime("%Y-%m-%d %H:%M"))
-        # Montant total calculé dynamiquement
-        self.var_amount     = tk.StringVar(value="0.00")
+        # Code patient
+        self.var_code = ctk.StringVar(value="")
+
+        # Avance de paiement (nouveau champ)
+        self.var_advance_amount = tk.StringVar(value="0.00")
+
+        # 3 cases à cocher pour type de transaction
+        self.var_trans_consult = tk.BooleanVar(value=False)
+        self.var_trans_med = tk.BooleanVar(value=False)
+        self.var_trans_booklet = tk.BooleanVar(value=False)
+
+        # Mode paiement
+        self.var_payment = ctk.StringVar(value=("Espèces" if self.locale == "fr" else "Cash"))
+        # Note libre
+        self.var_note = tk.StringVar(value="")
+        # Date/heure (readonly)
+        self.var_date = ctk.StringVar(value=datetime.utcnow().strftime("%Y-%m-%d %H:%M"))
+        # Montant total des lignes (calcule dynamique)
+        self.var_amount = tk.StringVar(value="0.00")
+
 
     def _build_ui(self):
         pad_label = {"padx": 10, "pady": 5}
         pad_entry = {"padx": 10, "pady": 5}
 
-        # Titre de la fenêtre
+        # ——— Titre de la fenêtre ———
         title = {"fr": "Transaction Caisse", "en": "Cash Transaction"}[self.locale]
         if self.transaction:
             title += {"fr": " [Édition]", "en": " [Edit]"}[self.locale]
@@ -58,45 +86,92 @@ class CaisseFormView(ctk.CTkToplevel):
             title += {"fr": " [Nouveau]", "en": " [New]"}[self.locale]
         self.title(title)
 
-        # -- Cadre supérieur : Patient, Date, Type, Payment Method --
+        # ——— Cadre supérieur : Patient, Date, Avance, Type (3 cases), Payment Method ———
         frm_top = ctk.CTkFrame(self)
         frm_top.pack(fill="x", padx=10, pady=(10, 5))
 
-        # Patient code (optionnel)
-        ctk.CTkLabel(frm_top, text={"fr": "Code patient :", "en": "Patient code:"}[self.locale]) \
-            .grid(row=0, column=0, sticky="w", **pad_label)
-        ctk.CTkEntry(frm_top, textvariable=self.var_code).grid(row=0, column=1, **pad_entry)
+        # 1) Code patient (optionnel)
+        ctk.CTkLabel(
+            frm_top,
+            text={"fr": "Code patient :", "en": "Patient code:"}[self.locale]
+        ).grid(row=0, column=0, sticky="w", **pad_label)
+        ctk.CTkEntry(frm_top, textvariable=self.var_code).grid(
+            row=0, column=1, **pad_entry
+        )
         ctk.CTkButton(
             frm_top,
             text={"fr": "Charger", "en": "Load"}[self.locale],
             command=self._load_patient
         ).grid(row=0, column=2, **pad_entry)
 
-        # Date (readonly)
-        ctk.CTkLabel(frm_top, text={"fr": "Date/Heure :", "en": "Date/Time:"}[self.locale]) \
-            .grid(row=1, column=0, sticky="w", **pad_label)
-        ent_date = ctk.CTkEntry(frm_top, textvariable=self.var_date, state="disabled")
-        ent_date.grid(row=1, column=1, columnspan=2, sticky="ew", **pad_entry)
-
-        # --- Type de transaction (Consultation / Vente Médicament / Vente Carnet) ---
-        ctk.CTkLabel(frm_top, text={"fr": "Type transac. :", "en": "Trans. type:"}[self.locale]) \
-            .grid(row=2, column=0, sticky="w", **pad_label)
-        cb_type = ctk.CTkComboBox(
+        # Label supplémentaire pour afficher nom et dernière consultation
+        self.lbl_patient_info = ctk.CTkLabel(
             frm_top,
-            variable=self.var_type_trans,
-            values=(
-                ["Consultation", "Vente Médicament", "Vente Carnet"]
-                if self.locale == "fr"
-                else ["Consultation", "Sale Medication", "Sale Booklet"]
-            ),
-            width=200
+            text="",
+            justify="left"
         )
-        cb_type.grid(row=2, column=1, columnspan=2, sticky="ew", **pad_entry)
+        self.lbl_patient_info.grid(row=1, column=0, columnspan=3, sticky="w", padx=10, pady=(0, 5))
 
-        # --- Mode de paiement (ajout "Orange Money", "MTN Money") ---
-        ctk.CTkLabel(frm_top, text={"fr": "Mode paiement :", "en": "Payment method:"}[self.locale]) \
-            .grid(row=3, column=0, sticky="w", **pad_label)
-        cb_pay = ctk.CTkComboBox(
+        # 2) Date/Heure (readonly)
+        ctk.CTkLabel(
+            frm_top,
+            text={"fr": "Date/Heure :", "en": "Date/Time:"}[self.locale]
+        ).grid(row=2, column=0, sticky="w", **pad_label)
+        ent_date = ctk.CTkEntry(
+            frm_top,
+            textvariable=self.var_date,
+            state="disabled"
+        )
+        ent_date.grid(row=2, column=1, columnspan=2, sticky="ew", **pad_entry)
+
+        # 3) Montant avance (optionnel)
+        ctk.CTkLabel(
+            frm_top,
+            text={"fr": "Avance (€) :", "en": "Advance (€):"}[self.locale]
+        ).grid(row=3, column=0, sticky="w", **pad_label)
+        ent_advance = ctk.CTkEntry(
+            frm_top,
+            textvariable=self.var_advance_amount
+        )
+        ent_advance.grid(row=3, column=1, columnspan=2, sticky="ew", **pad_entry)
+
+        # 4) “Type de transaction” en 3 cases
+        ctk.CTkLabel(
+            frm_top,
+            text={"fr": "Type transac. :", "en": "Trans. type:"}[self.locale]
+        ).grid(row=4, column=0, sticky="nw", **pad_label)
+
+        box_frame = ctk.CTkFrame(frm_top)
+        box_frame.grid(row=4, column=1, columnspan=2, sticky="w", **pad_entry)
+
+        ctk.CTkCheckBox(
+            box_frame,
+            text={"fr": "Consultation", "en": "Consultation"}[self.locale],
+            variable=self.var_trans_consult,
+            command=self._on_type_change
+        ).pack(side="left", padx=(0, 10))
+
+        ctk.CTkCheckBox(
+            box_frame,
+            text={"fr": "Vente Médicament", "en": "Sale Medication"}[self.locale],
+            variable=self.var_trans_med,
+            command=self._on_type_change
+        ).pack(side="left", padx=(0, 10))
+
+        ctk.CTkCheckBox(
+            box_frame,
+            text={"fr": "Vente Carnet", "en": "Sale Booklet"}[self.locale],
+            variable=self.var_trans_booklet,
+            command=self._on_type_change
+        ).pack(side="left")
+
+        # 5) Mode de paiement
+        ctk.CTkLabel(
+            frm_top,
+            text={"fr": "Mode paiement :", "en": "Payment method:"}[self.locale]
+        ).grid(row=5, column=0, sticky="w", **pad_label)
+
+        self.cb_pay = ctk.CTkComboBox(
             frm_top,
             variable=self.var_payment,
             values=(
@@ -106,9 +181,9 @@ class CaisseFormView(ctk.CTkToplevel):
             ),
             width=200
         )
-        cb_pay.grid(row=3, column=1, columnspan=2, sticky="ew", **pad_entry)
+        self.cb_pay.grid(row=5, column=1, columnspan=2, sticky="ew", **pad_entry)
 
-        # Note (facultative)
+        # 6) Note (facultative)
         ctk.CTkLabel(self, text={"fr": "Note :", "en": "Note:"}[self.locale]) \
             .pack(anchor="w", padx=10, pady=(10, 0))
         self.txt_note = ctk.CTkTextbox(self, height=60)
@@ -116,7 +191,7 @@ class CaisseFormView(ctk.CTkToplevel):
         if self.transaction and self.transaction.note:
             self.txt_note.insert("0.0", self.transaction.note)
 
-        # -- Cadre “Lignes” : tableau + boutons Ajouter/Supprimer --
+        # ——— Cadre “Lignes” : tableau + boutons Ajouter/Supprimer ———
         lbl_items = ctk.CTkLabel(self, text={"fr": "Lignes :", "en": "Lines:"}[self.locale])
         lbl_items.pack(anchor="w", padx=10, pady=(10, 0))
 
@@ -125,16 +200,16 @@ class CaisseFormView(ctk.CTkToplevel):
 
         cols = ("Type", "Réf. ID", "Quantité", "Prix unitaire", "Total", "Note")
         self.tree_items = ttk.Treeview(frm_items, columns=cols, show="headings", height=5)
-        for c in cols:
-            self.tree_items.heading(c, text=c, anchor="center")
-            self.tree_items.column(c, anchor="center", width=100)
+        for c_ in cols:
+            self.tree_items.heading(c_, text=c_, anchor="center")
+            self.tree_items.column(c_, anchor="center", width=100)
         self.tree_items.pack(side="left", fill="both", expand=True)
 
         scrollbar = ttk.Scrollbar(frm_items, orient="vertical", command=self.tree_items.yview)
         self.tree_items.configure(yscrollcommand=scrollbar.set)
         scrollbar.pack(side="right", fill="y")
 
-        # Frame boutons ligne
+        # Boutons Ajouter/Supprimer ligne
         btn_frame = ctk.CTkFrame(self)
         btn_frame.pack(fill="x", padx=10, pady=(5, 10))
         ctk.CTkButton(
@@ -149,16 +224,18 @@ class CaisseFormView(ctk.CTkToplevel):
             fg_color="#D32F2F"
         ).pack(side="left")
 
-        # -- Montant total (readonly) --
+        # ——— Montant total (somme des lignes) ———
         frm_total = ctk.CTkFrame(self)
         frm_total.pack(fill="x", padx=10, pady=(0, 10))
-        ctk.CTkLabel(frm_total, text={"fr": "Montant total :", "en": "Total amount:"}[self.locale]) \
-            .grid(row=0, column=0, sticky="w", padx=10, pady=5)
+        ctk.CTkLabel(
+            frm_total,
+            text={"fr": "Montant total :", "en": "Total amount:"}[self.locale]
+        ).grid(row=0, column=0, sticky="w", padx=10, pady=5)
         ent_total = ctk.CTkEntry(frm_total, textvariable=self.var_amount, state="disabled")
         ent_total.grid(row=0, column=1, sticky="ew", padx=10, pady=5)
         frm_total.grid_columnconfigure(1, weight=1)
 
-        # -- Boutons Enregistrer / Annuler --
+        # ——— Boutons Enregistrer / Annuler ———
         action_frame = ctk.CTkFrame(self)
         action_frame.pack(pady=(0, 15))
         ctk.CTkButton(
@@ -173,33 +250,114 @@ class CaisseFormView(ctk.CTkToplevel):
             command=self.destroy
         ).pack(side="left", padx=10)
 
+
+    def _on_type_change(self):
+        # Méthode vide, mais obligatoire pour éviter l’erreur d’attribut manquant
+        pass
+
+
     def _load_patient(self):
+        """
+        Récupère le patient via patient_ctrl.find_by_code / get_by_id, et affiche 
+        nom + ID de la dernière consultation (spirituel ou médical) sous le bouton.
+        """
         code = self.var_code.get().strip()
         try:
-            patient = self.patient_ctrl.find_patient_by_code(code)
+            if hasattr(self.patient_ctrl, 'find_by_code'):
+                patient = self.patient_ctrl.find_by_code(code)
+            else:
+                patient = self.patient_ctrl.find_patient_by_code(code)
         except Exception:
             patient = None
 
         if not patient:
+            # Aucun patient trouvé : on vide le label et on affiche une erreur
+            self.lbl_patient_info.configure(text="")
             messagebox.showerror(
                 {"fr": "Erreur", "en": "Error"}[self.locale],
                 {"fr": "Patient introuvable.", "en": "Patient not found."}[self.locale]
             )
             return
 
+        # Récupération de l'ID patient
         pid = patient.get("patient_id") if isinstance(patient, dict) else patient.patient_id
         self.patient_id = pid
-        messagebox.showinfo(
-            {"fr": "OK", "en": "OK"}[self.locale],
-            {"fr": f"Patient chargé (ID={pid}).", "en": f"Patient loaded (ID={pid})."}[self.locale]
-        )
+
+        # Chargement complet du patient pour récupérer first_name/last_name
+        try:
+            full_patient = self.patient_ctrl.get_by_id(pid)
+        except Exception:
+            full_patient = patient
+
+        # Extraction du nom (first_name + last_name)
+        if isinstance(full_patient, dict):
+            patient_name = f"{full_patient.get('first_name','')} {full_patient.get('last_name','')}".strip()
+        else:
+            patient_name = (getattr(full_patient, 'first_name', '') + " " +
+                            getattr(full_patient, 'last_name', '')).strip()
+
+        # Récupérer la dernière consultation (spirituel OU médical) la plus récente
+        last_consult_id = "0"
+        last_consult_date = None
+
+        # 1) Consultation Spirituelle
+        if self.consultation_spirituel_ctrl:
+            try:
+                cs = self.consultation_spirituel_ctrl.get_last_for_patient(pid)
+                if cs:
+                    last_consult_id = cs.consultation_id
+                    last_consult_date = cs.date
+            except Exception:
+                last_consult_id = "0"
+
+        # 2) Consultation Médicale
+        if self.medical_record_ctrl:
+            try:
+                mr = self.medical_record_ctrl.get_last_for_patient(pid)
+                if mr:
+                    # Si aucune date précédente ou date médicale plus récente
+                    if last_consult_date is None or (mr.date and mr.date > last_consult_date):
+                        last_consult_id = mr.consultation_id
+                        last_consult_date = mr.date
+            except Exception:
+                last_consult_id = "0"
+
+        # Mise à jour du label sous le bouton “Charger”
+        if self.locale == 'fr':
+            info_text = f"Nom patient : {patient_name}    |    Dernière consultation : {last_consult_id}"
+        else:
+            info_text = f"Patient name: {patient_name}    |    Last consult ID: {last_consult_id}"
+        self.lbl_patient_info.configure(text=info_text)
+
 
     def _add_line(self):
         """
-        Ouvre le AddItemDialog en lui passant `pharmacy_ctrl` (depuis self.controller.pharmacy_ctrl).
+        Ouvre AddItemDialog en lui passant la liste des types cochés,
+        + patient_id pour préremplir la consultation.
         """
+        allowed = []
+        if self.var_trans_consult.get():
+            # Si l’utilisateur coche “Consultation”, on propose les deux sous‐types
+            if self.locale == 'fr':
+                allowed.append('Consultation Spirituel')
+                allowed.append('Consultation Médical')
+            else:
+                allowed.append('Spiritual Consultation')
+                allowed.append('Medical Consultation')
+        if self.var_trans_med.get():
+            allowed.append('Médicament' if self.locale == 'fr' else 'Medication')
+        if self.var_trans_booklet.get():
+            allowed.append('Carnet' if self.locale == 'fr' else 'Booklet')
+
+        if not allowed:
+            messagebox.showerror(
+                {"fr": "Erreur", "en": "Error"}[self.locale],
+                {"fr": "Cochez au moins un type de transaction avant d’ajouter une ligne.",
+                 "en": "Please check at least one transaction type before adding a line."}[self.locale]
+            )
+            return
+
         def on_item_confirm(item_dict):
-            # Ajoute la ligne à self.items, rafraîchit Treeview et total
             self.items.append(item_dict)
             self._refresh_items()
             self._update_total()
@@ -208,8 +366,14 @@ class CaisseFormView(ctk.CTkToplevel):
             master=self,
             on_confirm=on_item_confirm,
             pharmacy_ctrl=self.pharmacy_ctrl,
+            patient_ctrl=self.patient_ctrl,
+            consultation_spirituel_ctrl=self.consultation_spirituel_ctrl,
+            medical_record_ctrl=self.medical_record_ctrl,
+            allowed_types=allowed,
+            patient_id=self.patient_id,
             locale=self.locale
         )
+
 
     def _remove_selected_line(self):
         sel = self.tree_items.selection()
@@ -220,11 +384,12 @@ class CaisseFormView(ctk.CTkToplevel):
         self._refresh_items()
         self._update_total()
 
+
     def _refresh_items(self):
         # Vide le Treeview
         for iid in self.tree_items.get_children():
             self.tree_items.delete(iid)
-        # Remplit chaque ligne et crée un tag = index
+        # Remplit chaque ligne
         for idx, item in enumerate(self.items):
             vals = (
                 item["item_type"],
@@ -236,34 +401,87 @@ class CaisseFormView(ctk.CTkToplevel):
             )
             self.tree_items.insert("", "end", iid=str(idx), values=vals)
 
+
     def _update_total(self):
         total = sum(item["line_total"] for item in self.items)
         self.var_amount.set(f"{total:.2f}")
 
+
     def _load_transaction_into_form(self):
         """
-        Préremplit les champs d'une transaction existante.
+        Préremplit les champs d'une transaction existante (en mode Édition) :
+         - Charge le patient + affiche nom et dernière consultation.
+         - Charge date/heure, avance, note, paiement, types cochés.
+         - Charge les lignes existantes dans le Treeview.
         """
         tx = self.transaction
-        # 1) Code patient
+
+        # 1) Code patient + affichage nom + dernière consultation
         if tx.patient_id:
-            patient = self.controller.get_patient(tx.patient_id)
-            if patient:
-                code = getattr(patient, "code_patient", "")
-                self.var_code.set(code)
-                self.patient_id = tx.patient_id
+            try:
+                patient = self.patient_ctrl.get_by_id(tx.patient_id)
+            except Exception:
+                patient = None
+
+            code = patient.get('code_patient') if isinstance(patient, dict) else getattr(patient, 'code_patient', '')
+            self.var_code.set(code)
+            self.patient_id = tx.patient_id
+
+            # Nom patient
+            if isinstance(patient, dict):
+                patient_name = f"{patient.get('first_name','')} {patient.get('last_name','')}".strip()
+            else:
+                patient_name = (getattr(patient, 'first_name', '') + " " +
+                                getattr(patient, 'last_name', '')).strip()
+
+            # Récupérer dernière consultation globale
+            last_consult_id = "0"
+            last_consult_date = None
+
+            if self.consultation_spirituel_ctrl:
+                try:
+                    cs = self.consultation_spirituel_ctrl.get_last_for_patient(tx.patient_id)
+                    if cs:
+                        last_consult_id = cs.consultation_id
+                        last_consult_date = cs.date
+                except Exception:
+                    last_consult_id = "0"
+
+            if self.medical_record_ctrl:
+                try:
+                    mr = self.medical_record_ctrl.get_last_for_patient(tx.patient_id)
+                    if mr:
+                        if last_consult_date is None or (mr.date and mr.date > last_consult_date):
+                            last_consult_id = mr.consultation_id
+                            last_consult_date = mr.date
+                except Exception:
+                    last_consult_id = "0"
+
+            if self.locale == 'fr':
+                info_text = f"Nom patient : {patient_name}    |    Dernière consultation : {last_consult_id}"
+            else:
+                info_text = f"Patient name: {patient_name}    |    Last consult ID: {last_consult_id}"
+            self.lbl_patient_info.configure(text=info_text)
 
         # 2) Date/heure
         self.var_date.set(tx.paid_at.strftime("%Y-%m-%d %H:%M"))
 
-        # 3) Mode paiement, type transac, note
+        # 3) Avance, Note, Mode paiement
+        if hasattr(tx, "advance_amount"):
+            self.var_advance_amount.set(f"{float(tx.advance_amount):.2f}")
         self.var_payment.set(tx.payment_method or "")
-        self.var_type_trans.set(tx.transaction_type or "")
         if tx.note:
             self.txt_note.delete("0.0", "end")
             self.txt_note.insert("0.0", tx.note)
 
-        # 4) Lignes existantes
+        # 4) Type de transaction (cochage des cases)
+        if tx.transaction_type:
+            parts = [p.strip() for p in tx.transaction_type.split(",")]
+            self.var_trans_consult.set("Consultation" in parts)
+            self.var_trans_med.set(("Vente Médicament" in parts) or ("Sale Medication" in parts))
+            self.var_trans_booklet.set(("Vente Carnet" in parts) or ("Sale Booklet" in parts))
+
+        # 5) Chargement des lignes existantes
         for item in tx.items:
             line = {
                 "item_type":   item.item_type,
@@ -278,17 +496,58 @@ class CaisseFormView(ctk.CTkToplevel):
         self._refresh_items()
         self._update_total()
 
-    def _on_save(self):
-        # 1) Conversion / validations de base
-        data = {}
-        data["patient_id"]      = self.patient_id  # peut être None
-        data["payment_method"]  = self.var_payment.get().strip()
-        data["transaction_type"]= self.var_type_trans.get().strip()
-        data["note"]            = self.txt_note.get("0.0", "end").strip() or None
-        data["paid_at"]         = datetime.strptime(self.var_date.get(), "%Y-%m-%d %H:%M")
-        data["amount"]          = float(self.var_amount.get())
 
-        # 2) Vérifier qu'il y a au moins une ligne
+    def _on_save(self):
+        """
+        Construction du dict `data` puis appel à `create_transaction` ou `update_transaction`.
+        En cas d’erreur SQL, affichage de la trace dans la console et d’un pop‐up.
+        """
+        data = {}
+
+        # a) Transaction types concaténés
+        types_sel = []
+        if self.var_trans_consult.get():
+            types_sel.append("Consultation")
+        if self.var_trans_med.get():
+            types_sel.append("Vente Médicament" if self.locale == "fr" else "Sale Medication")
+        if self.var_trans_booklet.get():
+            types_sel.append("Vente Carnet" if self.locale == "fr" else "Sale Booklet")
+        if not types_sel:
+            messagebox.showerror(
+                {"fr": "Erreur", "en": "Error"}[self.locale],
+                {"fr": "Sélectionnez au moins un type de transaction.",
+                 "en": "Select at least one transaction type."}[self.locale]
+            )
+            return
+        data["transaction_type"] = ", ".join(types_sel)
+
+        # b) Patient (optionnel, mais si avance > 0, alors obligatoire)
+        advance_val = 0.0
+        try:
+            advance_val = float(self.var_advance_amount.get())
+        except ValueError:
+            messagebox.showerror(
+                {"fr": "Erreur", "en": "Error"}[self.locale],
+                {"fr": "Montant avance invalide.", "en": "Invalid advance amount."}[self.locale]
+            )
+            return
+
+        if advance_val > 0 and not self.patient_id:
+            messagebox.showerror(
+                {"fr": "Erreur", "en": "Error"}[self.locale],
+                {"fr": "Vous devez renseigner un code patient si vous faites une avance.",
+                 "en": "You must provide a patient code if there is an advance."}[self.locale]
+            )
+            return
+
+        data["advance_amount"] = advance_val
+        data["patient_id"] = self.patient_id
+        data["payment_method"] = self.var_payment.get().strip()
+        data["note"] = self.txt_note.get("0.0", "end").strip() or None
+        data["paid_at"] = datetime.strptime(self.var_date.get(), "%Y-%m-%d %H:%M")
+        data["amount"] = float(self.var_amount.get())
+
+        # c) Vérifier qu'il y a au moins une ligne
         if not self.items:
             messagebox.showerror(
                 {"fr": "Erreur", "en": "Error"}[self.locale],
@@ -300,26 +559,31 @@ class CaisseFormView(ctk.CTkToplevel):
 
         try:
             if self.transaction:
-                # Édition
                 self.controller.update_transaction(self.transaction.transaction_id, data)
                 messagebox.showinfo(
                     {"fr": "Succès", "en": "Success"}[self.locale],
                     {"fr": "Transaction mise à jour.", "en": "Transaction updated."}[self.locale]
                 )
             else:
-                # Création
                 self.controller.create_transaction(data)
                 messagebox.showinfo(
                     {"fr": "Succès", "en": "Success"}[self.locale],
                     {"fr": "Transaction enregistrée.", "en": "Transaction saved."}[self.locale]
                 )
+
+            if self.on_save:
+                self.on_save()
+            self.destroy()
+
         except Exception as e:
+            # Affiche la trace complète en console
+            print("=== Exception levée lors de la sauvegarde de la transaction ===")
+            traceback.print_exc()
+            print("=== Fin de la trace d'exception ===\n")
+
+            # Montre un message d’erreur
             messagebox.showerror(
                 {"fr": "Erreur", "en": "Error"}[self.locale],
                 str(e)
             )
             return
-
-        if self.on_save:
-            self.on_save()
-        self.destroy()

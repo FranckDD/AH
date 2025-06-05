@@ -44,4 +44,7 @@ class MedicalRecordController:
     def get_by_day(self, target_date: date) -> list:
         return self.repo.find_by_date_range(target_date, target_date)
     
+    def get_last_for_patient(self, patient_id: int):
+        return self.repo.get_last_for_patient(patient_id)
+    
     

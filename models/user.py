@@ -30,6 +30,18 @@ class User(Base):
         "MedicalSpecialty",
         back_populates="doctors"
     )
+    retraits = relationship(
+        "CaisseRetrait",
+        back_populates="user",
+        foreign_keys="[CaisseRetrait.handled_by]"
+    )
+
+    # Retraits qu'il a annulés
+    cancelled_retraits = relationship(
+        "CaisseRetrait",
+        back_populates="cancelled_by_user",
+        foreign_keys="[CaisseRetrait.cancelled_by]"
+    )
 
     def set_password(self, password):
         """Hash le mot de passe avec CryptContext"""

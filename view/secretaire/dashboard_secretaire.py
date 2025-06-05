@@ -25,12 +25,15 @@ class SecretaireDashboardView(ctk.CTkFrame):
         self.sidebar_expanded = True
         self.active_menu_btn = None
 
+        self.locale = "fr"
+
         # controllers
         self.patient_ctrl = controllers.patient_controller
         self.cs_ctrl = controllers.consultation_spirituel_controller
         self.stock_ctrl = controllers.stock_controller
         self.tx_ctrl = controllers.caisse_controller
         self.pharmacy_ctrl = controllers.pharmacy_controller
+        self.caisse_retrait_ctrl = controllers.caisse_retrait_controller
         
 
         # grid config
@@ -284,5 +287,12 @@ class SecretaireDashboardView(ctk.CTkFrame):
 
     def show_tx_list(self):
         self._set_active_menu(self.btn_tx_list)
-        view = CaisseListView(self.content, controller=self.tx_ctrl)
+        view = CaisseListView(
+           parent=self.content,
+           controller=self.tx_ctrl,
+           patient_ctrl=self.patient_ctrl,
+           pharmacy_ctrl=self.pharmacy_ctrl,
+           caisse_retrait_controller=self.caisse_retrait_ctrl,
+           locale=self.locale
+       )
         view.pack(fill="both", expand=True)

@@ -17,6 +17,8 @@ from repositories.pharmacy_repo import PharmacyRepository
 from controller.pharmacy_controller import PharmacyController
 from repositories.caisse_repo import CaisseRepository
 from controller.caisse_controller import CaisseController
+from repositories.caisse_retrait_repo import CaisseRetraitRepository
+from controller.caisse_retrait_controller import CaisseRetraitController
 from models.database import DatabaseManager
 
 
@@ -89,11 +91,17 @@ class AuthController:
                 pharm_repo,
                 self.current_user
             )
+            caisse_retrait_repo = CaisseRetraitRepository(self.session)
+            self.caisse_retrait_controller = CaisseRetraitController(
+                repo=caisse_retrait_repo,
+                current_user=self.current_user
+            )
 
             self.stock_controller = self.pharmacy_controller
 
             caisse_repo = CaisseRepository(self.session)
             self.caisse_controller = CaisseController(caisse_repo, self.current_user)
+
 
             return user
 

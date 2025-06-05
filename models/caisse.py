@@ -20,11 +20,13 @@ class Caisse(Base):
     transaction_id = Column(Integer, primary_key=True, autoincrement=True)
     patient_id = Column(Integer, ForeignKey("patients.patient_id"), nullable=True)
     amount = Column(Numeric(10, 2), nullable=False)
+    advance_amount    = Column(Numeric(10,2), nullable=False, default=0)
     paid_at = Column(DateTime, nullable=False, default=datetime.utcnow)
     created_by_name = Column(String(100), nullable=False)
     handled_by = Column(Integer, ForeignKey("users.user_id"), nullable=False)
     payment_method = Column(String(50), nullable=False)    # ex. 'Espèces', 'Carte', 'Chèque', etc.
     transaction_type = Column(String(50), nullable=False)  # ex. 'Consultation', 'Vente Médicament', etc.
+    patient_label     = Column(String(100), nullable=True)
     note = Column(Text, nullable=True)
     status          = Column(String, nullable=False, default='active')
 

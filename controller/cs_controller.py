@@ -44,4 +44,6 @@ class ConsultationSpirituelController:
             raise ValueError(f"Impossible de mettre à jour : la consultation {cs_id} n'existe pas.")
         return self.repo.update(cs_id, data)
     
+    def get_last_for_patient(self, patient_id: int):
+        return self.repo.get_last_for_patient(patient_id)
     

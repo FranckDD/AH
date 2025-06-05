@@ -1,4 +1,4 @@
-from sqlalchemy import text, func
+from sqlalchemy import text, func, desc
 from models.database import DatabaseManager
 from sqlalchemy.orm import Session
 from models.medical_record import MedicalRecord
@@ -9,6 +9,7 @@ from typing import List
 class MedicalRecordRepository:
     def __init__(self, session: Session):
         self.session = session
+        self.model = MedicalRecord
 
 
     def list_records(self, patient_id=None, page=1, per_page=20):
@@ -85,4 +86,18 @@ class MedicalRecordRepository:
                 .filter(func.date(MedicalRecord.consultation_date) >= start_date)
                 .filter(func.date(MedicalRecord.consultation_date) <= end_date)
                 .all()
+        )
+    
+
+    def get_last_for_patient(self, patient_id: int):
+        """
+        Renvoie le dernier MedicalRecord (par date décroissante) pour ce patient,
+        ou None s’il n’y en a pas.
+        """
+        return (
+            self.session
+                .query(self.model)
+                .filter(self.model.patient_id == patient_id)
+                .order_by(desc(self.model.date))
+                .first()
         )
