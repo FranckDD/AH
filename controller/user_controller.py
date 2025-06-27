@@ -70,3 +70,6 @@ class UserController:
     def list_specialties(self):
      
         return self.role_repo.list_specialties()
+    
+    def delete_user(self, user_id: int) -> bool:
+        return self.user_repo.delete_user(user_id)

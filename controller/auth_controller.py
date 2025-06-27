@@ -19,13 +19,19 @@ from repositories.caisse_repo import CaisseRepository
 from controller.caisse_controller import CaisseController
 from repositories.caisse_retrait_repo import CaisseRetraitRepository
 from controller.caisse_retrait_controller import CaisseRetraitController
+from repositories.lab_repo import LabRepository
+from controller.lab_controller import LabController
 from models.database import DatabaseManager
 
 
 class AuthController:
-    def __init__(self):
-        self.db = DatabaseManager("postgresql://postgres:Admin_2025@localhost/AH2")
-        self.session = self.db.get_session()
+    def __init__(self, db_session=None):
+        # Utilise la session passée par FastAPI ou crée la sienne
+        if db_session:
+            self.session = db_session
+        else:
+            self.db = DatabaseManager("postgresql://postgres:Admin_2025@localhost/AH2")
+            self.session = self.db.get_session()
 
         # 2) Passe la session à TOUS tes repositories
         self.user_repo = UserRepository(self.session)
@@ -37,6 +43,7 @@ class AuthController:
         self.cs_repo = ConsultationSpirituelRepository(self.session)
         self.pharmacy_repo = PharmacyRepository(self.session)
         self.caisse_repo = CaisseRepository(self.session)
+        self.lab_repo = LabRepository(self.session)
 
 
     def authenticate(self, username: str, password: str):
@@ -96,11 +103,17 @@ class AuthController:
                 repo=caisse_retrait_repo,
                 current_user=self.current_user
             )
-
             self.stock_controller = self.pharmacy_controller
 
             caisse_repo = CaisseRepository(self.session)
             self.caisse_controller = CaisseController(caisse_repo, self.current_user)
+
+            self.lab_repo = LabRepository(self.session)
+            self.lab_controller = LabController(
+                repo=self.lab_repo,
+                current_user=self.current_user
+            )
+
 
 
             return user

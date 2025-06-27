@@ -56,4 +56,10 @@ class Patient(Base):
         back_populates='patient_by_id',
         cascade='all, delete-orphan'
     )
+    lab_results = relationship(
+        "LabResult",
+        back_populates="patient",
+        cascade="all, delete-orphan"
+    )
+    
 

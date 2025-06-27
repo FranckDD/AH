@@ -1,13 +1,13 @@
 # AH2
 git pour le projet de systeme de gestion hospitalier
 
-self.dashboard_frame = DashboardView(
-                parent     = self,
-                user       = user,
-                controller = self.controller,      # ← passez ici votre AuthController
-                on_logout  = self._on_logout
-            )
-            self.dashboard_frame.pack(expand=True, fill="both")
+def __init__(self, db_session=None):
+        # Utilise la session passée par FastAPI ou crée la sienne
+        if db_session:
+            self.session = db_session
+        else:
+            self.db = DatabaseManager("postgresql://postgres:Admin_2025@localhost/AH2")
+            self.session = self.db.get_session()
 
 Admin123!  admin_test
 

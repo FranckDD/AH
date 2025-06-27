@@ -1,6 +1,7 @@
 # repositories/user_repo.py
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import or_
+from sqlalchemy.exc import SQLAlchemyError
 from models.user import User   
 from models.application_role import ApplicationRole
 from models.medical_speciality import MedicalSpecialty
@@ -106,3 +107,21 @@ class UserRepository:
                 )
                 .all()
         )
+    
+    def delete_user(self, user_id: int) -> bool:
+        """
+        Supprime l'utilisateur dont l'ID est user_id.
+        Renvoie True si la suppression a réussi, False si l'utilisateur n'existait pas.
+        """
+        user = self.session.get(User, user_id)
+        if not user:
+            return False
+
+        try:
+            self.session.delete(user)
+            self.session.commit()
+            return True
+        except SQLAlchemyError:
+            self.session.rollback()
+            logging.exception(f"Erreur suppression de l'utilisateur {user_id}")
+            raise

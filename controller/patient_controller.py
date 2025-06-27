@@ -84,3 +84,5 @@ class PatientController:
         else:
             # Recherche par code, normalisation incluse dans find_by_code
             return self.repo.find_by_code(q)
+        
+        
