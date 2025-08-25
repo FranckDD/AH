@@ -241,7 +241,7 @@ class PatientRepository:
     def patients_for_day(self, doctor_id: int, target_date: date) -> List:
         """
         Retourne la liste (distincte) des patients qui ont un RDV pour ce doctor_id à target_date.
-        Renvoie des objets Patient ORM (ou dict selon ta convention).
+        Renvoie des objets Patient ORM (ou dict selon ta convention).w
         """
         q = (
             self.session.query(Patient)
