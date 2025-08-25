@@ -1,3 +1,5 @@
+#prescription_views/prescription_form.py
+
 import tkinter as tk
 import customtkinter as ctk
 from tkcalendar import DateEntry
@@ -85,7 +87,7 @@ class PrescriptionFormView(ctk.CTkFrame):
             print(f"[DEBUG] Erreur find_patient: {e}")
             rec = None
         if not rec:
-            self.patient_name_var.set("❌ Code introuvable")
+            self.patient_name_var.set(" Code introuvable")
             self.patient_id = None
         else:
             if isinstance(rec, dict):

@@ -1,6 +1,7 @@
 # repositories/user_repo.py
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import or_
+from sqlalchemy.exc import SQLAlchemyError
 from models.user import User   
 from models.application_role import ApplicationRole
 from models.medical_speciality import MedicalSpecialty
@@ -59,36 +60,30 @@ class UserRepository:
         q = query.strip()
         filters = []
 
-        # 1) Si c'est un entier, recherche par user_id
         if q.isdigit():
             filters.append(User.user_id == int(q))
 
-        # 2) Recherche textuelle (ILIKE) sur username et full_name
         pattern = f"%{q}%"
         filters.extend([
             User.username.ilike(pattern),
             User.full_name.ilike(pattern),
         ])
-
-        # 3) Jointure sur application_role + filter sur role_name
         filters.append(ApplicationRole.role_name.ilike(pattern))
-
-        # 4) Jointure sur specialty + filter sur specialty.name
         filters.append(MedicalSpecialty.name.ilike(pattern))
 
         try:
-            # On fait la requête avec OR sur tous ces filtres
-            query = (
+            #  ici, on évite d’écraser `query`
+            user_query = (
                 self.session.query(User)
-                    .join(ApplicationRole, User.role_id == ApplicationRole.role_id)
-                    .join(MedicalSpecialty, User.specialty_id == MedicalSpecialty.specialty_id, isouter=True)
-                    .options(
-                        joinedload(User.application_role),
-                        joinedload(User.specialty)
-                    )
-                    .filter(or_(*filters))
+                .join(ApplicationRole, User.role_id == ApplicationRole.role_id)
+                .join(MedicalSpecialty, User.specialty_id == MedicalSpecialty.specialty_id, isouter=True)
+                .options(
+                    joinedload(User.application_role),
+                    joinedload(User.specialty)
+                )
+                .filter(or_(*filters))
             )
-            return query.all()
+            return user_query.all()
         except Exception:
             logging.exception(f"Erreur recherche users pour « {q} »")
             raise
@@ -106,3 +101,21 @@ class UserRepository:
                 )
                 .all()
         )
+    
+    def delete_user(self, user_id: int) -> bool:
+        """
+        Supprime l'utilisateur dont l'ID est user_id.
+        Renvoie True si la suppression a réussi, False si l'utilisateur n'existait pas.
+        """
+        user = self.session.get(User, user_id)
+        if not user:
+            return False
+
+        try:
+            self.session.delete(user)
+            self.session.commit()
+            return True
+        except SQLAlchemyError:
+            self.session.rollback()
+            logging.exception(f"Erreur suppression de l'utilisateur {user_id}")
+            raise

@@ -94,22 +94,21 @@ class AppointmentsBook(ctk.CTkToplevel):
 
     def _prefill_fields(self):
         appt = self.appointment
-        # Debug : imprime en console les valeurs
-        print(">>> _prefill_fields called with appointment:", appt)
-        print("    patient.code_patient:", appt.patient.code_patient)
-        print("    specialty:", appt.specialty)
-        print("    date:", appt.appointment_date)
-        print("    time:", appt.appointment_time)
-        print("    reason:", appt.reason)
+        if not appt:  # Si aucun rendez-vous n’est fourni
+            return
 
         # Maintenant on remplit
-        self.code_var.set(appt.patient.code_patient)
-        self.on_code_enter(None)
+        if appt.patient:
+            self.code_var.set(appt.patient.code_patient)
+            self.on_code_enter(None)
 
-        self.specialty_var.set(appt.specialty or "")
-        self.date_entry.set_date(appt.appointment_date)
-        self.time_entry.set(appt.appointment_time.strftime("%H:%M"))
-        self.reason_var.set(appt.reason or "")
+        self.specialty_var.set(getattr(appt, "specialty", "") or "")
+        if getattr(appt, "appointment_date", None):
+            self.date_entry.set_date(appt.appointment_date)
+        if getattr(appt, "appointment_time", None):
+            self.time_entry.set(appt.appointment_time.strftime("%H:%M"))
+        self.reason_var.set(getattr(appt, "reason", "") or "")
+
 
     def save_appointment(self):
         # si on n'a pas de patient_id, on bloque directement

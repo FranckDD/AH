@@ -22,7 +22,7 @@ class AppointmentsList(ctk.CTkFrame):
         ctk.CTkButton(ctrl, text="🔍", width=30, command=self.refresh).pack(side="left", padx=(0,10))
         self.status_filter = ctk.StringVar(value="Tous")
         ctk.CTkOptionMenu(ctrl, variable=self.status_filter,
-                          values=["Tous","pending","cancelled"], width=120,
+                          values=["Tous","pending","completed","cancelled"], width=120,
                           command=lambda _: self.refresh()).pack(side="left", padx=(0,10))
         self.date_filter = ttk.Combobox(ctrl, values=["Toutes","Aujourd'hui"],
                                         width=12, state="readonly")
@@ -50,6 +50,7 @@ class AppointmentsList(ctk.CTkFrame):
                   background=[("selected", "#338cff")],
                   foreground=[("selected", "white")])
         self.tree.tag_configure("pending",   background="#fffbea")
+        self.tree.tag_configure("completed", background="#e6ffec")  # vert clair
         self.tree.tag_configure("cancelled", background="#ffecec")
 
         # Actions & pagination
@@ -63,6 +64,10 @@ class AppointmentsList(ctk.CTkFrame):
                                          fg_color="grey", hover_color="#ffcccc",
                                          command=self.reject)
         self.btn_reject.pack(side="left", padx=5)
+        self.btn_complete = ctk.CTkButton(bottom, text="Compléter", state="disabled",
+                                  fg_color="grey", hover_color="#99ffcc",
+                                  command=self.complete)
+        self.btn_complete.pack(side="left", padx=5)
         self.btn_edit = ctk.CTkButton(bottom, text="Éditer", state="disabled",
                                        fg_color="grey", hover_color="#cce0ff",
                                        command=lambda: self.on_edit(self.selected_id))
@@ -101,7 +106,7 @@ class AppointmentsList(ctk.CTkFrame):
     def on_select(self, event=None):
         sel = self.tree.selection(); has=bool(sel)
         self.selected_id=int(sel[0]) if has else None
-        for btn in (self.btn_accept, self.btn_reject, self.btn_edit):
+        for btn in (self.btn_accept, self.btn_reject, self.btn_edit, self.btn_complete):
             btn.configure(state="normal" if has else "disabled")
 
     def accept(self):
@@ -113,6 +118,12 @@ class AppointmentsList(ctk.CTkFrame):
         if self.selected_id:
             self.controller.cancel_appointment(self.selected_id)
             self.refresh()
+
+    def complete(self):
+        if self.selected_id:
+            self.controller.complete_appointment(self.selected_id)
+            self.refresh()
+
 
     def prev_page(self):
         if self.page>1:

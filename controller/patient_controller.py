@@ -1,8 +1,10 @@
-# controllers/patient_controller.py
+# controller/patient_controller.py
 import logging
 from sqlalchemy import func
+from typing import Optional, Dict, Any
 from models.application_role import ApplicationRole
 from models.user import User
+from datetime import date, timedelta
 
 class PatientController:
     def __init__(self, repo, current_user):
@@ -46,11 +48,10 @@ class PatientController:
     def list_spiritual_patients(self):
         return self.repo.find_by_creator_role('secretaire')
     
-    def find_by_code(self, code: str) -> dict:
+    def find_by_code(self, code: str) -> Optional[Dict[str, Any]]:
         p = self.repo.find_by_code(code)
         if not p:
             return None
-        # selon votre design, renvoyez un dict ou un objet
         return {
             'patient_id':    p.patient_id,
             'code_patient':  p.code_patient,
@@ -65,22 +66,50 @@ class PatientController:
             'father_name':   p.father_name,
             'mother_name':   p.mother_name,
         }
-    
 
     def find_patient(self, query: str):
-        """
-        Si 'query' est composé uniquement de chiffres (isdigit()), on recherche par ID.
-        Sinon, on cherche par code (find_by_code), ce qui fera la normalisation (majuscule + 'AH2').
-        Renvoie un objet Patient ou None.
-        """
         if not query:
             return None
-
         q = query.strip()
         if q.isdigit():
-            # Recherche par ID
             pid = int(q)
             return self.repo.find_by_id(pid)
         else:
-            # Recherche par code, normalisation incluse dans find_by_code
             return self.repo.find_by_code(q)
+        
+
+    def patients_followed_by_doctor(self, doctor_id: Optional[int] = None, page=1, per_page=50):
+        d = doctor_id or getattr(self.user, 'user_id', None)
+        if d is None:
+            raise RuntimeError("Doctor id non disponible")
+        return self.repo.patients_followed_by_doctor(d, page=page, per_page=per_page)
+
+    def patients_by_consultation_type(self, doctor_id: Optional[int] = None, start: Optional[date]=None, end: Optional[date]=None):
+        d = doctor_id or getattr(self.user, 'user_id', None)
+        if d is None:
+            raise RuntimeError("Doctor id non disponible")
+        return self.repo.patients_by_consultation_type_for_doctor(d, start=start, end=end)
+    
+    def patients_for_day(self, target_date: date, doctor_id: Optional[int] = None):
+        d = doctor_id or getattr(self.user, 'user_id', None)
+        if d is None:
+            raise RuntimeError("doctor_id non disponible")
+        return self.repo.patients_for_day(d, target_date)
+    
+    
+    def count_registered(self, period: str = "day") -> int:
+        """
+        Retourne le nombre de patients enregistrés selon la période.
+        period: "day" pour aujourd'hui, "week" pour cette semaine
+        """
+        today = date.today()
+        
+        if period == "day":
+            return self.repo.count_by_creation_date(today)
+        elif period == "week":
+            start_week = today - timedelta(days=today.weekday())
+            end_week = start_week + timedelta(days=6)
+            return self.repo.count_by_creation_date_range(start_week, end_week)
+        else:
+            raise ValueError("Période non valide. Utilisez 'day' ou 'week'")
+

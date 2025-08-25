@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from models.medical_record import MedicalRecord
 from sqlalchemy.orm import joinedload
 from datetime import date, timedelta
-from typing import List
+from typing import Dict, List, Optional, Tuple
 
 class MedicalRecordRepository:
     def __init__(self, session: Session):
@@ -98,6 +98,76 @@ class MedicalRecordRepository:
             self.session
                 .query(self.model)
                 .filter(self.model.patient_id == patient_id)
-                .order_by(desc(self.model.date))
+                .order_by(desc(self.model.consultation_date))
                 .first()
         )
+    
+    #KPI Dashboard Medecin
+    
+    def count_records_for_doctor(self, doctor_id: int, start_date: Optional[date]=None, end_date: Optional[date]=None) -> int:
+        q = self.session.query(func.count(self.model.record_id)).filter(self.model.created_by == doctor_id)
+        if start_date:
+            q = q.filter(func.date(self.model.consultation_date) >= start_date)
+        if end_date:
+            q = q.filter(func.date(self.model.consultation_date) <= end_date)
+        return int(q.scalar() or 0)
+
+    def breakdown_by_motif_for_doctor(self, doctor_id: int, start_date: Optional[date]=None, end_date: Optional[date]=None) -> Dict[str,int]:
+        q = self.session.query(self.model.motif_code, func.count(self.model.record_id)).filter(self.model.created_by == doctor_id)
+        if start_date:
+            q = q.filter(self.model.consultation_date >= start_date)
+        if end_date:
+            q = q.filter(self.model.consultation_date <= end_date)
+        rows = q.group_by(self.model.motif_code).all()
+        return { (motif or "Non spécifié"): int(cnt) for motif, cnt in rows }
+
+    def latest_record_per_patient_for_doctor(self, doctor_id: int, limit: Optional[int]=None):
+        # utile si tu veux determiner consultation type par patient (version avancée)
+        subq = (
+            self.session.query(
+                self.model.patient_id,
+                func.max(self.model.consultation_date).label('max_date')
+            )
+            .filter(self.model.created_by == doctor_id)
+            .group_by(self.model.patient_id)
+        ).subquery('last_rec')
+
+        q = (
+            self.session.query(self.model)
+            .join(subq, (self.model.patient_id == subq.c.patient_id) & (self.model.consultation_date == subq.c.max_date))
+        )
+        if limit:
+            q = q.limit(limit)
+        return q.all()
+    
+    # medical_record_repo.py
+    def count_preconsultations(self, start_date: Optional[date] = None, end_date: Optional[date] = None) -> int:
+        if start_date is None:
+            start_date = date.today()
+        q = self.session.query(MedicalRecord)
+        if end_date:
+            q = q.filter(MedicalRecord.created_at >= start_date,
+                        MedicalRecord.created_at <= end_date)
+        else:
+            q = q.filter(MedicalRecord.created_at >= start_date)
+        return q.count()
+    
+    def count_by_consultation_date(self, consultation_date: date) -> int:
+        """Compte les consultations pour une date spécifique."""
+        return (
+            self.session.query(MedicalRecord)
+            .filter(func.date(MedicalRecord.consultation_date) == consultation_date)
+            .count()
+        )
+
+    def count_by_consultation_date_range(self, start_date: date, end_date: date) -> int:
+        """Compte les consultations dans une plage de dates."""
+        return (
+            self.session.query(MedicalRecord)
+            .filter(func.date(MedicalRecord.consultation_date) >= start_date)
+            .filter(func.date(MedicalRecord.consultation_date) <= end_date)
+            .count()
+        )
+
+    
+

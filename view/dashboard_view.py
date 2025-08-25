@@ -111,8 +111,8 @@ class DashboardView(ctk.CTkFrame):
         # Médecins
         self.docs_btn, self.docs_sub = make_section(2, "Médecins", [
             ("Dashboard Médecins", self.show_doctors_dashboard),
-            ("Liste Médecins", self.show_doctors_list),
-            ("Ajouter/Éditer Médecin", self.show_doctors_edit),
+           # ("Liste Médecins", self.show_doctors_list),
+           # ("Ajouter/Éditer Médecin", self.show_doctors_edit),
         ], self._toggle_docs_sub)
 
         # Patients
@@ -285,9 +285,15 @@ class DashboardView(ctk.CTkFrame):
     def show_doctors_dashboard(self):
         self._clear_content()
         self._set_active_menu(self.docs_btn)
-        DoctorsDashboardView(self.content).grid(sticky="nsew", padx=10, pady=10)
+        DoctorsDashboardView(
+            parent=self.content,
+            user=self.user,
+            controller=self.controller,
+            on_logout=self.on_logout
+        ).grid(sticky="nsew", padx=10, pady=10)
 
-    def show_doctors_list(self):
+
+    """def show_doctors_list(self):
         self._clear_content()
         self._set_active_menu(self.docs_btn)
         DoctorsListView(self.content).grid(sticky="nsew", padx=10, pady=10)
@@ -295,7 +301,7 @@ class DashboardView(ctk.CTkFrame):
     def show_doctors_edit(self):
         self._clear_content()
         self._set_active_menu(self.docs_btn)
-        DoctorsEditView(self.content).grid(sticky="nsew", padx=10, pady=10)
+        DoctorsEditView(self.content).grid(sticky="nsew", padx=10, pady=10)}"""
 
     # ——— Patients ———
 

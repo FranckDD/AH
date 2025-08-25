@@ -1,3 +1,4 @@
+#model user
 from passlib.context import CryptContext
 from sqlalchemy import Column, Integer, String, Boolean, ForeignKey
 from sqlalchemy.orm import relationship
@@ -47,6 +48,22 @@ class User(Base):
         """Hash le mot de passe avec CryptContext"""
         self.password_hash = pwd_context.hash(password)
 
-    def check_password(self, password):
-        """Vérifie le mot de passe avec CryptContext"""
-        return pwd_context.verify(password, self.password_hash)
+    def check_password(self, password: str) -> bool:
+        return pwd_context.verify(password, str(self.password_hash)) # type: ignore
+    
+    # Ajouter une propriété pour les permissions
+    @property
+    def roles(self) -> list[str]:
+        # Si on a explicitement défini _roles (ex: lors du decode du token), on le retourne.
+        if hasattr(self, "_roles") and self._roles is not None:
+            return self._roles
+        # Sinon, dériver depuis la relation application_role.role_name (si présente)
+        if self.application_role and getattr(self.application_role, "role_name", None):
+            from api_backend.app.security.role_map import normalize_role_name
+            canon = normalize_role_name(self.application_role.role_name)
+            return [canon] if canon else []
+        return []
+
+    @roles.setter
+    def roles(self, value: list[str]):
+        self._roles = value
