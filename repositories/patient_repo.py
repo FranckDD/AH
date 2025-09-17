@@ -9,7 +9,8 @@ from models.user import User
 from models.application_role import ApplicationRole
 from models.appointment import Appointment
 from models.medical_record import MedicalRecord
-from datetime import datetime, date, timedelta
+from datetime import datetime, date, timedelta,time
+from sqlalchemy.exc import SQLAlchemyError
 
 
 from typing import Optional, Tuple, Dict, Any, List
@@ -48,58 +49,114 @@ class PatientRepository:
         return code
 
     def create_patient(self, data: dict, current_user) -> Tuple[int, str]:
+        # Génère le code (ta fonction existante)
         code = self.generate_patient_code(
             birth_date  = data['birth_date'],
             last_name   = data['last_name'],
             first_name  = data['first_name'],
             mother_name = data.get('mother_name', '')
-            
         )
+
+        # Prépare la requête CALL avec affectation nommée (=>)
         sql = text("""
             CALL public.create_patient(
-                :code_patient, :first_name, :last_name, :birth_date,
-                :gender, :national_id, :contact_phone, :assurance, :residence,
-                :father_name, :mother_name, :created_by, :created_by_name,
-    :last_updated_by, :last_updated_by_name 
-                   ) """
-        )
+                p_code_patient         => :code_patient,
+                p_first_name           => :first_name,
+                p_last_name            => :last_name,
+                p_birth_date           => :birth_date,
+                p_gender               => :gender,
+                p_contact_phone        => :contact_phone,
+                p_residence            => :residence,
+                p_national_id          => :national_id,
+                p_assurance            => :assurance,
+                p_father_name          => :father_name,
+                p_mother_name          => :mother_name,
+                p_created_by           => :created_by,
+                p_created_by_name      => :created_by_name,
+                p_last_updated_by      => :last_updated_by,
+                p_last_updated_by_name => :last_updated_by_name
+            );
+        """)
+
+        # Normalize / fallback values
+        def _get(x, default=None):
+            v = data.get(x, default)
+            # Optionally convert empty strings to None
+            if isinstance(v, str) and v.strip() == "":
+                return None
+            return v
+
+        # ensure birth_date is a date object if possible (SQLAlchemy will adapt date objects)
+        bd = data.get("birth_date")
+        # (si bd est une str au format ISO, tu peux la parser ici, sinon laisse tel quel)
         params = {
-            'code_patient'  : code,
-            'first_name'    : data['first_name'],
-            'last_name'     : data['last_name'],
-            'birth_date'    : data['birth_date'],
-            'gender'        : data.get('gender'),
-            'contact_phone' : data.get('contact_phone'),
-            'residence'     : data.get('residence'),
-            'national_id'   : data.get('national_id'),
-            'assurance'     : data.get('assurance'),
-            'father_name'   : data.get('father_name'),
-            'mother_name'   : data.get('mother_name'),
-            'created_by'    : current_user.user_id,
-            'created_by_name': current_user.username,
-            'last_updated_by': current_user.user_id,
-            'last_updated_by_name':current_user.username
+            "code_patient": code,
+            "first_name": _get("first_name"),
+            "last_name": _get("last_name"),
+            "birth_date": bd,
+            "gender": _get("gender"),
+            "contact_phone": _get("contact_phone"),
+            "residence": _get("residence"),
+            "national_id": _get("national_id"),
+            "assurance": _get("assurance"),
+            "father_name": _get("father_name"),
+            "mother_name": _get("mother_name"),
+            "created_by": getattr(current_user, "user_id", None),
+            "created_by_name": getattr(current_user, "username", None),
+            "last_updated_by": getattr(current_user, "user_id", None),
+            "last_updated_by_name": getattr(current_user, "username", None),
         }
-        self.session.execute(sql, params)
-        new_id = self.session.execute(text("SELECT currval('patients_patient_id_seq')")).scalar_one()
-        self.session.commit()
-        return new_id, code
+
+        try:
+            # Exécute la procédure avec les binds nommés
+            self.session.execute(sql, params)
+
+            # Récupère l'id inséré : currval sur la même session fonctionne
+            new_id = self.session.execute(text("SELECT currval('patients_patient_id_seq')")).scalar_one()
+
+            # Commit
+            self.session.commit()
+            return new_id, code
+
+        except SQLAlchemyError as e:
+            # rollback sécurisé et lever l'exception pour remontée
+            try:
+                self.session.rollback()
+            except Exception:
+                pass
+            raise
 
     def update_patient(self, patient_id: int, data: dict, current_user) -> int:
         sql = text("""
             CALL public.update_patient(
-                :patient_id,
-                :first_name, :last_name, :birth_date, :gender,
-                :national_id, :contact_phone, :assurance, :residence,
-                :father_name, :mother_name,
-                :last_updated_by, :last_updated_by_name
+                p_patient_id           => :patient_id,
+                p_first_name           => :first_name,
+                p_last_name            => :last_name,
+                p_birth_date           => :birth_date,
+                p_gender               => :gender,
+                p_national_id          => :national_id,
+                p_contact_phone        => :contact_phone,
+                p_assurance            => :assurance,
+                p_residence            => :residence,
+                p_father_name          => :father_name,
+                p_mother_name          => :mother_name,
+                p_last_updated_by      => :last_updated_by,
+                p_last_updated_by_name => :last_updated_by_name
             )
         """)
 
-        # on reprend data (first_name, last_name, …) et on ajoute les deux clés
         params = {
-            **data,
             'patient_id'           : patient_id,
+            'first_name'           : data.get('first_name'),
+            'last_name'            : data.get('last_name'),
+            'birth_date'           : data.get('birth_date'),
+            'gender'               : data.get('gender'),
+            'national_id'          : data.get('national_id'),
+            'contact_phone'        : data.get('contact_phone'),
+            'assurance'            : data.get('assurance'),
+            'residence'            : data.get('residence'),
+            'father_name'          : data.get('father_name'),
+            'mother_name'          : data.get('mother_name'),
             'last_updated_by'      : current_user.user_id,
             'last_updated_by_name' : current_user.username
         }
@@ -107,6 +164,7 @@ class PatientRepository:
         self.session.execute(sql, params)
         self.session.commit()
         return patient_id
+
 
 
     def delete_patient(self, patient_id: int) -> bool:
@@ -188,6 +246,27 @@ class PatientRepository:
         Retourne le Patient dont patient_id == patient_id, ou None si inexistant.
         """
         return self.session.query(Patient).get(patient_id)
+    
+    def find_for_prescription(self, query: str):
+        """
+        Retourne l'objet patient (ORM object) ou None.
+        Si query est numérique, on recherche par id, sinon par code.
+        Cette méthode est un simple wrapper qui utilise les méthodes existantes
+        find_by_id / find_by_code (ou get_by_id / find_by_code selon naming).
+        """
+        if not query:
+            return None
+        q = query.strip()
+        try:
+            if q.isdigit():
+                pid = int(q)
+                # méthode existante pour récupérer par id
+                return self.get_by_id(pid)
+            # sinon recherche par code
+            return self.find_by_code(q)
+        except Exception:
+            # Ne pas remonter d'exception non gérée — le controller gérera
+            return None
     
     def patients_by_consultation_type(self, doctor_id: int):
         """
@@ -288,4 +367,55 @@ class PatientRepository:
             .filter(func.date(Patient.created_at) <= end_date)
             .count()
         )
+    
+    def _day_range(self, target_day: date) -> (datetime, datetime):
+        start = datetime.combine(target_day, time.min)
+        end = start + timedelta(days=1)
+        return start, end
+
+    def _get_creation_column(self):
+        """
+        Retourne l'attribut colonne pour la date de création (created_at, date_created, created_on).
+        """
+        for name in ("created_at", "date_created", "created_on"):
+            col = getattr(Patient, name, None)
+            if col is not None:
+                return col
+        return None
+
+    def find_by_creation_date_range(self,
+                                    start_date: datetime,
+                                    end_date: datetime,
+                                    doctor_id: Optional[int] = None,
+                                    page: Optional[int] = None,
+                                    per_page: Optional[int] = None) -> List[Patient]:
+        """
+        Retourne les patients dont la date de création est dans [start_date, end_date).
+        Si doctor_id est fourni, filtre sur Patient.created_by == doctor_id (si colonne présente).
+        """
+        created_col = self._get_creation_column()
+        if created_col is None:
+            raise RuntimeError("Patient model: aucune colonne de date de création trouvée (checked: created_at, date_created, created_on)")
+
+        q = self.session.query(Patient)
+
+        # Filtre plage
+        q = q.filter(created_col >= start_date, created_col < end_date)
+
+        # Si on a un filtre par créateur (created_by)
+        if doctor_id is not None and hasattr(Patient, "created_by"):
+            q = q.filter(getattr(Patient, "created_by") == doctor_id)
+
+        q = q.order_by(Patient.last_name.asc(), Patient.first_name.asc())
+
+        if page is not None and per_page is not None:
+            q = q.offset((int(page) - 1) * int(per_page)).limit(int(per_page))
+
+        return q.all()
+
+    
+    def get_new_patients_for_day(self, target_day: date, doctor_id: Optional[int] = None,
+                                 page: int = 1, per_page: int = 200) -> List[Patient]:
+        start, end = self._day_range(target_day)
+        return self.find_by_creation_date_range(start, end, doctor_id=doctor_id, page=page, per_page=per_page)
 

@@ -68,7 +68,7 @@ class AuthView(ctk.CTk):
             if not user:
                 raise ValueError("Identifiants incorrects")
             
-            #print(f"[Console] Rôle métier récupéré : {user.application_role.role_name}")
+            print(f"[Console] Rôle métier récupéré : {user.application_role.role_name}")
 
             # Importer et afficher DashboardView
             from view.dashboard_view import DashboardView

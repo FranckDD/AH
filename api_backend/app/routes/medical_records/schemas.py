@@ -1,6 +1,8 @@
 from pydantic import BaseModel, Field, field_validator, ValidationError
 from datetime import datetime
-from typing import Optional
+from typing import Generic, TypeVar, List, Optional
+
+
 
 # Pydantic v2: use model_config to accept ORM objects via attributes
 class MedicalRecordBase(BaseModel):
@@ -44,6 +46,15 @@ class MedicalRecordUpdate(BaseModel):
     consultation_date: Optional[datetime] = None
 
     model_config = {"from_attributes": True}
+
+T = TypeVar('T')
+
+class PaginatedResponse(BaseModel, Generic[T]):
+    data: List[T]
+    total: int
+    page: int
+    per_page: int
+    total_pages: int
 
 
 class MedicalRecordResponse(MedicalRecordBase):

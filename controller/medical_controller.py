@@ -11,9 +11,36 @@ class MedicalRecordController:
         self.user = current_user
         self.logger = logging.getLogger(__name__)
 
-    def list_records(self, patient_id=None, page=1, per_page=20):
+# medical_controller.py
+    def list_records(self, patient_id=None, page=1, per_page=20, 
+                    date_from=None, date_to=None, motif_code=None, 
+                    severity=None, search=None):
+        """
+        Liste les dossiers médicaux avec tous les filtres
+        """ 
         try:
-            return self.repo.list_records(patient_id=patient_id, page=page, per_page=per_page)
+            # Conversion des valeurs de gravité si nécessaire
+            severity_map = {"Faible": "low", "Moyen": "medium", "Élevé": "high"}
+            if severity in severity_map:
+                severity = severity_map[severity]
+                
+            print(f"DEBUG Controller - page: {page}, per_page: {per_page}, severity: {severity}")
+            
+            result = self.repo.list_records(
+                patient_id=patient_id,
+                page=page,
+                per_page=per_page,
+                date_from=date_from,
+                date_to=date_to,
+                motif_code=motif_code,
+                severity=severity,
+                search=search
+            )
+            
+            print(f"DEBUG Controller result - total: {result.get('total')}, data: {len(result.get('data', []))}")
+            
+            return result
+                
         except Exception as e:
             self.logger.error(f"Erreur list_records: {e}", exc_info=True)
             raise

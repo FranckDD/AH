@@ -1,6 +1,8 @@
 # models/patient.py
+import uuid
 from sqlalchemy import Column, Integer, String, Date, Text, Sequence, ForeignKey, TIMESTAMP
 from sqlalchemy.sql import func
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from .database import Base
 import models
@@ -26,6 +28,7 @@ class Patient(Base):
     last_updated_by = Column(Integer, ForeignKey('users.user_id'))
     last_updated_by_name = Column(String(100))
     last_updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
+    uuid = Column(UUID(as_uuid=True), unique=True, nullable=False, default=uuid.uuid4)
     prescriptions = relationship(
         "Prescription",
         back_populates="patient",

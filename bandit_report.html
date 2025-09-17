@@ -1,0 +1,4944 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+
+<meta charset="UTF-8">
+
+<title>
+    Bandit Report
+</title>
+
+<style>
+
+html * {
+    font-family: "Arial", sans-serif;
+}
+
+pre {
+    font-family: "Monaco", monospace;
+}
+
+.bordered-box {
+    border: 1px solid black;
+    padding-top:.5em;
+    padding-bottom:.5em;
+    padding-left:1em;
+}
+
+.metrics-box {
+    font-size: 1.1em;
+    line-height: 130%;
+}
+
+.metrics-title {
+    font-size: 1.5em;
+    font-weight: 500;
+    margin-bottom: .25em;
+}
+
+.issue-description {
+    font-size: 1.3em;
+    font-weight: 500;
+}
+
+.candidate-issues {
+    margin-left: 2em;
+    border-left: solid 1px; LightGray;
+    padding-left: 5%;
+    margin-top: .2em;
+    margin-bottom: .2em;
+}
+
+.issue-block {
+    border: 1px solid LightGray;
+    padding-left: .5em;
+    padding-top: .5em;
+    padding-bottom: .5em;
+    margin-bottom: .5em;
+}
+
+.issue-sev-high {
+    background-color: Pink;
+}
+
+.issue-sev-medium {
+    background-color: NavajoWhite;
+}
+
+.issue-sev-low {
+    background-color: LightCyan;
+}
+
+</style>
+</head>
+
+<body>
+
+<div id="metrics">
+    <div class="metrics-box bordered-box">
+        <div class="metrics-title">
+            Metrics:<br>
+        </div>
+        Total lines of code: <span id="loc">24452</span><br>
+        Total lines skipped (#nosec): <span id="nosec">0</span>
+    </div>
+</div>
+
+
+
+
+<br>
+<div id="results">
+    
+<div id="issue-0">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\api_backend\app\routes\appointment\appointment_endpoints.py" target="_blank">.\api_backend\app\routes\appointment\appointment_endpoints.py</a><br>
+    <b>Line number: </b>86<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+85	            return _date.fromisoformat(s)
+86	        except Exception:
+87	            pass
+88	        # try ISO datetime
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-1">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\api_backend\app\routes\appointment\appointment_endpoints.py" target="_blank">.\api_backend\app\routes\appointment\appointment_endpoints.py</a><br>
+    <b>Line number: </b>92<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+91	            return dt.date()
+92	        except Exception:
+93	            pass
+94	        # try common &quot;YYYY-MM-DD HH:MM:SS&quot;
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-2">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\api_backend\app\routes\appointment\appointment_endpoints.py" target="_blank">.\api_backend\app\routes\appointment\appointment_endpoints.py</a><br>
+    <b>Line number: </b>118<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+117	                return obj.to_dict()
+118	            except Exception:
+119	                pass
+120	        table = getattr(obj, &quot;__table__&quot;, None)
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-3">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\api_backend\app\routes\auth\auth_endpoints.py" target="_blank">.\api_backend\app\routes\auth\auth_endpoints.py</a><br>
+    <b>Line number: </b>37<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+36	            db.refresh(user, [&#x27;application_role&#x27;])
+37	    except Exception:
+38	        pass
+39	
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-4">
+<div class="issue-block issue-sev-low">
+    <b>hardcoded_password_string: </b> Possible hardcoded password: ''<br>
+    <b>Test ID:</b> B105<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>MEDIUM<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/259.html" target="_blank">CWE-259</a><br>
+    <b>File: </b><a href=".\api_backend\app\routes\auth\auth_endpoints.py" target="_blank">.\api_backend\app\routes\auth\auth_endpoints.py</a><br>
+    <b>Line number: </b>66<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b105_hardcoded_password_string.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b105_hardcoded_password_string.html</a><br>
+
+<div class="code">
+<pre>
+65	    # --- Guard checks pour satisfaire Pylance / sécurité ---
+66	    if not isinstance(JWT_SECRET, str) or JWT_SECRET == &quot;&quot;:
+67	        raise RuntimeError(&quot;JWT_SECRET must be set and be a string.&quot;)
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-5">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\api_backend\app\routes\auth\auth_endpoints.py" target="_blank">.\api_backend\app\routes\auth\auth_endpoints.py</a><br>
+    <b>Line number: </b>105<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+104	            db.refresh(user, [&#x27;application_role&#x27;])
+105	    except Exception:
+106	        # Ne pas échouer la requête juste pour un refresh ; on continuera avec ce qu&#x27;on a.
+107	        pass
+108	
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-6">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\api_backend\app\routes\cs\mapping.py" target="_blank">.\api_backend\app\routes\cs\mapping.py</a><br>
+    <b>Line number: </b>13<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+12	            return raw.model_dump().get(name)
+13	        except Exception:
+14	            pass
+15	    if hasattr(raw, name):
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-7">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\api_backend\app\routes\labo\lab_endpoints.py" target="_blank">.\api_backend\app\routes\labo\lab_endpoints.py</a><br>
+    <b>Line number: </b>94<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+93	            ctrl.repo.session.rollback()
+94	        except Exception:
+95	            pass
+96	        logger.exception(&quot;Unexpected error creating lab result&quot;)
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-8">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\api_backend\app\routes\medical_records\mapping.py" target="_blank">.\api_backend\app\routes\medical_records\mapping.py</a><br>
+    <b>Line number: </b>25<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+24	                d[col] = getattr(obj, col)
+25	            except Exception:
+26	                pass
+27	    return d
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-9">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\api_backend\app\routes\medical_records\mapping.py" target="_blank">.\api_backend\app\routes\medical_records\mapping.py</a><br>
+    <b>Line number: </b>59<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+58	            data[key] = float(v)
+59	        except Exception:
+60	            # la validation Pydantic renverra une erreur plus parlante
+61	            pass
+62	
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-10">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\api_backend\app\routes\prescription\mapping.py" target="_blank">.\api_backend\app\routes\prescription\mapping.py</a><br>
+    <b>Line number: </b>22<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+21	                d[attr] = getattr(obj, attr)
+22	            except Exception:
+23	                pass
+24	    return d
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-11">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\api_backend\app\routes\prescription\mapping.py" target="_blank">.\api_backend\app\routes\prescription\mapping.py</a><br>
+    <b>Line number: </b>53<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+52	            data[key] = str(v).strip()
+53	        except Exception:
+54	            pass
+55	
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-12">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\api_backend\app\utils\mapping_general.py" target="_blank">.\api_backend\app\utils\mapping_general.py</a><br>
+    <b>Line number: </b>19<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+18	            return raw.model_dump().get(name)
+19	        except Exception:
+20	            pass
+21	    if hasattr(raw, name):
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-13">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\controller\controller_offline\auth_controller_offline.py" target="_blank">.\controller\controller_offline\auth_controller_offline.py</a><br>
+    <b>Line number: </b>234<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+233	                    self.sqlite_manager.close()
+234	                except Exception:
+235	                    pass
+236	            if getattr(self, &quot;session&quot;, None) is not None:
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-14">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\controller\controller_offline\auth_controller_offline.py" target="_blank">.\controller\controller_offline\auth_controller_offline.py</a><br>
+    <b>Line number: </b>239<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+238	                    self.session.close()
+239	                except Exception:
+240	                    pass
+241	        except Exception:
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-15">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\main_test_auth.py" target="_blank">.\main_test_auth.py</a><br>
+    <b>Line number: </b>96<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+95	                        mgr.close()
+96	                    except Exception:
+97	                        pass
+98	        except Exception:
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-16">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\managers\auth_manager.py" target="_blank">.\managers\auth_manager.py</a><br>
+    <b>Line number: </b>27<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+26	            self.gateway.set_token(token)
+27	        except Exception:
+28	            pass
+29	        self.settings.setValue(&quot;token&quot;, token)
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-17">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\managers\auth_manager.py" target="_blank">.\managers\auth_manager.py</a><br>
+    <b>Line number: </b>50<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+49	            self.gateway.set_token(token)
+50	        except Exception:
+51	            pass
+52	
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-18">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\managers\auth_manager.py" target="_blank">.\managers\auth_manager.py</a><br>
+    <b>Line number: </b>65<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+64	            self.gateway.set_token(None)
+65	        except Exception:
+66	            pass
+67	        self.current_user = None
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-19">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\repositories\appointment_repo.py" target="_blank">.\repositories\appointment_repo.py</a><br>
+    <b>Line number: </b>41<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+40	                    data[&quot;appointment_date&quot;] = datetime.fromisoformat(data[&quot;appointment_date&quot;]).date()
+41	                except Exception:
+42	                    # ignore, DB may accept string or raise later
+43	                    pass
+44	
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-20">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\repositories\appointment_repo.py" target="_blank">.\repositories\appointment_repo.py</a><br>
+    <b>Line number: </b>50<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+49	                    data[&quot;appointment_time&quot;] = time(int(hh), int(mm))
+50	                except Exception:
+51	                    pass
+52	
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-21">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\repositories\lab_repo.py" target="_blank">.\repositories\lab_repo.py</a><br>
+    <b>Line number: </b>186<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+185	                    self.session.rollback()
+186	                except Exception:
+187	                    pass
+188	            raise
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-22">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\repositories\lab_repo.py" target="_blank">.\repositories\lab_repo.py</a><br>
+    <b>Line number: </b>348<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+347	                    self.session.rollback()
+348	                except Exception:
+349	                    pass
+350	            raise
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-23">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\repositories\patient_repo.py" target="_blank">.\repositories\patient_repo.py</a><br>
+    <b>Line number: </b>125<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+124	                self.session.rollback()
+125	            except Exception:
+126	                pass
+127	            raise
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-24">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\repositories\repo_offline\appointment_repo_offline.py" target="_blank">.\repositories\repo_offline\appointment_repo_offline.py</a><br>
+    <b>Line number: </b>77<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+76	                    return datetime.strptime(s, fmt).time()
+77	                except Exception:
+78	                    pass
+79	            try:
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-25">
+<div class="issue-block issue-sev-medium">
+    <b>hardcoded_sql_expressions: </b> Possible SQL injection vector through string-based query construction.<br>
+    <b>Test ID:</b> B608<br>
+    <b>Severity: </b>MEDIUM<br>
+    <b>Confidence: </b>LOW<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/89.html" target="_blank">CWE-89</a><br>
+    <b>File: </b><a href=".\repositories\repo_offline\appointment_repo_offline.py" target="_blank">.\repositories\repo_offline\appointment_repo_offline.py</a><br>
+    <b>Line number: </b>125<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b608_hardcoded_sql_expressions.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b608_hardcoded_sql_expressions.html</a><br>
+
+<div class="code">
+<pre>
+124	        user_col = self.user_col
+125	        sql = text(f&quot;&quot;&quot;
+126	            INSERT INTO appointments
+127	            (uuid, patient_id, {user_col}, specialty, appointment_date, appointment_time, reason, status, created_at, updated_at)
+128	            VALUES (:uuid, :patient_id, :{user_col}, :specialty, :appointment_date, :appointment_time, :reason, :status, :created_at, :updated_at)
+129	        &quot;&quot;&quot;)
+130	        params: Dict[str, Any] = {
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-26">
+<div class="issue-block issue-sev-medium">
+    <b>hardcoded_sql_expressions: </b> Possible SQL injection vector through string-based query construction.<br>
+    <b>Test ID:</b> B608<br>
+    <b>Severity: </b>MEDIUM<br>
+    <b>Confidence: </b>LOW<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/89.html" target="_blank">CWE-89</a><br>
+    <b>File: </b><a href=".\repositories\repo_offline\appointment_repo_offline.py" target="_blank">.\repositories\repo_offline\appointment_repo_offline.py</a><br>
+    <b>Line number: </b>187<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b608_hardcoded_sql_expressions.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b608_hardcoded_sql_expressions.html</a><br>
+
+<div class="code">
+<pre>
+186	            return False
+187	        sql = text(f&quot;UPDATE appointments SET {&#x27;, &#x27;.join(sets)}, updated_at = :updated_at WHERE appointment_id = :id&quot;)
+188	        try:
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-27">
+<div class="issue-block issue-sev-medium">
+    <b>hardcoded_sql_expressions: </b> Possible SQL injection vector through string-based query construction.<br>
+    <b>Test ID:</b> B608<br>
+    <b>Severity: </b>MEDIUM<br>
+    <b>Confidence: </b>LOW<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/89.html" target="_blank">CWE-89</a><br>
+    <b>File: </b><a href=".\repositories\repo_offline\appointment_repo_offline.py" target="_blank">.\repositories\repo_offline\appointment_repo_offline.py</a><br>
+    <b>Line number: </b>227<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b608_hardcoded_sql_expressions.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b608_hardcoded_sql_expressions.html</a><br>
+
+<div class="code">
+<pre>
+226	        user_col = self.user_col
+227	        sql = text(f&quot;&quot;&quot;
+228	            SELECT * FROM appointments
+229	            WHERE {user_col} = :doc AND date(appointment_date) &gt;= date(&#x27;now&#x27;)
+230	            ORDER BY appointment_date ASC
+231	            LIMIT :lim
+232	        &quot;&quot;&quot;)
+233	        rows = self.session.execute(sql, {&quot;doc&quot;: int(doctor_id), &quot;lim&quot;: int(limit)}).mappings().all()
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-28">
+<div class="issue-block issue-sev-medium">
+    <b>hardcoded_sql_expressions: </b> Possible SQL injection vector through string-based query construction.<br>
+    <b>Test ID:</b> B608<br>
+    <b>Severity: </b>MEDIUM<br>
+    <b>Confidence: </b>LOW<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/89.html" target="_blank">CWE-89</a><br>
+    <b>File: </b><a href=".\repositories\repo_offline\appointment_repo_offline.py" target="_blank">.\repositories\repo_offline\appointment_repo_offline.py</a><br>
+    <b>Line number: </b>250<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b608_hardcoded_sql_expressions.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b608_hardcoded_sql_expressions.html</a><br>
+
+<div class="code">
+<pre>
+249	            where += &quot; AND date(appointment_date) &lt;= :end&quot;
+250	        sql = text(f&quot;SELECT status, COUNT(*) AS cnt FROM appointments WHERE {where} GROUP BY status&quot;)
+251	        rows = self.session.execute(sql, params).mappings().all()
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-29">
+<div class="issue-block issue-sev-medium">
+    <b>hardcoded_sql_expressions: </b> Possible SQL injection vector through string-based query construction.<br>
+    <b>Test ID:</b> B608<br>
+    <b>Severity: </b>MEDIUM<br>
+    <b>Confidence: </b>LOW<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/89.html" target="_blank">CWE-89</a><br>
+    <b>File: </b><a href=".\repositories\repo_offline\appointment_repo_offline.py" target="_blank">.\repositories\repo_offline\appointment_repo_offline.py</a><br>
+    <b>Line number: </b>264<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b608_hardcoded_sql_expressions.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b608_hardcoded_sql_expressions.html</a><br>
+
+<div class="code">
+<pre>
+263	            where += &quot; AND date(appointment_date) &lt;= :end&quot;
+264	        sql = text(f&quot;&quot;&quot;
+265	            SELECT date(appointment_date) AS d, COUNT(*) AS cnt
+266	            FROM appointments WHERE {where}
+267	            GROUP BY d ORDER BY d
+268	        &quot;&quot;&quot;)
+269	        rows = self.session.execute(sql, params).mappings().all()
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-30">
+<div class="issue-block issue-sev-medium">
+    <b>hardcoded_sql_expressions: </b> Possible SQL injection vector through string-based query construction.<br>
+    <b>Test ID:</b> B608<br>
+    <b>Severity: </b>MEDIUM<br>
+    <b>Confidence: </b>LOW<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/89.html" target="_blank">CWE-89</a><br>
+    <b>File: </b><a href=".\repositories\repo_offline\appointment_repo_offline.py" target="_blank">.\repositories\repo_offline\appointment_repo_offline.py</a><br>
+    <b>Line number: </b>284<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b608_hardcoded_sql_expressions.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b608_hardcoded_sql_expressions.html</a><br>
+
+<div class="code">
+<pre>
+283	            where += &quot; AND date(appointment_date) &lt;= :end&quot;
+284	        sql = text(f&quot;SELECT COUNT(DISTINCT patient_id) AS cnt FROM appointments WHERE {where}&quot;)
+285	        row = self.session.execute(sql, params).mappings().first()
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-31">
+<div class="issue-block issue-sev-medium">
+    <b>hardcoded_sql_expressions: </b> Possible SQL injection vector through string-based query construction.<br>
+    <b>Test ID:</b> B608<br>
+    <b>Severity: </b>MEDIUM<br>
+    <b>Confidence: </b>LOW<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/89.html" target="_blank">CWE-89</a><br>
+    <b>File: </b><a href=".\repositories\repo_offline\appointment_repo_offline.py" target="_blank">.\repositories\repo_offline\appointment_repo_offline.py</a><br>
+    <b>Line number: </b>297<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b608_hardcoded_sql_expressions.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b608_hardcoded_sql_expressions.html</a><br>
+
+<div class="code">
+<pre>
+296	        params = {&quot;doc&quot;: int(doctor_id), &quot;start&quot;: self._to_iso_datetime(start_dt), &quot;end&quot;: self._to_iso_datetime(end_dt)}
+297	        sql = text(f&quot;&quot;&quot;
+298	            SELECT strftime(&#x27;%Y-%W&#x27;, appointment_date) AS week, COUNT(*) AS cnt
+299	            FROM appointments
+300	            WHERE {user_col} = :doc AND appointment_date BETWEEN :start AND :end
+301	            GROUP BY week
+302	            ORDER BY week
+303	        &quot;&quot;&quot;)
+304	        rows = self.session.execute(sql, params).mappings().all()
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-32">
+<div class="issue-block issue-sev-medium">
+    <b>hardcoded_sql_expressions: </b> Possible SQL injection vector through string-based query construction.<br>
+    <b>Test ID:</b> B608<br>
+    <b>Severity: </b>MEDIUM<br>
+    <b>Confidence: </b>LOW<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/89.html" target="_blank">CWE-89</a><br>
+    <b>File: </b><a href=".\repositories\repo_offline\appointment_repo_offline.py" target="_blank">.\repositories\repo_offline\appointment_repo_offline.py</a><br>
+    <b>Line number: </b>312<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b608_hardcoded_sql_expressions.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b608_hardcoded_sql_expressions.html</a><br>
+
+<div class="code">
+<pre>
+311	        params = {&quot;doc&quot;: int(doctor_id), &quot;start&quot;: self._to_iso_datetime(start_dt), &quot;end&quot;: self._to_iso_datetime(end_dt)}
+312	        sql = text(f&quot;&quot;&quot;
+313	            SELECT strftime(&#x27;%Y-%m&#x27;, appointment_date) AS month, COUNT(*) AS cnt
+314	            FROM appointments
+315	            WHERE {user_col} = :doc AND appointment_date BETWEEN :start AND :end
+316	            GROUP BY month
+317	            ORDER BY month
+318	        &quot;&quot;&quot;)
+319	        rows = self.session.execute(sql, params).mappings().all()
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-33">
+<div class="issue-block issue-sev-medium">
+    <b>hardcoded_sql_expressions: </b> Possible SQL injection vector through string-based query construction.<br>
+    <b>Test ID:</b> B608<br>
+    <b>Severity: </b>MEDIUM<br>
+    <b>Confidence: </b>LOW<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/89.html" target="_blank">CWE-89</a><br>
+    <b>File: </b><a href=".\repositories\repo_offline\appointment_repo_offline.py" target="_blank">.\repositories\repo_offline\appointment_repo_offline.py</a><br>
+    <b>Line number: </b>332<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b608_hardcoded_sql_expressions.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b608_hardcoded_sql_expressions.html</a><br>
+
+<div class="code">
+<pre>
+331	            where += &quot; AND date(appointment_date) &lt;= :end&quot;
+332	        sql = text(f&quot;&quot;&quot;
+333	            SELECT specialty, COUNT(*) AS cnt
+334	            FROM appointments
+335	            WHERE {where}
+336	            GROUP BY specialty
+337	        &quot;&quot;&quot;)
+338	        rows = self.session.execute(sql, params).mappings().all()
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-34">
+<div class="issue-block issue-sev-medium">
+    <b>hardcoded_sql_expressions: </b> Possible SQL injection vector through string-based query construction.<br>
+    <b>Test ID:</b> B608<br>
+    <b>Severity: </b>MEDIUM<br>
+    <b>Confidence: </b>LOW<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/89.html" target="_blank">CWE-89</a><br>
+    <b>File: </b><a href=".\repositories\repo_offline\appointment_repo_offline.py" target="_blank">.\repositories\repo_offline\appointment_repo_offline.py</a><br>
+    <b>Line number: </b>351<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b608_hardcoded_sql_expressions.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b608_hardcoded_sql_expressions.html</a><br>
+
+<div class="code">
+<pre>
+350	            where += &quot; AND date(appointment_date) &lt;= :end&quot;
+351	        sql = text(f&quot;SELECT COUNT(*) AS cnt FROM appointments WHERE {where}&quot;)
+352	        row = self.session.execute(sql, params).mappings().first()
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-35">
+<div class="issue-block issue-sev-medium">
+    <b>hardcoded_sql_expressions: </b> Possible SQL injection vector through string-based query construction.<br>
+    <b>Test ID:</b> B608<br>
+    <b>Severity: </b>MEDIUM<br>
+    <b>Confidence: </b>LOW<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/89.html" target="_blank">CWE-89</a><br>
+    <b>File: </b><a href=".\repositories\repo_offline\medical_repo_offline.py" target="_blank">.\repositories\repo_offline\medical_repo_offline.py</a><br>
+    <b>Line number: </b>119<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b608_hardcoded_sql_expressions.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b608_hardcoded_sql_expressions.html</a><br>
+
+<div class="code">
+<pre>
+118	            return False
+119	        sql = text(f&quot;&quot;&quot;
+120	            UPDATE medical_records
+121	            SET {&#x27;, &#x27;.join(sets)},
+122	                updated_at = :updated_at,
+123	                last_modified = :updated_at,
+124	                revision = COALESCE(revision, 1) + 1,
+125	                sync_status = &#x27;updated&#x27;
+126	            WHERE record_id = :id
+127	        &quot;&quot;&quot;)
+128	        try:
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-36">
+<div class="issue-block issue-sev-medium">
+    <b>hardcoded_sql_expressions: </b> Possible SQL injection vector through string-based query construction.<br>
+    <b>Test ID:</b> B608<br>
+    <b>Severity: </b>MEDIUM<br>
+    <b>Confidence: </b>LOW<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/89.html" target="_blank">CWE-89</a><br>
+    <b>File: </b><a href=".\repositories\repo_offline\medical_repo_offline.py" target="_blank">.\repositories\repo_offline\medical_repo_offline.py</a><br>
+    <b>Line number: </b>153<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b608_hardcoded_sql_expressions.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b608_hardcoded_sql_expressions.html</a><br>
+
+<div class="code">
+<pre>
+152	        offset = (page - 1) * per_page
+153	        sql = text(f&quot;SELECT * FROM medical_records {where} ORDER BY consultation_date DESC LIMIT :lim OFFSET :off&quot;)
+154	        params.update({&quot;lim&quot;: per_page, &quot;off&quot;: offset})
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-37">
+<div class="issue-block issue-sev-medium">
+    <b>hardcoded_sql_expressions: </b> Possible SQL injection vector through string-based query construction.<br>
+    <b>Test ID:</b> B608<br>
+    <b>Severity: </b>MEDIUM<br>
+    <b>Confidence: </b>LOW<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/89.html" target="_blank">CWE-89</a><br>
+    <b>File: </b><a href=".\repositories\repo_offline\medical_repo_offline.py" target="_blank">.\repositories\repo_offline\medical_repo_offline.py</a><br>
+    <b>Line number: </b>204<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b608_hardcoded_sql_expressions.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b608_hardcoded_sql_expressions.html</a><br>
+
+<div class="code">
+<pre>
+203	
+204	        sql = text(f&quot;&quot;&quot;
+205	            SELECT mr.motif_code AS motif, COUNT(DISTINCT mr.patient_id) AS cnt
+206	            FROM medical_records mr
+207	            JOIN appointments a ON a.appointment_id = mr.appointment_id
+208	            WHERE {where}
+209	            GROUP BY mr.motif_code
+210	        &quot;&quot;&quot;)
+211	        rows = self.session.execute(sql, params).mappings().all()
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-38">
+<div class="issue-block issue-sev-medium">
+    <b>hardcoded_sql_expressions: </b> Possible SQL injection vector through string-based query construction.<br>
+    <b>Test ID:</b> B608<br>
+    <b>Severity: </b>MEDIUM<br>
+    <b>Confidence: </b>LOW<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/89.html" target="_blank">CWE-89</a><br>
+    <b>File: </b><a href=".\repositories\repo_offline\patient_repo_offline.py" target="_blank">.\repositories\repo_offline\patient_repo_offline.py</a><br>
+    <b>Line number: </b>140<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b608_hardcoded_sql_expressions.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b608_hardcoded_sql_expressions.html</a><br>
+
+<div class="code">
+<pre>
+139	            return patient_id
+140	        update_sql = f&quot;&quot;&quot;
+141	            UPDATE patients SET
+142	                {&#x27;, &#x27;.join(set_clauses)},
+143	                last_updated_at = :last_modified,
+144	                last_modified = :last_modified,
+145	                revision = COALESCE(revision, 1) + 1,
+146	                sync_status = &#x27;updated&#x27;
+147	            WHERE patient_id = :patient_id
+148	        &quot;&quot;&quot;
+149	        try:
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-39">
+<div class="issue-block issue-sev-medium">
+    <b>hardcoded_sql_expressions: </b> Possible SQL injection vector through string-based query construction.<br>
+    <b>Test ID:</b> B608<br>
+    <b>Severity: </b>MEDIUM<br>
+    <b>Confidence: </b>LOW<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/89.html" target="_blank">CWE-89</a><br>
+    <b>File: </b><a href=".\repositories\repo_offline\patient_repo_offline.py" target="_blank">.\repositories\repo_offline\patient_repo_offline.py</a><br>
+    <b>Line number: </b>214<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b608_hardcoded_sql_expressions.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b608_hardcoded_sql_expressions.html</a><br>
+
+<div class="code">
+<pre>
+213	        uc = self._user_col()
+214	        sql = text(f&quot;&quot;&quot;
+215	            SELECT DISTINCT p.*
+216	            FROM patients p
+217	            JOIN appointments a ON a.patient_id = p.patient_id
+218	            WHERE a.{uc} = :doc
+219	            AND date(a.appointment_date) = :d
+220	            ORDER BY p.last_name
+221	        &quot;&quot;&quot;)
+222	        rows = self.session.execute(sql, {&quot;doc&quot;: doctor_id, &quot;d&quot;: target_date.isoformat()}).mappings().all()
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-40">
+<div class="issue-block issue-sev-medium">
+    <b>hardcoded_sql_expressions: </b> Possible SQL injection vector through string-based query construction.<br>
+    <b>Test ID:</b> B608<br>
+    <b>Severity: </b>MEDIUM<br>
+    <b>Confidence: </b>LOW<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/89.html" target="_blank">CWE-89</a><br>
+    <b>File: </b><a href=".\repositories\repo_offline\patient_repo_offline.py" target="_blank">.\repositories\repo_offline\patient_repo_offline.py</a><br>
+    <b>Line number: </b>228<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b608_hardcoded_sql_expressions.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b608_hardcoded_sql_expressions.html</a><br>
+
+<div class="code">
+<pre>
+227	        user_col = self._get_user_col_or_raise()
+228	        sql = text(f&quot;&quot;&quot;
+229	            SELECT COUNT(DISTINCT p.patient_id) AS cnt
+230	            FROM patients p
+231	            JOIN appointments a ON a.patient_id = p.patient_id
+232	            WHERE a.{user_col} = :doc
+233	        &quot;&quot;&quot;)
+234	        row = self.session.execute(sql, {&quot;doc&quot;: doctor_id}).mappings().first()
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-41">
+<div class="issue-block issue-sev-medium">
+    <b>hardcoded_sql_expressions: </b> Possible SQL injection vector through string-based query construction.<br>
+    <b>Test ID:</b> B608<br>
+    <b>Severity: </b>MEDIUM<br>
+    <b>Confidence: </b>LOW<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/89.html" target="_blank">CWE-89</a><br>
+    <b>File: </b><a href=".\repositories\repo_offline\patient_repo_offline.py" target="_blank">.\repositories\repo_offline\patient_repo_offline.py</a><br>
+    <b>Line number: </b>239<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b608_hardcoded_sql_expressions.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b608_hardcoded_sql_expressions.html</a><br>
+
+<div class="code">
+<pre>
+238	        user_col = self._get_user_col_or_raise()
+239	        sql = text(f&quot;&quot;&quot;
+240	            SELECT DISTINCT p.*
+241	            FROM patients p
+242	            JOIN appointments a ON a.patient_id = p.patient_id
+243	            WHERE a.{user_col} = :doc
+244	            ORDER BY p.last_name
+245	            LIMIT :limit OFFSET :offset
+246	        &quot;&quot;&quot;)
+247	        params = {&quot;doc&quot;: doctor_id, &quot;limit&quot;: per_page, &quot;offset&quot;: (page-1)*per_page}
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-42">
+<div class="issue-block issue-sev-medium">
+    <b>hardcoded_sql_expressions: </b> Possible SQL injection vector through string-based query construction.<br>
+    <b>Test ID:</b> B608<br>
+    <b>Severity: </b>MEDIUM<br>
+    <b>Confidence: </b>LOW<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/89.html" target="_blank">CWE-89</a><br>
+    <b>File: </b><a href=".\repositories\repo_offline\prescription_repo_offline.py" target="_blank">.\repositories\repo_offline\prescription_repo_offline.py</a><br>
+    <b>Line number: </b>70<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b608_hardcoded_sql_expressions.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b608_hardcoded_sql_expressions.html</a><br>
+
+<div class="code">
+<pre>
+69	            return False
+70	        sql = text(f&quot;UPDATE prescriptions SET {&#x27;, &#x27;.join(sets)}, last_modified = :last_modified WHERE prescription_id = :id&quot;)
+71	        try:
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-43">
+<div class="issue-block issue-sev-medium">
+    <b>hardcoded_sql_expressions: </b> Possible SQL injection vector through string-based query construction.<br>
+    <b>Test ID:</b> B608<br>
+    <b>Severity: </b>MEDIUM<br>
+    <b>Confidence: </b>LOW<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/89.html" target="_blank">CWE-89</a><br>
+    <b>File: </b><a href=".\repositories\repo_offline\prescription_repo_offline.py" target="_blank">.\repositories\repo_offline\prescription_repo_offline.py</a><br>
+    <b>Line number: </b>96<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b608_hardcoded_sql_expressions.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b608_hardcoded_sql_expressions.html</a><br>
+
+<div class="code">
+<pre>
+95	        offset = (page - 1) * per_page
+96	        sql = text(f&quot;SELECT * FROM prescriptions {where} ORDER BY created_at DESC LIMIT :lim OFFSET :off&quot;)
+97	        params.update({&quot;lim&quot;: per_page, &quot;off&quot;: offset})
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-44">
+<div class="issue-block issue-sev-low">
+    <b>assert_used: </b> Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.<br>
+    <b>Test ID:</b> B101<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\tests\test_appointment_repo.py" target="_blank">.\tests\test_appointment_repo.py</a><br>
+    <b>Line number: </b>37<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b101_assert_used.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b101_assert_used.html</a><br>
+
+<div class="code">
+<pre>
+36	    # Vérifications sur la mise à jour des attributs
+37	    assert result is appt
+38	    assert appt.some_field == &quot;new&quot;
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-45">
+<div class="issue-block issue-sev-low">
+    <b>assert_used: </b> Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.<br>
+    <b>Test ID:</b> B101<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\tests\test_appointment_repo.py" target="_blank">.\tests\test_appointment_repo.py</a><br>
+    <b>Line number: </b>38<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b101_assert_used.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b101_assert_used.html</a><br>
+
+<div class="code">
+<pre>
+37	    assert result is appt
+38	    assert appt.some_field == &quot;new&quot;
+39	    assert appt.status == &quot;confirmed&quot;
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-46">
+<div class="issue-block issue-sev-low">
+    <b>assert_used: </b> Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.<br>
+    <b>Test ID:</b> B101<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\tests\test_appointment_repo.py" target="_blank">.\tests\test_appointment_repo.py</a><br>
+    <b>Line number: </b>39<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b101_assert_used.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b101_assert_used.html</a><br>
+
+<div class="code">
+<pre>
+38	    assert appt.some_field == &quot;new&quot;
+39	    assert appt.status == &quot;confirmed&quot;
+40	    # commit and refresh called
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-47">
+<div class="issue-block issue-sev-low">
+    <b>assert_used: </b> Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.<br>
+    <b>Test ID:</b> B101<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\tests\test_appointment_repo.py" target="_blank">.\tests\test_appointment_repo.py</a><br>
+    <b>Line number: </b>52<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b101_assert_used.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b101_assert_used.html</a><br>
+
+<div class="code">
+<pre>
+51	
+52	    assert result is None
+53	    # commit/refresh ne doivent pas être appelés
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-48">
+<div class="issue-block issue-sev-low">
+    <b>assert_used: </b> Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.<br>
+    <b>Test ID:</b> B101<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\tests\test_patient_repo.py" target="_blank">.\tests\test_patient_repo.py</a><br>
+    <b>Line number: </b>36<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b101_assert_used.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b101_assert_used.html</a><br>
+
+<div class="code">
+<pre>
+35	    # Ici on suppose qu&#x27;il retourne l&#x27;entité mise à jour
+36	    assert res is not None
+37	    assert patient.first_name == &quot;Alicia&quot;
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-49">
+<div class="issue-block issue-sev-low">
+    <b>assert_used: </b> Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.<br>
+    <b>Test ID:</b> B101<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\tests\test_patient_repo.py" target="_blank">.\tests\test_patient_repo.py</a><br>
+    <b>Line number: </b>37<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b101_assert_used.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b101_assert_used.html</a><br>
+
+<div class="code">
+<pre>
+36	    assert res is not None
+37	    assert patient.first_name == &quot;Alicia&quot;
+38	    assert patient.residence == &quot;Douala&quot;
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-50">
+<div class="issue-block issue-sev-low">
+    <b>assert_used: </b> Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.<br>
+    <b>Test ID:</b> B101<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\tests\test_patient_repo.py" target="_blank">.\tests\test_patient_repo.py</a><br>
+    <b>Line number: </b>38<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b101_assert_used.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b101_assert_used.html</a><br>
+
+<div class="code">
+<pre>
+37	    assert patient.first_name == &quot;Alicia&quot;
+38	    assert patient.residence == &quot;Douala&quot;
+39	    mock_session.commit.assert_called_once()
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-51">
+<div class="issue-block issue-sev-low">
+    <b>assert_used: </b> Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.<br>
+    <b>Test ID:</b> B101<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\tests\test_patient_repo.py" target="_blank">.\tests\test_patient_repo.py</a><br>
+    <b>Line number: </b>48<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b101_assert_used.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b101_assert_used.html</a><br>
+
+<div class="code">
+<pre>
+47	    res = repo.update_patient(patient_id=999, data={&quot;first_name&quot;: &quot;X&quot;}, current_user={&quot;id&quot;: 1})
+48	    assert res is None
+49	    mock_session.commit.assert_not_called()
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-52">
+<div class="issue-block issue-sev-low">
+    <b>assert_used: </b> Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.<br>
+    <b>Test ID:</b> B101<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\tests\test_prescription_repo.py" target="_blank">.\tests\test_prescription_repo.py</a><br>
+    <b>Line number: </b>42<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b101_assert_used.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b101_assert_used.html</a><br>
+
+<div class="code">
+<pre>
+41	
+42	    assert res is True
+43	    mock_session.execute.assert_called_once()
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-53">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\utils\scrollable_toplevel.py" target="_blank">.\utils\scrollable_toplevel.py</a><br>
+    <b>Line number: </b>18<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+17	                self.title(title)
+18	            except Exception:
+19	                pass
+20	        if size:
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-54">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\utils\scrollable_toplevel.py" target="_blank">.\utils\scrollable_toplevel.py</a><br>
+    <b>Line number: </b>23<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+22	                self.geometry(size)
+23	            except Exception:
+24	                pass
+25	        try:
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-55">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\utils\scrollable_toplevel.py" target="_blank">.\utils\scrollable_toplevel.py</a><br>
+    <b>Line number: </b>27<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+26	            self.transient(parent.winfo_toplevel())
+27	        except Exception:
+28	            pass
+29	
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-56">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\utils\scrollable_toplevel.py" target="_blank">.\utils\scrollable_toplevel.py</a><br>
+    <b>Line number: </b>49<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+48	                self._canvas.configure(scrollregion=self._canvas.bbox(&quot;all&quot;))
+49	            except Exception:
+50	                pass
+51	        self.form_frame.bind(&quot;&lt;Configure&gt;&quot;, _on_frame_config)
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-57">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\utils\scrollable_toplevel.py" target="_blank">.\utils\scrollable_toplevel.py</a><br>
+    <b>Line number: </b>56<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+55	                self._canvas.itemconfig(self._form_window, width=event.width)
+56	            except Exception:
+57	                pass
+58	        self._canvas.bind(&quot;&lt;Configure&gt;&quot;, _on_canvas_config)
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-58">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\utils\scrollable_toplevel.py" target="_blank">.\utils\scrollable_toplevel.py</a><br>
+    <b>Line number: </b>65<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+64	                self._canvas.yview_scroll(int(-1 * (event.delta / 120)), &quot;units&quot;)
+65	            except Exception:
+66	                pass
+67	
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-59">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\utils\scrollable_toplevel.py" target="_blank">.\utils\scrollable_toplevel.py</a><br>
+    <b>Line number: </b>72<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+71	                self._canvas.yview_scroll(-1, &quot;units&quot;)
+72	            except Exception:
+73	                pass
+74	
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-60">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\utils\scrollable_toplevel.py" target="_blank">.\utils\scrollable_toplevel.py</a><br>
+    <b>Line number: </b>79<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+78	                self._canvas.yview_scroll(1, &quot;units&quot;)
+79	            except Exception:
+80	                pass
+81	
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-61">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\utils\scrollable_toplevel.py" target="_blank">.\utils\scrollable_toplevel.py</a><br>
+    <b>Line number: </b>103<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+102	                self.unbind_all(&quot;&lt;Button-5&gt;&quot;)
+103	            except Exception:
+104	                pass
+105	            self._bound = False
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-62">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\utils\scrollable_toplevel.py" target="_blank">.\utils\scrollable_toplevel.py</a><br>
+    <b>Line number: </b>111<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+110	            self._cleanup_bindings()
+111	        except Exception:
+112	            pass
+113	        try:
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-63">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\utils\scrollable_toplevel.py" target="_blank">.\utils\scrollable_toplevel.py</a><br>
+    <b>Line number: </b>118<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+117	                self.destroy()
+118	            except Exception:
+119	                pass
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-64">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view\auth_view.py" target="_blank">.\view\auth_view.py</a><br>
+    <b>Line number: </b>133<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+132	            self.quit()
+133	        except Exception:
+134	            pass
+135	
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-65">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view\doctor_views\doctors_dashboard_view.py" target="_blank">.\view\doctor_views\doctors_dashboard_view.py</a><br>
+    <b>Line number: </b>318<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+317	                self.chart_canvas.get_tk_widget().destroy()
+318	            except Exception:
+319	                pass
+320	        self.chart_canvas = FigureCanvasTkAgg(fig, master=parent)
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-66">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view\doctor_views\doctors_dashboard_view.py" target="_blank">.\view\doctor_views\doctors_dashboard_view.py</a><br>
+    <b>Line number: </b>410<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+409	            self.lbl_total_patients.configure(text=str(total_patients))
+410	        except Exception:
+411	            pass
+412	        try:
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-67">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view\doctor_views\doctors_dashboard_view.py" target="_blank">.\view\doctor_views\doctors_dashboard_view.py</a><br>
+    <b>Line number: </b>414<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+413	            self.lbl_appts_today.configure(text=str(appts_today))
+414	        except Exception:
+415	            pass
+416	
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-68">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view\doctor_views\doctors_dashboard_view.py" target="_blank">.\view\doctor_views\doctors_dashboard_view.py</a><br>
+    <b>Line number: </b>420<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+419	            self.lbl_completed.configure(text=str(completed))
+420	        except Exception:
+421	            pass
+422	            
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-69">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view\doctor_views\doctors_dashboard_view.py" target="_blank">.\view\doctor_views\doctors_dashboard_view.py</a><br>
+    <b>Line number: </b>425<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+424	            self.lbl_cancelled.configure(text=str(cancelled))
+425	        except Exception:
+426	            pass
+427	            
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-70">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view\doctor_views\doctors_dashboard_view.py" target="_blank">.\view\doctor_views\doctors_dashboard_view.py</a><br>
+    <b>Line number: </b>430<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+429	            self.lbl_pending.configure(text=str(pending))
+430	        except Exception:
+431	            pass
+432	
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-71">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view\doctor_views\doctors_dashboard_view.py" target="_blank">.\view\doctor_views\doctors_dashboard_view.py</a><br>
+    <b>Line number: </b>435<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+434	            self.lbl_renewals.configure(text=str(len(renewals or [])))
+435	        except Exception:
+436	            pass
+437	
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-72">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view\doctor_views\doctors_dashboard_view.py" target="_blank">.\view\doctor_views\doctors_dashboard_view.py</a><br>
+    <b>Line number: </b>441<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+440	            self.lbl_patients_registered.configure(text=str(patients_registered))
+441	        except Exception:
+442	            pass
+443	            
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-73">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view\doctor_views\doctors_dashboard_view.py" target="_blank">.\view\doctor_views\doctors_dashboard_view.py</a><br>
+    <b>Line number: </b>446<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+445	            self.lbl_consultations_today.configure(text=str(consultations_today))
+446	        except Exception:
+447	            pass
+448	            
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-74">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view\doctor_views\doctors_dashboard_view.py" target="_blank">.\view\doctor_views\doctors_dashboard_view.py</a><br>
+    <b>Line number: </b>451<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+450	            self.lbl_prescriptions_today.configure(text=str(prescriptions_today))
+451	        except Exception:
+452	            pass
+453	
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-75">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view\doctor_views\doctors_dashboard_view.py" target="_blank">.\view\doctor_views\doctors_dashboard_view.py</a><br>
+    <b>Line number: </b>456<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+455	            self._draw_timeseries_chart(timeseries)
+456	        except Exception:
+457	            pass
+458	
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-76">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view\doctor_views\doctors_dashboard_view.py" target="_blank">.\view\doctor_views\doctors_dashboard_view.py</a><br>
+    <b>Line number: </b>731<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+730	                return
+731	            except Exception:
+732	                pass
+733	
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-77">
+<div class="issue-block issue-sev-low">
+    <b>try_except_continue: </b> Try, Except, Continue detected.<br>
+    <b>Test ID:</b> B112<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view\doctor_views\doctors_dashboard_view.py" target="_blank">.\view\doctor_views\doctors_dashboard_view.py</a><br>
+    <b>Line number: </b>791<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b112_try_except_continue.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b112_try_except_continue.html</a><br>
+
+<div class="code">
+<pre>
+790	                            break
+791	                        except Exception:
+792	                            # ignorer et essayer la méthode suivante
+793	                            continue
+794	                # si pas de méthode dédiée, tenter update via un update générique si présent
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-78">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view\doctor_views\doctors_dashboard_view.py" target="_blank">.\view\doctor_views\doctors_dashboard_view.py</a><br>
+    <b>Line number: </b>798<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+797	                        self.appt_ctrl.update(appt_id, {&quot;status&quot;: &quot;in_progress&quot;})
+798	                    except Exception:
+799	                        pass
+800	        except Exception:
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-79">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view\doctor_views\doctors_dashboard_view.py" target="_blank">.\view\doctor_views\doctors_dashboard_view.py</a><br>
+    <b>Line number: </b>800<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+799	                        pass
+800	        except Exception:
+801	            pass
+802	        # ---------------------------------------------------------------
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-80">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view\doctor_views\doctors_dashboard_view.py" target="_blank">.\view\doctor_views\doctors_dashboard_view.py</a><br>
+    <b>Line number: </b>836<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+835	            return
+836	        except Exception:
+837	            pass
+838	
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-81">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view\doctor_views\doctors_dashboard_view.py" target="_blank">.\view\doctor_views\doctors_dashboard_view.py</a><br>
+    <b>Line number: </b>895<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+894	                top.transient(self.winfo_toplevel())
+895	            except Exception:
+896	                pass
+897	            form = MedicalRecordFormView(top, self.controller, record_id=rec_id)
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-82">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view\doctor_views\doctors_dashboard_view.py" target="_blank">.\view\doctor_views\doctors_dashboard_view.py</a><br>
+    <b>Line number: </b>929<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+928	                    form.patient_id_var.set(str(pid))
+929	                except Exception:
+930	                    pass
+931	                try:
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-83">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view\doctor_views\doctors_dashboard_view.py" target="_blank">.\view\doctor_views\doctors_dashboard_view.py</a><br>
+    <b>Line number: </b>933<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+932	                    form.patient_code_var.set(str(code))
+933	                except Exception:
+934	                    pass
+935	                try:
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-84">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view\doctor_views\doctors_dashboard_view.py" target="_blank">.\view\doctor_views\doctors_dashboard_view.py</a><br>
+    <b>Line number: </b>937<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+936	                    form.patient_name_var.set(f&quot;{last} {first}&quot;.strip())
+937	                except Exception:
+938	                    pass
+939	
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-85">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view\doctor_views\doctors_dashboard_view.py" target="_blank">.\view\doctor_views\doctors_dashboard_view.py</a><br>
+    <b>Line number: </b>942<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+941	                    form.date_widget.set_date(date.today())
+942	                except Exception:
+943	                    pass
+944	            except Exception:
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-86">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view\doctor_views\doctors_dashboard_view.py" target="_blank">.\view\doctor_views\doctors_dashboard_view.py</a><br>
+    <b>Line number: </b>944<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+943	                    pass
+944	            except Exception:
+945	                pass
+946	
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-87">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view\doctor_views\doctors_dashboard_view.py" target="_blank">.\view\doctor_views\doctors_dashboard_view.py</a><br>
+    <b>Line number: </b>952<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+951	                form._load_record()
+952	            except Exception:
+953	                pass
+954	
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-88">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view\doctor_views\doctors_dashboard_view.py" target="_blank">.\view\doctor_views\doctors_dashboard_view.py</a><br>
+    <b>Line number: </b>957<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+956	            top.grab_set()
+957	        except Exception:
+958	            pass
+959	
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-89">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view\doctor_views\doctors_dashboard_view.py" target="_blank">.\view\doctor_views\doctors_dashboard_view.py</a><br>
+    <b>Line number: </b>1039<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+1038	                    return
+1039	                except Exception:
+1040	                    pass
+1041	
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-90">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view\doctor_views\doctors_dashboard_view.py" target="_blank">.\view\doctor_views\doctors_dashboard_view.py</a><br>
+    <b>Line number: </b>1067<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+1066	                    top.transient(self.winfo_toplevel())
+1067	                except Exception:
+1068	                    pass
+1069	                form = PrescriptionFormView(top, self.controller, prescription_id=None, patient_id=patient_id, medical_record_id=None)
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-91">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view\doctor_views\doctors_dashboard_view.py" target="_blank">.\view\doctor_views\doctors_dashboard_view.py</a><br>
+    <b>Line number: </b>1092<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+1091	                        form.patient_code_var.set(code)
+1092	                    except Exception:
+1093	                        pass
+1094	                    try:
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-92">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view\doctor_views\doctors_dashboard_view.py" target="_blank">.\view\doctor_views\doctors_dashboard_view.py</a><br>
+    <b>Line number: </b>1096<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+1095	                        form.patient_name_var.set(name)
+1096	                    except Exception:
+1097	                        pass
+1098	            except Exception:
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-93">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view\doctor_views\doctors_dashboard_view.py" target="_blank">.\view\doctor_views\doctors_dashboard_view.py</a><br>
+    <b>Line number: </b>1098<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+1097	                        pass
+1098	            except Exception:
+1099	                pass
+1100	
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-94">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view\doctor_views\doctors_dashboard_view.py" target="_blank">.\view\doctor_views\doctors_dashboard_view.py</a><br>
+    <b>Line number: </b>1103<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+1102	                top.grab_set()
+1103	            except Exception:
+1104	                pass
+1105	
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-95">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view\doctor_views\doctors_dashboard_view.py" target="_blank">.\view\doctor_views\doctors_dashboard_view.py</a><br>
+    <b>Line number: </b>1135<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+1134	                self.chart_canvas.get_tk_widget().destroy()
+1135	            except Exception:
+1136	                pass
+1137	
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-96">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view\doctor_views\doctors_dashboard_view.py" target="_blank">.\view\doctor_views\doctors_dashboard_view.py</a><br>
+    <b>Line number: </b>1164<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+1163	                self.chart_canvas.get_tk_widget().destroy()
+1164	        except Exception:
+1165	            pass
+1166	        super(DoctorsDashboardView, self).destroy()
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-97">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view\medical_record\medical_record_form_view.py" target="_blank">.\view\medical_record\medical_record_form_view.py</a><br>
+    <b>Line number: </b>149<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+148	                return w.get().strip()
+149	        except Exception:
+150	            pass
+151	        return &quot;&quot;
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-98">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view\medical_record\medical_record_form_view.py" target="_blank">.\view\medical_record\medical_record_form_view.py</a><br>
+    <b>Line number: </b>164<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+163	                widget.insert(&quot;1.0&quot;, v)
+164	        except Exception:
+165	            pass
+166	
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-99">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view\medical_record\medical_record_form_view.py" target="_blank">.\view\medical_record\medical_record_form_view.py</a><br>
+    <b>Line number: </b>283<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+282	                    self.winfo_toplevel().destroy()
+283	                except Exception:
+284	                    pass
+285	                return
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-100">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view\medical_record\medical_record_form_view.py" target="_blank">.\view\medical_record\medical_record_form_view.py</a><br>
+    <b>Line number: </b>312<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+311	                    self.winfo_toplevel().destroy()
+312	                except Exception:
+313	                    pass
+314	                return
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-101">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view\medical_record\medical_record_form_view.py" target="_blank">.\view\medical_record\medical_record_form_view.py</a><br>
+    <b>Line number: </b>342<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+341	                        self.date_widget.set_date(date.fromisoformat(consult_val))
+342	                    except Exception:
+343	                        pass
+344	            elif isinstance(consult_val, datetime):
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-102">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view\medical_record\medical_record_form_view.py" target="_blank">.\view\medical_record\medical_record_form_view.py</a><br>
+    <b>Line number: </b>377<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+376	                    self.notes_widget.insert(&quot;1.0&quot;, str(notes_val))
+377	                except Exception:
+378	                    pass
+379	
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-103">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view\medical_record\medical_record_form_view.py" target="_blank">.\view\medical_record\medical_record_form_view.py</a><br>
+    <b>Line number: </b>387<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+386	                        self.motif_var.set(motif_label)
+387	                    except Exception:
+388	                        pass
+389	
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-104">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view\medical_record\medical_record_form_view.py" target="_blank">.\view\medical_record\medical_record_form_view.py</a><br>
+    <b>Line number: </b>413<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+412	            widget.configure(border_color=&quot;red&quot;, border_width=2)
+413	        except Exception:
+414	            pass
+415	        self._highlighted.append(widget)
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-105">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view\medical_record\medical_record_form_view.py" target="_blank">.\view\medical_record\medical_record_form_view.py</a><br>
+    <b>Line number: </b>421<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+420	                w.configure(border_color=&quot;#E0E0E0&quot;, border_width=1)
+421	            except Exception:
+422	                pass
+423	        self._highlighted.clear()
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-106">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view\medical_record\medical_record_form_view.py" target="_blank">.\view\medical_record\medical_record_form_view.py</a><br>
+    <b>Line number: </b>429<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+428	                lbl.destroy()
+429	            except Exception:
+430	                pass
+431	        self._feedback_labels.clear()
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-107">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view\medical_record\medical_record_form_view.py" target="_blank">.\view\medical_record\medical_record_form_view.py</a><br>
+    <b>Line number: </b>446<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+445	            winsound.MessageBeep(winsound.MB_ICONASTERISK)
+446	        except Exception:
+447	            pass
+448	        popup.after(2000, popup.destroy)
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-108">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view\medical_record\medical_record_form_view.py" target="_blank">.\view\medical_record\medical_record_form_view.py</a><br>
+    <b>Line number: </b>461<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+460	                        widget.set(vals[0])
+461	            except Exception:
+462	                pass
+463	        if hasattr(self, &quot;marital_var&quot;):
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-109">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view\medical_record\medical_record_form_view.py" target="_blank">.\view\medical_record\medical_record_form_view.py</a><br>
+    <b>Line number: </b>473<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+472	            self.search_entry.delete(0, tk.END)
+473	        except Exception:
+474	            pass
+475	        self.patient_id_var.set(&quot;&quot;)
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-110">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view\patient_view\patient_form_view.py" target="_blank">.\view\patient_view\patient_form_view.py</a><br>
+    <b>Line number: </b>103<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+102	                    widget.set_date(val)
+103	                except:
+104	                    pass
+105	            elif isinstance(widget, tk.StringVar):
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-111">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view\patient_view\patients_edit_view.py" target="_blank">.\view\patient_view\patients_edit_view.py</a><br>
+    <b>Line number: </b>127<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+126	                parent_view.refresh()
+127	        except:
+128	            pass
+129	
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-112">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view\patient_view\patients_edit_view.py" target="_blank">.\view\patient_view\patients_edit_view.py</a><br>
+    <b>Line number: </b>140<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+139	                parent_view.refresh()
+140	        except:
+141	            pass
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-113">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view\prescription_views\prescription_form.py" target="_blank">.\view\prescription_views\prescription_form.py</a><br>
+    <b>Line number: </b>52<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+51	                    w._entry.configure(highlightthickness=1, highlightbackground=&quot;#ccc&quot;)
+52	                except Exception:
+53	                    pass
+54	            elif typ == &#x27;text&#x27;:
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-114">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view\prescription_views\prescription_form.py" target="_blank">.\view\prescription_views\prescription_form.py</a><br>
+    <b>Line number: </b>109<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+108	                    w._entry.configure(highlightthickness=1, highlightbackground=&quot;#ccc&quot;)
+109	                except Exception:
+110	                    pass
+111	            elif isinstance(w, ctk.CTkTextbox):
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-115">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view\prescription_views\prescription_form.py" target="_blank">.\view\prescription_views\prescription_form.py</a><br>
+    <b>Line number: </b>121<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+120	                w._entry.configure(highlightthickness=2, highlightbackground=&quot;red&quot;)
+121	            except Exception:
+122	                pass
+123	        elif isinstance(w, ctk.CTkTextbox):
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-116">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view\secretaire\cs_form.py" target="_blank">.\view\secretaire\cs_form.py</a><br>
+    <b>Line number: </b>292<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+291	                self.controller.repo.session.rollback()
+292	            except Exception:
+293	                pass
+294	            messagebox.showerror(&quot;Erreur SQL/BDD&quot;, str(e))
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-117">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view\secretaire\transaction_view.py" target="_blank">.\view\secretaire\transaction_view.py</a><br>
+    <b>Line number: </b>199<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+198	            try: w.grid_remove()
+199	            except: pass
+200	
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-118">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view_pyqt6\api_controller.py" target="_blank">.\view_pyqt6\api_controller.py</a><br>
+    <b>Line number: </b>47<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+46	                return list(res)
+47	            except Exception:
+48	                pass
+49	        return res
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-119">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view_pyqt6\api_controller.py" target="_blank">.\view_pyqt6\api_controller.py</a><br>
+    <b>Line number: </b>189<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+188	                            last_exc = e_pos
+189	                except Exception:
+190	                    pass
+191	
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-120">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view_pyqt6\api_controller.py" target="_blank">.\view_pyqt6\api_controller.py</a><br>
+    <b>Line number: </b>201<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+200	                        last_exc = e3
+201	                except Exception:
+202	                    pass
+203	
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-121">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view_pyqt6\appointment_views\book_appoint_view.py" target="_blank">.\view_pyqt6\appointment_views\book_appoint_view.py</a><br>
+    <b>Line number: </b>218<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+217	                                    self._on_code_focus_out()
+218	                        except Exception:
+219	                            pass
+220	            spec = g(&quot;specialty&quot;) or &quot;&quot;
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-122">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view_pyqt6\appointment_views\book_appoint_view.py" target="_blank">.\view_pyqt6\appointment_views\book_appoint_view.py</a><br>
+    <b>Line number: </b>233<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+232	                        self.date_edit.setDate(QDate(ad.year, ad.month, ad.day))
+233	                    except Exception:
+234	                        pass
+235	            if g(&quot;appointment_time&quot;):
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-123">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view_pyqt6\appointment_views\book_appoint_view.py" target="_blank">.\view_pyqt6\appointment_views\book_appoint_view.py</a><br>
+    <b>Line number: </b>284<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+283	                    self.on_save()
+284	                except Exception:
+285	                    pass
+286	            self.accept()
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-124">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view_pyqt6\appointment_views\dashboard_appointment_view.py" target="_blank">.\view_pyqt6\appointment_views\dashboard_appointment_view.py</a><br>
+    <b>Line number: </b>96<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+95	                old_layout.deleteLater()
+96	        except Exception:
+97	            pass
+98	
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-125">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view_pyqt6\appointment_views\dashboard_appointment_view.py" target="_blank">.\view_pyqt6\appointment_views\dashboard_appointment_view.py</a><br>
+    <b>Line number: </b>271<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+270	                tooltip_lines.append(f&quot;{t} — {pcode} {pname}&quot;)
+271	        except Exception:
+272	            pass
+273	        tooltip = &quot;\n&quot;.join(tooltip_lines) if tooltip_lines else f&quot;{count} rendez-vous&quot;
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-126">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view_pyqt6\appointment_views\dashboard_appointment_view.py" target="_blank">.\view_pyqt6\appointment_views\dashboard_appointment_view.py</a><br>
+    <b>Line number: </b>290<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+289	                self.on_day_selected(dt)
+290	            except Exception:
+291	                pass
+292	
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-127">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view_pyqt6\appointment_views\list_appointment.py" target="_blank">.\view_pyqt6\appointment_views\list_appointment.py</a><br>
+    <b>Line number: </b>95<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+94	            self.table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+95	        except Exception:
+96	            # fallback safe values if PyQt version difference
+97	            pass
+98	
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-128">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view_pyqt6\appointment_views\list_appointment.py" target="_blank">.\view_pyqt6\appointment_views\list_appointment.py</a><br>
+    <b>Line number: </b>107<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+106	                self.table.setEditTriggers(0)
+107	            except Exception:
+108	                pass
+109	
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-129">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view_pyqt6\appointment_views\list_appointment.py" target="_blank">.\view_pyqt6\appointment_views\list_appointment.py</a><br>
+    <b>Line number: </b>267<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+266	                    return ctrl.get_appointment(appt_id)
+267	                except Exception:
+268	                    # some proxies expect string ids or different signature; try other ways below
+269	                    pass
+270	            # fallback: controller.repo.get_by_id (local controller)
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-130">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view_pyqt6\appointment_views\list_appointment.py" target="_blank">.\view_pyqt6\appointment_views\list_appointment.py</a><br>
+    <b>Line number: </b>274<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+273	                    return ctrl.repo.get_by_id(appt_id)
+274	                except Exception:
+275	                    pass
+276	        except Exception:
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-131">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view_pyqt6\appointment_views\list_appointment.py" target="_blank">.\view_pyqt6\appointment_views\list_appointment.py</a><br>
+    <b>Line number: </b>276<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+275	                    pass
+276	        except Exception:
+277	            pass
+278	        return None
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-132">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view_pyqt6\appointment_views\list_appointment.py" target="_blank">.\view_pyqt6\appointment_views\list_appointment.py</a><br>
+    <b>Line number: </b>334<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+333	                                        break
+334	                            except Exception:
+335	                                pass
+336	                    if not resolved_patient_id and hasattr(patient_ctrl, &quot;list_patients&quot;):
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-133">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view_pyqt6\appointment_views\list_appointment.py" target="_blank">.\view_pyqt6\appointment_views\list_appointment.py</a><br>
+    <b>Line number: </b>343<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+342	                                    resolved_patient_id = first[&quot;patient_id&quot;]
+343	                        except Exception:
+344	                            pass
+345	            except Exception:
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-134">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view_pyqt6\appointment_views\list_appointment.py" target="_blank">.\view_pyqt6\appointment_views\list_appointment.py</a><br>
+    <b>Line number: </b>345<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+344	                            pass
+345	            except Exception:
+346	                pass
+347	
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-135">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view_pyqt6\appointment_views\list_appointment.py" target="_blank">.\view_pyqt6\appointment_views\list_appointment.py</a><br>
+    <b>Line number: </b>486<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+485	                    self._selection_connected = True
+486	        except Exception:
+487	            pass
+488	
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-136">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view_pyqt6\auth_view.py" target="_blank">.\view_pyqt6\auth_view.py</a><br>
+    <b>Line number: </b>117<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+116	            self.opacity_anim.start()
+117	        except Exception:
+118	            pass
+119	        super().showEvent(a0)
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-137">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view_pyqt6\auth_view.py" target="_blank">.\view_pyqt6\auth_view.py</a><br>
+    <b>Line number: </b>155<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+154	                old.deleteLater()
+155	        except Exception:
+156	            pass
+157	
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-138">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view_pyqt6\auth_view.py" target="_blank">.\view_pyqt6\auth_view.py</a><br>
+    <b>Line number: </b>356<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+355	                self.gateway.set_token(token)
+356	        except Exception:
+357	            pass
+358	
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-139">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view_pyqt6\auth_view.py" target="_blank">.\view_pyqt6\auth_view.py</a><br>
+    <b>Line number: </b>425<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+424	            self.setMinimumSize(800, 600)
+425	        except Exception:
+426	            pass
+427	
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-140">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view_pyqt6\auth_view.py" target="_blank">.\view_pyqt6\auth_view.py</a><br>
+    <b>Line number: </b>441<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+440	                self.controllers.auth_manager.logout()
+441	        except Exception:
+442	            pass
+443	
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-141">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view_pyqt6\auth_view.py" target="_blank">.\view_pyqt6\auth_view.py</a><br>
+    <b>Line number: </b>448<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+447	                self.dashboard_widget.deleteLater()
+448	        except Exception:
+449	            pass
+450	
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-142">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view_pyqt6\auth_view.py" target="_blank">.\view_pyqt6\auth_view.py</a><br>
+    <b>Line number: </b>456<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+455	            self.setMinimumSize(360, 520)
+456	        except Exception:
+457	            pass
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-143">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view_pyqt6\dashboard_view_qt.py" target="_blank">.\view_pyqt6\dashboard_view_qt.py</a><br>
+    <b>Line number: </b>305<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+304	                    old.deleteLater()
+305	                except Exception:
+306	                    pass
+307	                # insert new at same index
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-144">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view_pyqt6\dashboard_view_qt.py" target="_blank">.\view_pyqt6\dashboard_view_qt.py</a><br>
+    <b>Line number: </b>368<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+367	                        self.content_area.addWidget(doctors_dashboard_view)
+368	                    except Exception:
+369	                        pass
+370	
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-145">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view_pyqt6\dashboard_view_qt.py" target="_blank">.\view_pyqt6\dashboard_view_qt.py</a><br>
+    <b>Line number: </b>378<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+377	                    self._replace_page_widget(&quot;doctors_dashboard&quot;, self.view_instances[view_key])
+378	                except Exception:
+379	                    pass
+380	
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-146">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view_pyqt6\dashboard_view_qt.py" target="_blank">.\view_pyqt6\dashboard_view_qt.py</a><br>
+    <b>Line number: </b>388<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+387	                    v._refresh_all_async()
+388	            except Exception:
+389	                # ne pas bloquer l&#x27;UI en cas d&#x27;erreur de refresh
+390	                pass
+391	
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-147">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view_pyqt6\dashboard_view_qt.py" target="_blank">.\view_pyqt6\dashboard_view_qt.py</a><br>
+    <b>Line number: </b>584<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+583	                        self._replace_page_widget(&quot;appointments_list&quot;, appt_list_view)
+584	                    except Exception:
+585	                        pass
+586	
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-148">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view_pyqt6\dashboard_view_qt.py" target="_blank">.\view_pyqt6\dashboard_view_qt.py</a><br>
+    <b>Line number: </b>640<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+639	                QMessageBox.critical(self, &quot;Erreur&quot;, f&quot;Impossible d&#x27;ouvrir le formulaire de RDV: {e}&quot;)
+640	            except Exception:
+641	                pass
+642	
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-149">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view_pyqt6\dashboard_view_qt.py" target="_blank">.\view_pyqt6\dashboard_view_qt.py</a><br>
+    <b>Line number: </b>756<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+755	                    self._show_prescription_list_view()
+756	                except Exception:
+757	                    pass
+758	
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-150">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view_pyqt6\dashboard_view_qt.py" target="_blank">.\view_pyqt6\dashboard_view_qt.py</a><br>
+    <b>Line number: </b>774<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+773	                self.content_area.addWidget(form_widget)
+774	            except Exception:
+775	                pass
+776	
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-151">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view_pyqt6\dashboard_view_qt.py" target="_blank">.\view_pyqt6\dashboard_view_qt.py</a><br>
+    <b>Line number: </b>814<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+813	                self.content_area.addWidget(list_widget)
+814	            except Exception:
+815	                pass
+816	
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-152">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view_pyqt6\dashboard_view_qt.py" target="_blank">.\view_pyqt6\dashboard_view_qt.py</a><br>
+    <b>Line number: </b>872<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+871	                        self.content_area.removeWidget(old)
+872	                    except Exception:
+873	                        # ignore
+874	                        pass
+875	
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-153">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view_pyqt6\dashboard_view_qt.py" target="_blank">.\view_pyqt6\dashboard_view_qt.py</a><br>
+    <b>Line number: </b>881<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+880	                                old.deleteLater()
+881	                            except Exception:
+882	                                pass
+883	                    except Exception:
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-154">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view_pyqt6\dashboard_view_qt.py" target="_blank">.\view_pyqt6\dashboard_view_qt.py</a><br>
+    <b>Line number: </b>883<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+882	                                pass
+883	                    except Exception:
+884	                        # en cas d&#x27;erreur lors du test (old déjà détruit), ignore
+885	                        pass
+886	
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-155">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view_pyqt6\dashboard_view_qt.py" target="_blank">.\view_pyqt6\dashboard_view_qt.py</a><br>
+    <b>Line number: </b>894<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+893	                            self.content_area.addWidget(new_widget)
+894	                        except Exception:
+895	                            pass
+896	                else:
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-156">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view_pyqt6\dashboard_view_qt.py" target="_blank">.\view_pyqt6\dashboard_view_qt.py</a><br>
+    <b>Line number: </b>900<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+899	                        self.content_area.addWidget(new_widget)
+900	                    except Exception:
+901	                        pass
+902	            else:
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-157">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view_pyqt6\dashboard_view_qt.py" target="_blank">.\view_pyqt6\dashboard_view_qt.py</a><br>
+    <b>Line number: </b>906<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+905	                    self.content_area.addWidget(new_widget)
+906	                except Exception:
+907	                    pass
+908	
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-158">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view_pyqt6\dashboard_view_qt.py" target="_blank">.\view_pyqt6\dashboard_view_qt.py</a><br>
+    <b>Line number: </b>913<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+912	                self.content_area.addWidget(new_widget)
+913	            except Exception:
+914	                pass
+915	
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-159">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view_pyqt6\dashboard_view_qt.py" target="_blank">.\view_pyqt6\dashboard_view_qt.py</a><br>
+    <b>Line number: </b>926<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+925	                    self.content_area.setCurrentWidget(w)
+926	                except Exception:
+927	                    pass
+928	    
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-160">
+<div class="issue-block issue-sev-low">
+    <b>try_except_continue: </b> Try, Except, Continue detected.<br>
+    <b>Test ID:</b> B112<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view_pyqt6\doctor_views\dashboard_doctor.py" target="_blank">.\view_pyqt6\doctor_views\dashboard_doctor.py</a><br>
+    <b>Line number: </b>113<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b112_try_except_continue.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b112_try_except_continue.html</a><br>
+
+<div class="code">
+<pre>
+112	                        return fn(**kwargs)
+113	                    except Exception:
+114	                        continue
+115	                except Exception:
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-161">
+<div class="issue-block issue-sev-low">
+    <b>try_except_continue: </b> Try, Except, Continue detected.<br>
+    <b>Test ID:</b> B112<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view_pyqt6\doctor_views\dashboard_doctor.py" target="_blank">.\view_pyqt6\doctor_views\dashboard_doctor.py</a><br>
+    <b>Line number: </b>115<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b112_try_except_continue.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b112_try_except_continue.html</a><br>
+
+<div class="code">
+<pre>
+114	                        continue
+115	                except Exception:
+116	                    # méthode existante mais a levé -&gt; ignorer et essayer la suivante
+117	                    continue
+118	        return None
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-162">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view_pyqt6\doctor_views\dashboard_doctor.py" target="_blank">.\view_pyqt6\doctor_views\dashboard_doctor.py</a><br>
+    <b>Line number: </b>473<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+472	                QMessageBox.critical(self, &quot;Erreur UI&quot;, f&quot;Erreur mise à jour KPI: {e}&quot;)
+473	            except Exception:
+474	                pass
+475	
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-163">
+<div class="issue-block issue-sev-low">
+    <b>try_except_continue: </b> Try, Except, Continue detected.<br>
+    <b>Test ID:</b> B112<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view_pyqt6\doctor_views\dashboard_doctor.py" target="_blank">.\view_pyqt6\doctor_views\dashboard_doctor.py</a><br>
+    <b>Line number: </b>649<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b112_try_except_continue.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b112_try_except_continue.html</a><br>
+
+<div class="code">
+<pre>
+648	                                    pats.append(p)
+649	                            except Exception:
+650	                                continue
+651	
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-164">
+<div class="issue-block issue-sev-low">
+    <b>try_except_continue: </b> Try, Except, Continue detected.<br>
+    <b>Test ID:</b> B112<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view_pyqt6\doctor_views\dashboard_doctor.py" target="_blank">.\view_pyqt6\doctor_views\dashboard_doctor.py</a><br>
+    <b>Line number: </b>726<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b112_try_except_continue.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b112_try_except_continue.html</a><br>
+
+<div class="code">
+<pre>
+725	                    display.append((patient_info, motif, date_str, patient_id, record_id))
+726	                except Exception:
+727	                    continue
+728	        except RuntimeError as e:
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-165">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view_pyqt6\doctor_views\dashboard_doctor.py" target="_blank">.\view_pyqt6\doctor_views\dashboard_doctor.py</a><br>
+    <b>Line number: </b>761<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+760	                return
+761	            except Exception:
+762	                pass
+763	
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-166">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view_pyqt6\doctor_views\dashboard_doctor.py" target="_blank">.\view_pyqt6\doctor_views\dashboard_doctor.py</a><br>
+    <b>Line number: </b>768<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+767	            return
+768	        except Exception:
+769	            pass
+770	
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-167">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view_pyqt6\doctor_views\dashboard_doctor.py" target="_blank">.\view_pyqt6\doctor_views\dashboard_doctor.py</a><br>
+    <b>Line number: </b>776<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+775	                return
+776	            except Exception:
+777	                pass
+778	        QMessageBox.information(self, &quot;Ouverture dossier&quot;, f&quot;Ouvrir dossier patient id={pid}&quot;)
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-168">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view_pyqt6\doctor_views\dashboard_doctor.py" target="_blank">.\view_pyqt6\doctor_views\dashboard_doctor.py</a><br>
+    <b>Line number: </b>804<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+803	                return
+804	            except Exception:
+805	                pass
+806	
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-169">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view_pyqt6\doctor_views\dashboard_doctor.py" target="_blank">.\view_pyqt6\doctor_views\dashboard_doctor.py</a><br>
+    <b>Line number: </b>831<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+830	                return
+831	            except Exception:
+832	                pass
+833	
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-170">
+<div class="issue-block issue-sev-low">
+    <b>try_except_continue: </b> Try, Except, Continue detected.<br>
+    <b>Test ID:</b> B112<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view_pyqt6\doctor_views\dashboard_doctor.py" target="_blank">.\view_pyqt6\doctor_views\dashboard_doctor.py</a><br>
+    <b>Line number: </b>855<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b112_try_except_continue.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b112_try_except_continue.html</a><br>
+
+<div class="code">
+<pre>
+854	                            break
+855	                        except Exception:
+856	                            continue
+857	                if not tried and hasattr(self.appt_ctrl, &quot;update&quot;):
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-171">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view_pyqt6\doctor_views\dashboard_doctor.py" target="_blank">.\view_pyqt6\doctor_views\dashboard_doctor.py</a><br>
+    <b>Line number: </b>860<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+859	                        self.appt_ctrl.update(appt_id, {&quot;status&quot;: &quot;in_progress&quot;})
+860	                    except Exception:
+861	                        pass
+862	        except Exception:
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-172">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view_pyqt6\doctor_views\dashboard_doctor.py" target="_blank">.\view_pyqt6\doctor_views\dashboard_doctor.py</a><br>
+    <b>Line number: </b>862<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+861	                        pass
+862	        except Exception:
+863	            pass
+864	
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-173">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view_pyqt6\doctor_views\dashboard_doctor.py" target="_blank">.\view_pyqt6\doctor_views\dashboard_doctor.py</a><br>
+    <b>Line number: </b>919<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+918	                                dialog.patient_code_var = str(code)
+919	                            except Exception:
+920	                                pass
+921	                        try:
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-174">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view_pyqt6\doctor_views\dashboard_doctor.py" target="_blank">.\view_pyqt6\doctor_views\dashboard_doctor.py</a><br>
+    <b>Line number: </b>926<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+925	                                dialog.patient_name_var = str(name)
+926	                            except Exception:
+927	                                pass
+928	            except Exception:
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-175">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view_pyqt6\doctor_views\dashboard_doctor.py" target="_blank">.\view_pyqt6\doctor_views\dashboard_doctor.py</a><br>
+    <b>Line number: </b>928<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+927	                                pass
+928	            except Exception:
+929	                pass
+930	
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-176">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view_pyqt6\doctor_views\dashboard_doctor.py" target="_blank">.\view_pyqt6\doctor_views\dashboard_doctor.py</a><br>
+    <b>Line number: </b>974<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+973	                return
+974	        except Exception:
+975	            pass
+976	
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-177">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view_pyqt6\doctor_views\dashboard_doctor.py" target="_blank">.\view_pyqt6\doctor_views\dashboard_doctor.py</a><br>
+    <b>Line number: </b>1014<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+1013	                        dialog.patient_code_var.setText(code)
+1014	                    except Exception:
+1015	                        pass
+1016	                    try:
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-178">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view_pyqt6\doctor_views\dashboard_doctor.py" target="_blank">.\view_pyqt6\doctor_views\dashboard_doctor.py</a><br>
+    <b>Line number: </b>1018<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+1017	                        dialog.patient_name_var.setText(name)
+1018	                    except Exception:
+1019	                        pass
+1020	            except Exception:
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-179">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view_pyqt6\doctor_views\dashboard_doctor.py" target="_blank">.\view_pyqt6\doctor_views\dashboard_doctor.py</a><br>
+    <b>Line number: </b>1020<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+1019	                        pass
+1020	            except Exception:
+1021	                pass
+1022	            try:
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-180">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view_pyqt6\doctor_views\dashboard_doctor.py" target="_blank">.\view_pyqt6\doctor_views\dashboard_doctor.py</a><br>
+    <b>Line number: </b>1038<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+1037	                self.chart_canvas.deleteLater()
+1038	            except Exception:
+1039	                pass
+1040	            self.chart_canvas = None
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-181">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view_pyqt6\doctor_views\dashboard_doctor.py" target="_blank">.\view_pyqt6\doctor_views\dashboard_doctor.py</a><br>
+    <b>Line number: </b>1071<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+1070	            self.chart_canvas.draw()
+1071	        except Exception:
+1072	            pass
+1073	
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-182">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view_pyqt6\doctor_views\dashboard_doctor.py" target="_blank">.\view_pyqt6\doctor_views\dashboard_doctor.py</a><br>
+    <b>Line number: </b>1088<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+1087	                self.chart_canvas.setParent(None)
+1088	        except Exception:
+1089	            pass
+1090	        super().closeEvent(event)
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-183">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view_pyqt6\medical_record\mr_form_view.py" target="_blank">.\view_pyqt6\medical_record\mr_form_view.py</a><br>
+    <b>Line number: </b>497<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+496	                data[&quot;bp&quot;] = bpv if bpv else None
+497	        except Exception:
+498	            pass
+499	
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-184">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view_pyqt6\medical_record\mr_form_view.py" target="_blank">.\view_pyqt6\medical_record\mr_form_view.py</a><br>
+    <b>Line number: </b>557<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+556	                    data[&quot;last_updated_by_name&quot;] = username
+557	        except Exception:
+558	            pass
+559	
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-185">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view_pyqt6\medical_record\mr_form_view.py" target="_blank">.\view_pyqt6\medical_record\mr_form_view.py</a><br>
+    <b>Line number: </b>578<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+577	            print(&quot;DEBUG controller object:&quot;, type(self.controller), getattr(self.controller, &quot;__dict__&quot;, &quot;{}&quot;))
+578	        except Exception:
+579	            pass
+580	
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-186">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view_pyqt6\medical_record\mr_form_view.py" target="_blank">.\view_pyqt6\medical_record\mr_form_view.py</a><br>
+    <b>Line number: </b>696<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+695	                        self.patient_id = patient_id
+696	                except Exception:
+697	                    pass
+698	            
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-187">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view_pyqt6\medical_record\mr_form_view.py" target="_blank">.\view_pyqt6\medical_record\mr_form_view.py</a><br>
+    <b>Line number: </b>709<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+708	                    self.consultation_date.setDate(qdate)
+709	                except Exception:
+710	                    pass
+711	            
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-188">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view_pyqt6\medical_record\mr_list_view.py" target="_blank">.\view_pyqt6\medical_record\mr_list_view.py</a><br>
+    <b>Line number: </b>443<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+442	                        consult_date = datetime.strptime(consult_date_str[:10], &#x27;%Y-%m-%d&#x27;).date()
+443	                    except:
+444	                        pass
+445	            elif hasattr(consult_date_str, &#x27;date&#x27;):
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-189">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view_pyqt6\patient_view\patient_edit_view.py" target="_blank">.\view_pyqt6\patient_view\patient_edit_view.py</a><br>
+    <b>Line number: </b>177<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+176	                        widget.setDate(date)
+177	                    except Exception:
+178	                        pass
+179	                        
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-190">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view_pyqt6\patient_view\patient_form.py" target="_blank">.\view_pyqt6\patient_view\patient_form.py</a><br>
+    <b>Line number: </b>192<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+191	                        widget.setDate(date)
+192	                    except Exception:
+193	                        pass
+194	                        
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-191">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view_pyqt6\prescription_views\prescription_form_viewqt.py" target="_blank">.\view_pyqt6\prescription_views\prescription_form_viewqt.py</a><br>
+    <b>Line number: </b>331<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+330	                w.setStyleSheet(&quot;&quot;)
+331	            except Exception:
+332	                pass
+333	
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-192">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view_pyqt6\prescription_views\prescription_form_viewqt.py" target="_blank">.\view_pyqt6\prescription_views\prescription_form_viewqt.py</a><br>
+    <b>Line number: </b>338<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+337	                w.setStyleSheet(&quot;border: 1px solid red;&quot;)
+338	            except Exception:
+339	                pass
+340	
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-193">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view_pyqt6\prescription_views\prescription_form_viewqt.py" target="_blank">.\view_pyqt6\prescription_views\prescription_form_viewqt.py</a><br>
+    <b>Line number: </b>434<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+433	                    self.on_save()
+434	                except Exception:
+435	                    pass
+436	
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-194">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view_pyqt6\prescription_views\prescription_form_viewqt.py" target="_blank">.\view_pyqt6\prescription_views\prescription_form_viewqt.py</a><br>
+    <b>Line number: </b>503<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+502	                    self.start_date.setDate(QDate.fromString(str(_get(&quot;start_date&quot;))[:10], &quot;yyyy-MM-dd&quot;))
+503	                except Exception:
+504	                    pass
+505	            if _get(&quot;end_date&quot;):
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-195">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view_pyqt6\prescription_views\prescription_form_viewqt.py" target="_blank">.\view_pyqt6\prescription_views\prescription_form_viewqt.py</a><br>
+    <b>Line number: </b>508<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+507	                    self.end_date.setDate(QDate.fromString(str(_get(&quot;end_date&quot;))[:10], &quot;yyyy-MM-dd&quot;))
+508	                except Exception:
+509	                    pass
+510	
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-196">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view_pyqt6\prescription_views\prescription_form_viewqt.py" target="_blank">.\view_pyqt6\prescription_views\prescription_form_viewqt.py</a><br>
+    <b>Line number: </b>531<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+530	                return
+531	            except Exception:
+532	                pass
+533	
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-197">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view_pyqt6\prescription_views\prescription_form_viewqt.py" target="_blank">.\view_pyqt6\prescription_views\prescription_form_viewqt.py</a><br>
+    <b>Line number: </b>538<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+537	            self.deleteLater()
+538	        except Exception:
+539	            pass
+540	
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-198">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view_pyqt6\prescription_views\prescription_form_viewqt.py" target="_blank">.\view_pyqt6\prescription_views\prescription_form_viewqt.py</a><br>
+    <b>Line number: </b>550<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+549	                return True
+550	            except Exception:
+551	                pass
+552	        try:
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-199">
+<div class="issue-block issue-sev-low">
+    <b>try_except_pass: </b> Try, Except, Pass detected.<br>
+    <b>Test ID:</b> B110<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\view_pyqt6\secretaire\caisse_form.py" target="_blank">.\view_pyqt6\secretaire\caisse_form.py</a><br>
+    <b>Line number: </b>168<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html" target="_blank">https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html</a><br>
+
+<div class="code">
+<pre>
+167	                        last_id, last_date = last.consultation_id, last.date
+168	                except: pass
+169	        self.info_label.setText(
+</pre>
+</div>
+
+
+</div>
+</div>
+
+</div>
+
+</body>
+</html>

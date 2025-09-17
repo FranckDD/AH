@@ -1,7 +1,7 @@
 # controller/patient_controller.py
 import logging
 from sqlalchemy import func
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List    
 from models.application_role import ApplicationRole
 from models.user import User
 from datetime import date, timedelta
@@ -112,4 +112,75 @@ class PatientController:
             return self.repo.count_by_creation_date_range(start_week, end_week)
         else:
             raise ValueError("Période non valide. Utilisez 'day' ou 'week'")
+
+    def find_by_patient_presc(self, query: str):
+        """
+        Méthode dédiée au lookup depuis la UI prescription.
+        Retourne une dict (comme find_by_code / find_patient) ou None.
+        """
+        if not query:
+            return None
+        q = query.strip()
+        try:
+            # utilise le repo utilitaire
+            p = self.repo.find_for_prescription(q)
+            if not p:
+                return None
+
+            # si repo renvoie un objet ORM, normaliser en dict similaire à find_by_code
+            if hasattr(p, "__dict__") and not isinstance(p, dict):
+                return {
+                    'patient_id':    getattr(p, 'patient_id', None),
+                    'code_patient':  getattr(p, 'code_patient', None),
+                    'first_name':    getattr(p, 'first_name', None),
+                    'last_name':     getattr(p, 'last_name', None),
+                    'birth_date':    getattr(p, 'birth_date', None),
+                    'gender':        getattr(p, 'gender', None),
+                    'national_id':   getattr(p, 'national_id', None),
+                    'contact_phone': getattr(p, 'contact_phone', None),
+                    'assurance':     getattr(p, 'assurance', None),
+                    'residence':     getattr(p, 'residence', None),
+                    'father_name':   getattr(p, 'father_name', None),
+                    'mother_name':   getattr(p, 'mother_name', None),
+                }
+            # sinon retourner tel quel (si déjà dict)
+            return p
+        except Exception as e:
+            self.logger.exception("Erreur find_by_patient_presc: %s", e)
+            return None
+        
+    def new_patients_for_day(self, target_date: date, doctor_id: Optional[int] = None,
+                         page: int = 1, per_page: int = 200) -> List[Dict[str, Any]]:
+        """
+        Retourne la liste des patients créés le jour 'target_date'.
+        Renvoie une liste de dicts simples (pratique pour l'UI).
+        """
+        # Si doctor_id non fourni, on peut laisser None (global) ou utiliser self.user.user_id selon les besoins.
+        pats = self.repo.get_new_patients_for_day(target_date, doctor_id=doctor_id, page=page, per_page=per_page)
+
+        def serialize(p):
+            # tolérance sur noms d'attributs
+            pid = getattr(p, "patient_id", None) or getattr(p, "id", None)
+            code = getattr(p, "code_patient", None)
+            fname = getattr(p, "first_name", None)
+            lname = getattr(p, "last_name", None)
+            birth = getattr(p, "birth_date", None)
+            # compute age if birth_date is date
+            age = None
+            try:
+                if birth:
+                    today = date.today()
+                    age = today.year - birth.year - ((today.month, today.day) < (birth.month, birth.day))
+            except Exception:
+                age = None
+            return {
+                "patient_id": pid,
+                "code_patient": code,
+                "first_name": fname,
+                "last_name": lname,
+                "birth_date": birth,
+                "age": age,
+            }
+
+        return [serialize(p) for p in pats]    
 

@@ -2,7 +2,9 @@
 import logging
 from repositories.prescription_repo import PrescriptionRepository
 from datetime import date, timedelta
-from typing import Optional
+from typing import Dict, Any, Optional
+import datetime
+
 
 class PrescriptionController:
     def __init__(self, repo=None, patient_controller=None, current_user=None):
@@ -11,9 +13,31 @@ class PrescriptionController:
         self.current_user = current_user
         self.logger = logging.getLogger(__name__)
 
-    def list_prescriptions(self, patient_id=None, page=1, per_page=20):
+    def list_prescriptions(self, page: int = 1, per_page: int = 20,
+                           date_from: Optional[str] = None, date_to: Optional[str] = None,
+                           patient_id: Optional[int] = None, search: Optional[str] = None) -> Dict[str, Any]:
+        """
+        Retourne un dict {data: [...], total: N} — accepte date_from/date_to en ISO strings ou date objects.
+        """
+        df = date_from
+        dt = date_to
         try:
-            return self.repo.list(patient_id=patient_id, page=page, per_page=per_page)
+            if isinstance(date_from, str):
+                df = datetime.datetime.fromisoformat(date_from).date()
+            if isinstance(date_to, str):
+                dt = datetime.datetime.fromisoformat(date_to).date()
+        except Exception:
+            # si parse échoue, laisser tel quel (None ou valeur fournie)
+            df, dt = date_from, date_to
+
+        try:
+            items, total = self.repo.list_paginated_with_relations(
+                page=page, per_page=per_page,
+                date_from=df, date_to=dt, # type: ignore
+                patient_id=patient_id,
+                search=search
+            )
+            return {"data": items, "total": total}
         except Exception as e:
             self.logger.error(f"Erreur list_prescriptions: {e}", exc_info=True)
             raise

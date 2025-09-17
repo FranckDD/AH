@@ -140,6 +140,21 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
 
     return user
 
+@router.get("/auth/me", tags=["Authentication"])
+def get_me(current_user=Depends(get_current_user)):
+    """
+    Retourne les infos du user courant basé sur le JWT.
+    """
+    return {
+        "id": current_user.user_id,
+        "username": getattr(current_user, "username", None),
+        "application_role": {
+            "id": getattr(current_user.application_role, "id", None),
+            "role_name": getattr(current_user.application_role, "role_name", None),
+        }
+    }
+
+
 
 def role_required(*allowed_roles: str):
     """

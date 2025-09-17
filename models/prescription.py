@@ -1,5 +1,7 @@
 # models/prescription.py
+import uuid
 from sqlalchemy import Column, Integer, String, Date, Text, ForeignKey
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from .database import Base
 
@@ -18,6 +20,7 @@ class Prescription(Base):
     status          = Column(String(20), default="active")
     prescribed_by   = Column(Integer, ForeignKey("users.user_id"))
     prescribed_by_name = Column(String(100))
+    uuid = Column(UUID(as_uuid=True), unique=True, nullable=False, default=uuid.uuid4)
 
     #relations
     patient         = relationship("Patient", back_populates="prescriptions")

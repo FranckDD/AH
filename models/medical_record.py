@@ -1,6 +1,8 @@
 # models/medical_record.py
+import uuid
 from sqlalchemy import Column, Integer, String, Numeric, DateTime, Text, ForeignKey
 from sqlalchemy.sql import func
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from .database import Base
 
@@ -29,6 +31,7 @@ class MedicalRecord(Base):
     created_by_name    = Column(String(100))
     last_updated_by    = Column(Integer, ForeignKey('users.user_id'))
     last_updated_by_name = Column(String(100))
+    uuid = Column(UUID(as_uuid=True), unique=True, nullable=False, default=uuid.uuid4)
 
     # Relation vers Patient
     patient            = relationship("Patient", back_populates="medical_records")

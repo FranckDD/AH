@@ -1,5 +1,7 @@
+import uuid
 from datetime import datetime
 from sqlalchemy import Column, Integer, String, Date, Time, ForeignKey, DateTime, Text
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from .database import Base
 
@@ -24,6 +26,7 @@ class Appointment(Base):
     status = Column(String(20), default='pending')
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    uuid = Column(UUID(as_uuid=True), unique=True, nullable=False, default=uuid.uuid4)
 
     patient = relationship("Patient", back_populates="appointments")
     doctor = relationship("User", back_populates="appointments")

@@ -2,6 +2,7 @@
 from typing import Optional
 from pydantic import BaseModel, Field
 from datetime import date, time, datetime
+from typing import List
 
 # -----------------------
 # Base réutilisable (pour Update / Response)
@@ -52,3 +53,11 @@ class AppointmentResponse(AppointmentBase):
     doctor: Optional[dict] = None
 
     model_config = {"from_attributes": True}
+
+class AppointmentListResponse(BaseModel):
+    data: List[AppointmentResponse]
+    total: int
+    page: int
+    per_page: int
+
+    model_config = {"from_attributes": True}   

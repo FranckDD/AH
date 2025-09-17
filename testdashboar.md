@@ -1619,4 +1619,193 @@ class DoctorsDashboardView(ctk.CTkFrame):
             pass
         super().destroy()
 
+# api_controller 
+# view_pyqt6/api_controller.py
+import inspect
+from typing import Any, Callable, Dict, Iterable
+
+# Proxy générique adaptatif vers RemoteGateway
+class ApiControllerProxy:
+    """
+    Proxy adaptatif qui forwarde dynamiquement les appels vers `gateway`.
+    Il tente plusieurs stratégies si les signatures ne correspondent pas :
+      - appel direct gateway.fn(*args, **kwargs)
+      - remappage de kwargs communs (page/per_page -> skip/limit, search -> q/query, ...)
+      - transformation en args positionnels selon la signature du target
+      - normalisation des réponses (ex: {'data': [...]}) pour les méthodes list_*
+    """
+
+    def __init__(self, gateway: Any):
+        if gateway is None:
+            raise ValueError("gateway cannot be None for ApiControllerProxy")
+        self.gateway = gateway
+
+    # utilitaires
+    def _normalize_list_response(self, name: str, res: Any):
+        """Si méthode list_... renvoie enveloppe {'data':[...]}, retourne la liste."""
+        if res is None:
+            return []
+        if isinstance(res, dict):
+            for k in ("data", "items", "results", "rows"):
+                if k in res and isinstance(res[k], list):
+                    return res[k]
+            # parfois la gateway renvoie {'_items': [...]} ou {'payload': {'data':[...]}}
+            if "_items" in res and isinstance(res["_items"], list):
+                return res["_items"]
+            if "payload" in res and isinstance(res["payload"], dict) and isinstance(res["payload"].get("data"), list):
+                return res["payload"]["data"]
+        # si c'est déjà une itérable de données, renvoyer tel quel (mais pas str)
+        if isinstance(res, list):
+            return res
+        if isinstance(res, Iterable) and not isinstance(res, (str, bytes, dict)):
+            try:
+                return list(res)
+            except Exception:
+                pass
+        return res
+
+    def _remap_kwargs_common(self, kwargs: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Applique des règles courantes :
+          page+per_page -> skip, limit
+          per_page -> limit
+          page -> skip (assume per_page=15 si absent)
+          search -> q / query
+        """
+        kw = dict(kwargs)  # copy
+        # page/per_page -> skip/limit
+        page = kw.pop("page", None)
+        per_page = kw.pop("per_page", None) or kw.pop("limit", None) or None
+        if page is not None:
+            try:
+                per = int(per_page) if per_page is not None else 15
+                skip = max(0, (int(page) - 1) * per)
+                kw.setdefault("skip", skip)
+                kw.setdefault("limit", per)
+            except Exception:
+                # fallback safe: expose page as-is if conversion fails
+                kw.setdefault("page", page)
+                if per_page is not None:
+                    kw.setdefault("limit", per_page)
+        else:
+            # only per_page -> limit
+            if per_page is not None:
+                kw.setdefault("limit", per_page)
+
+        # search -> q/query
+        if "search" in kw:
+            sval = kw.pop("search")
+            # some gateways expect 'q' or 'query' or 'search'
+            if "q" not in kw:
+                kw["q"] = sval
+            if "query" not in kw:
+                kw["query"] = sval
+
+        # unify id names often used
+        if "patient_id" in kw and "id" not in kw:
+            kw.setdefault("id", kw["patient_id"])
+        if "record_id" in kw and "id" not in kw:
+            kw.setdefault("id", kw["record_id"])
+
+        return kw
+
+    def _build_positional_from_kwargs(self, fn: Callable, kwargs: Dict[str, Any]):
+        """
+        Construire une liste d'args positionnels à partir des kwargs
+        en respectant l'ordre des paramètres de la signature du callable.
+        """
+        try:
+            sig = inspect.signature(fn)
+            params = []
+            for p in sig.parameters.values():
+                if p.kind in (inspect.Parameter.POSITIONAL_ONLY, inspect.Parameter.POSITIONAL_OR_KEYWORD):
+                    params.append(p.name)
+            args = []
+            for name in params:
+                if name in kwargs:
+                    args.append(kwargs[name])
+            return args
+        except Exception:
+            return []
+
+    def __getattr__(self, name: str):
+        """
+        Retourne un wrapper qui appellera la méthode correspondante sur la gateway.
+        Si la gateway ne dispose pas de la méthode, on lève AttributeError.
+        """
+        gw = self.gateway
+        target = getattr(gw, name, None)
+        if target is None:
+            # some remote layer may use different prefixes (ex: list_patients -> patients_list)
+            alt = None
+            # try common alternatives
+            alternatives = [
+                name,
+                name.replace("list_", ""),
+                name.replace("get_", "get"),
+                name.replace("create_", "post_"),
+            ]
+            for a in alternatives:
+                if a != name and hasattr(gw, a):
+                    alt = getattr(gw, a)
+                    break
+            if alt is None:
+                raise AttributeError(f"Gateway has no attribute '{name}'")
+            target = alt
+
+        def wrapper(*args, **kwargs):
+            # 1) try direct call
+            try:
+                return self._post_process(name, target(*args, **kwargs))
+            except TypeError as e_direct:
+                # capture message to test if it's "unexpected keyword argument"
+                last_exc = e_direct
+                # 2) try remap common kwargs (page->skip etc.)
+                try:
+                    remapped = self._remap_kwargs_common(kwargs)
+                    # if args empty, try direct with remapped kwargs
+                    try:
+                        return self._post_process(name, target(*args, **remapped))
+                    except TypeError as e2:
+                        last_exc = e2
+                        # 3) try to call with positional args built from remapped kwargs
+                        pos = self._build_positional_from_kwargs(target, remapped)
+                        try:
+                            return self._post_process(name, target(*pos))
+                        except Exception as e_pos:
+                            last_exc = e_pos
+                except Exception:
+                    pass
+
+                # 4) try to build positional args from original kwargs (fallback)
+                try:
+                    pos2 = self._build_positional_from_kwargs(target, kwargs)
+                    try:
+                        return self._post_process(name, target(*pos2))
+                    except Exception as e3:
+                        last_exc = e3
+                except Exception:
+                    pass
+
+                # 5) final attempt: call with no kwargs/args
+                try:
+                    return self._post_process(name, target())
+                except Exception as e_final:
+                    last_exc = e_final
+
+                # none of attempts worked -> reraised original info
+                raise last_exc from last_exc
+            except Exception as e:
+                # other exceptions come from gateway and should remonter
+                raise
+
+        return wrapper
+
+    def _post_process(self, name: str, res: Any):
+        # pour les méthodes de type "list_*" on normalise si l'enveloppe contient "data"/"items"
+        if name.startswith("list_") or name.endswith("_list") or name.endswith("s_list"):
+            return self._normalize_list_response(name, res)
+        # sinon renvoyer tel quel
+        return res
+
 

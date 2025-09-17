@@ -3,13 +3,55 @@ from sqlalchemy import text
 from models.database import DatabaseManager
 from sqlalchemy.orm import Session
 from models.prescription import Prescription
+from models.patient import Patient
 from sqlalchemy import func
+from sqlalchemy.orm import joinedload
+from sqlalchemy import and_
 from datetime import date, timedelta
-from typing import List
+from typing import List, Optional, Tuple
 
 class PrescriptionRepository:
     def __init__(self, session: Session):
         self.session = session
+
+    def list_paginated_with_relations(
+        self,
+        page: int = 1,
+        per_page: int = 20,
+        date_from: Optional[date] = None,
+        date_to: Optional[date] = None,
+        patient_id: Optional[int] = None,
+        search: Optional[str] = None
+    ) -> Tuple[List[Prescription], int]:
+        """
+        Retourne (items, total) avec joined patient.
+        search -> recherche sur Patient.code_patient ou Prescription.medication (ilike %s%)
+        Filtrage par date sur start_date (utilisable avec date_from/date_to)
+        """
+        q = self.session.query(Prescription).options(
+            joinedload(Prescription.patient)
+        ).order_by(Prescription.start_date.desc())
+
+        if date_from and date_to:
+            q = q.filter(and_(Prescription.start_date >= date_from, Prescription.start_date <= date_to))
+
+        if patient_id:
+            q = q.filter(Prescription.patient_id == patient_id)
+
+        if search:
+            s = f"%{search}%"
+            # join patient to search by code / name if needed
+            q = q.join(Patient, Prescription.patient).filter(
+                (Patient.code_patient.ilike(s)) |
+                (Patient.first_name.ilike(s)) |
+                (Patient.last_name.ilike(s)) |
+                (Prescription.medication.ilike(s))
+            )
+
+        total = q.count()
+        skip = max(0, (int(page) - 1) * int(per_page))
+        items = q.offset(skip).limit(int(per_page)).all()
+        return items, total    
 
     def list(self, patient_id=None, page=1, per_page=20):
         q = self.session.query(Prescription)

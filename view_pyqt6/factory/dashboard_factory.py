@@ -1,5 +1,5 @@
 #from view_pyqt6.admin_view.dashboard_admin_view import AdminDashboardView
-from view_pyqt6.QT_medecin.dashboard_medical import DashboardView
+from view_pyqt6.dashboard_view_qt import DashboardView
 from view_pyqt6.dashboard_default import DefaultDashboardView
 from view_pyqt6.secretaire.secretaire_dashboard import SecretaireDashboardView
 

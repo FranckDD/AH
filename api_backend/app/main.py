@@ -15,8 +15,10 @@ from .routes.cs import cs_endpoint
 from .routes.caisse import caisse_endpoints
 from .routes.pharmacy import pharmacy_endpoints
 from .routes.admin import users_endpoint
+from .routes import health_endpoint
 
 app = FastAPI(title="AH2 API")
+
 
 # Inclusion des routers
 app.include_router(auth_endpoints.router, prefix="", tags=["Auth"])
@@ -28,4 +30,7 @@ app.include_router(cs_endpoint.router)
 app.include_router(caisse_endpoints.router)
 app.include_router(pharmacy_endpoints.router)
 app.include_router(users_endpoint.router)
+app.include_router(health_endpoint.router)
+
+
 
