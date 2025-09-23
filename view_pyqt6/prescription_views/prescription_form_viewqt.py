@@ -180,13 +180,13 @@ class PrescriptionFormView(QWidget):
          - normalizes different return shapes
         """
         code = self.code_edit.text().strip()
-        print(f"[DEBUG] _on_code_focus_out: code saisi -> '{code}'")
+        #print(f"[DEBUG] _on_code_focus_out: code saisi -> '{code}'")
 
         if not code:
             # reset
             self.patient_id = None
             self.patient_name_label.setText("-")
-            print("[DEBUG] code vide -> patient reset")
+            #print("[DEBUG] code vide -> patient reset")
             return
 
         patient = None
@@ -195,17 +195,17 @@ class PrescriptionFormView(QWidget):
             patient_ctrl = None
             try:
                 patient_ctrl = self.resolver.patient_controller()
-                print(f"[DEBUG] patient_controller obtenu: {type(patient_ctrl)}")
+                #print(f"[DEBUG] patient_controller obtenu: {type(patient_ctrl)}")
             except Exception as e:
-                print(f"[DEBUG] impossible obtenir patient_controller: {e}")
+                #print(f"[DEBUG] impossible obtenir patient_controller: {e}")
                 patient_ctrl = None
 
             # 1) Preferred: patient_ctrl.find_by_patient_presc(q)
             if patient_ctrl and hasattr(patient_ctrl, "find_by_patient_presc"):
                 try:
-                    print(f"[DEBUG] tentative patient_ctrl.find_by_patient_presc('{code}')")
+                    #print(f"[DEBUG] tentative patient_ctrl.find_by_patient_presc('{code}')")
                     res = patient_ctrl.find_by_patient_presc(code)
-                    print(f"[DEBUG] find_by_patient_presc -> {res}")
+                    #print(f"[DEBUG] find_by_patient_presc -> {res}")
                     if isinstance(res, dict):
                         # Could be {"error":...} from gateway proxy; treat it
                         if res.get("error"):
@@ -232,11 +232,12 @@ class PrescriptionFormView(QWidget):
 
                 if gw and hasattr(gw, "find_patient_for_prescription"):
                     try:
-                        print(f"[DEBUG] tentative gateway.find_patient_for_prescription('{code}')")
+                        #print(f"[DEBUG] tentative gateway.find_patient_for_prescription('{code}')")
                         res = gw.find_patient_for_prescription(code)
-                        print(f"[DEBUG] gateway.find_patient_for_prescription -> {res}")
+                        #print(f"[DEBUG] gateway.find_patient_for_prescription -> {res}")
                         if isinstance(res, dict) and res.get("error"):
-                            print(f"[DEBUG] gateway returned error: {res}")
+                            #print(f"[DEBUG] gateway returned error: {res}")
+                            pass
                         else:
                             # response may be dict with patient or list/paginated -> normalize
                             if isinstance(res, list):
@@ -246,27 +247,29 @@ class PrescriptionFormView(QWidget):
                             else:
                                 patient = res
                     except Exception as e:
-                        print(f"[DEBUG] erreur gateway find_patient_for_prescription: {e}")
+                        #print(f"[DEBUG] erreur gateway find_patient_for_prescription: {e}")
+                        pass
 
             # 3) fallback: try patient_ctrl.list_patients(search=code) if available
             if not patient and patient_ctrl and hasattr(patient_ctrl, "list_patients"):
                 try:
-                    print(f"[DEBUG] tentative list_patients(search={code})")
+                    #print(f"[DEBUG] tentative list_patients(search={code})")
                     res = patient_ctrl.list_patients(page=1, per_page=5, search=code)
-                    print(f"[DEBUG] list_patients -> {res}")
+                    #print(f"[DEBUG] list_patients -> {res}")
                     if isinstance(res, list):
                         patient = res[0] if res else None
                     elif isinstance(res, dict) and "data" in res:
                         patient = res["data"][0] if res.get("data") else None
                 except Exception as e:
-                    print(f"[DEBUG] erreur list_patients: {e}")
+                   # print(f"[DEBUG] erreur list_patients: {e}")
+                   pass
 
             # 4) last fallback: try controller.find_patient (some proxies have this)
             if not patient and hasattr(self.controller, "find_patient"):
                 try:
-                    print(f"[DEBUG] tentative controller.find_patient({code})")
+                    #print(f"[DEBUG] tentative controller.find_patient({code})")
                     res = self.controller.find_patient(code)
-                    print(f"[DEBUG] controller.find_patient -> {res}")
+                    #print(f"[DEBUG] controller.find_patient -> {res}")
                     if isinstance(res, list):
                         patient = res[0] if res else None
                     elif isinstance(res, dict) and "data" in res:
@@ -277,11 +280,11 @@ class PrescriptionFormView(QWidget):
                     print(f"[DEBUG] erreur controller.find_patient: {e}")
 
         except Exception as e:
-            print(f"[DEBUG] Erreur lookup patient: {e}")
+            #print(f"[DEBUG] Erreur lookup patient: {e}")
             patient = None
 
         if not patient:
-            print("[DEBUG] patient non trouvé")
+            #print("[DEBUG] patient non trouvé")
             self.patient_id = None
             self.patient_name_label.setText("Code introuvable")
             return
@@ -294,7 +297,7 @@ class PrescriptionFormView(QWidget):
             pid = getattr(patient, "patient_id", None) or getattr(patient, "id", None)
             name = f"{getattr(patient, 'last_name','')} {getattr(patient, 'first_name','')}".strip()
 
-        print(f"[DEBUG] patient trouvé -> id: {pid}, name: {name}")
+        #print(f"[DEBUG] patient trouvé -> id: {pid}, name: {name}")
         self.patient_id = pid
         self.patient_name_label.setText(name or "-")
 
@@ -410,7 +413,8 @@ class PrescriptionFormView(QWidget):
             import json
             print("DEBUG PRESCRIPTION PAYLOAD:", json.dumps(data, indent=2, ensure_ascii=False))
         except Exception:
-            print("DEBUG PRESCRIPTION PAYLOAD:", data)
+            #print("DEBUG PRESCRIPTION PAYLOAD:", data)
+            pass
 
         try:
             # call create / update
@@ -461,7 +465,7 @@ class PrescriptionFormView(QWidget):
 
         except Exception as e:
             # ApiControllerProxy may raise a RuntimeError containing "Gateway error: ... - <detail>"
-            print(f"[DEBUG] Erreur technique (prescription save): {e}")
+            #print(f"[DEBUG] Erreur technique (prescription save): {e}")
 
             # Tentative de mitigation : vérifier si la prescription existe déjà (post-mortem check)
             try:
@@ -595,7 +599,7 @@ class PrescriptionFormView(QWidget):
             if _get("notes"):
                 self.notes_text.setPlainText(str(_get("notes")))
         except Exception as e:
-            print(f"[DEBUG] Erreur load prescription: {e}")
+            #print(f"[DEBUG] Erreur load prescription: {e}")
             QMessageBox.warning(self, "Erreur", "Impossible de charger la prescription.")
 
     # ---------------- Window helpers ----------------

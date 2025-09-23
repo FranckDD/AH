@@ -11,6 +11,7 @@ from repositories.user_repo import UserRepository
 from repositories.role_repo import RoleRepository
 from app.routes.auth.auth_endpoints import get_current_user, role_required
 from app.exceptions import translate_integrity_error
+from .users_schemas import RoleListResponse, SpecialtyListResponse
 
 from .users_schemas import UserCreate, UserUpdate, UserOut
 from .mapping import normalize_user_data
@@ -44,6 +45,23 @@ def _safe_validate_user(raw: Any) -> UserOut:
     except Exception as e:
         logger.exception("Error validating user response data: %s", e)
         raise HTTPException(status_code=500, detail="Erreur interne : données utilisateur invalides")
+
+
+@router.get("/roles", response_model=List[str])
+def list_roles(controller: UserController = Depends(get_user_controller)):
+    try:
+        return controller.get_all_roles()
+    except SQLAlchemyError:
+        logger.exception("Erreur DB list_roles")
+        raise HTTPException(status_code=500, detail="Erreur serveur lors de la lecture des rôles")
+
+@router.get("/specialties", response_model=List[str])
+def list_specialties(controller: UserController = Depends(get_user_controller)):
+    try:
+        return controller.get_all_specialties()
+    except SQLAlchemyError:
+        logger.exception("Erreur DB list_specialties")
+        raise HTTPException(status_code=500, detail="Erreur serveur lors de la lecture des spécialités")
 
 
 @router.get("/", response_model=List[UserOut])
@@ -137,3 +155,6 @@ def delete_user(user_id: int, user_ctrl: UserController = Depends(get_user_contr
             logger.exception("Rollback failed after SQLAlchemyError")
         logger.exception("SQLAlchemyError deleting user: %s", se)
         raise HTTPException(status_code=500, detail="Erreur serveur lors de la suppression de l'utilisateur")
+    
+
+

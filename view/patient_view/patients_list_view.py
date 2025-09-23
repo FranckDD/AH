@@ -1,7 +1,7 @@
 import customtkinter as ctk
 from tkinter import ttk
 from tkinter import messagebox
-from utils.pdf_export import export_patients_to_pdf
+from utils.pdf_exporter import export_patients_to_pdf
 
 # Assuming these view classes exist for editing and viewing profiles
 from view.patient_view.patients_edit_view import PatientsEditView

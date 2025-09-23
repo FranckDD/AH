@@ -59,3 +59,9 @@ class UserOut(BaseModel):
             "roles": ["medecin"]
         }
     })
+
+class RoleListResponse(BaseModel):
+    roles: List[str]
+
+class SpecialtyListResponse(BaseModel):
+    specialties: List[str]

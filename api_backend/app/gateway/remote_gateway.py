@@ -417,3 +417,55 @@ class RemoteGateway:
     def get_prescriptions_count(self, period):
     # update to call new endpoint
         return self.request("GET", "/prescriptions/kpi/count", params={"period": period})
+    
+        # --------------------
+    # USERS / ADMIN
+    # --------------------
+    def list_users(self, page: int = 1, per_page: int = 50, search: Optional[str] = None):
+        params = {"page": page, "per_page": per_page}
+        if search:
+            params["search"] = search
+        return self.request("GET", "/users", params=params)
+
+    def search_users(self, q: str):
+        # Endpoint dédié /users/search?q=...
+        params = {"q": q}  # si ton endpoint attend 'q' ou 'q' en query param
+        # d'après ton router: /users/search?q=... -> Query param name 'q'
+        return self.request("GET", "/users/search", params=params)
+
+    def get_user(self, user_id: int):
+        return self.request("GET", f"/users/{user_id}")
+
+    def create_user(self, data: dict):
+        return self.request("POST", "/users", json=data)
+
+    def update_user(self, user_id: int, data: dict):
+        return self.request("PUT", f"/users/{user_id}", json=data)
+
+    def delete_user(self, user_id: int):
+        return self.request("DELETE", f"/users/{user_id}")
+
+    def _unwrap_list_response(self, res):
+            # res may be list[str] or {"roles": [...]} or {"specialties":[...]}
+            if isinstance(res, dict):
+                # try common keys
+                for k in ("roles", "specialties", "data", "items", "results"):
+                    if k in res and isinstance(res[k], list):
+                        return res[k]
+                # If not found, try to guess first list value
+                for v in res.values():
+                    if isinstance(v, list):
+                        return v
+                return []
+            if isinstance(res, list):
+                return res
+            # fallback
+            return []
+
+    def list_roles(self):
+        res = self.request("GET", "/users/roles")
+        return self._unwrap_list_response(res)
+
+    def list_speciality(self):
+        res = self.request("GET", "/users/specialties")
+        return self._unwrap_list_response(res)

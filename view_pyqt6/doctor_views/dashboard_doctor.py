@@ -541,7 +541,8 @@ class DoctorsDashboardView(QWidget):
             # chart
             self._draw_timeseries_chart(timeseries)
         except Exception as e:
-            print(f"DEBUG: _update_kpis_ui exception: {e}")
+            print(" update_kpi exception:", e)
+            #print(f"DEBUG: _update_kpis_ui exception: {e}")
             try:
                 QMessageBox.critical(self, "Erreur UI", f"Erreur mise à jour KPI: {e}")
             except Exception:

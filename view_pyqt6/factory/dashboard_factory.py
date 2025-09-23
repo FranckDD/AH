@@ -1,4 +1,4 @@
-#from view_pyqt6.admin_view.dashboard_admin_view import AdminDashboardView
+from view_pyqt6.admin_view_pyqt.dashboard_admin_pyqt import DashboardAdminView
 from view_pyqt6.dashboard_view_qt import DashboardView
 from view_pyqt6.dashboard_default import DefaultDashboardView
 from view_pyqt6.secretaire.secretaire_dashboard import SecretaireDashboardView
@@ -11,7 +11,7 @@ def get_dashboard_class(role_name: str):
     Retourne la classe de Dashboard PyQt6 correspondant au rôle métier.
     """
     return {
-        #'admin'      : AdminDashboardView,
+        'admin'      : DashboardAdminView,
         'medecin'    : DashboardView,
         'nurse'      : DashboardView,
         'secretaire' : SecretaireDashboardView

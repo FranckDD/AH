@@ -314,8 +314,8 @@ class MedicalRecordListView(QWidget):
                 search=search
             )
             
-            print(f"DEBUG - Response type: {type(response)}")
-            print(f"DEBUG - Response keys: {response.keys() if isinstance(response, dict) else 'Not a dict'}")
+            #print(f"DEBUG - Response type: {type(response)}")
+            #print(f"DEBUG - Response keys: {response.keys() if isinstance(response, dict) else 'Not a dict'}")
             
             if isinstance(response, dict) and 'error' in response:
                 QMessageBox.warning(self, "Erreur", f"Impossible de charger les dossiers: {response.get('details', 'Erreur inconnue')}")
@@ -333,7 +333,7 @@ class MedicalRecordListView(QWidget):
                 total_count = len(records)
                 self.total_pages = max(1, (total_count + self.per_page - 1) // self.per_page)
             
-            print(f"DEBUG - Total records: {total_count}, Total pages: {self.total_pages}")
+            #print(f"DEBUG - Total records: {total_count}, Total pages: {self.total_pages}")
             
             # Remplir le tableau
             self.table.setRowCount(0)

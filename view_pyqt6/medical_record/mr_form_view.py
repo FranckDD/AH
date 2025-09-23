@@ -575,11 +575,13 @@ class MedicalRecordFormView(QWidget):
         # --- Debug print of payload ---
         try:
             import json
-            print("DEBUG CLIENT PAYLOAD:", json.dumps(data, indent=2, ensure_ascii=False))
+            #print("DEBUG CLIENT PAYLOAD:", json.dumps(data, indent=2, ensure_ascii=False))
         except Exception:
-            print("DEBUG CLIENT PAYLOAD:", data)
+            pass
+            #print("DEBUG CLIENT PAYLOAD:", data)
         try:
-            print("DEBUG controller object:", type(self.controller), getattr(self.controller, "__dict__", "{}"))
+            #print("DEBUG controller object:", type(self.controller), getattr(self.controller, "__dict__", "{}"))
+            pass
         except Exception:
             pass
 

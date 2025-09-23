@@ -141,26 +141,26 @@ class AppointmentsDashboardView(QWidget):
                     date_from=first_day.isoformat(),
                     date_to=last_day.isoformat()
                 )
-                print(f"[DEBUG] Raw response from list_appointments: {type(raw)} - {raw}")
+                #print(f"[DEBUG] Raw response from list_appointments: {type(raw)} - {raw}")
             else:
                 raw = []
         except Exception as e:
-            print("[DEBUG] load_month_appointments error:", e)
+            #print("[DEBUG] load_month_appointments error:", e)
             raw = []
 
         # normalize into a list of items
         items = []
         if isinstance(raw, dict) and "data" in raw:
-            print(f"[DEBUG] Raw response keys: {list(raw.keys())}")
+            #print(f"[DEBUG] Raw response keys: {list(raw.keys())}")
             items = raw["data"] or []
         elif isinstance(raw, list):
-            print(f"[DEBUG] Raw response keys: {list(raw.keys())}")
+            #print(f"[DEBUG] Raw response keys: {list(raw.keys())}")
             items = raw
         elif "items" in raw:  # Ensuite "items"
-            print(f"[DEBUG] Items count: {len(raw.get('items', []))}")
+            #print(f"[DEBUG] Items count: {len(raw.get('items', []))}")
             items = raw["items"] or []
         elif "results" in raw:  # Puis "results"
-            print(f"[DEBUG] Data count: {len(raw.get('data', []))}")
+            #print(f"[DEBUG] Data count: {len(raw.get('data', []))}")
             items = raw["results"] or []    
         else:
             try:
@@ -215,7 +215,7 @@ class AppointmentsDashboardView(QWidget):
                 lst.append(a)
             except Exception as e:
                 # safe guard: don't break loop on malformed item
-                print("[DEBUG] _load_month_appointments item parse error:", e)
+                #print("[DEBUG] _load_month_appointments item parse error:", e)
                 continue
 
     def _build_day_widget(self, dt: date):

@@ -11,7 +11,22 @@ from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QAction, QFont
 
 from view_pyqt6.controller_resolver import ControllerResolver
-from view_pyqt6.patient_view.patient_edit_view import PatientsEditView  # Nouvelle importation
+from view_pyqt6.patient_view.patient_edit_view import PatientsEditView 
+
+from PyQt6.QtWidgets import QFileDialog, QProgressDialog
+from PyQt6.QtCore import Qt, QTimer
+
+# exporters (si présents)
+try:
+    from utils import csv_exporter
+except Exception:
+    csv_exporter = None
+
+try:
+    from utils  import pdf_exporter
+except Exception:
+    pdf_exporter = None
+
 
 
 class PatientListView(QWidget):
@@ -66,9 +81,19 @@ class PatientListView(QWidget):
         self.edit_btn.setEnabled(False)
         action_layout.addWidget(self.edit_btn)
         
-        export_btn = QPushButton("Export PDF")
-        export_btn.clicked.connect(self.export_pdf)
-        action_layout.addWidget(export_btn)
+        export_pdf_btn = QPushButton("Export PDF")
+        export_pdf_btn.clicked.connect(self.export_pdf)
+        action_layout.addWidget(export_pdf_btn)
+
+        # CSV page courante (export uniquement la page affichée)
+        export_csv_page_btn = QPushButton("Export CSV (page)")
+        export_csv_page_btn.clicked.connect(self.export_csv_page)
+        action_layout.addWidget(export_csv_page_btn)
+
+        # CSV tous (pagee automatiquement via csv_exporter)
+        export_csv_all_btn = QPushButton("Export CSV (tous)")
+        export_csv_all_btn.clicked.connect(self.export_csv_all)
+        action_layout.addWidget(export_csv_all_btn)
         
         action_layout.addStretch()
         main_layout.addLayout(action_layout)
@@ -109,7 +134,7 @@ class PatientListView(QWidget):
         search_text = self.search_entry.text().strip()
         search_param = search_text if search_text else None
         
-        print(f"DEBUG: Loading page {self.page} with {self.per_page} items, search: '{search_param}'")
+        #print(f"DEBUG: Loading page {self.page} with {self.per_page} items, search: '{search_param}'")
         
         try:
             response = self.controller.list_patients(
@@ -118,11 +143,13 @@ class PatientListView(QWidget):
                 search=search_param
             )
             
-            print(f"DEBUG: API response type: {type(response)}")
+            #print(f"DEBUG: API response type: {type(response)}")
             if isinstance(response, dict):
-                print(f"DEBUG: Response keys: {list(response.keys())}")
+                #print(f"DEBUG: Response keys: {list(response.keys())}")
+                pass
             elif isinstance(response, list):
-                print(f"DEBUG: Response list length: {len(response)}")
+               # print(f"DEBUG: Response list length: {len(response)}")
+               pass
             
             # Handle API response
             if isinstance(response, dict) and 'error' in response:
@@ -135,7 +162,7 @@ class PatientListView(QWidget):
             if isinstance(response, dict):
                 patients = response.get('data', [])
                 total_pages = response.get('total_pages', 1)
-                print(f"DEBUG: From API - patients: {len(patients)}, total_pages: {total_pages}")
+                #print(f"DEBUG: From API - patients: {len(patients)}, total_pages: {total_pages}")
             elif isinstance(response, list):
                 patients = response
                 # Estimation plus intelligente
@@ -143,14 +170,14 @@ class PatientListView(QWidget):
                     total_pages = self.page  # Dernière page
                 else:
                     total_pages = self.page + 1  # Il y a une page suivante
-                print(f"DEBUG: From list - patients: {len(patients)}, estimated total_pages: {total_pages}")
+                #print(f"DEBUG: From list - patients: {len(patients)}, estimated total_pages: {total_pages}")
             else:
                 QMessageBox.warning(self, "Erreur", "Format de réponse inattendu")
                 return
             
             # CORRECTION CRITIQUE: Mettre à jour self.total_pages
             self.total_pages = total_pages
-            print(f"DEBUG: Setting total_pages to: {self.total_pages}")
+            #print(f"DEBUG: Setting total_pages to: {self.total_pages}")
             
             # Clear table
             self.table.setRowCount(0)
@@ -188,10 +215,10 @@ class PatientListView(QWidget):
             # Update pagination
             self.page_label.setText(f"Page {self.page} sur {self.total_pages}")
             self._update_pagination_buttons(self.total_pages)
-            print(f"DEBUG: Buttons - prev: {self.page > 1}, next: {self.page < self.total_pages}")
+            #print(f"DEBUG: Buttons - prev: {self.page > 1}, next: {self.page < self.total_pages}")
             
         except Exception as e:
-            print(f"DEBUG: Error: {e}")
+            #print(f"DEBUG: Error: {e}")
             QMessageBox.warning(self, "Erreur", f"Erreur lors du chargement: {str(e)}")
             self._update_pagination_buttons()
 
@@ -207,7 +234,7 @@ class PatientListView(QWidget):
         self.edit_btn.setEnabled(self.selected_patient is not None)
 
     def prev_page(self):
-        print(f"DEBUG: Previous page clicked, current page: {self.page}")
+        #print(f"DEBUG: Previous page clicked, current page: {self.page}")
         if self.page > 1:
             self.page -= 1
             print(f"DEBUG: Going to page: {self.page}")
@@ -216,10 +243,10 @@ class PatientListView(QWidget):
             print("DEBUG: Already on first page")
 
     def next_page(self):
-        print(f"DEBUG: Next page clicked, current page: {self.page}, total pages: {self.total_pages}")
+        #print(f"DEBUG: Next page clicked, current page: {self.page}, total pages: {self.total_pages}")
         if self.page < self.total_pages:
             self.page += 1
-            print(f"DEBUG: Going to page: {self.page}")
+            #print(f"DEBUG: Going to page: {self.page}")
             self.refresh()
         else:
             print("DEBUG: Already on last page")
@@ -270,35 +297,199 @@ class PatientListView(QWidget):
         
         dialog.exec()
 
-    def export_pdf(self):
+    def export_csv_page(self):
+        """Export CSV de la page courante (ne pagine pas l'API)."""
         try:
-            # Get all patients for export
-            patients = self.controller.list_patients(
-                page=1, 
-                per_page=1000, 
-                search=self.search_entry.text().strip() or None
-            )
-            
-            if isinstance(patients, dict) and 'error' in patients:
-                QMessageBox.warning(self, "Erreur", f"Impossible d'exporter: {patients.get('details', 'Erreur inconnue')}")
-                return
-                
-            # Ask for save location
             file_path, _ = QFileDialog.getSaveFileName(
-                self, 
-                "Exporter en PDF", 
-                os.path.expanduser("~/liste_patients.pdf"), 
+                self,
+                "Exporter page courante en CSV",
+                os.path.expanduser("~/liste_patients_page.csv"),
+                "CSV files (*.csv)"
+            )
+            if not file_path:
+                return
+
+            # Construire ligne à partir du contenu du tableau actuel
+            headers = [self.table.horizontalHeaderItem(i).text() for i in range(self.table.columnCount())]
+            import csv
+            with open(file_path, "w", newline="", encoding="utf-8-sig") as f:
+                writer = csv.writer(f)
+                writer.writerow(headers + ["father_name", "mother_name"])  # colonnes ajoutées
+                for r in range(self.table.rowCount()):
+                    row = []
+                    for c in range(self.table.columnCount()):
+                        item = self.table.item(r, c)
+                        row.append(item.text() if item else "")
+                    # optional: try to fetch parents from patient object via controller (best-effort)
+                    try:
+                        pid = self.table.item(r, 0).data(Qt.ItemDataRole.UserRole)
+                        if pid and self.controller:
+                            p = self.controller.get_patient(int(pid))
+                            father = p.get("father_name") if isinstance(p, dict) else getattr(p, "father_name", "")
+                            mother = p.get("mother_name") if isinstance(p, dict) else getattr(p, "mother_name", "")
+                        else:
+                            father = mother = ""
+                    except Exception:
+                        father = mother = ""
+                    writer.writerow(row + [father or "", mother or ""])
+
+            QMessageBox.information(self, "Export CSV", f"Export page réussi ->\n{file_path}")
+
+        except Exception as e:
+            QMessageBox.warning(self, "Erreur", f"Erreur export page CSV: {e}")
+
+    def export_csv_all(self):
+        """Export CSV en paginant toute la liste via csv_exporter.fetch_all_and_export_csv"""
+        if csv_exporter is None:
+            QMessageBox.warning(self, "Export CSV", "Module d'export CSV introuvable.")
+            return
+
+        try:
+            file_path, _ = QFileDialog.getSaveFileName(
+                self,
+                "Exporter toutes les pages en CSV",
+                os.path.expanduser("~/liste_patients_all.csv"),
+                "CSV files (*.csv)"
+            )
+            if not file_path:
+                return
+
+            q = self.search_entry.text().strip() or None
+            params = {}
+            if q:
+                params["search"] = q
+
+            # Progress dialog
+            progress = QProgressDialog("Export en cours...", "Annuler", 0, 0, self)
+            progress.setWindowModality(Qt.WindowModality.WindowModal)
+            progress.setMinimumDuration(200)
+            progress.show()
+
+            def progress_cb(done_count: int, total_estimate: Optional[int]):
+                # si total connu : met à jour la range
+                if total_estimate:
+                    progress.setMaximum(int(total_estimate))
+                else:
+                    progress.setMaximum(0)  # indéterminé -> barra "busy"
+                progress.setValue(done_count)
+                QApplication.processEvents()
+                if progress.wasCanceled():
+                    # signaler annulation en levant une exception pour interrompre le fetch
+                    raise Exception("Annulé par l'utilisateur")
+
+            # lance l'export (le csv_exporter lira page par page)
+            try:
+                count = csv_exporter.fetch_all_and_export_csv(
+                    controller=self.controller,
+                    path=file_path,
+                    params=params,
+                    fetch_fn="list_patients",
+                    per_page=100,
+                    progress_callback=progress_cb
+                )
+            except Exception as e:
+                # si annulation ou erreur, nettoyer fichier partiel
+                try:
+                    if os.path.exists(file_path):
+                        os.remove(file_path)
+                except Exception:
+                    pass
+                if str(e).lower().find("annul") >= 0:
+                    QMessageBox.information(self, "Export CSV", "Export annulé.")
+                    return
+                raise
+
+            progress.setValue(count or 1)
+            QMessageBox.information(self, "Export CSV", f"Export réussi: {count} patients ->\n{file_path}")
+
+        except Exception as e:
+            QMessageBox.warning(self, "Erreur", f"Erreur lors de l'export CSV: {e}")
+
+    def export_pdf(self):
+        """Export PDF avec progression si pdf_exporter est présent."""
+        try:
+            file_path, _ = QFileDialog.getSaveFileName(
+                self,
+                "Exporter en PDF",
+                os.path.expanduser("~/liste_patients.pdf"),
                 "PDF Files (*.pdf)"
             )
-            
-            if file_path:
-                # In a real implementation, you would generate the PDF here
-                # For now, just show a message
-                QMessageBox.information(
-                    self, 
-                    "Export PDF", 
-                    f"Export réussi vers:\n{file_path}\n\n{len(patients)} patients exportés"
-                )
-                
+            if not file_path:
+                return
+
+            q = self.search_entry.text().strip() or None
+            params = {}
+            if q:
+                params["search"] = q
+
+            progress = QProgressDialog("Export PDF en cours...", "Annuler", 0, 0, self)
+            progress.setWindowModality(Qt.WindowModality.WindowModal)
+            progress.setMinimumDuration(200)
+            progress.show()
+
+            def progress_cb(done_count: int, total_estimate: Optional[int]):
+                if total_estimate:
+                    progress.setMaximum(int(total_estimate))
+                else:
+                    progress.setMaximum(0)
+                progress.setValue(done_count)
+                QApplication.processEvents()
+                if progress.wasCanceled():
+                    raise Exception("Annulé par l'utilisateur")
+
+            # Colonnes par défaut (ordre souhaité) — NE PAS inclure 'patient_id'
+            default_columns = [
+                "code_patient", "last_name", "first_name",
+                "father_name", "mother_name",
+                "birth_date", "contact_phone", "national_id", "residence"
+            ]
+
+            header_info = {
+                "logo_path": os.path.join(os.path.dirname(__file__), "..", "..", "assets", "logo.png"),  # adapter
+                "company_name": "MON ENTREPRISE SA",
+                "company_address": "Adresse exemple - Ville - Pays",
+                "company_id": "N° FISCAL: 00000000",
+                "extra_lines": ["Document officiel — Liste des patients"]
+            }
+
+            if pdf_exporter is not None:
+                try:
+                    count = pdf_exporter.fetch_all_and_export_pdf(
+                        controller=self.controller,
+                        path=file_path,
+                        params=params,
+                        fetch_fn="list_patients",
+                        per_page=100,
+                        title="Liste des patients",
+                        progress_callback=progress_cb,
+                        logo_path="assets/ahlogo.png",  # ou None
+                        admin_header={"name": "Clinique XYZ", "address": "Rue ...", "phone": "+237 ..."}
+                    )
+
+                    progress.setValue(count or 1)
+                    QMessageBox.information(self, "Export PDF", f"Export réussi: {count} patients ->\n{file_path}")
+                except Exception as e:
+                    try:
+                        if os.path.exists(file_path):
+                            os.remove(file_path)
+                    except Exception:
+                        pass
+                    if str(e).lower().find("annul") >= 0:
+                        QMessageBox.information(self, "Export PDF", "Export annulé.")
+                        return
+                    raise
+            else:
+                # fallback simple : tenter de récupérer per_page=100 (peut être limité par API)
+                patients = self.controller.list_patients(page=1, per_page=100, search=q or None)
+                if isinstance(patients, dict) and "data" in patients:
+                    count = len(patients.get("data", []))
+                elif isinstance(patients, list):
+                    count = len(patients)
+                else:
+                    count = 0
+                progress.setValue(count or 1)
+                QMessageBox.information(self, "Export PDF", f"Export simulé: {count} patients (pdf exporter manquant)\n{file_path}")
+
         except Exception as e:
-            QMessageBox.warning(self, "Erreur", f"Erreur lors de l'export: {str(e)}")
+            QMessageBox.warning(self, "Erreur", f"Erreur lors de l'export PDF: {e}")
+

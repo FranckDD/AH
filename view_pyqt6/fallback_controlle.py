@@ -47,3 +47,17 @@ class _FallbackResolver:
         if self._offline_mode() and self.fallback_controller and hasattr(self.fallback_controller, "lab_controller"):
             return self.fallback_controller.lab_controller
         return getattr(self.controllers, "lab_controller", None) or getattr(self.gateway, "lab_controller", None)
+    
+        # -------------------------
+    # NEW: user_controller()
+    # -------------------------
+    def user_controller(self):
+        """
+        Same priority logic as others: primary -> fallback (if offline) -> controllers.gateway fallback.
+        Retourne un objet controller (local/fallback) ou None.
+        """
+        if self.primary_controller and hasattr(self.primary_controller, "user_controller"):
+            return self.primary_controller.user_controller
+        if self._offline_mode() and self.fallback_controller and hasattr(self.fallback_controller, "user_controller"):
+            return self.fallback_controller.user_controller
+        return getattr(self.controllers, "user_controller", None) or getattr(self.gateway, "user_controller", None)

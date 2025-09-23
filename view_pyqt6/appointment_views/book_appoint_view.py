@@ -97,7 +97,7 @@ class AppointmentsBookDialog(QDialog):
                         specs = fn() or []
                         break
                     except Exception as e:
-                        print(f"[DEBUG] specialties call {name} failed: {e}")
+                        #print(f"[DEBUG] specialties call {name} failed: {e}")
                         continue
             # normalize structure (proxy may return {"data": [...]})
             if isinstance(specs, dict) and "data" in specs:
@@ -109,7 +109,7 @@ class AppointmentsBookDialog(QDialog):
             else:
                 self.spec_combo.addItems(specs)
         except Exception as e:
-            print("[DEBUG] load_specialties error:", e)
+            #print("[DEBUG] load_specialties error:", e)
             self.spec_combo.clear()
             self.spec_combo.addItem("")
 
@@ -127,12 +127,12 @@ class AppointmentsBookDialog(QDialog):
         patient = None
         try:
             pc = self.patient_ctrl
-            print(f"[DEBUG] lookup patient code -> {code}")
+            #print(f"[DEBUG] lookup patient code -> {code}")
             # 1) prefer dedicated find_by_code if present
             if hasattr(pc, "find_patient_by_code"):
                 try:
                     res = pc.find_patient_by_code(code)
-                    print("[DEBUG] patient_ctrl.find_patient_by_code ->", res)
+                    #print("[DEBUG] patient_ctrl.find_patient_by_code ->", res)
                     if isinstance(res, dict) and not res.get("error"):
                         patient = res
                     elif isinstance(res, list) and res:
@@ -144,24 +144,26 @@ class AppointmentsBookDialog(QDialog):
             if not patient and hasattr(pc, "find_patient"):
                 try:
                     res = pc.find_patient(code)
-                    print("[DEBUG] patient_ctrl.find_patient ->", res)
+                    #print("[DEBUG] patient_ctrl.find_patient ->", res)
                     if isinstance(res, dict) and not res.get("error"):
                         patient = res
                 except Exception as e:
-                    print("[DEBUG] find_patient exception:", e)
+                    print(" find_patient exception:", e)
+                    #print("[DEBUG] find_patient exception:", e)
 
             # 3) fallback reliable: list_patients(search=code)
             if not patient and hasattr(pc, "list_patients"):
                 try:
                     res = pc.list_patients(page=1, per_page=5, search=code)
-                    print("[DEBUG] patient_ctrl.list_patients ->", res)
+                    #print("[DEBUG] patient_ctrl.list_patients ->", res)
                     if isinstance(res, list) and res:
                         patient = res[0]
                 except Exception as e:
-                    print("[DEBUG] list_patients exception:", e)
+                    #print("[DEBUG] list_patients exception:", e)
+                    print(" find_patient exception:", e)
 
         except Exception as e:
-            print("[DEBUG] patient lookup exception:", e)
+            #print("[DEBUG] patient lookup exception:", e)
             patient = None
 
         if not patient:
@@ -240,7 +242,8 @@ class AppointmentsBookDialog(QDialog):
                     self.time_combo.setCurrentIndex(idx2)
             self.reason_edit.setText(g("reason") or "")
         except Exception as e:
-            print("[DEBUG] prefill error:", e)
+            print(" prefill exception:", e)
+            #print("[DEBUG] prefill error:", e)
 
     def _on_save(self):
         if not self.patient_id:
@@ -285,6 +288,6 @@ class AppointmentsBookDialog(QDialog):
                     pass
             self.accept()
         except Exception as e:
-            print("[DEBUG] save appointment error:", e)
+            #print("[DEBUG] save appointment error:", e)
             QMessageBox.critical(self, "Erreur", f"Impossible d'enregistrer le RDV: {e}")
 

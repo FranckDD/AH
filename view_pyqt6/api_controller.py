@@ -27,10 +27,10 @@ class ApiControllerProxy:
     def _normalize_list_response(self, name: str, res: Any):
         # Preserve paginated dicts if they contain data + total
         if isinstance(res, dict) and "data" in res and "total" in res:
-            print(f"DEBUG Normalize: Preserving paginated structure for {name}")
+            #print(f"DEBUG Normalize: Preserving paginated structure for {name}")
             return res
 
-        print(f"DEBUG Normalize: Applying normalization to {type(res)} for {name}")
+        #print(f"DEBUG Normalize: Applying normalization to {type(res)} for {name}")
         if res is None:
             return []
         if isinstance(res, dict):
@@ -150,7 +150,7 @@ class ApiControllerProxy:
 
         def wrapper(*args, **kwargs):
             args_conv, kwargs_conv = self._preprocess_args_kwargs(args, kwargs)
-            print(f"DEBUG: Calling {name} with args: {args_conv}, kwargs: {kwargs_conv}")
+            #print(f"DEBUG: Calling {name} with args: {args_conv}, kwargs: {kwargs_conv}")
 
             # convenience: single dict positional -> kwargs
             if args_conv and isinstance(args_conv[0], dict) and not kwargs_conv:
@@ -160,13 +160,13 @@ class ApiControllerProxy:
             # Call once and let exceptions bubble — safer for side-effecting calls (create/update).
             if self._should_disable_remapping(name, kwargs_conv):
                 raw = target(*args_conv, **kwargs_conv)
-                print(f"DEBUG: Raw response from {name}: {raw!r}")
+                #print(f"DEBUG: Raw response from {name}: {raw!r}")
                 return self._post_process(name, raw)
 
             # 1) try direct call
             try:
                 raw = target(*args_conv, **kwargs_conv)
-                print(f"DEBUG: Raw response from {name}: {raw!r}")
+                #print(f"DEBUG: Raw response from {name}: {raw!r}")
                 return self._post_process(name, raw)
             except TypeError as e_direct:
                 last_exc = e_direct
@@ -175,14 +175,14 @@ class ApiControllerProxy:
                     remapped = self._remap_kwargs_common(kwargs_conv)
                     try:
                         raw = target(*args_conv, **remapped)
-                        print(f"DEBUG: Raw response from {name} (remapped): {raw!r}")
+                        #print(f"DEBUG: Raw response from {name} (remapped): {raw!r}")
                         return self._post_process(name, raw)
                     except TypeError as e2:
                         last_exc = e2
                         pos = self._build_positional_from_kwargs(target, remapped)
                         try:
                             raw = target(*pos)
-                            print(f"DEBUG: Raw response from {name} (pos from remapped): {raw!r}")
+                            #print(f"DEBUG: Raw response from {name} (pos from remapped): {raw!r}")
                             return self._post_process(name, raw)
                         except Exception as e_pos:
                             last_exc = e_pos
@@ -194,7 +194,7 @@ class ApiControllerProxy:
                     pos2 = self._build_positional_from_kwargs(target, kwargs_conv)
                     try:
                         raw = target(*pos2)
-                        print(f"DEBUG: Raw response from {name} (pos from original kwargs): {raw!r}")
+                        #print(f"DEBUG: Raw response from {name} (pos from original kwargs): {raw!r}")
                         return self._post_process(name, raw)
                     except Exception as e3:
                         last_exc = e3
@@ -204,7 +204,7 @@ class ApiControllerProxy:
                 # 5) final attempt: call with no args
                 try:
                     raw = target()
-                    print(f"DEBUG: Raw response from {name} (no args): {raw!r}")
+                    #print(f"DEBUG: Raw response from {name} (no args): {raw!r}")
                     return self._post_process(name, raw)
                 except Exception as e_final:
                     last_exc = e_final
@@ -245,11 +245,11 @@ class ApiControllerProxy:
         # list-like methods: normalize (but preserve paginated-like dicts)
         if (name.startswith("list_") or name.endswith("_list") or name.endswith("s_list") or name.endswith("_all")):
             if isinstance(res, dict) and "data" in res:
-                print(f"DEBUG Proxy: Keeping paginated-like response for {name}, total={res.get('total')}")
+                #print(f"DEBUG Proxy: Keeping paginated-like response for {name}, total={res.get('total')}")
                 return res
-            print(f"DEBUG Proxy: Normalizing response for {name}")
+            #print(f"DEBUG Proxy: Normalizing response for {name}")
             return self._normalize_list_response(name, res)
 
         # default: return as-is
-        print(f"DEBUG Proxy: Returning non-list response for {name}: {res!r}")
+        #print(f"DEBUG Proxy: Returning non-list response for {name}: {res!r}")
         return res

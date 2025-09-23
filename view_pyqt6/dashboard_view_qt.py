@@ -122,11 +122,11 @@ class DashboardView(QWidget):
         logo_h = QHBoxLayout()
         logo_lbl = QLabel()
         logo_lbl.setObjectName("logoLabel")
-        img_path = os.path.join("assets", "logo_light.png")
+        img_path = os.path.join("assets", "ahlogo.png")
         if os.path.exists(img_path):
             pix = QPixmap(img_path).scaled(28, 28, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
             logo_lbl.setPixmap(pix)
-        title = QLabel(" One Health")
+        title = QLabel(" Health")
         title.setObjectName("logoLabel")
         logo_h.addWidget(logo_lbl)
         logo_h.addWidget(title)
@@ -207,7 +207,7 @@ class DashboardView(QWidget):
 
         # logo small
         logo_lbl = QLabel()
-        img_path = os.path.join("assets", "logo_light.png")
+        img_path = os.path.join("assets", "ahlogo.png")
         if os.path.exists(img_path):
             pix = QPixmap(img_path).scaled(20, 20, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
             logo_lbl.setPixmap(pix)

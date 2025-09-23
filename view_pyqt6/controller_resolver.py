@@ -56,3 +56,15 @@ class ControllerResolver:
     
     def lab_controller(self):
         return self._resolve_controller("lab_controller")
+    
+        # -------------------------
+    # NEW: user_controller()
+    # -------------------------
+    def user_controller(self):
+        """
+        Résout user_controller suivant la même priorité que les autres.
+        Usage:
+            uc = resolver.user_controller()
+            uc.list_users(...)   # si uc est proxy, ApiControllerProxy résoudra list_users -> gateway.list_users()
+        """
+        return self._resolve_controller("user_controller")
