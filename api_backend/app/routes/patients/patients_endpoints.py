@@ -7,12 +7,12 @@ from typing import List, Any, Optional
 from datetime import date
 
 from .mapping import normalize_patient_data
-from app.exceptions import translate_integrity_error
+from ...exceptions import translate_integrity_error
 from .patients_schemas import PatientCreate, PatientUpdate, PatientResponse
-from app.database import SessionLocal
+from ...database import SessionLocal
 from controller.auth_controller import AuthController
 from controller.patient_controller import PatientController
-from app.routes.auth.auth_endpoints import get_current_user, role_required
+from ...routes.auth.auth_endpoints import get_current_user, role_required
 
 logger = logging.getLogger(__name__)
 

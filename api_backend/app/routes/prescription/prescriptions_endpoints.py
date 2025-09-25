@@ -9,10 +9,10 @@ from fastapi import Query
 from fastapi.encoders import jsonable_encoder
 from pydantic import ValidationError
 
-from app.database import SessionLocal
+from ...database import SessionLocal
 from repositories.prescription_repo import PrescriptionRepository
 from controller.prescription_controller import PrescriptionController
-from app.routes.auth.auth_endpoints import get_current_user, role_required
+from ...routes.auth.auth_endpoints import get_current_user, role_required
 from .mapping import normalize_prescription_data
 from .prescriptions_schemas import PrescriptionCreate, PrescriptionUpdate, PrescriptionResponse
 
