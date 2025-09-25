@@ -1,5 +1,5 @@
 import datetime
-from app.security.role_map import normalize_role_name, normalize_roles_list
+from ...security.role_map import normalize_role_name, normalize_roles_list
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
