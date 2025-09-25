@@ -32,5 +32,12 @@ app.include_router(pharmacy_endpoints.router)
 app.include_router(users_endpoint.router)
 app.include_router(health_endpoint.router)
 
+if __name__ == "__main__":
+    import uvicorn
+    import os
+
+    port = int(os.getenv("PORT", 8000))
+    uvicorn.run("api_backend.main:app", host="0.0.0.0", port=port)
+
 
 

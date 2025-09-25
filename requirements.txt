@@ -4,15 +4,16 @@ uvicorn[standard]==0.30.0
 SQLAlchemy==2.0.30
 psycopg2-binary==2.9.9
 alembic==1.13.1
+passlib[bcrypt]==1.7.4
+python-jose==3.3.0
+email-validator==2.1.1
+requests==2.32.0
+
 
 # === Validation & Config ===
 pydantic==2.8.2
 pydantic-settings==2.3.4
 python-dotenv==1.0.1
-
-# === Frontend (Desktop) ===
-PyQt6==6.7.0
-pyinstaller==6.9.0
 
 # === Synchronisation Offline ===
 sqlite-utils==3.35
