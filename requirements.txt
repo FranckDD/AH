@@ -15,9 +15,6 @@ pydantic==2.8.2
 pydantic-settings==2.3.4
 python-dotenv==1.0.1
 
-# === Frontend (Desktop) ===
-PyQt6==6.9.0   # compatible Python 3.13
-pyinstaller==6.16.0   # compatible Python 3.13
 
 # === Synchronisation Offline ===
 sqlite-utils==3.35
