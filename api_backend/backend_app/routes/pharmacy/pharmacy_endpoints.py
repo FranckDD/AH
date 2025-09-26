@@ -4,10 +4,10 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 import logging
 
 from .pharmacy_schemas import PharmacyCreate, PharmacyUpdate, PharmacyResponse
-from app.database import SessionLocal
+from backend_app.database import SessionLocal
 from repositories.pharmacy_repo import PharmacyRepository
 from controller.pharmacy_controller import PharmacyController
-from app.routes.auth.auth_endpoints import get_current_user,role_required
+from backend_app.routes.auth.auth_endpoints import get_current_user,role_required
 from .mapping import normalize_pharmacy_data
 
 logger = logging.getLogger(__name__)

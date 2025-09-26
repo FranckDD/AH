@@ -1,11 +1,11 @@
 import datetime
-from ...security.role_map import normalize_role_name, normalize_roles_list
+from backend_app.security.role_map import normalize_role_name, normalize_roles_list
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from jose import ExpiredSignatureError, jwt as jose_jwt ,JWTError
-from ...database import SessionLocal
-from ...config import JWT_SECRET, JWT_ALGORITHM, JWT_EXPIRE_MINUTES
+from backend_app.database import SessionLocal
+from backend_app.config import JWT_SECRET, JWT_ALGORITHM, JWT_EXPIRE_MINUTES
 from controller.auth_controller import AuthController
 from .schemas import Token
 from typing import Any

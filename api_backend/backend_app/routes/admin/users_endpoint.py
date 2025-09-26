@@ -5,12 +5,12 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 import logging
 
-from ...database import SessionLocal
+from backend_app.database import SessionLocal
 from controller.user_controller import UserController
 from repositories.user_repo import UserRepository
 from repositories.role_repo import RoleRepository
-from ...routes.auth.auth_endpoints import get_current_user, role_required
-from ...exceptions import translate_integrity_error
+from backend_app.routes.auth.auth_endpoints import get_current_user, role_required
+from backend_app.exceptions import translate_integrity_error
 from .users_schemas import RoleListResponse, SpecialtyListResponse
 
 from .users_schemas import UserCreate, UserUpdate, UserOut

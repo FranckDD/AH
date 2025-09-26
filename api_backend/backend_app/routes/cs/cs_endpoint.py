@@ -6,13 +6,13 @@ from pydantic import ValidationError
 import logging
 from typing import List, Any, Optional
 
-from app.database import SessionLocal
+from backend_app.database import SessionLocal
 from controller.auth_controller import AuthController
 from controller.patient_controller import PatientController
 from controller.cs_controller import ConsultationSpirituelController
 from repositories.cs_repo import ConsultationSpirituelRepository
-from app.routes.auth.auth_endpoints import get_current_user,role_required
-from app.exceptions import translate_integrity_error
+from backend_app.routes.auth.auth_endpoints import get_current_user,role_required
+from backend_app.exceptions import translate_integrity_error
 
 from .mapping import normalize_consultation_data
 from ..cs.schemas_cs import   ConsultationCreate,ConsultationUpdate,ConsultationResponse

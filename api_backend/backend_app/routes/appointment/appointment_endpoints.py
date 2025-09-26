@@ -6,13 +6,13 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from pydantic import ValidationError
 from datetime import date, datetime
 
-from ...database import SessionLocal
-from ...exceptions import translate_integrity_error  # si tu l'as
+from backend_app.database import SessionLocal
+from backend_app.exceptions import translate_integrity_error  # si tu l'as
 from .appointment_schemas import AppointmentCreate, AppointmentUpdate, AppointmentResponse, AppointmentListResponse
 from controller.appointment_controller import AppointmentController
 from controller.auth_controller import AuthController
 from repositories.appointment_repo import AppointmentRepository
-from ...routes.auth.auth_endpoints import get_current_user  # dépendance auth
+from backend_app.routes.auth.auth_endpoints import get_current_user  # dépendance auth
 
 logger = logging.getLogger(__name__)
 

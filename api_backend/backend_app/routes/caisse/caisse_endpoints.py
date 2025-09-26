@@ -6,13 +6,13 @@ from pydantic import ValidationError
 import logging
 from datetime import date, datetime
 
-from app.database import SessionLocal
+from backend_app.database import SessionLocal
 from controller.auth_controller import AuthController
 from controller.patient_controller import PatientController
 from controller.caisse_controller import CaisseController
 from repositories.caisse_repo import CaisseRepository
-from app.routes.auth.auth_endpoints import get_current_user, role_required
-from app.exceptions import translate_integrity_error
+from backend_app.routes.auth.auth_endpoints import get_current_user, role_required
+from backend_app.exceptions import translate_integrity_error
 from .mapping import normalize_caisse_data  # facultatif si tu utilises Pydantic
 
 logger = logging.getLogger(__name__)
