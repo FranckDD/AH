@@ -1,7 +1,7 @@
 # app/routes/users/mapping.py
 from __future__ import annotations
 from typing import Any, Dict, Optional
-from app.utils.mapping_general import get_field  # utilitaire générique que tu as déjà
+from backend_app.utils.mapping_general import get_field  # utilitaire générique que tu as déjà
 #from app.utils.mapping_general import to_datetime as _to_datetime  # si nécessaire
 
 def normalize_user_data(raw: Any) -> Dict[str, Any]:
