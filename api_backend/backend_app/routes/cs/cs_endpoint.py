@@ -6,7 +6,7 @@ from pydantic import ValidationError
 import logging
 from typing import List, Any, Optional
 
-from api_backend.backend_app.database import SessionLocal
+from ...database import SessionLocal
 from controller.auth_controller import AuthController
 from controller.patient_controller import PatientController
 from controller.cs_controller import ConsultationSpirituelController

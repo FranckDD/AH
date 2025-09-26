@@ -10,7 +10,7 @@ from fastapi.responses import JSONResponse
 
 from .mapping import normalize_medical_record_data
 from .schemas import MedicalRecordCreate, MedicalRecordUpdate, MedicalRecordResponse,PaginatedResponse
-from api_backend.backend_app.database import SessionLocal
+from ...database import SessionLocal
 from controller.auth_controller import AuthController
 from controller.patient_controller import PatientController
 from controller.medical_controller import MedicalRecordController

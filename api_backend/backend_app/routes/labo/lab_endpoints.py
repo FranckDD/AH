@@ -5,7 +5,7 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 import logging
 from typing import Any, List
 
-from api_backend.backend_app.database import SessionLocal
+from ...database import SessionLocal
 from api_backend.backend_app.routes.auth.auth_endpoints import get_current_user,role_required
 from repositories.lab_repo import LabRepository
 from controller.lab_controller import LabController
