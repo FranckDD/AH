@@ -1,4 +1,4 @@
-from backend_app.utils.mapping_general import normalize_data, parse_datetime, parse_decimal, get_field
+from ...utils.mapping_general import normalize_data, parse_datetime, parse_decimal, get_field
 
 def normalize_caisse_data(raw):
     """
