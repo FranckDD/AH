@@ -10,7 +10,7 @@ if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
 from PyQt6.QtWidgets import QApplication, QMessageBox
-from api_backend.app.gateway.remote_gateway import RemoteGateway
+from api_backend.backend_app.gateway.remote_gateway import RemoteGateway
 from managers.auth_manager import AuthManager
 from managers.network_manager import NetworkManager
 from view_pyqt6.auth_view import AuthView
