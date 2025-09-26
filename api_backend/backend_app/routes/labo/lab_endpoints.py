@@ -5,8 +5,8 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 import logging
 from typing import Any, List
 
-from backend_app.database import SessionLocal
-from backend_app.routes.auth.auth_endpoints import get_current_user,role_required
+from api_backend.backend_app.database import SessionLocal
+from api_backend.backend_app.routes.auth.auth_endpoints import get_current_user,role_required
 from repositories.lab_repo import LabRepository
 from controller.lab_controller import LabController
 from labo.labo_schemas import LabResultCreate, LabResultOut

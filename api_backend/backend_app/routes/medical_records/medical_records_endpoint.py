@@ -10,12 +10,12 @@ from fastapi.responses import JSONResponse
 
 from .mapping import normalize_medical_record_data
 from .schemas import MedicalRecordCreate, MedicalRecordUpdate, MedicalRecordResponse,PaginatedResponse
-from backend_app.database import SessionLocal
+from api_backend.backend_app.database import SessionLocal
 from controller.auth_controller import AuthController
 from controller.patient_controller import PatientController
 from controller.medical_controller import MedicalRecordController
-from backend_app.routes.auth.auth_endpoints import get_current_user, role_required
-from backend_app.routes.patients.patients_schemas import PatientResponse
+from api_backend.backend_app.routes.auth.auth_endpoints import get_current_user, role_required
+from api_backend.backend_app.routes.patients.patients_schemas import PatientResponse
 
 logger = logging.getLogger(__name__)
 
