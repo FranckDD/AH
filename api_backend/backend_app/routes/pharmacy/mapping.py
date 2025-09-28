@@ -1,5 +1,5 @@
 from datetime import datetime, date
-from backend_app.utils.mapping_general import parse_datetime
+from ...utils.mapping_general import parse_datetime
 
 def normalize_pharmacy_data(raw) -> dict:
     """Normalise les données de pharmacie pour la réponse API"""
