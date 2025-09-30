@@ -14,6 +14,7 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 JWT_SECRET = os.getenv("JWT_SECRET")
 JWT_ALGORITHM = os.getenv("JWT_ALGORITHM")
 JWT_EXPIRE_MINUTES = int(os.getenv("JWT_EXPIRE_MINUTES", 60))
+AH2_API_BASE = os.getenv('AH2_API_BASE')
 
 # vérifications explicites (raise aide si mal configuré)
 if DATABASE_URL is None:
@@ -21,6 +22,8 @@ if DATABASE_URL is None:
 if JWT_SECRET is None:
     raise RuntimeError("JWT_SECRET must be defined in environment variables.")
 if JWT_ALGORITHM is None:
+    raise RuntimeError("JWT_ALGORITHM must be defined in environment variables.")
+if AH2_API_BASE is None:
     raise RuntimeError("JWT_ALGORITHM must be defined in environment variables.")
 
 # Debug temporaire (EN DEV seulement) — affiche la longueur pour éviter d'imprimer la clé brute

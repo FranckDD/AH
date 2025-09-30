@@ -1,4 +1,5 @@
 # controllers/auth_controller.py
+import os
 from repositories.user_repo import UserRepository
 from controller.user_controller import UserController
 from repositories.role_repo import RoleRepository
@@ -22,6 +23,7 @@ from controller.caisse_retrait_controller import CaisseRetraitController
 from repositories.lab_repo import LabRepository
 from controller.lab_controller import LabController
 from models.database import DatabaseManager
+from api_backend.backend_app.config import DATABASE_URL
 
 
 class AuthController:
@@ -30,8 +32,10 @@ class AuthController:
         if db_session:
             self.session = db_session
         else:
-            self.db = DatabaseManager("postgresql://postgres:Admin_2025@localhost/AH2")
+            db_url = DATABASE_URL or "postgresql://postgres:Admin_2025@localhost/AH2"
+            self.db = DatabaseManager(db_url)
             self.session = self.db.get_session()
+            
 
         # 2) Passe la session à TOUS tes repositories
         self.user_repo = UserRepository(self.session)

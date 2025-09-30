@@ -1,12 +1,15 @@
 #api_backend/app/gateway/remote_gateway.py
+import os
 import requests
 from typing import Optional, Dict, Any, Union
 from datetime import date, datetime
 
 
 class RemoteGateway:
-    def __init__(self, base_url="http://127.0.0.1:8000", token=None):
-        self.base_url = base_url.rstrip("/")
+    def __init__(self, base_url: Optional[str] = None, token: Optional[str] = None):
+        # Utilise la variable d'environnement AH2_API_BASE si fournie,
+        # sinon fallback en local (dev).
+        self.base_url = (base_url or os.getenv("AH2_API_BASE") or "http://127.0.0.1:8000").rstrip("/")
         self.token = token
 
     def _headers(self):
