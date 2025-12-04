@@ -12,6 +12,9 @@ from pydantic import ValidationError
 from api_backend.backend_app.database import SessionLocal
 from repositories.prescription_repo import PrescriptionRepository
 from controller.prescription_controller import PrescriptionController
+from controller.patient_controller import PatientController
+from repositories.audit_repo import AuditRepository 
+from repositories.patient_repo import PatientRepository
 from api_backend.backend_app.routes.auth.auth_endpoints import get_current_user, role_required
 from .mapping import normalize_prescription_data
 from .prescriptions_schemas import PrescriptionCreate, PrescriptionUpdate, PrescriptionResponse
@@ -22,7 +25,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(
     prefix="/prescriptions",
     tags=["Prescriptions"],
-    dependencies=[Depends(role_required("medecin", "nurse"))]
+    dependencies=[Depends(role_required("medecin", "nurse","admin","manager"))]
 )
 
 
@@ -35,8 +38,26 @@ def get_db():
 
 def get_prescription_controller(current_user=Depends(get_current_user),
                                 db: Session = Depends(get_db)) -> PrescriptionController:
-    repo = PrescriptionRepository(db)
-    return PrescriptionController(repo=repo, patient_controller=None, current_user=current_user)
+    
+    # Création des Repositories nécessaires
+    presc_repo = PrescriptionRepository(db)
+    patient_repo = PatientRepository(db)
+    audit_repo = AuditRepository(db) # <--- NOUVEAU
+    
+    # Création du PatientController (nécessaire si le PrescriptionController interagit avec les patients)
+    patient_ctrl = PatientController(
+        repo=patient_repo, 
+        current_user=current_user,
+        audit_repo=audit_repo
+    )
+    
+    # Retourner le PrescriptionController avec l'audit injecté
+    return PrescriptionController(
+        repo=presc_repo,
+        patient_controller=patient_ctrl, # Fournir le PatientController
+        current_user=current_user,
+        audit_repo=audit_repo # <--- INJECTION
+    )
 
 def _validate_and_normalize_single(obj: Any) -> PrescriptionResponse:
     try:
@@ -261,5 +282,24 @@ def get_prescription(prescription_id: int, prescription_ctrl: PrescriptionContro
     if not p:
         raise HTTPException(status_code=404, detail="Prescription non trouvée")
     return _validate_and_normalize_single(p)
+
+
+# 🟢 NOUVEL ENDPOINT HISTORIQUE PRESCRIPTIONS
+@router.get("/patient/{patient_id}", response_model=List[PrescriptionResponse])
+def get_patient_prescriptions_history(
+    patient_id: int,
+    status: Optional[str] = Query(None, description="Filtrer par statut (active, completed, cancelled)"),
+    prescription_ctrl: PrescriptionController = Depends(get_prescription_controller)
+):
+    """
+    Récupère l'historique complet des prescriptions d'un patient pour son dossier.
+    """
+    try:
+        # Utilise la nouvelle méthode du controller
+        items = prescription_ctrl.get_patient_prescriptions(patient_id, status=status) # type: ignore
+        return [_validate_and_normalize_single(it) for it in items]
+    except Exception as e:
+        logger.exception(f"Erreur lors de la récupération de l'historique prescriptions pour le patient {patient_id}")
+        raise HTTPException(status_code=500, detail="Erreur serveur lors de la lecture de l'historique")
 
 

@@ -1,6 +1,6 @@
 # api_backend/app/routes/users/users_endpoints.py
-from typing import List, Any
-from fastapi import APIRouter, Depends, HTTPException, status, Query, Body
+from typing import List, Any, Optional
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 import logging
@@ -11,14 +11,14 @@ from repositories.user_repo import UserRepository
 from repositories.role_repo import RoleRepository
 from api_backend.backend_app.routes.auth.auth_endpoints import get_current_user, role_required
 from api_backend.backend_app.exceptions import translate_integrity_error
-from .users_schemas import RoleListResponse, SpecialtyListResponse
-
-from .users_schemas import UserCreate, UserUpdate, UserOut
+from .users_schemas import RoleOut, SpecialtyOut, UserCreate, UserUpdate, UserOut
 from .mapping import normalize_user_data
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/users", tags=["Users"], dependencies=[Depends(role_required("admin"))])
+# 🟢 MODIFICATION 1 : J'ai retiré le verrou global "dependencies=[...]"
+# Maintenant, on peut entrer dans ce fichier simplement en étant connecté.
+router = APIRouter(prefix="/users", tags=["Users"])
 
 
 def get_db():
@@ -30,7 +30,7 @@ def get_db():
 
 
 def get_user_controller(
-    current_user=Depends(get_current_user),
+    current_user=Depends(get_current_user), # Vérifie l'authenticité du Token
     db: Session = Depends(get_db),
 ) -> UserController:
     user_repo = UserRepository(session=db)
@@ -47,34 +47,42 @@ def _safe_validate_user(raw: Any) -> UserOut:
         raise HTTPException(status_code=500, detail="Erreur interne : données utilisateur invalides")
 
 
-@router.get("/roles", response_model=List[str])
+# =========================================================================
+#  ZONE LECTURE (GET) - Accessible à tout utilisateur connecté
+# =========================================================================
+
+@router.get("/roles", response_model=List[RoleOut])
 def list_roles(controller: UserController = Depends(get_user_controller)):
     try:
         return controller.get_all_roles()
     except SQLAlchemyError:
         logger.exception("Erreur DB list_roles")
-        raise HTTPException(status_code=500, detail="Erreur serveur lors de la lecture des rôles")
+        raise HTTPException(status_code=500, detail="Erreur serveur lecture rôles")
 
-@router.get("/specialties", response_model=List[str])
+@router.get("/specialties", response_model=List[SpecialtyOut])
 def list_specialties(controller: UserController = Depends(get_user_controller)):
     try:
         return controller.get_all_specialties()
     except SQLAlchemyError:
         logger.exception("Erreur DB list_specialties")
-        raise HTTPException(status_code=500, detail="Erreur serveur lors de la lecture des spécialités")
+        raise HTTPException(status_code=500, detail="Erreur serveur lecture spécialités")
 
 
 @router.get("/", response_model=List[UserOut])
 def list_users(
     page: int = Query(1, ge=1),
     per_page: int = Query(50, ge=1, le=500),
+    search: Optional[str] = None,
     user_ctrl: UserController = Depends(get_user_controller),
 ):
-    raws = user_ctrl.list_users()
-    start = (page - 1) * per_page
-    end = start + per_page
-    page_items = raws[start:end]
-    return [_safe_validate_user(u) for u in page_items]
+    """Liste tous les utilisateurs ou recherche par terme."""
+    if search:
+        raws = user_ctrl.search_users(search)
+        results = [_safe_validate_user(u) for u in raws]
+    else:
+        raws = user_ctrl.list_users(page=page, per_page=per_page) 
+        results = [_safe_validate_user(u) for u in raws]
+    return results
 
 
 @router.get("/search", response_model=List[UserOut])
@@ -92,7 +100,12 @@ def get_user(user_id: int, user_ctrl: UserController = Depends(get_user_controll
         raise HTTPException(status_code=404, detail=str(ve))
 
 
-@router.post("/", response_model=UserOut, status_code=status.HTTP_201_CREATED)
+# =========================================================================
+#  ZONE ÉCRITURE (POST, PUT, DELETE) - Restreinte Admin / Manager
+# =========================================================================
+
+# 🟢 MODIFICATION 2 : On applique la sécurité stricte ici
+@router.post("/", response_model=UserOut, status_code=status.HTTP_201_CREATED, dependencies=[Depends(role_required("admin", "manager"))])
 def create_user(data: UserCreate, user_ctrl: UserController = Depends(get_user_controller)):
     try:
         payload = data.model_dump()
@@ -101,22 +114,19 @@ def create_user(data: UserCreate, user_ctrl: UserController = Depends(get_user_c
     except IntegrityError as ie:
         try:
             user_ctrl.user_repo.session.rollback()
-        except Exception:
-            logger.exception("Rollback failed after IntegrityError")
+        except: pass
         raise translate_integrity_error(ie)
     except SQLAlchemyError as se:
         try:
             user_ctrl.user_repo.session.rollback()
-        except Exception:
-            logger.exception("Rollback failed after SQLAlchemyError")
+        except: pass
         logger.exception("SQLAlchemyError creating user: %s", se)
-        raise HTTPException(status_code=500, detail="Erreur serveur lors de la création de l'utilisateur")
+        raise HTTPException(status_code=500, detail="Erreur serveur création")
     except RuntimeError as re:
-        # Controller raises RuntimeError on repo-level failure
         raise HTTPException(status_code=500, detail=str(re))
 
 
-@router.put("/{user_id}", response_model=UserOut)
+@router.put("/{user_id}", response_model=UserOut, dependencies=[Depends(role_required("admin", "manager"))])
 def update_user(user_id: int, data: UserUpdate, user_ctrl: UserController = Depends(get_user_controller)):
     try:
         payload = data.model_dump(exclude_unset=True)
@@ -127,21 +137,19 @@ def update_user(user_id: int, data: UserUpdate, user_ctrl: UserController = Depe
     except IntegrityError as ie:
         try:
             user_ctrl.user_repo.session.rollback()
-        except Exception:
-            logger.exception("Rollback failed after IntegrityError")
+        except: pass
         raise translate_integrity_error(ie)
     except SQLAlchemyError as se:
         try:
             user_ctrl.user_repo.session.rollback()
-        except Exception:
-            logger.exception("Rollback failed after SQLAlchemyError")
+        except: pass
         logger.exception("SQLAlchemyError updating user: %s", se)
-        raise HTTPException(status_code=500, detail="Erreur serveur lors de la mise à jour de l'utilisateur")
+        raise HTTPException(status_code=500, detail="Erreur serveur maj")
     except RuntimeError as re:
         raise HTTPException(status_code=500, detail=str(re))
 
 
-@router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(role_required("admin", "manager"))])
 def delete_user(user_id: int, user_ctrl: UserController = Depends(get_user_controller)):
     try:
         ok = user_ctrl.delete_user(user_id)
@@ -151,10 +159,6 @@ def delete_user(user_id: int, user_ctrl: UserController = Depends(get_user_contr
     except SQLAlchemyError as se:
         try:
             user_ctrl.user_repo.session.rollback()
-        except Exception:
-            logger.exception("Rollback failed after SQLAlchemyError")
+        except: pass
         logger.exception("SQLAlchemyError deleting user: %s", se)
-        raise HTTPException(status_code=500, detail="Erreur serveur lors de la suppression de l'utilisateur")
-    
-
-
+        raise HTTPException(status_code=500, detail="Erreur serveur suppression")

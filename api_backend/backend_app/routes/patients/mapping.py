@@ -1,4 +1,3 @@
-# app/routes/patients/mapping.py
 import re
 from typing import Any, Dict
 
@@ -19,11 +18,9 @@ def normalize_gender(raw: Any) -> str | None:
     # Si la DB contient "M" ou "F" déjà
     if s.upper() in ("M", "F", "O"):
         return s.upper()
-    # aucune correspondance -> None (pour éviter d'échouer la validation Pydantic)
     return None
 
-# Normalize phone number. Expected Pydantic format: +[indicatif][num], 7-15 digits total.
-# If invalid, returns None to avoid ResponseValidationError (tu peux choisir de garder la valeur brute si tu préfères)
+# Normalize phone number.
 _re_phone = re.compile(r"^\+?\d{7,15}$")
 
 def normalize_phone(raw: Any) -> str | None:
@@ -39,7 +36,6 @@ def normalize_phone(raw: Any) -> str | None:
         if not cleaned.startswith("+"):
             cleaned = "+" + cleaned
         return cleaned
-    # si c'est manifestement non-numérique ou trop court --> None
     return None
 
 def model_to_dict(obj: Any) -> Dict[str, Any]:
@@ -64,6 +60,11 @@ def model_to_dict(obj: Any) -> Dict[str, Any]:
             "residence": getattr(obj, "residence", None),
             "father_name": getattr(obj, "father_name", None),
             "mother_name": getattr(obj, "mother_name", None),
+            
+            # 🟢 Ajout des drapeaux booléens (avec valeur par défaut False)
+            "is_clinical": getattr(obj, "is_clinical", False),
+            "is_toxicology": getattr(obj, "is_toxicology", False),
+            "is_spiritual": getattr(obj, "is_spiritual", False),
         }
     return base
 
@@ -73,9 +74,15 @@ def normalize_patient_data(raw_obj: Any) -> Dict[str, Any]:
     compatibles avec les schémas Pydantic de réponse.
     """
     d = model_to_dict(raw_obj)
+    
     # gender normalization
     d["gender"] = normalize_gender(d.get("gender"))
     # phone normalization
     d["contact_phone"] = normalize_phone(d.get("contact_phone"))
-    # Si birth_date est une string, laisse tel quel (Pydantic convertira si format ok).
+    
+    # Sécurisation : on s'assure que les drapeaux sont présents dans le dict final
+    d.setdefault("is_clinical", False)
+    d.setdefault("is_toxicology", False)
+    d.setdefault("is_spiritual", False)
+    
     return d

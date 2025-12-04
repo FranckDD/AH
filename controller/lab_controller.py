@@ -1,4 +1,5 @@
 import logging
+from models.lab import Examen
 from repositories.lab_repo import LabRepository
 from typing import List, Dict, Optional
 from datetime import datetime
@@ -9,6 +10,26 @@ class LabController:
         self.repo = repo
         self.user = current_user
         self.log = logging.getLogger(__name__)
+
+
+    # --- HELPER D'AFFICHAGE ---
+    def _format_patient_name(self, result) -> str:
+        """
+        Génère le nom du patient pour l'affichage.
+        Gère les cas Internes (relation SQL) et Externes (JSON).
+        """
+        # 1. Cas Interne : Relation SQL existante
+        if result.patient:
+            return f"{result.patient.first_name} {result.patient.last_name}"
+        
+        # 2. Cas Externe : Données dans le JSONB
+        if result.external_patient_info:
+            # On suppose que le JSON contient une clé 'nom' ou 'name'
+            info = result.external_patient_info
+            nom = info.get('nom') or info.get('name') or 'Inconnu'
+            return f"{nom} (Externe)"
+            
+        return "Patient Inconnu"    
 
     # Examens
     def create_examen(self, code:str, nom:str, categorie:str) -> Dict:
@@ -27,54 +48,99 @@ class LabController:
             for p in params
         ]
 
+    def list_examens(self) -> List[Examen]:
+            """Utilisé par la vue caisse pour afficher la liste des examens"""
+            return self.repo.list_all_examens()
+
+    def get_examen(self, examen_id: int) -> Examen:
+        ex = self.repo.get_examen_by_id(examen_id)
+        if not ex:
+            raise ValueError(f"Examen non trouvé (ID={examen_id})")
+        return ex
     
 
-    # In LabController class
-    def list_examens(self) -> List[Dict]:
-        # Add 'categorie' to the returned dictionary
-        return [{
-            "id": e.id, 
-            "code": e.code, 
-            "nom": e.nom,
-            "categorie": e.categorie  # Add this line
-        } for e in self.repo.list_examens()]
+    # --- NOUVELLE MÉTHODE POUR LE DOSSIER ---
+    def get_patient_lab_history(self, patient_id: int) -> List[Dict]:
+        results = self.repo.list_results_for_patient(patient_id)
+        out = []
+        for r in results:
+            # Correction ici : Vérifier si la date existe
+            test_date_str = r.test_date.strftime('%Y-%m-%d %H:%M') if r.test_date else '-'
+
+            out.append({
+                'result_id': r.result_id,
+                # Utiliser la variable corrigée
+                'test_date': test_date_str, 
+                'examen_name': r.examen.nom if r.examen else 'Inconnu',
+                'status': r.status,
+                'technician': r.technician_name or 'Inconnu',
+                'prescribed_by': r.prescribed_by or 'Inconnu'
+            })
+        return out
 
     # Résultats
-    def create_result(self, patient_id: Optional[int], examen_id: int, details: List[Dict]) -> Dict:
-        # Générer code externe si tu veux fournir un code custom (optionnel)
-        code_lab = None
-        try:
-            code_lab = self.generate_lab_code(patient_id)
-        except Exception:
-            code_lab = None
+    # --- CRÉATION DE RÉSULTAT (Mise à jour pour Externe) ---
+    def create_result(
+        self, 
+        examen_id: int, 
+        details: List[Dict],
+        patient_id: Optional[int] = None, 
+        external_patient_info: Optional[Dict] = None
+    ) -> Dict:
+        """
+        Crée une analyse.
+        - Si patient_id est fourni -> Patient Interne.
+        - Si external_patient_info est fourni -> Patient Externe.
+        """
+        
+        # Validation basique avant d'appeler le repo
+        if not patient_id and not external_patient_info:
+            raise ValueError("Impossible de créer une analyse sans patient (ID ou Infos Externes requis).")
 
+        # Préparation du payload
         payload = {
-            "patient_id": patient_id,
             "examen_id": examen_id,
             "test_date": datetime.now(),
-            "prescribed_by": getattr(self.user, "id", None),
-            "technician_id": getattr(self.user, "id", None),
+            "prescribed_by": getattr(self.user, "user_id", None), # Attention: user_id ou id selon votre modèle User
+            "technician_id": getattr(self.user, "user_id", None),
             "technician_name": getattr(self.user, "username", None),
+            # On passe les deux, le repo saura lequel utiliser (patient_id sera None pour externe)
+            "patient_id": patient_id,
+            "external_patient_info": external_patient_info 
         }
-        # si tu veux forcer un code externe (EXT-...), fournis-le
-        if code_lab:
-            payload["code_lab_patient"] = code_lab
 
-        # fournir la liste des détails au repo pour création atomique
+        # On ajoute les détails pour la création atomique dans le repo
         if details:
             payload["details"] = details
 
+        # Appel du Repository (qui gère la génération du code EXT/LAB)
         lr = self.repo.create_lab_result(payload)
-        # repo crée details et génère code si besoin
-        return {"result_id": lr.result_id, "code_lab_patient": getattr(lr, "code_lab_patient", None)}
+
+        return {
+            "result_id": lr.result_id, 
+            "code_lab_patient": lr.code_lab_patient,
+            "status": "created"
+        }
 
 
-    def get_result(self, result_id:int) -> Optional[Dict]:
+    def get_result(self, result_id: int) -> Optional[Dict]:
         fr = self.repo.get_full_lab_result(result_id)
         if not fr: return None
+        
         return {
-            "result":fr,
-            "details":fr.details
+            "result": {
+                "id": fr.result_id,
+                "code": fr.code_lab_patient,
+                "status": fr.status,
+                "test_date": fr.test_date,
+                "patient_name": self._format_patient_name(fr),
+                "is_external": (fr.patient_id is None),
+                "external_info": fr.external_patient_info # On renvoie les détails bruts si besoin (tel, etc.)
+            },
+            "examen": {
+                "nom": fr.examen.nom if fr.examen else "N/A"
+            },
+            "details": fr.details
         }
 
     def complete_result(self, result_id:int, age:int, sexe:str) -> Dict:
@@ -85,14 +151,18 @@ class LabController:
         results = self.repo.list_results_by_status(status)
         out = []
         for r in results:
+            # Gestion sécurisée de la date (pour éviter l'erreur strftime sur None)
+            date_str = r.test_date.strftime('%Y-%m-%d %H:%M') if r.test_date else "Date inconnue"
+
             out.append({
                 'result_id':        r.result_id,
                 'code_lab_patient': r.code_lab_patient,
-                # concaténation inline
-                'patient_name':     f"{r.patient.first_name} {r.patient.last_name}",
-                'examen_name':      r.examen.nom,
-                'test_date':        r.test_date.strftime('%Y-%m-%d %H:%M'),
+                # 🟢 Utilisation du helper pour le nom (Interne ou Externe)
+                'patient_name':     self._format_patient_name(r),
+                'examen_name':      r.examen.nom if r.examen else "Examen supprimé",
+                'test_date':        date_str,
                 'status':           r.status,
+                'is_external':      (r.patient_id is None) # Flag utile pour le frontend
             })
         return out
 
@@ -226,5 +296,34 @@ class LabController:
         # Stocker les données du patient externe si nécessaire
         # (dans une table dédiée ou dans la session)
         return {"code_patient": code_patient, **data}
+    
+
+    def complete_result(self, result_id: int, age: int, sexe: str) -> Dict:
+        # Note : Pour un patient externe, l'âge et le sexe doivent être fournis 
+        # par le frontend lors de la validation, car on ne les a pas en BDD patient.
+        cr = self.repo.complete_result(result_id, age, sexe)
+        return {"status": cr.status if cr else "error"}
+
+    # --- HISTORIQUE (Pour le dossier patient interne) ---
+    def get_patient_lab_history(self, patient_id: int) -> List[Dict]:
+        """
+        Récupère l'historique pour un patient interne (ID connu).
+        """
+        results = self.repo.list_results_for_patient(patient_id)
+        out = []
+        for r in results:
+            date_str = r.test_date.strftime('%Y-%m-%d %H:%M') if r.test_date else '-'
+            out.append({
+                'result_id': r.result_id,
+                'code_lab': r.code_lab_patient,
+                'test_date': date_str,
+                'examen_name': r.examen.nom if r.examen else 'Inconnu',
+                'status': r.status,
+                'technician': r.technician_name or 'Inconnu',
+                # 'prescribed_by' est un ID, idéalement on voudrait le nom, 
+                # mais laissons l'ID ou gérons une jointure User si besoin.
+                'prescribed_by': r.prescribed_by 
+            })
+        return out
     
    

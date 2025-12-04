@@ -10,15 +10,15 @@ class UserController:
         self.user_repo = user_repo
         self.role_repo = role_repo
 
-    def get_all_roles(self) -> list[str]:
-        """Retourne la liste des noms de rôles"""
+    def get_all_roles(self) -> list[dict]:
+        """Retourne la liste des rôles avec IDs et noms"""
         roles = self.role_repo.list_roles()
-        return [str(r.role_name) for r in roles]  # Conversion explicite en str
+        return [{"role_id": r.role_id, "role_name": str(r.role_name)} for r in roles]
 
-    def get_all_specialties(self) -> list[str]:
-        """Retourne la liste des noms de spécialités"""
+    def get_all_specialties(self) -> list[dict]:
+        """Retourne la liste des spécialités avec IDs et noms"""
         specialties = self.role_repo.list_specialties()
-        return [str(s.name) for s in specialties]  # Conversion explicite en str
+        return [{"specialty_id": s.specialty_id, "name": str(s.name)} for s in specialties]
 
     def create_user(self, data: dict) -> User:
         try:
@@ -26,6 +26,8 @@ class UserController:
                 username      = data['username'],
                 password      = data['password'],
                 full_name     = data['full_name'],
+                email         = data.get('email'),     # Ajout
+                contact       = data.get('contact'),
                 postgres_role = data.get('postgres_role'),
                 is_active     = data.get('is_active', True),
                 role_id       = data.get('role_id'),
@@ -38,7 +40,7 @@ class UserController:
         user = self.user_repo.session.query(User).get(user_id)
         if not user:
             raise ValueError(f"Utilisateur {user_id} introuvable")
-        for field in ('full_name','postgres_role','is_active','role_id','specialty_id'):
+        for field in ('full_name','email', 'contact','postgres_role','is_active','role_id','specialty_id'):
             if field in data:
                 setattr(user, field, data[field])
         if data.get('password'):
@@ -63,11 +65,11 @@ class UserController:
     def search_users(self, term: str) -> list[User]:
             return self.user_repo.search_users(term)
 
-    def list_users(self) -> list[User]:
-            """
-            Renvoie tous les utilisateurs.
-            """
-            return self.user_repo.list_users()
+    def list_users(self, page: int = 1, per_page: int = 50) -> list[User]:
+        """
+        Renvoie une page d'utilisateurs en utilisant la pagination côté Repository.
+        """
+        return self.user_repo.list_users(page=page, per_page=per_page)
 
     def list_roles(self):
       

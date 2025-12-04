@@ -18,16 +18,21 @@ class MedicalRecordRepository:
 
 
     def list_records(self, patient_id=None, page=1, per_page=20, 
-                    date_from=None, date_to=None, motif_code=None, 
-                    severity=None, search=None):
+                     date_from=None, date_to=None, motif_code=None, 
+                     severity=None, search=None):
         """
         Liste les dossiers médicaux avec tous les filtres
         """
         q = self.session.query(MedicalRecord).options(joinedload(MedicalRecord.patient))
         
-        # DEBUG: Compter le total SANS filtres pour référence
+        # 🚨 CORRECTION ICI : Application du filtre patient_id
+        # Sans ces 2 lignes, on récupère toute la base de données !
+        if patient_id:
+            q = q.filter(MedicalRecord.patient_id == patient_id)
+
+        # DEBUG: Compter le total pour ce patient (ou total global si pas de filtre)
         total_no_filter = q.count()
-        print(f"DEBUG REPO - Total records without filters: {total_no_filter}")
+        print(f"DEBUG REPO - Total records (scoped): {total_no_filter}")
         
         # FILTRE PAR DATE - SOLUTION CORRECTE POUR timestamp without time zone
         if date_from or date_to:
@@ -68,6 +73,9 @@ class MedicalRecordRepository:
             print(f"DEBUG REPO - After severity filter: {q.count()}")
         
         # Filtre par recherche texte
+        # Note: Si on est déjà dans le dossier d'un patient (patient_id set), 
+        # on ne filtre par recherche que si ça a du sens (ex: chercher dans les notes ?)
+        # Mais pour l'instant on garde votre logique de recherche sur le patient
         if search:
             q = q.join(Patient).filter(
                 or_(
@@ -100,16 +108,47 @@ class MedicalRecordRepository:
     def get(self, record_id):
         return self.session.get(MedicalRecord, record_id)
 
+    # repositories/medical_repo.py (Mise à jour méthode create)
+
     def create(self, data: dict):
-        # Appelle la procédure SQL
-        sql = text(
-            "CALL public.create_medical_record(:patient_id, LOCALTIMESTAMP, :marital_status, :bp,"
-            " :temperature, :weight, :height, :medical_history, :allergies,"
-            " :symptoms, :diagnosis, :treatment, :severity, :notes, :motif_code)"
-        )
-        self.session.execute(sql, data)
-        self.session.commit()
-        return True
+        # 1. On s'assure que les données de l'utilisateur sont présentes, sinon NULL
+        data.setdefault('created_by', None)
+        data.setdefault('created_by_name', None)
+        data.setdefault('last_updated_by', None)
+        data.setdefault('last_updated_by_name', None)
+
+        # 2. Mise à jour de la chaîne SQL pour inclure les 4 derniers paramètres
+        sql = text("""
+            CALL public.create_medical_record(
+                :patient_id, 
+                LOCALTIMESTAMP, 
+                :marital_status, 
+                :bp,
+                :temperature, 
+                :weight, 
+                :height, 
+                :medical_history, 
+                :allergies,
+                :symptoms, 
+                :diagnosis, 
+                :treatment, 
+                :severity, 
+                :notes, 
+                :motif_code,
+                :created_by,          -- AJOUTÉ
+                :created_by_name,     -- AJOUTÉ
+                :last_updated_by,     -- AJOUTÉ
+                :last_updated_by_name -- AJOUTÉ
+            )
+        """)
+        
+        try:
+            self.session.execute(sql, data)
+            self.session.commit()
+            return True
+        except Exception as e:
+            self.session.rollback()
+            raise e
 
     def update(self, record_id: int, data: dict):
         # on ne veut plus passer patient_id à la procédure d’update
@@ -249,6 +288,23 @@ class MedicalRecordRepository:
             .filter(func.date(MedicalRecord.consultation_date) >= start_date)
             .filter(func.date(MedicalRecord.consultation_date) <= end_date)
             .count()
+        )
+    
+
+    def get_full_history(self, patient_id: int) -> List[MedicalRecord]:
+        """
+        Récupère l'intégralité de l'historique médical pour la timeline du dossier patient.
+        Pas de pagination stricte (ou limite haute de sécurité).
+        """
+        return (
+            self.session.query(self.model)
+            .options(joinedload(self.model.patient)) # Si tu as besoin d'infos patient, sinon à retirer pour perf
+            .filter(self.model.patient_id == patient_id)
+            .order_by(desc(self.model.consultation_date))
+            # On met une limite de sécurité (ex: 500) pour ne pas crasher si le patient a 20 ans de dossiers
+            # Mais c'est largement suffisant pour afficher "tout"
+            .limit(500) 
+            .all()
         )
 
     

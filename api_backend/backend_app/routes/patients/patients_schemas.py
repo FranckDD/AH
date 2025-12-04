@@ -1,7 +1,6 @@
-# api_backend/app/routes/patients/patients_schemas.py
 from pydantic import BaseModel, Field, field_validator, ConfigDict
 from datetime import date
-from typing import Optional, Any
+from typing import Optional, Any, Dict, List
 import re
 
 # --- helpers de normalisation ---
@@ -13,8 +12,7 @@ _phone_clean_re = re.compile(r"[ \-\(\)\.]+")
 
 def _normalize_gender_value(raw: Any) -> Optional[str]:
     """
-    Retourne 'M', 'F' ou 'A' si on reconnaît la valeur (variant -> normalisé).
-    Si non reconnu, retourne la valeur brute (string) pour ne pas casser la réponse.
+    Retourne 'M', 'F' ou 'A' si on reconnaît la valeur.
     """
     if raw is None:
         return None
@@ -32,14 +30,11 @@ def _normalize_gender_value(raw: Any) -> Optional[str]:
         up = s.upper()
         if up in {"M", "F", "A", "O"}:
             return "A" if up == "O" else up
-    # non reconnu -> renvoyer la valeur brute (ex: "Homme " non standard)
     return s
 
 def _normalize_phone_value(raw: Any) -> Optional[str]:
     """
     Essaie de normaliser un téléphone en +<digits>.
-    Si impossible (lettres, longueur hors plage), renvoie la valeur brute pour
-    ne pas provoquer d'erreur sur les données existantes en base.
     """
     if raw is None:
         return None
@@ -47,23 +42,18 @@ def _normalize_phone_value(raw: Any) -> Optional[str]:
     if not s:
         return None
 
-    # Suppression séparateurs courants
     cleaned = _phone_clean_re.sub("", s)
 
-    # Si contient des lettres -> on renvoie la valeur brute
     if re.search(r"[A-Za-z]", cleaned):
         return s
 
-    # Extraction des chiffres
     digits = "".join(re.findall(r"\d+", cleaned))
     if len(digits) < 1:
         return s
 
-    # Si longueur raisonnable -> renvoyer +digits (on n'est pas trop strict ici)
     if 1 <= len(digits) <= 15:
         return "+" + digits if not cleaned.startswith("+") else "+" + digits
 
-    # sinon renvoyer brut
     return s
 
 # --- Schémas ---
@@ -79,8 +69,12 @@ class PatientCreate(BaseModel):
     residence: Optional[str] = None
     father_name: Optional[str] = None
     mother_name: Optional[str] = None
+    
+    # 🟢 Drapeaux optionnels à la création (par défaut False)
+    is_clinical: bool = False
+    is_toxicology: bool = False
+    is_spiritual: bool = False
 
-    # Normalisation avant parsing (input)
     @field_validator("gender", mode="before")
     @classmethod
     def _val_gender_create(cls, v):
@@ -103,6 +97,11 @@ class PatientUpdate(BaseModel):
     residence: Optional[str] = None
     father_name: Optional[str] = None
     mother_name: Optional[str] = None
+    
+    # 🟢 Drapeaux optionnels à la mise à jour
+    is_clinical: Optional[bool] = None
+    is_toxicology: Optional[bool] = None
+    is_spiritual: Optional[bool] = None
 
     @field_validator("gender", mode="before")
     @classmethod
@@ -128,8 +127,12 @@ class PatientResponse(BaseModel):
     residence: Optional[str] = None
     father_name: Optional[str] = None
     mother_name: Optional[str] = None
+    
+    # 🟢 Drapeaux de service (Information essentielle pour le frontend)
+    is_clinical: bool
+    is_toxicology: bool
+    is_spiritual: bool
 
-    # validators "before" pour normaliser les valeurs venant de la BD
     @field_validator("gender", mode="before")
     @classmethod
     def _val_gender_resp(cls, v):
@@ -140,5 +143,24 @@ class PatientResponse(BaseModel):
     def _val_phone_resp(cls, v):
         return _normalize_phone_value(v)
 
-    # Pydantic v2 : lecture depuis attributs ORM si on passe un ORM object
     model_config = ConfigDict(from_attributes=True)
+
+
+# --- Schémas KPI (Patients Spirituels) ---
+
+class NewPatientCount(BaseModel):
+    """Schéma pour le KPI 1: Nombre de nouveaux patients (Spirituels)."""
+    new_patients_count: int = Field(..., description="Nombre de patients créés sur la période (jour/semaine).")
+
+class PatientStatusDistribution(BaseModel):
+    """Schéma pour le KPI 2: Distribution Actif/Inactif des patients (Spirituels)."""
+    active_patients_count: int = Field(..., description="Nombre de patients actifs (RDV récent).")
+    inactive_patients_count: int = Field(..., description="Nombre de patients inactifs.")
+    total_patients_count: int = Field(..., description="Total des patients spirituels.")
+
+class PatientAssuranceDistribution(BaseModel):
+    """Schéma pour le KPI 3: Répartition par Assurance des patients (Spirituels)."""
+    assurance_distribution: Dict[str, int] = Field(
+        ...,
+        description="Dictionnaire (Assurance -> Nombre de patients). Clé 'Non spécifié' pour les patients sans assurance."
+    )

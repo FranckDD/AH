@@ -25,6 +25,10 @@ class CaisseRetrait(Base):
     cancelled_at          = Column(DateTime, nullable=True)
     cancel_justification  = Column(Text, nullable=True)
 
+    # 🟢 AJOUTS
+    category = Column(String(50), nullable=True)       # Peut être null
+    payment_method = Column(String(50), nullable=True) # Peut être null
+
     # Relation SQLAlchemy vers l’utilisateur
     user                  = relationship(
     "User", 

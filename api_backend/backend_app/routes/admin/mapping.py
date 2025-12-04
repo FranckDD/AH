@@ -10,22 +10,31 @@ def normalize_user_data(raw: Any) -> Dict[str, Any]:
     Ne retourne jamais password_hash.
     """
     def _role_name(r):
-        ar = get_field(r, "application_role") or get_field(getattr(r, "application_role", None), "role_name")
-        # get_field returned either object or value; handle both:
+        # Tente d'abord d'obtenir l'objet lié, puis son attribut 'role_name'
+        ar = get_field(r, "application_role") 
         if hasattr(ar, "role_name"):
             return getattr(ar, "role_name", None)
-        return ar
+        # Si 'r' est un dict plat (ou si get_field a déjà extrait la valeur seule)
+        return get_field(r, "role_name")
 
     def _specialty_name(r):
-        sp = get_field(r, "specialty") or get_field(getattr(r, "specialty", None), "name")
+        # Tente d'abord d'obtenir l'objet lié, puis son attribut 'name'
+        sp = get_field(r, "specialty")
         if hasattr(sp, "name"):
             return getattr(sp, "name", None)
-        return sp
+        # Si 'r' est un dict plat (ou si get_field a déjà extrait la valeur seule)
+        return get_field(r, "specialty_name")
 
     out: Dict[str, Any] = {
         "user_id": get_field(raw, "user_id"),
         "username": get_field(raw, "username"),
         "full_name": get_field(raw, "full_name"),
+        
+        # 🟢 AJOUTS POUR EMAIL ET CONTACT
+        "email": get_field(raw, "email"),
+        "contact": get_field(raw, "contact"),
+        # -----------------------------
+        
         "is_active": get_field(raw, "is_active"),
         "postgres_role": get_field(raw, "postgres_role"),
         "role_id": get_field(raw, "role_id"),
@@ -34,12 +43,21 @@ def normalize_user_data(raw: Any) -> Dict[str, Any]:
         "specialty_name": _specialty_name(raw),
     }
 
-    # include computed roles property if present (from model property)
+    # Inclure la propriété calculée 'roles' (si présente sur l'objet ORM)
     roles_prop = None
     try:
+        # C'est la méthode la plus sûre pour les propriétés ORM
         roles_prop = getattr(raw, "roles", None)
     except Exception:
         roles_prop = None
+        
+    # Si la propriété 'roles' n'existe pas ou est None, assurez-vous que la valeur est une liste pour Pydantic
+    if roles_prop is None:
+        roles_prop = []
+        # Fallback pour inclure le rôle principal si 'roles' n'existe pas
+        if out["role_name"] and isinstance(out["role_name"], str):
+             roles_prop.append(out["role_name"])
+             
     out["roles"] = roles_prop
 
     return out

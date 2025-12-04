@@ -167,15 +167,15 @@ class DashboardView(QWidget):
             ("Ajouter Patient", self.show_patient_add),
         ])
 
-        self.apps_btn, self.apps_sub = make_section("RDV", [
-            ("Dashboard RDV", self.show_appointments_dashboard),
-            ("Liste RDV", self.show_appointments_list),
-            ("Prendre RDV", self.show_appointments_book),
+        self.apps_btn, self.apps_sub = make_section("Rendez-vous", [
+            ("Dashboard Rendez-vous", self.show_appointments_dashboard),
+            ("Liste Rendez-vous", self.show_appointments_list),
+            ("Prendre Rendez-vous", self.show_appointments_book),
         ])
 
         self.medrec_btn, self.medrec_sub = make_section("Dossier Médical", [
-            ("Enregistrer MR", self.show_medical_record_form),
-            ("Liste MR", self.show_medical_record_list),
+            ("Enregistrer parametre medical", self.show_medical_record_form),
+            ("Liste Parammetres Medicaux", self.show_medical_record_list),
         ])
 
         self.presc_btn, self.presc_sub = make_section("Prescription", [
@@ -189,7 +189,7 @@ class DashboardView(QWidget):
         mapping = {
             "Médecins": self.docs_sub,
             "Patients": self.pats_sub,
-            "RDV": self.apps_sub,
+            "Rendez-vous": self.apps_sub,
             "Dossier Médical": self.medrec_sub,
             "Prescription": self.presc_sub,
         }
@@ -275,7 +275,7 @@ class DashboardView(QWidget):
                 btn.setText("")
         else:
             self.sidebar.setFixedWidth(200)
-            titles = ["Médecins", "Patients", "RDV", "Dossier Médical", "Prescription"]
+            titles = ["Médecins", "Patients", "Rendez-vous", "Dossier Médical", "Prescription"]
             for btn, txt in zip(self.menu_buttons, titles):
                 btn.setText(txt)
 
@@ -698,7 +698,7 @@ class DashboardView(QWidget):
         except Exception as e:
             print("Erreur ouverture AppointmentsBookDialog:", e)
             try:
-                QMessageBox.critical(self, "Erreur", f"Impossible d'ouvrir le formulaire de RDV: {e}")
+                QMessageBox.critical(self, "Erreur", f"Impossible d'ouvrir le formulaire de Rendez-vous: {e}")
             except Exception:
                 pass
 

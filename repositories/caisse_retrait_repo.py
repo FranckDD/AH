@@ -32,17 +32,18 @@ class CaisseRetraitRepository:
         """
         return self.session.get(CaisseRetrait, retrait_id)
 
-    def create(self, amount: float, justification: str, handled_by: int) -> CaisseRetrait:
+    def create(self, amount: float, justification: str, handled_by: int, 
+               category: str = None, payment_method: str = None) -> CaisseRetrait:
         """
-        Insère un nouveau retrait actif (status='active') :
-         - amount (montant),
-         - justification (texte, nullable),
-         - handled_by (user_id de l’utilisateur qui fait le retrait).
+        Insère un nouveau retrait actif avec les détails optionnels.
         """
         new_retrait = CaisseRetrait(
             amount=amount,
             justification=justification,
-            handled_by=handled_by
+            handled_by=handled_by,
+            # 🟢 Nouveaux champs mappés ici
+            category=category,
+            payment_method=payment_method
         )
         self.session.add(new_retrait)
         self.session.commit()
@@ -152,3 +153,55 @@ class CaisseRetraitRepository:
                 .order_by(CaisseRetrait.retrait_at.desc())
                 .all()
         )
+    
+    # Ajoute ceci à la fin de ta classe CaisseRetraitRepository
+
+    def get_paginated_list(
+        self,
+        page: int = 1,
+        per_page: int = 20,
+        status: str | None = None,
+        date_from: datetime | None = None,
+        date_to: datetime | None = None,
+        term: str | None = None  # Ajout pour la recherche texte éventuelle
+    ) -> tuple[list[CaisseRetrait], int]:
+        """
+        NOUVELLE MÉTHODE : Pagination optimisée côté SQL.
+        Retourne un tuple : (liste_des_items, total_count).
+        Ne casse pas les anciennes méthodes.
+        """
+        query = self.session.query(CaisseRetrait)
+
+        # 1. Application des Filtres
+        if status:
+            query = query.filter(CaisseRetrait.status == status)
+        
+        if date_from:
+            query = query.filter(CaisseRetrait.retrait_at >= date_from)
+            
+        if date_to:
+            query = query.filter(CaisseRetrait.retrait_at <= date_to)
+
+        # Filtre texte (recherche dans justification ou catégorie)
+        if term:
+            search = f"%{term}%"
+            # Assure-toi d'avoir importé 'or_' de sqlalchemy
+            from sqlalchemy import or_
+            query = query.filter(or_(
+                CaisseRetrait.justification.ilike(search),
+                CaisseRetrait.category.ilike(search) # Si tu as ajouté la colonne
+            ))
+
+        # 2. Calcul du Total (AVANT la pagination)
+        total_count = query.count()
+
+        # 3. Application de la Pagination et du Tri
+        items = (
+            query
+            .order_by(CaisseRetrait.retrait_at.desc())
+            .offset((page - 1) * per_page)
+            .limit(per_page)
+            .all()
+        )
+
+        return items, total_count

@@ -24,6 +24,7 @@ class Pharmacy(Base):
     name_dr          = Column(String(100), nullable=True)
     created_at       = Column(DateTime, nullable=False, default=datetime.utcnow)
     updated_at       = Column(DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+    price = Column(Numeric(10, 2), nullable=False, default=0.00)
 
     # Relations (si besoin)
     patient   = relationship('Patient', back_populates='pharmacies')

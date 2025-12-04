@@ -51,16 +51,10 @@ class ApiControllerProxy:
         return res
 
     def _should_disable_remapping(self, method_name: str, kwargs: Dict[str, Any]) -> bool:
-        """
-        True for methods where we must NOT attempt flexible retries/remapping,
-        e.g. create_/get_/update_/delete_/count_/post_.
-        This prevents accidental duplicate side-effects when a first call may
-        have succeeded server-side but the client attempts alternative signatures.
-        """
-        if not method_name:
-            return False
+        # ...
         preserve_prefixes = (
-            'get_', 'create_', 'update_', 'delete_', 'count_', 'kpi_', 'post_'
+            'get_', 'create_', 'update_', 'delete_', 'count_', 'kpi_', 'post_',
+            'add_', 'settle_'  # <--- AJOUTER 'add_' et 'settle_' ICI
         )
         return any(method_name.startswith(p) for p in preserve_prefixes)
 
@@ -135,86 +129,97 @@ class ApiControllerProxy:
         return new_args, new_kwargs
 
     def __getattr__(self, name: str):
+        # ===================================================================
+        # SPÉCIAL : find_by_code → on redirige proprement vers le gateway
+        # ===================================================================
+        if name == "find_by_code":
+            def _find_by_code_handler(code: str):
+                try:
+                    # Ton endpoint dédié existe déjà → on l'utilise
+                    result = self.gateway.find_patient_by_code(code.strip().upper())
+                    if isinstance(result, dict) and "error" in result:
+                        raise ApiGatewayError(f"Patient non trouvé : {result.get('error')}")
+                    return result
+                except AttributeError:
+                    # Fallback sécurité si la méthode change de nom un jour
+                    result = self.gateway.request(
+                        "GET", "/patients/find_by_code", params={"code": code.strip().upper()}
+                    )
+                    if isinstance(result, dict) and "error" in result:
+                        raise ApiGatewayError(result["error"])
+                    return result
+            return _find_by_code_handler
+
+        # ===================================================================
+        # Code original du proxy (inchangé, juste renommé le wrapper interne)
+        # ===================================================================
         gw = self.gateway
         target = getattr(gw, name, None)
         if target is None:
-            alt = None
-            alternatives = [name, name.replace("list_", ""), name.replace("get_", "get"), name.replace("create_", "post_")]
-            for a in alternatives:
-                if a != name and hasattr(gw, a):
-                    alt = getattr(gw, a)
+            alternatives = [
+                name,
+                name.replace("list_", ""),
+                name.replace("get_", "get"),
+                name.replace("create_", "post_")
+            ]
+            for alt_name in alternatives:
+                if alt_name != name and hasattr(gw, alt_name):
+                    target = getattr(gw, alt_name)
                     break
-            if alt is None:
+            if target is None:
                 raise AttributeError(f"Gateway has no attribute '{name}'")
-            target = alt
 
-        def wrapper(*args, **kwargs):
+        # Nom changé pour éviter le conflit avec le handler ci-dessus
+        def _dynamic_proxy(*args, **kwargs):
             args_conv, kwargs_conv = self._preprocess_args_kwargs(args, kwargs)
-            #print(f"DEBUG: Calling {name} with args: {args_conv}, kwargs: {kwargs_conv}")
 
-            # convenience: single dict positional -> kwargs
             if args_conv and isinstance(args_conv[0], dict) and not kwargs_conv:
                 args_conv = ({k: v for k, v in args_conv[0].items() if v is not None},) + args_conv[1:]
 
-            # If remapping is disabled for this method, DO NOT attempt multiple flexible fallbacks.
-            # Call once and let exceptions bubble — safer for side-effecting calls (create/update).
             if self._should_disable_remapping(name, kwargs_conv):
                 raw = target(*args_conv, **kwargs_conv)
-                #print(f"DEBUG: Raw response from {name}: {raw!r}")
                 return self._post_process(name, raw)
 
-            # 1) try direct call
+            # Essai direct
             try:
                 raw = target(*args_conv, **kwargs_conv)
-                #print(f"DEBUG: Raw response from {name}: {raw!r}")
                 return self._post_process(name, raw)
             except TypeError as e_direct:
                 last_exc = e_direct
-                # 2) remap common kwargs and try again (only for safe flexible calls like list_*)
+
+                # Remappage des kwargs
                 try:
                     remapped = self._remap_kwargs_common(kwargs_conv)
                     try:
                         raw = target(*args_conv, **remapped)
-                        #print(f"DEBUG: Raw response from {name} (remapped): {raw!r}")
                         return self._post_process(name, raw)
-                    except TypeError as e2:
-                        last_exc = e2
+                    except TypeError:
                         pos = self._build_positional_from_kwargs(target, remapped)
-                        try:
-                            raw = target(*pos)
-                            #print(f"DEBUG: Raw response from {name} (pos from remapped): {raw!r}")
-                            return self._post_process(name, raw)
-                        except Exception as e_pos:
-                            last_exc = e_pos
+                        raw = target(*pos)
+                        return self._post_process(name, raw)
                 except Exception:
                     pass
 
-                # 4) try positional args built from original kwargs
+                # Autres essais (positional, sans args, etc.)
                 try:
                     pos2 = self._build_positional_from_kwargs(target, kwargs_conv)
-                    try:
-                        raw = target(*pos2)
-                        #print(f"DEBUG: Raw response from {name} (pos from original kwargs): {raw!r}")
-                        return self._post_process(name, raw)
-                    except Exception as e3:
-                        last_exc = e3
-                except Exception:
-                    pass
+                    raw = target(*pos2)
+                    return self._post_process(name, raw)
+                except Exception as e3:
+                    last_exc = e3
 
-                # 5) final attempt: call with no args
                 try:
                     raw = target()
-                    #print(f"DEBUG: Raw response from {name} (no args): {raw!r}")
                     return self._post_process(name, raw)
                 except Exception as e_final:
                     last_exc = e_final
 
                 raise last_exc from last_exc
+
             except Exception:
-                # other exceptions bubble up
                 raise
 
-        return wrapper
+        return _dynamic_proxy
 
     def _post_process(self, name: str, res: Any):
         # explicit gateway-level error => raise a dedicated exception
@@ -253,3 +258,5 @@ class ApiControllerProxy:
         # default: return as-is
         #print(f"DEBUG Proxy: Returning non-list response for {name}: {res!r}")
         return res
+    
+    

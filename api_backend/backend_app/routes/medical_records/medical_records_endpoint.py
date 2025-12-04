@@ -14,6 +14,9 @@ from ...database import SessionLocal
 from controller.auth_controller import AuthController
 from controller.patient_controller import PatientController
 from controller.medical_controller import MedicalRecordController
+from repositories.audit_repo import AuditRepository
+from repositories.patient_repo import PatientRepository
+from repositories.medical_repo import MedicalRecordRepository
 from api_backend.backend_app.routes.auth.auth_endpoints import get_current_user, role_required
 from api_backend.backend_app.routes.patients.patients_schemas import PatientResponse
 
@@ -22,7 +25,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(
     prefix="/medical_records",
     tags=["Dossier Medical"],
-    dependencies=[Depends(role_required("medecin", "nurse"))]
+    dependencies=[Depends(role_required("medecin", "nurse","admin","manager"))]
 )
 
 def get_db():
@@ -36,9 +39,25 @@ def get_medical_controller(
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db)
 ) -> MedicalRecordController:
-    auth_ctrl = AuthController(db_session=db)
-    patient_ctrl = PatientController(repo=auth_ctrl.patient_repo, current_user=current_user)
-    return MedicalRecordController(repo=auth_ctrl.medical_repo, patient_controller=patient_ctrl, current_user=current_user)
+    
+    # Création des Repositories nécessaires
+    patient_repo = PatientRepository(db)
+    medical_repo = MedicalRecordRepository(db) 
+    audit_repo = AuditRepository(db) 
+    
+    # 1. Instanciation du PatientController avec audit (requis par MedicalRecordController)
+    patient_ctrl = PatientController(
+        repo=patient_repo, 
+        current_user=current_user,
+        audit_repo=audit_repo 
+    )
+
+    return MedicalRecordController(
+        repo=medical_repo, 
+        patient_controller=patient_ctrl, 
+        current_user=current_user,
+        audit_repo=audit_repo 
+    )
 
 
 # endpoints/medical_records.py
@@ -46,7 +65,7 @@ def get_medical_controller(
 def list_records(
     patient_id: Optional[int] = Query(None, description="Filtrer par patient_id"),
     page: int = Query(1, ge=1),
-    per_page: int = Query(20, ge=1, le=30000),
+    per_page: int = Query(20, ge=1, le=1000000),
     date_from: Optional[date] = Query(None, description="Date de début (YYYY-MM-DD)"),
     date_to: Optional[date] = Query(None, description="Date de fin (YYYY-MM-DD)"),
     motif_code: Optional[str] = Query(None, description="Filtrer par code motif"),
@@ -177,6 +196,26 @@ def delete_record(record_id: int, medical_ctrl: MedicalRecordController = Depend
     except SQLAlchemyError:
         logger.exception("SQLAlchemyError deleting medical record")
         raise HTTPException(status_code=500, detail="Erreur serveur lors de la suppression du dossier médical")
+    
+
+    # 🟢 NOUVEL ENDPOINT DME SUMMARY (Flash Patient)
+@router.get("/patient/{patient_id}/dme_summary", status_code=status.HTTP_200_OK)
+def get_patient_dme_summary(
+    patient_id: int,
+    medical_ctrl: MedicalRecordController = Depends(get_medical_controller)
+):
+    """
+    Récupère le résumé vital pour l'en-tête du dossier patient (DME).
+    Renvoie : Identité, Constantes (Tension, Poids), Allergies, Dernier Diagnostic.
+    """
+    try:
+        summary = medical_ctrl.get_patient_dme_summary(patient_id)
+        return summary
+    except ValueError as ve:
+        raise HTTPException(status_code=404, detail=str(ve))
+    except Exception as e:
+        logger.exception(f"Erreur lors de la récupération du résumé DME pour le patient {patient_id}")
+        raise HTTPException(status_code=500, detail="Erreur serveur lors de la récupération du résumé patient")
 
 
 # ---- Endpoints supplémentaires / KPI / recherche ----
@@ -267,3 +306,29 @@ def get_record(record_id: int, medical_ctrl: MedicalRecordController = Depends(g
     except ValidationError:
         logger.exception("Response validation failed for single record")
         raise HTTPException(status_code=500, detail="Erreur interne : données dossier médical invalides")    
+    
+
+@router.get("/patient/{patient_id}/history", response_model=List[MedicalRecordResponse])
+def get_patient_history(
+    patient_id: int,
+    medical_ctrl: MedicalRecordController = Depends(get_medical_controller)
+):
+    """
+    Récupère TOUT l'historique médical pour la timeline (sans pagination).
+    """
+    try:
+        # 1. Appel au contrôleur
+        records = medical_ctrl.get_patient_history(patient_id)
+        
+        # 2. Normalisation des données (dates, nulls, etc)
+        normalized_records = [normalize_medical_record_data(r) for r in records]
+        
+        # 3. Validation Pydantic
+        return [MedicalRecordResponse.model_validate(r) for r in normalized_records]
+        
+    except SQLAlchemyError:
+        logger.exception(f"Erreur DB lors de la récupération de l'historique patient {patient_id}")
+        raise HTTPException(status_code=500, detail="Erreur serveur lecture historique")
+    except ValidationError:
+        logger.exception("Erreur validation données historique")
+        raise HTTPException(status_code=500, detail="Données invalides en base")    

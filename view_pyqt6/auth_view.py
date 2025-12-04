@@ -1,15 +1,26 @@
 # views/auth_view.py
 import os
 import inspect
-from typing import Any, Optional
+from typing import Any, Optional, cast
 from PyQt6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel,
     QLineEdit, QPushButton, QMessageBox, QToolButton
 )
 from PyQt6.QtGui import QPixmap, QIcon, QKeyEvent, QCloseEvent, QShowEvent
 from PyQt6.QtCore import Qt, QPropertyAnimation, QEasingCurve, QSize
-
+from view_pyqt6.controller_resolver import ControllerResolver
 from view_pyqt6.factory.dashboard_factory import get_dashboard_class
+import sys  # ← Ajout pour resource_path
+
+
+def resource_path(relative_path: str) -> str:
+    """Retourne chemin absolu pour assets/DB en dev ou EXE bundled (PyInstaller)."""
+    try:
+        # PyInstaller temp dir
+        base_path = sys._MEIPASS # type: ignore
+    except Exception:
+        base_path = os.path.abspath(".")
+    return os.path.join(base_path, relative_path)
 
 
 class PasswordLineEdit(QWidget):
@@ -35,9 +46,8 @@ class PasswordLineEdit(QWidget):
 
         self.toggle_button = QToolButton()
         self.toggle_button.setCursor(Qt.CursorShape.PointingHandCursor)
-        eye_off = os.path.join("assets", "eye-off.png")
-        eye_icon = eye_off if os.path.exists(eye_off) else ""
-        self.toggle_button.setIcon(QIcon(eye_icon))
+        eye_off_path = resource_path(os.path.join("assets", "eye-off.png"))  # ← Fix : resource_path
+        self.toggle_button.setIcon(QIcon(eye_off_path if os.path.exists(eye_off_path) else ""))
         self.toggle_button.setIconSize(QSize(20, 20))
         self.toggle_button.setStyleSheet("""
             QToolButton { background: transparent; border: none; padding: 0px 8px; }
@@ -50,12 +60,12 @@ class PasswordLineEdit(QWidget):
     def toggle_password_visibility(self):
         if self.line_edit.echoMode() == QLineEdit.EchoMode.Password:
             self.line_edit.setEchoMode(QLineEdit.EchoMode.Normal)
-            eye = os.path.join("assets", "eye.png")
-            self.toggle_button.setIcon(QIcon(eye if os.path.exists(eye) else ""))
+            eye_path = resource_path(os.path.join("assets", "eye.png"))  # ← Fix : resource_path
+            self.toggle_button.setIcon(QIcon(eye_path if os.path.exists(eye_path) else ""))
         else:
             self.line_edit.setEchoMode(QLineEdit.EchoMode.Password)
-            eye_off = os.path.join("assets", "eye-off.png")
-            self.toggle_button.setIcon(QIcon(eye_off if os.path.exists(eye_off) else ""))
+            eye_off_path = resource_path(os.path.join("assets", "eye-off.png"))  # ← Fix : resource_path
+            self.toggle_button.setIcon(QIcon(eye_off_path if os.path.exists(eye_off_path) else ""))
 
     def text(self) -> str:
         return self.line_edit.text()
@@ -71,21 +81,24 @@ class AuthView(QMainWindow):
     def __init__(self, controllers: Any):
         """
         controllers: object contenant (au minimum)
-            - controllers.gateway  -> RemoteGateway (optionnel si auth_manager présent)
-            - controllers.auth_manager -> AuthManager (optionnel)
-            - controllers.network_manager (optionnel)
-            - controllers.controller / fallback_controller (optionnel)
+            - controllers.gateway
+            - controllers.auth_manager
+            - controllers.network_manager
+            - controllers.controller
+            - controllers.fallback_controller
         """
         super().__init__()
         self.controllers = controllers
         self.gateway = getattr(controllers, "gateway", None)
-        self.auth_manager: Optional[Any] = getattr(controllers, "auth_manager", None)
+        self.auth_manager = getattr(controllers, "auth_manager", None)
+        self.network_manager = getattr(controllers, "network_manager", None)
+        self.controller_resolver = ControllerResolver(controllers)
 
-        self.setWindowTitle("One Health - Authentification")
-        # rendre la fenêtre redimensionnable (taille initiale 400x600)
+        self.setWindowTitle("Glostone-Kare - Authentification")
         self.resize(400, 600)
         self.setMinimumSize(360, 520)
-        self.setWindowIcon(QIcon(os.path.join("assets", "icon.png")))
+        icon_path = resource_path(os.path.join("assets", "icon.png"))  # ← Fix : resource_path pour icon
+        self.setWindowIcon(QIcon(icon_path if os.path.exists(icon_path) else ""))
 
         # style global (dégradé blanc -> vert léger)
         self.setStyleSheet("""
@@ -160,16 +173,18 @@ class AuthView(QMainWindow):
         layout.setContentsMargins(40, 40, 40, 40)
         layout.setSpacing(18)
 
-        title = QLabel("Bienvenue sur One Health")
+        title = QLabel("Bienvenue sur Glostone-Kare")
         title.setObjectName("titleLabel")
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(title)
 
         # logo
-        logo_path = os.path.join("assets", "ahlogo.png")
+        logo_path = resource_path(os.path.join("assets", "ahlogo.png"))  # ← Fix : resource_path
         if not os.path.isfile(logo_path):
-            logo_path = os.path.join("assets", "ahlogo.png")
+            logo_path = resource_path(os.path.join("assets", "ahlogo.png"))  # Double check
         pix = QPixmap(logo_path) if os.path.exists(logo_path) else QPixmap()
+        if pix.isNull():
+            print("[AUTHVIEW] Logo null – Vérifie bundle assets")  # Debug
         logo = pix.scaled(110, 110, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
         logo_label = QLabel()
         logo_label.setPixmap(logo)
@@ -274,12 +289,11 @@ class AuthView(QMainWindow):
 
     def _on_login(self):
         """Traite la tentative de connexion"""
-        if getattr(self, "error_label", None) is not None:
-            try:
-                self.error_label.hide()
-            except RuntimeError:
-                # le widget a été supprimé — on ignore silencieusement
-                pass
+        try:
+            self.error_label.hide()
+        except RuntimeError:
+            pass
+
         username = self.username_entry.text().strip()
         password = self.password_widget.text().strip()
 
@@ -287,76 +301,69 @@ class AuthView(QMainWindow):
             self._show_error("Veuillez saisir le nom d'utilisateur et le mot de passe.")
             return
 
-        user_info = {}
+        user_info = None
         token = None
 
-        # 1) Auth via AuthManager si présent
-        if self.auth_manager:
+        # Vérifier le mode online/offline
+        is_offline = getattr(self.network_manager, "offline_mode", False) if self.network_manager else False
+        print(f"[AUTHVIEW DEBUG] Mode offline : {is_offline}")  # ← Debug pour tracer
+
+        if not is_offline and self.auth_manager:
+            # Mode online : Utiliser AuthManager
             try:
                 success, payload = self.auth_manager.login(username, password)
+                if success:
+                    user_info = payload.get("user")
+                    token = payload.get("token")
+                    print(f"[AUTHVIEW DEBUG] Online login OK : {user_info.get('username', 'unknown')}")  # Debug
+                else:
+                    err = payload.get("error") or payload.get("details") or "Erreur d'authentification"
+                    self._show_error(f"Erreur de connexion : {err}")
+                    return
             except Exception as e:
-                self._show_error(f"Erreur interne lors de la tentative de connexion : {e}")
-                return
-
-            if not success:
-                err = payload.get("error") or payload.get("details") or "Erreur d'authentification"
-                self._show_error(f"Erreur de connexion : {err}")
-                return
-
-            user_info = payload.get("user") or {}
-            token = payload.get("token")
-
-        else:
-            # 2) Fallback direct via gateway
-            if not self.gateway:
-                self._show_error("Aucun gateway / auth_manager disponible pour l'authentification.")
-                return
-
-            try:
-                res = self.gateway.login(username, password)
-            except Exception as e:
+                print(f"[AUTHVIEW DEBUG] Online login fail : {e}")  # Debug
                 self._show_error(f"Erreur réseau lors de la connexion : {e}")
+                is_offline = True  # Bascule vers offline si l'API échoue
+
+        if is_offline:
+            # Mode offline : Utiliser AuthController via ControllerResolver
+            try:
+                auth_controller = self.controller_resolver.auth_controller()
+                print(f"[AUTHVIEW DEBUG] Auth controller résolu : {type(auth_controller).__name__ if auth_controller else 'None'}")  # ← Debug clé
+                if auth_controller is None:
+                    self._show_error("Erreur critique : Offline mode non disponible (resolver échoué). Vérifiez bundle EXE.")
+                    print("[AUTHVIEW ERROR] auth_controller None – Check resolver logs")
+                    return
+                
+                # Guard explicite pour Pylance et runtime : check hasattr
+                if not hasattr(auth_controller, 'authenticate'):
+                    self._show_error("Erreur critique : Auth controller sans méthode 'authenticate'.")
+                    print("[AUTHVIEW ERROR] No 'authenticate' attr")
+                    return
+                
+                user_info = auth_controller.authenticate(username, password) # type: ignore
+                print(f"[AUTHVIEW DEBUG] Offline auth result : {user_info is not None}")  # Debug
+                if not user_info:
+                    self._show_error("Nom d'utilisateur ou mot de passe incorrect.")
+                    return
+                token = "offline_token"  # Token fictif pour mode offline
+            except Exception as e:
+                print(f"[AUTHVIEW ERROR] Offline exception : {e}")  # Debug
+                self._show_error(f"Erreur interne lors de la connexion offline : {e}")
                 return
 
-            if not isinstance(res, dict):
-                self._show_error("Réponse serveur inattendue (format non valide).")
-                return
-
-            status = res.get("_status_code")
-            detail = res.get("detail") or res.get("message") or res.get("error") or res.get("details")
-
-            # Cas identifiant / mot de passe incorrect
-            if status == 401 or (isinstance(detail, str) and "incorrect" in detail.lower()):
-                self._show_error("Nom d'utilisateur ou mot de passe incorrect.")
-                return
-
-            # Cas erreur réseau (gateway met status None)
-            if res.get("error") and status is None:
-                self._show_error(f"Erreur réseau : {res.get('details') or res.get('error')}")
-                return
-
-            # Cas autres erreurs serveur (422, 500, etc.)
-            if status and status != 200:
-                self._show_error(detail or f"Erreur serveur ({status})")
-                return
-
-            # Succès : récupérer token et user
-            token = res.get("access_token") or (res.get("data") or {}).get("access_token") or res.get("token")
-            user_info = res.get("user") or (res.get("data") or {}).get("user") or {}
-
-        # Vérifier si token est bien présent
-        if not token:
-            self._show_error("Impossible de récupérer le token d'authentification.")
+        if not user_info:
+            self._show_error("Échec de l'authentification : utilisateur non trouvé.")
             return
 
-        # injecter token dans la gateway
-        try:
-            if self.gateway and hasattr(self.gateway, "set_token"):
+        # Injecter token dans la gateway (pour mode online)
+        if not is_offline and self.gateway and hasattr(self.gateway, "set_token") and token:
+            try:
                 self.gateway.set_token(token)
-        except Exception:
-            pass
+            except Exception:
+                pass
 
-        # normaliser user_info/application_role
+        # Normaliser user_info/application_role
         if not isinstance(user_info, dict):
             try:
                 user_info = vars(user_info)
@@ -372,20 +379,18 @@ class AuthView(QMainWindow):
 
         role_key = (app_role.get("role_name") or "") if isinstance(app_role, dict) else ""
 
-        # obtenir la classe dashboard
+        # Obtenir la classe dashboard
         DashboardCls = get_dashboard_class(role_key)
         if DashboardCls is None:
             self._show_error(f"Impossible d'ouvrir le dashboard : rôle inconnu ({role_key})")
             return
-
-        dashboard_controllers = self.controllers
 
         try:
             dashboard_instance = self._instantiate_dashboard(
                 DashboardCls,
                 parent=self,
                 user=user_info,
-                controllers=dashboard_controllers,
+                controllers=self.controllers,
                 on_logout=self._on_logout
             )
         except Exception as e:
@@ -393,7 +398,6 @@ class AuthView(QMainWindow):
             print("DEBUG dashboard instantiation error:", repr(e))
             return
 
-        # afficher si QWidget
         try:
             if isinstance(dashboard_instance, QWidget):
                 self.dashboard_widget = dashboard_instance
@@ -418,7 +422,6 @@ class AuthView(QMainWindow):
             print("DEBUG dashboard display error:", repr(e))
             return
 
-        # agrandir fenêtre pour le dashboard
         try:
             self.resize(1024, 768)
             self.setMinimumSize(800, 600)

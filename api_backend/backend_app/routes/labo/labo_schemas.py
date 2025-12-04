@@ -2,6 +2,7 @@ from pydantic import BaseModel, Field
 from typing import Optional, List, Any
 from datetime import datetime
 
+
 class LabResultDetailCreate(BaseModel):
     parametre_id: int
     valeur_text: Optional[str] = None
@@ -34,3 +35,12 @@ class LabResultOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+class ExamenOut(BaseModel):
+    id: int
+    code: str
+    nom: str
+    categorie: str
+
+    class Config:
+        from_attributes = True        

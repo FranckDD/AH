@@ -1,6 +1,16 @@
 # main.py (client)
 import sys
 import os
+os.environ["IS_CLIENT"] = "true"
+def resource_path(relative_path: str) -> str:
+    """Retourne chemin absolu pour assets/DB en dev ou EXE bundled (PyInstaller)."""
+    try:
+        # PyInstaller temp dir
+        base_path = sys._MEIPASS # type: ignore
+    except Exception:
+        base_path = os.path.abspath(".")
+    return os.path.join(base_path, relative_path)
+
 from types import SimpleNamespace
 
 
@@ -15,13 +25,14 @@ from managers.auth_manager import AuthManager
 from managers.network_manager import NetworkManager
 from view_pyqt6.auth_view import AuthView
 from view_pyqt6.api_controller import ApiControllerProxy
+from config_local import get_api_base
 
 
 def main():
     app = QApplication(sys.argv)
 
     # Adresse de l'API (modifie si besoin)
-    API_BASE = os.environ.get("AH2_API_BASE", "http://127.0.0.1:8000")
+    API_BASE = get_api_base()
 
     # Initialise les composants
     gateway = RemoteGateway(API_BASE)

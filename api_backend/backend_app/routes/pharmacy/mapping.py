@@ -21,6 +21,7 @@ def normalize_pharmacy_data(raw) -> dict:
         "medication_type": raw.medication_type,
         "forme": raw.forme,
         "dosage_mg": float(raw.dosage_mg) if raw.dosage_mg is not None else None,
+        "price": float(raw.price),
         "expiry_date": parse_datetime(raw.expiry_date),
         "stock_status": raw.stock_status,
         "prescribed_by": raw.prescribed_by,

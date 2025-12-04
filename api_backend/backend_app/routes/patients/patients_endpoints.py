@@ -8,8 +8,9 @@ from datetime import date
 
 from .mapping import normalize_patient_data
 from ...exceptions import translate_integrity_error
-from .patients_schemas import PatientCreate, PatientUpdate, PatientResponse
+from .patients_schemas import PatientCreate, PatientUpdate, PatientResponse,PatientStatusDistribution,PatientAssuranceDistribution,NewPatientCount
 from ...database import SessionLocal
+from repositories.audit_repo import AuditRepository
 from controller.auth_controller import AuthController
 from controller.patient_controller import PatientController
 from ...routes.auth.auth_endpoints import get_current_user, role_required
@@ -19,7 +20,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(
     prefix="/patients",
     tags=["Patients"],
-    dependencies=[Depends(role_required("medecin", "nurse"))]
+    dependencies=[Depends(role_required("medecin", "nurse","secretaire","admin","manager"))]
 )
 
 def get_db():
@@ -32,7 +33,8 @@ def get_db():
 def get_patient_controller(current_user=Depends(get_current_user),
                            db: Session = Depends(get_db)) -> PatientController:
     auth_ctrl = AuthController(db_session=db)
-    return PatientController(repo=auth_ctrl.patient_repo, current_user=current_user)
+    audit_repo = AuditRepository(db)
+    return PatientController(repo=auth_ctrl.patient_repo, current_user=current_user, audit_repo=audit_repo)
 
 def _safe_validate_patient(raw: Any) -> PatientResponse:
     data = normalize_patient_data(raw)
@@ -68,10 +70,7 @@ def list_patients(
     patient_ctrl: PatientController = Depends(get_patient_controller)
 ):
     patients_raw = patient_ctrl.list_patients(page=page, per_page=per_page, search=search)
-    validated = []
-    for p in patients_raw:
-        validated.append(_safe_validate_patient(p))
-    return validated
+    return [_safe_validate_patient(p) for p in patients_raw]
 
 
 
@@ -82,29 +81,33 @@ def update_patient(
     patient_ctrl: PatientController = Depends(get_patient_controller)
 ):
     try:
+        # 1. Le Controller gère l'atomicité (Update Patient + Audit Log + commit/rollback)
         patient_ctrl.update_patient(patient_id, data.model_dump(exclude_unset=True))
+        
+        # 2. Récupérer l'objet (lecture séparée après commit)
         patient = patient_ctrl.repo.get_by_id(patient_id)
         if not patient:
-            raise HTTPException(status_code=404, detail="Patient non trouvé après mise à jour")
+             # Patient non trouvé DANS le repo/controller, c'est un ValueError.
+             # Si le patient est trouvé mais la lecture échoue après commit, c'est 500.
+             raise HTTPException(status_code=404, detail="Patient non trouvé après mise à jour")
+             
         return _safe_validate_patient(patient)
-
+        
     except ValueError as ve:
-        raise HTTPException(status_code=404, detail=str(ve))
+        # Erreur métier (ex: Patient introuvable, déjà remonté en 404 dans le Controller)
+        # S'assurer que le message de ValueError soit clair (ex: "Patient introuvable")
+        if "introuvable" in str(ve).lower():
+            raise HTTPException(status_code=404, detail=str(ve))
+        else:
+            raise HTTPException(status_code=400, detail=str(ve))
 
+    # 🎯 Capture des erreurs de base de données remontées par le Controller après rollback
     except IntegrityError as ie:
-        try:
-            patient_ctrl.repo.session.rollback()
-        except Exception:
-            logger.exception("Rollback failed after IntegrityError")
         raise translate_integrity_error(ie)
-
+    
     except SQLAlchemyError as e:
-        try:
-            patient_ctrl.repo.session.rollback()
-        except Exception:
-            logger.exception("Rollback failed after SQLAlchemyError")
-        logger.exception("SQLAlchemyError updating patient: %s", e)
-        raise HTTPException(status_code=500, detail="Erreur serveur lors de la mise à jour du patient")
+        logger.exception("SQLAlchemyError updating patient (after Controller rollback): %s", e)
+        raise HTTPException(status_code=500, detail="Erreur serveur lors de la mise à jour")
 
 @router.delete("/{patient_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_patient(
@@ -241,29 +244,29 @@ def create_patient(
     patient_ctrl: PatientController = Depends(get_patient_controller)
 ):
     try:
-        pid, code = patient_ctrl.create_patient(data.model_dump())
+        # 1. Le Controller gère l'atomicité (Patient + Audit Log + commit/rollback)
+        pid, code = patient_ctrl.create_patient(data.model_dump()) 
+        
+        # 2. Récupérer l'objet (lecture séparée après commit)
         patient = patient_ctrl.repo.get_by_id(pid)
         if not patient:
-            raise HTTPException(status_code=500, detail="Patient créé mais impossible à lire")
+            # Très improbable si le commit a réussi
+            raise HTTPException(status_code=500, detail="Patient créé mais impossible à lire (post-commit)")
+            
         return _safe_validate_patient(patient)
-
+        
     except ValueError as ve:
+        # Erreur métier/validation (ex: champs manquants) remontée par le Controller
         raise HTTPException(status_code=400, detail=str(ve))
-
+    
+    # 🎯 Capture des erreurs de base de données remontées par le Controller après rollback
     except IntegrityError as ie:
-        try:
-            patient_ctrl.repo.session.rollback()
-        except Exception:
-            logger.exception("Rollback failed after IntegrityError")
+        # L'IntegrityError vient directement du DBAPI après une tentative de commit/rollback dans le Controller
         raise translate_integrity_error(ie)
-
+        
     except SQLAlchemyError as e:
-        try:
-            patient_ctrl.repo.session.rollback()
-        except Exception:
-            logger.exception("Rollback failed after SQLAlchemyError")
-        logger.exception("SQLAlchemyError creating patient: %s", e)
-        raise HTTPException(status_code=500, detail="Erreur serveur lors de la création du patient")
+        logger.exception("SQLAlchemyError creating patient (after Controller rollback): %s", e)
+        raise HTTPException(status_code=500, detail="Erreur serveur lors de la création")
     
 @router.get("/for_days", response_model=List[PatientResponse])
 def new_patients_for_day(
@@ -274,7 +277,7 @@ def new_patients_for_day(
     patient_ctrl: PatientController = Depends(get_patient_controller)
 ):
     try:
-        raws = patient_ctrl.patients_for_day(target_date=target_date, doctor_id=doctor_id, page=page, per_page=per_page)
+        raws = patient_ctrl.patients_for_day(target_date=target_date, doctor_id=doctor_id, page=page, per_page=per_page) # type: ignore
         # Si patient_ctrl renvoie des dicts sérialisés (comme ci-dessus), on peut renvoyer directement.
         # Si le endpoint doit renvoyer des PatientResponse Pydantic, on doit valider/normaliser :
         validated = []
@@ -292,4 +295,63 @@ def new_patients_for_day(
     except Exception as e:
         logger.exception("Erreur DB patients_for_day: %s", e)
         raise HTTPException(status_code=500, detail="Erreur serveur lors de la lecture des nouveaux patients")
+    
+# KPI 1 : Nouveaux Patients Spirituels
+@router.get(
+    "/kpi/spiritual/new_patients_count",
+    response_model=NewPatientCount, 
+    status_code=status.HTTP_200_OK,
+    summary="Récupère le nombre de nouveaux patients Spirituels (créés par Secrétaire) sur la période (day/week)."
+)
+def get_kpi_spiritual_new_patients_count(
+    period: str = Query("week", description="Période de comptage : 'day' ou 'week'"),
+    ctrl: PatientController = Depends(get_patient_controller)
+):
+    try:
+        if period.lower() not in ["day", "week"]:
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, "Période invalide. Utilisez 'day' ou 'week'")
+            
+        count = ctrl.get_spiritual_new_patients_count_kpi(period=period.lower())
+        return {"new_patients_count": count}
+    except ValueError as e:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, str(e))
+    except Exception as e:
+        logger.exception("Erreur lors de la récupération du KPI Nouveaux Patients Spirituels")
+        raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, "Erreur interne du serveur")
+
+
+# KPI 2 : Statut Actif/Inactif des Patients Spirituels
+@router.get(
+    "/kpi/spiritual/status_distribution",
+    response_model=PatientStatusDistribution, 
+    status_code=status.HTTP_200_OK,
+    summary="Récupère la distribution des patients Spirituels par statut Actif/Inactif."
+)
+def get_kpi_spiritual_patient_status(
+    ctrl: PatientController = Depends(get_patient_controller)
+):
+    try:
+        data = ctrl.get_spiritual_patient_status_kpi()
+        return data
+    except Exception as e:
+        logger.exception("Erreur lors de la récupération du KPI Statut Patient Spirituel")
+        raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, "Erreur interne du serveur")
+
+
+# KPI 3 : Répartition par Assurance des Patients Spirituels
+@router.get(
+    "/kpi/spiritual/assurance_distribution",
+    response_model=PatientAssuranceDistribution, 
+    status_code=status.HTTP_200_OK,
+    summary="Récupère la répartition des patients Spirituels par type de couverture Assurance."
+)
+def get_kpi_spiritual_assurance_distribution(
+    ctrl: PatientController = Depends(get_patient_controller)
+):
+    try:
+        distribution = ctrl.get_spiritual_assurance_distribution_kpi()
+        return {"assurance_distribution": distribution}
+    except Exception as e:
+        logger.exception("Erreur lors de la récupération du KPI Assurance Patient Spirituel")
+        raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, "Erreur interne du serveur")    
 

@@ -12,6 +12,14 @@ class ConsultationSpirituelController:
 
     def list_for_patient(self, patient_id: int) -> List:
         return self.repo.find_by_patient(patient_id)
+    
+    def get_patient_history(self, patient_id: int):
+        # Récupère les objets ORM
+        raw_history = self.repo.get_history_for_patient(patient_id)
+        
+        # On peut retourner tel quel, le schéma Pydantic fera le tri, 
+        # ou normaliser ici si besoin.
+        return raw_history
 
     def create_consultation(self, data: dict):
         # Validation métier côté contrôleur
@@ -46,4 +54,7 @@ class ConsultationSpirituelController:
     
     def get_last_for_patient(self, patient_id: int):
         return self.repo.get_last_for_patient(patient_id)
+    
+
+    
     

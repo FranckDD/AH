@@ -62,17 +62,21 @@ class CaisseRetraitController:
             date_to=date_to
         )
 
-    def effectuer_retrait(self, amount: float, justification: str) -> CaisseRetrait:
+    def effectuer_retrait(self, amount: float, justification: str, 
+                          category: str = None, payment_method: str = None) -> CaisseRetrait:
         """
-        Crée un nouveau retrait (status='active'), lié à self.user.user_id.
-        Lève ValueError si le montant est invalide (≤ 0).
+        Crée un nouveau retrait avec catégorie et méthode de paiement.
         """
         if amount <= 0:
             raise ValueError("Le montant du retrait doit être strictement positif.")
+            
         return self.repo.create(
             amount=amount,
             justification=justification,
-            handled_by=self.user.user_id
+            handled_by=self.user.user_id,
+            # 🟢 Passage des nouveaux paramètres
+            category=category,
+            payment_method=payment_method
         )
 
     def annuler_retrait(
@@ -97,5 +101,35 @@ class CaisseRetraitController:
         Méthode appelée par la vue pour récupérer toutes les transactions.
         """
         return self.repo.list_retraits()
+    
+    # Ajoute ceci à ta classe CaisseRetraitController
+
+    def search_retraits(
+        self,
+        page: int = 1,
+        per_page: int = 50,
+        status: str | None = None,
+        date_from: datetime | None = None,
+        date_to: datetime | None = None,
+        term: str | None = None
+    ) -> dict:
+        """
+        Méthode dédiée pour le module Finance (avec pagination).
+        """
+        items, total = self.repo.get_paginated_list(
+            page=page,
+            per_page=per_page,
+            status=status,
+            date_from=date_from,
+            date_to=date_to,
+            term=term
+        )
+        
+        return {
+            "items": items,
+            "total": total,
+            "page": page,
+            "per_page": per_page
+        }
 
         

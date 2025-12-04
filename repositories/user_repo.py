@@ -23,12 +23,14 @@ class UserRepository:
             logging.exception(f"Erreur récupération user « {username} »")
             raise
 
-    def create_user(self, username, password, full_name, **kwargs):
-        user = User(username=username, full_name=full_name, **kwargs)
+    def create_user(self, username, password, full_name,email=None, contact=None, **kwargs):
+        user = User(username=username, full_name=full_name,email=email,       # Ajout
+            contact=contact, **kwargs)
         user.set_password(password)
         self.session.add(user)
         try:
             self.session.commit()
+            self.session.refresh(user)
             return user
         except Exception:
             self.session.rollback()
@@ -67,6 +69,8 @@ class UserRepository:
         filters.extend([
             User.username.ilike(pattern),
             User.full_name.ilike(pattern),
+            User.email.ilike(pattern),   # Ajout recherche par email
+            User.contact.ilike(pattern),
         ])
         filters.append(ApplicationRole.role_name.ilike(pattern))
         filters.append(MedicalSpecialty.name.ilike(pattern))
@@ -75,7 +79,7 @@ class UserRepository:
             #  ici, on évite d’écraser `query`
             user_query = (
                 self.session.query(User)
-                .join(ApplicationRole, User.role_id == ApplicationRole.role_id)
+                .join(ApplicationRole, User.role_id == ApplicationRole.role_id, isouter=True)
                 .join(MedicalSpecialty, User.specialty_id == MedicalSpecialty.specialty_id, isouter=True)
                 .options(
                     joinedload(User.application_role),
@@ -88,10 +92,13 @@ class UserRepository:
             logging.exception(f"Erreur recherche users pour « {q} »")
             raise
 
-    def list_users(self) -> list[User]:
+    def list_users(self, page: int = 1, per_page: int = 50) -> list[User]:
         """
-        Renvoie tous les utilisateurs.
+        Renvoie une page d'utilisateurs.
         """
+        # Calculer le décalage (offset)
+        offset = (page - 1) * per_page
+        
         return (
             self.session
                 .query(User)
@@ -99,6 +106,8 @@ class UserRepository:
                     joinedload(User.application_role),
                     joinedload(User.specialty)
                 )
+                .offset(offset)  # ⬅️ NOUVEAU : Décalage
+                .limit(per_page) # ⬅️ NOUVEAU : Limite (taille de la page)
                 .all()
         )
     

@@ -5,7 +5,7 @@ from typing import Tuple, Optional, Dict, Any
 class AuthManager:
     def __init__(self, gateway):
         self.gateway = gateway
-        self.settings = QSettings("OneHealth", "Auth")
+        self.settings = QSettings("Glostone-kare", "Auth")
         self.current_user: Optional[Dict[str, Any]] = None
 
     def login(self, username: str, password: str) -> Tuple[bool, Dict[str, Any]]:

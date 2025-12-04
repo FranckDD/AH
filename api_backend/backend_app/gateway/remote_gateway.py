@@ -1,15 +1,17 @@
 #api_backend/app/gateway/remote_gateway.py
 import os
 import requests
-from typing import Optional, Dict, Any, Union
+from typing import Optional, Dict, Any, Union, List
 from datetime import date, datetime
+from functools import lru_cache
+from api_backend.backend_app.config import AH2_API_BASE
 
 
 class RemoteGateway:
     def __init__(self, base_url: Optional[str] = None, token: Optional[str] = None):
-        # Utilise la variable d'environnement AH2_API_BASE si fournie,
-        # sinon fallback en local (dev).
-        self.base_url = (base_url or os.getenv("AH2_API_BASE") or "http://127.0.0.1:8000").rstrip("/")
+        self.base_url = (base_url or AH2_API_BASE).rstrip("/")
+        if not self.base_url:
+            raise RuntimeError("AH2_API_BASE non défini. Vérifiez .env dans le bundle EXE.")
         self.token = token
 
     def _headers(self):
@@ -21,6 +23,14 @@ class RemoteGateway:
     def set_token(self, token: str):
         """Met à jour le token JWT (après login)"""
         self.token = token
+
+    def is_online(self):
+        """Vérifie si l'API est accessible."""
+        try:
+            response = requests.get(f"{self.base_url}/health", timeout=5)
+            return response.status_code == 200
+        except requests.RequestException:
+            return False    
 
     def request(self, method: str, endpoint: str, params=None, data=None, json=None):
         """Méthode générique pour appeler l’API"""
@@ -44,6 +54,8 @@ class RemoteGateway:
             return {"error": "HTTP error", "details": "No response received"}
         except requests.exceptions.RequestException as e:
             return {"error": "Network error", "details": str(e)}
+        
+        
 
     # --------------------
     # AUTH
@@ -157,6 +169,69 @@ class RemoteGateway:
         """
         params = {"code": code}
         return self.request("GET", "/patients/find_for_appointment", params=params)
+    
+
+    # =========================================================================
+    # --------------------
+    # TOXICOLOGIE (TOXICO)
+    # --------------------
+    # =========================================================================
+
+    def get_toxico_psychologists(self):
+        """Récupère la liste des psychologues/gestionnaires Toxico pour les listes déroulantes."""
+        return self.request("GET", "/toxico/psychologists")
+
+    def list_toxico_dossiers(
+        self, 
+        page: int = 1, 
+        per_page: int = 20, 
+        search: Optional[str] = None, 
+        phase: Optional[int] = None
+    ) -> Dict[str, Any]:
+        """Liste les dossiers Toxico actifs avec filtres et pagination."""
+        params: Dict[str, Union[int, str]] = {
+            "page": page,
+            "per_page": per_page
+        }
+        if search:
+            params["search"] = search
+        if phase is not None:
+            params["phase"] = phase
+            
+        return self.request("GET", "/toxico/patients", params=params)
+
+    def get_toxico_dossier_details(self, patient_id: int) -> Dict[str, Any]:
+        """Récupère tous les détails (historique, évaluations) d'un dossier Toxico."""
+        return self.request("GET", f"/toxico/patients/{patient_id}")
+    
+    def get_toxico_patient_details(self, patient_id: int) -> Dict[str, Any]:
+        """
+        Récupère les détails complets d'un patient toxico.
+        Inclut : informations patient, historique des phases, évaluations.
+        """
+        return self.request("GET", f"/toxico/patients/{patient_id}")
+        
+    def admit_toxico_patient(self, admission_data: dict) -> Dict[str, Any]:
+        """Admet un patient dans le programme Toxico (création Patient + Dossier)."""
+        # Le endpoint FastAPI s'attend à un JSON
+        return self.request("POST", "/toxico/admission", json=admission_data)
+
+    def submit_toxico_evaluation(self, evaluation_data: dict) -> Dict[str, Any]:
+        """Enregistre une nouvelle évaluation psychologique et met à jour la phase."""
+        return self.request("POST", "/toxico/evaluation", json=evaluation_data)
+
+    def discharge_toxico_patient(self, dossier_id: int) -> Dict[str, Any]:
+        """Clôture le dossier et sort le patient du programme (discharge)."""
+        return self.request("POST", f"/toxico/discharge/{dossier_id}")
+    
+    def get_dashboard_toxico_stats(self) -> Dict[str, Any]:
+        """
+        Récupère les statistiques clés du tableau de bord Toxico 
+        (ex: Admissions du mois, etc.)
+        Endpoint: GET /toxico/stats/dashboard
+        """
+        # Utilisation de la méthode générique pour un GET sur le nouvel endpoint
+        return self.request("GET", "/toxico/stats/dashboard")
 
 
     # --------------------
@@ -174,6 +249,13 @@ class RemoteGateway:
 
     def delete_medical_record(self, record_id: int):
         return self.request("DELETE", f"/medical_records/{record_id}")
+    
+    def get_patient_dme_summary(self, patient_id: int):
+        """
+        Récupère le résumé vital (Flash) pour l'en-tête du dossier patient.
+        Endpoint: GET /medical_records/patient/{id}/dme_summary
+        """
+        return self.request("GET", f"/medical_records/patient/{patient_id}/dme_summary")
     
         # --------------------
     # DOSSIERS MÉDICAUX (Medical Records) - Méthodes manquantes
@@ -251,6 +333,17 @@ class RemoteGateway:
         if search:
             params["search"] = search
         return self.request("GET", "/prescriptions/", params=params)
+    
+
+    def get_patient_prescriptions_history(self, patient_id: int, status: Optional[str] = None):
+        """
+        Récupère l'historique complet des prescriptions d'un patient.
+        Endpoint: GET /prescriptions/patient/{id}
+        """
+        params = {}
+        if status:
+            params["status"] = status
+        return self.request("GET", f"/prescriptions/patient/{patient_id}", params=params)
 
     
         # --------------------
@@ -472,3 +565,589 @@ class RemoteGateway:
     def list_speciality(self):
         res = self.request("GET", "/users/specialties")
         return self._unwrap_list_response(res)
+    
+
+    # --------------------
+    # CAISSE RETRAITS
+    # --------------------
+    def list_retraits(self, status: Optional[str] = None, date_from: Optional[Union[datetime, str]] = None, 
+                     date_to: Optional[Union[datetime, str]] = None, page: int = 1, per_page: int = 50):
+        """
+        Liste les retraits avec filtres (status, date_from, date_to) et pagination.
+        Endpoint: GET /retrait/
+        """
+        params = {"page": page, "per_page": per_page}
+        if status:
+            params["status"] = status
+        if date_from:
+            params["date_from"] = date_from.isoformat() if isinstance(date_from, datetime) else str(date_from)
+        if date_to:
+            params["date_to"] = date_to.isoformat() if isinstance(date_to, datetime) else str(date_to)
+        return self.request("GET", "/retrait/", params=params)
+
+    def get_retrait(self, retrait_id: int):
+        """
+        Récupère un retrait par ID.
+        Endpoint: GET /retrait/{retrait_id}
+        """
+        return self.request("GET", f"/retrait/{retrait_id}")
+
+    def create_retrait(self, amount: float, justification: str):
+        """
+        Crée un nouveau retrait.
+        Endpoint: POST /retrait/
+        """
+        data = {"amount": amount, "justification": justification}
+        return self.request("POST", "/retrait/", json=data)
+
+    def cancel_retrait(self, retrait_id: int, cancel_justification: str):
+        """
+        Annule un retrait existant.
+        Endpoint: POST /retrait/{retrait_id}/cancel
+        """
+        data = {"cancel_justification": cancel_justification}
+        return self.request("POST", f"/retrait/{retrait_id}/cancel", json=data)
+    
+    # Dans remote_gateway.py
+
+    def get_total_retraits(self, status: str = None, date_from=None, date_to=None):
+        """
+        Calcule le total des retraits via l'API.
+        Endpoint supposé: GET /retrait/total
+        """
+        params = {}
+        if status:
+            params["status"] = status
+        
+        if date_from:
+            d_str = date_from.isoformat() if hasattr(date_from, 'isoformat') else str(date_from)
+            # Force le début de journée si l'heure est absente
+            if "T" not in d_str and len(d_str) <= 10:
+                d_str += "T00:00:00"
+            params["date_from"] = d_str
+
+        if date_to:
+            d_str = date_to.isoformat() if hasattr(date_to, 'isoformat') else str(date_to)
+            # 🟢 CORRECTION CRITIQUE : Force la FIN de journée (23:59:59)
+            if "T" not in d_str and len(d_str) <= 10:
+                d_str += "T23:59:59"
+            params["date_to"] = d_str
+            
+        return self.request("GET", "/retrait/total", params=params)
+    
+    # Dans remote_gateway.py
+
+    def effectuer_retrait(self, amount: float, justification: str):
+        """
+        Crée un nouveau retrait.
+        Endpoint: POST /retrait/
+        """
+        data = {
+            "amount": amount, 
+            "justification": justification
+        }
+        # Note: L'endpoint backend attend 'amount' et 'justification'
+        return self.request("POST", "/retrait/", json=data)
+    
+    # --------------------
+    # CAISSE TRANSACTIONS
+    # --------------------
+
+    def list_transactions(self, page: int = 1, per_page: int = 50, 
+                          term: str = None, payment_method: str = None,
+                          date_from: Union[date, str] = None, date_to: Union[date, str] = None):
+        params = {
+            "page": page,
+            "per_page": per_page
+        }
+        if term: params["term"] = term
+        if payment_method: params["payment_method"] = payment_method
+        if date_from: params["date_from"] = str(date_from)
+        if date_to: params["date_to"] = str(date_to)
+        
+        # L'API retourne maintenant { "data": [...], "meta": {...} }
+        return self.request("GET", "/caisse/", params=params)
+
+    def get_transaction(self, transaction_id: int):
+        """
+        Récupère une transaction spécifique par son ID.
+        Endpoint: GET /caisse/{transaction_id}
+        """
+        return self.request("GET", f"/caisse/{transaction_id}")
+
+    def list_transactions_by_patient(self, patient_id: int):
+        """
+        Récupère toutes les transactions d'un patient spécifique.
+        Endpoint: GET /caisse/patient/{patient_id}
+        """
+        return self.request("GET", f"/caisse/patient/{patient_id}")
+
+    def get_daily_total(self, for_date: Union[date, str]):
+        """
+        Récupère le total encaissé pour une date spécifique.
+        Endpoint: GET /caisse/daily_total
+        """
+        date_str = for_date.isoformat() if isinstance(for_date, date) else str(for_date)
+        params = {"for_date": date_str}
+        return self.request("GET", "/caisse/daily_total", params=params)
+
+    def get_total_transactions(self, status: str = None, date_from: Optional[Union[datetime, str]] = None, 
+                               date_to: Optional[Union[datetime, str]] = None):
+        """
+        Calcule la somme des montants sur une période donnée via l'API.
+        Endpoint: GET /caisse/total
+        """
+        params = {}
+        # --- AJOUT ---
+        if status:
+            params["status"] = status
+        if date_from:
+            params["date_from"] = date_from.isoformat() if isinstance(date_from, datetime) else str(date_from)
+        if date_to:
+            params["date_to"] = date_to.isoformat() if isinstance(date_to, datetime) else str(date_to)
+            
+        return self.request("GET", "/caisse/total", params=params)
+
+    def create_transaction(self, transaction_data: dict):
+        """
+        Crée une nouvelle transaction.
+        Endpoint: POST /caisse/
+        Payload attendu (transaction_data) :
+          - payment_method (str)
+          - transaction_type (str)
+          - amount (float)
+          - items (list[dict])
+          - advance_amount (float)
+          - patient_id, patient_label, note, etc.
+        """
+        # Assure-toi que les dates dans transaction_data sont sérialisées si nécessaire
+        return self.request("POST", "/caisse/", json=transaction_data)
+
+    def update_transaction(self, transaction_id: int, update_data: dict):
+        """
+        Met à jour une transaction existante.
+        Endpoint: PUT /caisse/{transaction_id}
+        """
+        return self.request("PUT", f"/caisse/{transaction_id}", json=update_data)
+
+    def cancel_transaction(self, transaction_id: int):
+        """
+        Annule une transaction (remet le stock, change le statut).
+        Endpoint: POST /caisse/{transaction_id}/cancel
+        Note: Cet endpoint ne prend pas de body json dans ton code actuel, juste l'ID dans l'URL.
+        """
+        return self.request("POST", f"/caisse/{transaction_id}/cancel")
+
+    def delete_transaction(self, transaction_id: int):
+        """
+        Supprime définitivement une transaction (admin).
+        Endpoint: DELETE /caisse/{transaction_id}
+        """
+        return self.request("DELETE", f"/caisse/{transaction_id}")
+    
+    def search_transactions(self, **kwargs):
+        """
+        Recherche les transactions dans l'API en utilisant les filtres (kwargs).
+        kwargs inclut page, page_size, start_date, end_date, etc.
+        Route Backend : GET /caisse/
+        """
+        # Utilise la méthode request du gateway pour faire un appel GET
+        # kwargs sera automatiquement converti en paramètres de requête (ex: ?page=1&page_size=20)
+        return self.request("GET", "/caisse/", params=kwargs)
+    
+    # --- NOUVELLE MÉTHODE POUR LE PAIEMENT ÉCHELONNÉ ---
+    def add_installment_payment(self, transaction_id: int, payment_data: dict):
+        """
+        Ajoute un versement à une transaction pour solder la balance.
+        Endpoint: POST /caisse/{transaction_id}/payment
+        Payload attendu (payment_data) :
+          - paid_amount (float)
+          - payment_method (str)
+          - note (str, optional)
+        """
+        return self.request("POST", f"/caisse/{transaction_id}/payment", json=payment_data)
+    
+    def settle_transaction(self, transaction_id: int):
+        """
+        Solde le reste à payer d'une transaction.
+        Endpoint: POST /caisse/{transaction_id}/settle
+        """
+        return self.request("POST", f"/caisse/{transaction_id}/settle")
+    
+    def download_invoice_pdf(self, transaction_id: int):
+        """
+        Télécharge le fichier PDF de la facture en faisant un appel brut.
+        """
+        url = f"{self.base_url}/caisse/{transaction_id}/invoice/download"
+        headers = self._headers() # Récupère les headers (token d'auth, etc.)
+        
+        try:
+            response = requests.get(url, headers=headers, timeout=10)
+
+            if response.status_code == 200:
+                # Retourne le contenu binaire brut
+                return response.content 
+            else:
+                # Gestion des erreurs HTTP
+                response.raise_for_status() 
+        except requests.exceptions.RequestException as e:
+            #logger.error(f"Erreur de téléchargement du PDF: {e}")
+            raise Exception(f"Erreur réseau/API lors du téléchargement: {e}")
+        
+        return None # En cas d'échec non géré
+    
+    # --------------------
+    # CONSULTATIONS SPIRITUELLES
+    # --------------------
+    def list_consultations(self, page=None, per_page=None, search=None):
+        params = {}
+        if page:
+            params["page"] = page
+        if per_page:
+            params["per_page"] = per_page
+        if search:
+            params["search"] = search
+        return self.request("GET", "/cs", params=params)
+
+    def list_consultations_for_patient(self, patient_id: int):
+        """
+        Liste les consultations spirituelles pour un patient donné.
+        Endpoint: GET /cs/patient/{patient_id}
+        """
+        return self.request("GET", f"/cs/patient/{patient_id}")
+    
+    def list_spiritual_patients(self):
+        return self.request("GET", "/patients/spiritual")
+
+    def get_last_consultation_for_patient(self, patient_id: int):
+        """
+        Récupère la dernière consultation spirituelle pour un patient.
+        Endpoint: GET /cs/last/{patient_id}
+        """
+        return self.request("GET", f"/cs/last/{patient_id}")
+
+    def get_consultation(self, cs_id: int):
+        """
+        Récupère une consultation spirituelle par ID.
+        Endpoint: GET /cs/{cs_id}
+        """
+        return self.request("GET", f"/cs/{cs_id}")
+
+    def create_consultation(self, consultation_data: dict):
+        """
+        Crée une nouvelle consultation spirituelle.
+        Endpoint: POST /cs/
+        """
+        return self.request("POST", "/cs/", json=consultation_data)
+
+    def update_consultation(self, cs_id: int, consultation_data: dict):
+        """
+        Met à jour une consultation spirituelle existante.
+        Endpoint: PUT /cs/{cs_id}
+        """
+        return self.request("PUT", f"/cs/{cs_id}", json=consultation_data)
+
+    def delete_consultation(self, cs_id: int):
+        """
+        Supprime une consultation spirituelle.
+        Endpoint: DELETE /cs/{cs_id}
+        """
+        return self.request("DELETE", f"/cs/{cs_id}")
+
+    def get_prayer_book_types(self):
+        """Récupère la liste des types de Prayer Book depuis l'API"""
+        return self.request("GET", "/cs/prayer-book-types")
+    
+    # --------------------
+    # SPIRITUEL
+    # --------------------
+    
+    
+    def get_patient_spiritual_history(self, patient_id: int):
+        """
+        Appelle l'endpoint Backend pour l'historique spirituel.
+        Route: GET /cs/patient/{id}/history
+        """
+        return self.request("GET", f"/cs/patient/{patient_id}/history")
+    
+
+    # --------------------
+    # PHARMACY
+    # --------------------
+    def list_products(self, page: int = 1, per_page: int = 20, term: str = None, type_filter: str = None, status_filter: str = None):
+        params = {
+            "page": page,
+            "per_page": per_page
+        }
+        if term:
+            params["term"] = term
+        if type_filter and type_filter != "Tous":
+            params["type_filter"] = type_filter
+        if status_filter and status_filter != "Tous":
+            params["status_filter"] = status_filter
+        return self.request("GET", "/pharmacy/", params=params)
+
+    def get_product(self, medication_id: int):
+        """Récupère un produit par ID."""
+        return self.request("GET", f"/pharmacy/{medication_id}")
+
+    def create_product(self, product_data: dict):
+        """Crée un nouveau produit."""
+        return self.request("POST", "/pharmacy/", json=product_data)
+
+    def update_product(self, medication_id: int, product_data: dict):
+        """Met à jour un produit existant."""
+        return self.request("PUT", f"/pharmacy/{medication_id}", json=product_data)
+
+    def delete_product(self, medication_id: int):
+        """Supprime un produit."""
+        return self.request("DELETE", f"/pharmacy/{medication_id}")
+
+    def renew_stock(self, medication_id: int, added_quantity: int):
+        """Réapprovisionne le stock d’un produit."""
+        params = {"added_quantity": added_quantity}
+        return self.request("POST", f"/pharmacy/{medication_id}/renew", params=params)
+
+    def list_critical_products(self):
+        """Liste les produits critiques ou épuisés."""
+        return self.request("GET", "/pharmacy/alerts/critical")
+
+    def list_expiring_products(self, days: int = 30):
+        """Liste les produits proches de l’expiration."""
+        params = {"days": days}
+        return self.request("GET", "/pharmacy/alerts/expiring", params=params)
+    
+    def get_critical_stock_kpi(self) -> Dict:
+        """
+        Appelle l'endpoint Backend pour obtenir le nombre d'articles en stock critique.
+        Endpoint: GET /pharmacy/kpi/critical_stock_count
+        Retourne : {"stock_alerts_count": int}
+        """
+        return self.request("GET", "/pharmacy/kpi/critical_stock_count")
+    
+    def get_expiring_product_kpi(self, days: int = 30) -> Dict:
+        """
+        Appelle l'endpoint Backend pour obtenir le nombre de produits expirant bientôt.
+        Endpoint: GET /pharmacy/kpi/expiring_product_count?days={days}
+        Retourne : {"expiring_alerts_count": int}
+        """
+        params = {"days": days}
+        return self.request("GET", "/pharmacy/kpi/expiring_product_count", params=params)
+
+    # NOUVELLE MÉTHODE KPI 3
+    def get_total_stock_value_kpi(self) -> Dict:
+        """
+        Appelle l'endpoint Backend pour obtenir la valeur monétaire totale du stock.
+        Endpoint: GET /pharmacy/kpi/total_stock_value
+        Retourne : {"total_stock_value": float}
+        """
+        return self.request("GET", "/pharmacy/kpi/total_stock_value")
+    
+
+    # --------------------
+    # DASHBOARD / KPIs
+    # --------------------
+    
+    def get_caisse_financial_kpis(self, date_from, date_to) -> Dict:
+        """
+        Appelle l'endpoint Backend pour récupérer les KPIs financiers de la caisse.
+        Endpoint: GET /dashboard/caisse/kpis
+        """
+        # Gestion date début
+        d_from_str = date_from.isoformat() if hasattr(date_from, 'isoformat') else str(date_from)
+        if "T" not in d_from_str and len(d_from_str) <= 10:
+             d_from_str += "T00:00:00"
+
+        # Gestion date fin
+        d_to_str = date_to.isoformat() if hasattr(date_to, 'isoformat') else str(date_to)
+        
+        # 🟢 CORRECTION CRITIQUE : Ajout de l'heure de fin pour inclure aujourd'hui
+        if "T" not in d_to_str and len(d_to_str) <= 10:
+             d_to_str += "T23:59:59"
+
+        params = {
+            "date_from": d_from_str,
+            "date_to": d_to_str
+        }
+        return self.request("GET", "/dashboard/caisse/kpis", params=params)
+
+    def get_caisse_unpaid_action_list(self, date_from: date, date_to: date) -> List[Dict]:
+        """
+        Appelle l'endpoint Backend pour récupérer la liste d'action des transactions impayées.
+        Endpoint: GET /dashboard/caisse/unpaid
+        """
+        # Assurer que les dates sont au format 'YYYY-MM-DD' (ISO standard)
+        params = {
+            "date_from": date_from.isoformat(),
+            "date_to": date_to.isoformat()
+        }
+        return self.request("GET", "/dashboard/caisse/unpaid", params=params)
+    
+    def get_caisse_payment_distribution(self, date_from: date, date_to: date) -> Dict[str, Any]:
+        """
+        Récupère la répartition de l'encaissement par mode de paiement.
+        Endpoint: GET /caisse/dashboard/caisse/payment_distribution
+        """
+        params = {
+            "date_from": date_from.isoformat(),
+            "date_to": date_to.isoformat()
+        }
+        return self.request("GET", "/caisse/dashboard/caisse/payment_distribution", params=params)
+    
+    def get_total_payments(self, status: str = None, date_from: Optional[Union[datetime, str]] = None, 
+                           date_to: Optional[Union[datetime, str]] = None):
+        """
+        Calcule la somme des ENCAISSEMENTS RÉELS (advance_amount) via l'API.
+        Endpoint: GET /caisse/total_payments
+        """
+        params = {}
+        if status:
+            params["status"] = status
+        if date_from:
+            params["date_from"] = date_from.isoformat() if hasattr(date_from, 'isoformat') else str(date_from)
+        if date_to:
+            params["date_to"] = date_to.isoformat() if hasattr(date_to, 'isoformat') else str(date_to)
+            
+        return self.request("GET", "/caisse/total_payments", params=params)
+    
+    def get_total_remaining_due(self, status: str = None, date_from: Optional[Union[datetime, str]] = None, 
+                                date_to: Optional[Union[datetime, str]] = None):
+        """
+        Calcule la somme totale des montants restant dûs via l'API.
+        Endpoint: GET /caisse/total_remaining_due
+        """
+        params = {}
+        if status:
+            params["status"] = status
+        if date_from:
+            params["date_from"] = date_from.isoformat() if hasattr(date_from, 'isoformat') else str(date_from)
+        if date_to:
+            params["date_to"] = date_to.isoformat() if hasattr(date_to, 'isoformat') else str(date_to)
+            
+        return self.request("GET", "/caisse/total_remaining_due", params=params)
+    
+    def get_critical_stock_count_kpi(self):
+        """KPI : Nombre de produits en rupture ou stock critique."""
+        # Assurez-vous que l'endpoint existe côté backend (ex: /pharmacy/kpi/critical_count)
+        return self.request("GET", "/pharmacy/kpi/critical_count")
+
+    def get_expiring_product_count_kpi(self, days: int = 30):
+        """KPI : Nombre de produits périmés ou bientôt périmés."""
+        params = {"days": days}
+        return self.request("GET", "/pharmacy/kpi/expiring_count", params=params)
+
+    def list_critical_or_empty(self):
+        """Liste des produits en alerte pour le tableau."""
+        return self.request("GET", "/pharmacy/critical_list")
+    
+    def get_spiritual_new_patients_kpi(self, period: str = "week") -> Dict:
+        """
+        Appelle l'endpoint Backend pour obtenir le nombre de nouveaux patients Spirituels.
+        Endpoint: GET /patient/kpi/spiritual/new_patients_count?period={period}
+        Retourne : {"new_patients_count": int}
+        """
+        params = {"period": period}
+        return self.request("GET", "/patient/kpi/spiritual/new_patients_count", params=params)
+    
+    # --------------------
+    # PHARMACY - KPIs DASHBOARD
+    # --------------------
+
+    def get_dashboard_critical_stock_kpi(self):
+        """
+        KPI DASHBOARD : Nombre de produits en rupture ou stock critique.
+        (Appel la route qui renvoie le COUNT, non la liste.)
+        Endpoint: GET /pharmacy/kpi/critical_stock_count
+        """
+        return self.request("GET", "/pharmacy/kpi/critical_stock_count")
+
+    def get_dashboard_expiring_stock_kpi(self, days: int = 30):
+        """
+        KPI DASHBOARD : Nombre de produits périmés ou bientôt périmés (dans {days} jours).
+        Endpoint: GET /pharmacy/kpi/expiring_product_count
+        """
+        params = {"days": days}
+        return self.request("GET", "/pharmacy/kpi/expiring_product_count", params=params)
+
+    def list_dashboard_critical_products(self):
+        """
+        Liste détaillée des produits en alerte, spécifiquement pour le tableau du Dashboard.
+        Utilise l'endpoint générique /pharmacy/ avec le filtre 'critical=True'.
+        """
+        # Limité à 5 résultats pour l'affichage dans le petit tableau
+        return self.request("GET", "/pharmacy/", params={"critical": True, "per_page": 5})
+
+    def get_dashboard_total_stock_value_kpi(self) -> Dict:
+        """
+        KPI DASHBOARD : Valeur monétaire totale du stock disponible.
+        Endpoint: GET /pharmacy/kpi/total_stock_value
+        """
+        return self.request("GET", "/pharmacy/kpi/total_stock_value")
+    
+    # 🟢 NOUVELLES MÉTHODES KPI (DASHBOARD)
+
+    def get_pharmaceutique_count_kpi(self) -> Dict:
+        """
+        Récupère le nombre de produits 'pharmaceutique'.
+        Endpoint: /pharmacy/kpi/pharmaceutique_count
+        """
+        return self.request("GET", "/pharmacy/kpi/pharmaceutique_count")
+
+    def get_naturel_count_kpi(self) -> Dict:
+        """
+        Récupère le nombre de produits 'Naturel'.
+        Endpoint: /pharmacy/kpi/naturel_count
+        """
+        return self.request("GET", "/pharmacy/kpi/naturel_count")
+
+    def get_stock_dashboard_stats(self) -> Dict:
+        """
+        Récupère TOUTES les statistiques du tableau de bord en un seul appel.
+        Endpoint: /pharmacy/kpi/dashboard_stats
+        Retourne : {
+            "totalValue": float,
+            "countPharma": int,
+            "countNatural": int,
+            "lowStockAlerts": int,
+            "expiredCount": int
+        }
+        """
+        return self.request("GET", "/pharmacy/kpi/dashboard_stats")
+
+    # NOUVELLE MÉTHODE KPI 2 : Statut Actif/Inactif Spirituel
+    def get_spiritual_status_distribution_kpi(self) -> Dict:
+        """
+        Appelle l'endpoint Backend pour obtenir la distribution Actif/Inactif des patients Spirituels.
+        Endpoint: GET /patient/kpi/spiritual/status_distribution
+        Retourne : {"active_patients_count": int, "inactive_patients_count": int, "total_patients_count": int}
+        """
+        return self.request("GET", "/patient/kpi/spiritual/status_distribution")
+
+    # NOUVELLE MÉTHODE KPI 3 : Répartition Assurance Spirituelle
+    def get_spiritual_assurance_distribution_kpi(self) -> Dict:
+        """
+        Appelle l'endpoint Backend pour obtenir la répartition Assurance des patients Spirituels.
+        Endpoint: GET /patient/kpi/spiritual/assurance_distribution
+        Retourne : {"assurance_distribution": Dict[str, int]}
+        """
+        return self.request("GET", "/patient/kpi/spiritual/assurance_distribution")
+    
+
+    # --------------------
+    # Laboratoire
+    # --------------------
+    def list_examens(self):
+        """
+        Récupère la liste complète des examens depuis l'API.
+        Route Backend: GET /labo/ (prefixe défini dans le router)
+        """
+        # Correction ici : on appelle "/labo/" et non "/labo/examens"
+        return self.request("GET", "/labo/")
+    
+    def get_patient_lab_history(self, patient_id: int):
+        """
+        Récupère l'historique des résultats labo pour un patient.
+        Endpoint: GET /labo/patient/{id}/history
+        """
+        return self.request("GET", f"/labo/patient/{patient_id}/history")
+    

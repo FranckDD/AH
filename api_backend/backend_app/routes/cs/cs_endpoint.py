@@ -15,7 +15,7 @@ from api_backend.backend_app.routes.auth.auth_endpoints import get_current_user,
 from api_backend.backend_app.exceptions import translate_integrity_error
 
 from .mapping import normalize_consultation_data
-from ..cs.schemas_cs import   ConsultationCreate,ConsultationUpdate,ConsultationResponse
+from ..cs.schemas_cs import   ConsultationCreate,ConsultationUpdate,ConsultationResponse,PrayerBookTypeResponse
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(
     prefix="/cs",
     tags=["Consultation spirituelle"],
-    dependencies=[Depends(role_required("secretaire", "admin"))]
+    dependencies=[Depends(role_required("secretaire", "admin", "medecin", "nurse", "SpiritualCounsellor"))]
 )
 
 def get_db():
@@ -80,6 +80,17 @@ def _safe_validate_consultation(raw: Any) -> ConsultationResponse:
                 raise HTTPException(status_code=500, detail="Erreur interne : données consultation invalides")
         logger.exception("Unrecoverable response validation error for consultation: %s -- errors: %s", data, errors)
         raise HTTPException(status_code=500, detail="Erreur interne : données consultation invalides")
+    
+
+
+@router.get("/prayer-book-types")
+def get_prayer_book_types(
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)  # obligatoire si tu as l'authentification
+):
+    repo = ConsultationSpirituelRepository(session=db)
+    books = repo.get_prayer_book_types()  # ta méthode qui fait query(PrayerBookType).all()
+    return [{"type_code": b.type_code, "label": b.label} for b in books]    
 
 
 @router.get("/", response_model=List[ConsultationResponse])
@@ -120,6 +131,26 @@ def get_last_for_patient(
     if not last:
         return None
     return _safe_validate_consultation(last)
+
+@router.get("/patient/{patient_id}/history", response_model=List[ConsultationResponse])
+def get_spiritual_history(
+    patient_id: int,
+    cs_ctrl: ConsultationSpirituelController = Depends(get_consultation_controller),
+):
+    try:
+        # Appel au controller (utilise get_patient_history qui trie par date)
+        raws = cs_ctrl.get_patient_history(patient_id)
+        
+        # Sécurité : Si None, on renvoie une liste vide
+        if raws is None:
+            return []
+            
+        # Conversion et validation
+        return [ _safe_validate_consultation(r) for r in raws ]
+        
+    except Exception as e:
+        logger.exception("Erreur lors de la récupération de l'historique spirituel")
+        return [] # On renvoie vide plutôt que de planter
 
 
 @router.get("/{cs_id}", response_model=ConsultationResponse)
@@ -197,3 +228,6 @@ def delete_consultation(
     if not cs:
         raise HTTPException(status_code=404, detail="Consultation non trouvée")
     return None
+
+# Ajoute cet endpoint (juste après les autres @router.get par exemple)
+

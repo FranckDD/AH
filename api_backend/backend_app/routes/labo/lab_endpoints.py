@@ -9,7 +9,7 @@ from ...database import SessionLocal
 from api_backend.backend_app.routes.auth.auth_endpoints import get_current_user,role_required
 from repositories.lab_repo import LabRepository
 from controller.lab_controller import LabController
-from labo.labo_schemas import LabResultCreate, LabResultOut
+from .labo_schemas import LabResultCreate, LabResultOut
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(
     prefix="/labo",
     tags=["labo"],
-    dependencies=[Depends(role_required("laborantin"))]
+    dependencies=[Depends(role_required("laborantin","secretaire","admin","manager"))]
 )
 
 def get_db():
@@ -95,3 +95,37 @@ def create_lab_result(
             pass
         logger.exception("Unexpected error creating lab result")
         raise HTTPException(status_code=500, detail=str(e))
+    
+@router.get("/", response_model=List[dict])
+def list_examens(ctrl: LabController = Depends(get_lab_controller)):
+    """
+    Retourne tous les examens disponibles pour le formulaire caisse / labo
+    """
+    examens = ctrl.list_examens()
+    return [
+        {
+            "id": ex.id,
+            "code": ex.code,
+            "nom": ex.nom,
+            "categorie": ex.categorie,
+            "label": f"{ex.nom} ({ex.code})"
+        }
+        for ex in examens
+    ]    
+
+# 🟢 NOUVEL ENDPOINT HISTORIQUE LABO
+@router.get("/patient/{patient_id}/history", response_model=List[dict])
+def get_patient_lab_history(
+    patient_id: int,
+    ctrl: LabController = Depends(get_lab_controller)
+):
+    """
+    Récupère l'historique des résultats de laboratoire pour un patient donné.
+    Formaté pour l'affichage dans le tableau du dossier médical.
+    """
+    try:
+        history = ctrl.get_patient_lab_history(patient_id)
+        return history
+    except Exception as e:
+        logger.exception(f"Erreur lors de la récupération de l'historique labo pour le patient {patient_id}")
+        raise HTTPException(status_code=500, detail="Erreur serveur lors de la récupération de l'historique labo")

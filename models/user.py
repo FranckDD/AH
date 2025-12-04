@@ -18,6 +18,8 @@ class User(Base):
     is_active = Column(Boolean, default=True)
     specialty_id = Column(Integer, ForeignKey('medical_specialties.specialty_id'))
     role_id = Column(Integer, ForeignKey('application_roles.role_id'))
+    email = Column(String(150), unique=True, nullable=True)
+    contact = Column(String(50), nullable=True)
 
     from models.application_role import ApplicationRole
     application_role = relationship("ApplicationRole", back_populates="users", lazy="joined")
@@ -44,6 +46,12 @@ class User(Base):
         foreign_keys="[CaisseRetrait.cancelled_by]"
     )
 
+    action_audits = relationship(
+        "AuditUserAction", 
+        cascade="all, delete-orphan", # Pour que les audits soient supprimés si l'utilisateur est supprimé (CASCADE en SQL)
+        foreign_keys="[AuditUserAction.user_id]"
+    )
+
     def set_password(self, password):
         """Hash le mot de passe avec CryptContext"""
         self.password_hash = pwd_context.hash(password)
@@ -59,7 +67,7 @@ class User(Base):
             return self._roles
         # Sinon, dériver depuis la relation application_role.role_name (si présente)
         if self.application_role and getattr(self.application_role, "role_name", None):
-            from api_backend.app.security.role_map import normalize_role_name
+            from api_backend.backend_app.security.role_map import normalize_role_name
             canon = normalize_role_name(self.application_role.role_name)
             return [canon] if canon else []
         return []

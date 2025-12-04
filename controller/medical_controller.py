@@ -2,14 +2,66 @@
 import logging
 from repositories.medical_repo import MedicalRecordRepository
 from datetime import date, timedelta
-from typing import Optional, Dict
+from typing import Optional, Dict,Any
+from repositories.audit_repo import AuditRepository
 
 class MedicalRecordController:
-    def __init__(self, repo=None, patient_controller=None, current_user=None):
+    def __init__(self, repo=None, patient_controller=None, current_user=None, audit_repo: Optional[AuditRepository] = None):
         self.repo = repo or MedicalRecordRepository() # type: ignore
         self.patient_ctrl = patient_controller
         self.user = current_user
+        self.audit_repo = audit_repo
         self.logger = logging.getLogger(__name__)
+
+
+# --- NOUVELLE MÉTHODE CLÉ POUR LE DOSSIER ---
+    def get_patient_dme_summary(self, patient_id: int) -> Dict[str, Any]:
+        """
+        Récupère les informations vitales pour l'en-tête du dossier patient.
+        Agrège : Infos Patient + Dernières Constantes + Allergies.
+        """
+        # 1. Récupérer le patient de base
+        if not self.patient_ctrl:
+            raise RuntimeError("PatientController manquant")
+        
+        patient = self.patient_ctrl.get_patient(patient_id)
+        if not patient:
+            raise ValueError("Patient introuvable")
+
+        # 2. Récupérer le dernier dossier médical (pour les constantes)
+        last_record = self.repo.get_last_for_patient(patient_id)
+
+        # 3. Construire le résumé
+        summary = {
+            # Infos administratives
+            "patient_id": patient['patient_id'],
+            "full_name": f"{patient['first_name']} {patient['last_name']}",
+            "code": patient['code_patient'],
+            "age": self._calculate_age(patient['birth_date']), # Helper à ajouter ou gérer front
+            "gender": patient['gender'],
+            "flags": {
+                "is_clinical": patient.get('is_clinical', False),
+                "is_toxicology": patient.get('is_toxicology', False),
+                "is_spiritual": patient.get('is_spiritual', False),
+            },
+            
+            # Infos Cliniques (Flash) provenant du dernier dossier
+            "last_consultation_date": last_record.consultation_date if last_record else None,
+            "last_bp": last_record.bp if last_record else None,
+            "last_weight": float(last_record.weight) if last_record and last_record.weight else None,
+            "last_temp": float(last_record.temperature) if last_record and last_record.temperature else None,
+            "last_diagnosis": last_record.diagnosis if last_record else None,
+            
+            # Allergies (Critique : on prend celles du dernier dossier ou du patient s'il y a un champ dédié)
+            "allergies": last_record.allergies if last_record else "Aucune signalée (Dossier vide)"
+        }
+        return summary
+
+    def _calculate_age(self, birth_date):
+        if not birth_date: return 0
+        today = date.today()
+        return today.year - birth_date.year - ((today.month, today.day) < (birth_date.month, birth_date.day))
+
 
 # medical_controller.py
     def list_records(self, patient_id=None, page=1, per_page=20, 
@@ -49,13 +101,57 @@ class MedicalRecordController:
         return self.repo.get(record_id)
 
     def create_record(self, data: dict):
-        return self.repo.create(data)
+        record = self.repo.create(data)
+        
+        # --- AUDIT ---
+        if self.audit_repo and self.user:
+            try:
+                # On suppose que record est un objet ORM avec un id
+                rec_id = getattr(record, 'record_id', None)
+                pat_id = data.get('patient_id')
+                self.audit_repo.log_user_action(
+                    current_user=self.user,
+                    resource_type="MedicalRecord",
+                    action_performed="CREATE",
+                    resource_id=rec_id,
+                    details=f"Patient ID: {pat_id}. Motif: {data.get('motif_code')}" # type: ignore
+                )
+            except Exception: pass
+            
+        return record
 
     def update_record(self, record_id: int, data: dict):
-        return self.repo.update(record_id, data)
+        record = self.repo.update(record_id, data)
+        
+        # --- AUDIT ---
+        if self.audit_repo and self.user:
+            try:
+                self.audit_repo.log_user_action(
+                    current_user=self.user,
+                    resource_type="MedicalRecord",
+                    action_performed="UPDATE",
+                    resource_id=record_id,
+                    new_values=data # Log des champs modifiés
+                )
+            except Exception: pass
+            
+        return record
 
     def delete_record(self, record_id: int):
-        return self.repo.delete(record_id)
+        result = self.repo.delete(record_id)
+        
+        # --- AUDIT ---
+        if result and self.audit_repo and self.user:
+            try:
+                self.audit_repo.log_user_action(
+                    current_user=self.user,
+                    resource_type="MedicalRecord",
+                    action_performed="DELETE",
+                    resource_id=record_id
+                )
+            except Exception: pass
+            
+        return result
 
     def list_motifs(self) -> list[dict]:
         """Récupère les codes et labels fr des motifs."""
@@ -117,6 +213,9 @@ class MedicalRecordController:
             return self.repo.count_by_consultation_date_range(start_week, end_week)
         else:
             raise ValueError("Période non valide. Utilisez 'day' ou 'week'")
+        
+    def get_patient_history(self, patient_id: int):
+        return self.repo.get_full_history(patient_id)    
     
 
     

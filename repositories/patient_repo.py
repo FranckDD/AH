@@ -1,6 +1,6 @@
 # repositories/patient_repository.py
 from datetime import date
-from sqlalchemy import text
+from sqlalchemy import text, or_
 from sqlalchemy.orm import Session
 from models.database import DatabaseManager
 from models.patient import Patient
@@ -11,6 +11,8 @@ from models.appointment import Appointment
 from models.medical_record import MedicalRecord
 from datetime import datetime, date, timedelta,time
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.engine import Result
+
 
 
 from typing import Optional, Tuple, Dict, Any, List
@@ -49,51 +51,33 @@ class PatientRepository:
         return code
 
     def create_patient(self, data: dict, current_user) -> Tuple[int, str]:
-        # Génère le code (ta fonction existante)
+        """
+        Crée un nouveau patient via la fonction stockée Postgres.
+        NE FAIT PAS de commit, la transaction est gérée par le Service appelant.
+        """
+        # 1. Génération du code et préparation des params
         code = self.generate_patient_code(
-            birth_date  = data['birth_date'],
-            last_name   = data['last_name'],
-            first_name  = data['first_name'],
-            mother_name = data.get('mother_name', '')
+            birth_date=data['birth_date'],
+            last_name=data['last_name'],
+            first_name=data['first_name'],
+            mother_name=data.get('mother_name', '')
         )
 
-        # Prépare la requête CALL avec affectation nommée (=>)
-        sql = text("""
-            CALL public.create_patient(
-                p_code_patient         => :code_patient,
-                p_first_name           => :first_name,
-                p_last_name            => :last_name,
-                p_birth_date           => :birth_date,
-                p_gender               => :gender,
-                p_contact_phone        => :contact_phone,
-                p_residence            => :residence,
-                p_national_id          => :national_id,
-                p_assurance            => :assurance,
-                p_father_name          => :father_name,
-                p_mother_name          => :mother_name,
-                p_created_by           => :created_by,
-                p_created_by_name      => :created_by_name,
-                p_last_updated_by      => :last_updated_by,
-                p_last_updated_by_name => :last_updated_by_name
-            );
-        """)
-
-        # Normalize / fallback values
         def _get(x, default=None):
             v = data.get(x, default)
-            # Optionally convert empty strings to None
-            if isinstance(v, str) and v.strip() == "":
-                return None
+            if isinstance(v, str) and v.strip() == "": return None
             return v
-
-        # ensure birth_date is a date object if possible (SQLAlchemy will adapt date objects)
-        bd = data.get("birth_date")
-        # (si bd est une str au format ISO, tu peux la parser ici, sinon laisse tel quel)
+        
+        # 2. Paramètres pour la FUNCTION
+        # J'ai ajouté l'utilisation de 'full_name' comme fallback pour 'username' 
+        # car 'full_name' semble être plus complet dans votre modèle User.
+        creator_name = getattr(current_user, "full_name", getattr(current_user, "username", None))
+        
         params = {
             "code_patient": code,
             "first_name": _get("first_name"),
             "last_name": _get("last_name"),
-            "birth_date": bd,
+            "birth_date": _get("birth_date"),
             "gender": _get("gender"),
             "contact_phone": _get("contact_phone"),
             "residence": _get("residence"),
@@ -102,78 +86,132 @@ class PatientRepository:
             "father_name": _get("father_name"),
             "mother_name": _get("mother_name"),
             "created_by": getattr(current_user, "user_id", None),
-            "created_by_name": getattr(current_user, "username", None),
+            "created_by_name": creator_name,
             "last_updated_by": getattr(current_user, "user_id", None),
-            "last_updated_by_name": getattr(current_user, "username", None),
+            "last_updated_by_name": creator_name,
+            
+            "is_clinical": data.get('is_clinical', False),
+            "is_toxicology": data.get('is_toxicology', False),
+            "is_spiritual": data.get('is_spiritual', False),
         }
 
-        try:
-            # Exécute la procédure avec les binds nommés
-            self.session.execute(sql, params)
-
-            # Récupère l'id inséré : currval sur la même session fonctionne
-            new_id = self.session.execute(text("SELECT currval('patients_patient_id_seq')")).scalar_one()
-
-            # Commit
-            self.session.commit()
-            return new_id, code
-
-        except SQLAlchemyError as e:
-            # rollback sécurisé et lever l'exception pour remontée
-            try:
-                self.session.rollback()
-            except Exception:
-                pass
-            raise
-
-    def update_patient(self, patient_id: int, data: dict, current_user) -> int:
         sql = text("""
-            CALL public.update_patient(
-                p_patient_id           => :patient_id,
-                p_first_name           => :first_name,
-                p_last_name            => :last_name,
-                p_birth_date           => :birth_date,
-                p_gender               => :gender,
-                p_national_id          => :national_id,
-                p_contact_phone        => :contact_phone,
-                p_assurance            => :assurance,
-                p_residence            => :residence,
-                p_father_name          => :father_name,
-                p_mother_name          => :mother_name,
-                p_last_updated_by      => :last_updated_by,
-                p_last_updated_by_name => :last_updated_by_name
-            )
+            SELECT * FROM public.create_patient(
+                p_code_patient          => :code_patient,
+                p_first_name            => :first_name,
+                p_last_name             => :last_name,
+                p_birth_date            => :birth_date,
+                p_gender                => :gender,
+                p_contact_phone         => :contact_phone,
+                p_residence             => :residence,
+                p_national_id           => :national_id,
+                p_assurance             => :assurance,
+                p_father_name           => :father_name,
+                p_mother_name           => :mother_name,
+                p_created_by            => :created_by,
+                p_created_by_name       => :created_by_name,
+                p_last_updated_by       => :last_updated_by,
+                p_last_updated_by_name  => :last_updated_by_name,
+                p_is_clinical           => :is_clinical,
+                p_is_toxicology         => :is_toxicology,
+                p_is_spiritual          => :is_spiritual
+            );
         """)
 
+        # 🛑 PAS DE try/except/commit/rollback ICI
+        
+        result: Result = self.session.execute(sql, params)
+        row = result.fetchone()
+
+        if row is None:
+            # Laisse l'exception remonter, le Controller gérera le rollback.
+            raise Exception("La fonction stockée n'a retourné aucune donnée.")
+        
+        patient_id, patient_code = row[0], row[1]
+        
+        # 🛑 self.session.commit() RETIRÉ
+        
+        return int(patient_id), patient_code
+
+    def update_patient(self, patient_id: int, data: dict, current_user) -> int:
+        """
+        Met à jour un patient via la procédure stockée.
+        NE FAIT PAS de commit, la transaction est gérée par le Service appelant.
+        """
+        
+        updater_name = getattr(current_user, "full_name", getattr(current_user, "username", None))
+        
         params = {
-            'patient_id'           : patient_id,
-            'first_name'           : data.get('first_name'),
-            'last_name'            : data.get('last_name'),
-            'birth_date'           : data.get('birth_date'),
-            'gender'               : data.get('gender'),
-            'national_id'          : data.get('national_id'),
-            'contact_phone'        : data.get('contact_phone'),
-            'assurance'            : data.get('assurance'),
-            'residence'            : data.get('residence'),
-            'father_name'          : data.get('father_name'),
-            'mother_name'          : data.get('mother_name'),
-            'last_updated_by'      : current_user.user_id,
-            'last_updated_by_name' : current_user.username
+            'patient_id': patient_id,
+            'first_name': data.get('first_name'),
+            'last_name': data.get('last_name'),
+            'birth_date': data.get('birth_date'),
+            'gender': data.get('gender'),
+            'national_id': data.get('national_id'),
+            'contact_phone': data.get('contact_phone'),
+            'assurance': data.get('assurance'),
+            'residence': data.get('residence'),
+            'father_name': data.get('father_name'),
+            'mother_name': data.get('mother_name'),
+            'last_updated_by': current_user.user_id,
+            'last_updated_by_name': updater_name,
+            
+            # Drapeaux
+            "is_clinical": data.get('is_clinical'),
+            "is_toxicology": data.get('is_toxicology'),
+            "is_spiritual": data.get('is_spiritual'),
         }
 
+        sql = text("""
+            CALL public.update_patient(
+                p_patient_id            => :patient_id,
+                p_first_name            => :first_name,
+                p_last_name             => :last_name,
+                p_birth_date            => :birth_date,
+                p_gender                => :gender,
+                p_national_id           => :national_id,
+                p_contact_phone         => :contact_phone,
+                p_assurance             => :assurance,
+                p_residence             => :residence,
+                p_father_name           => :father_name,
+                p_mother_name           => :mother_name,
+                p_last_updated_by       => :last_updated_by,
+                p_last_updated_by_name  => :last_updated_by_name,
+                p_is_clinical           => :is_clinical,
+                p_is_toxicology         => :is_toxicology,
+                p_is_spiritual          => :is_spiritual
+            );
+        """)
+
+        # 🛑 Remplacer le try/except/commit/rollback par une simple exécution:
         self.session.execute(sql, params)
-        self.session.commit()
+        
+        # 🛑 self.session.commit() RETIRÉ
+        
         return patient_id
 
 
 
-    def delete_patient(self, patient_id: int) -> bool:
-        self.session.execute(text("CALL public.delete_patient(:patient_id)"), {'patient_id': patient_id})
-        self.session.commit()
-        return True
+    def delete_patient(self, patient_id: int, user_id: int) -> bool:
+        """Suppression Logique (Soft Delete)"""
+        # Vérif existence + non supprimé
+        exists = self.session.query(Patient).filter(Patient.patient_id == patient_id, Patient.is_deleted == False).first()
+        if not exists:
+            return False
 
-    def get_by_id(self, patient_id: int) ->  Optional[Dict[str, Any]]:
-        p = self.session.query(Patient).get(patient_id)
+        # Appel procédure delete (qui fait un UPDATE is_deleted=true)
+        sql = text("CALL public.delete_patient(:patient_id, :deleted_by)")
+        try:
+            self.session.execute(sql, {'patient_id': patient_id, 'deleted_by': user_id})
+            self.session.commit()
+            return True
+        except SQLAlchemyError:
+            self.session.rollback()
+            raise
+
+    def get_by_id(self, patient_id: int) -> Optional[Dict[str, Any]]:
+        # On ajoute le filtre is_deleted == False
+        p = self.session.query(Patient).filter(Patient.patient_id == patient_id, Patient.is_deleted == False).first()
         if not p:
             return None
         return {
@@ -188,44 +226,51 @@ class PatientRepository:
             'assurance': p.assurance,
             'residence': p.residence,
             'father_name': p.father_name,
-            'mother_name': p.mother_name
+            'mother_name': p.mother_name,
+            # 🟢
+            'is_clinical': p.is_clinical,
+            'is_toxicology': p.is_toxicology,
+            'is_spiritual': p.is_spiritual
         }
+    
+    def list_patients(self, page: int = 1, per_page: int = 10, search: Optional[str] = None, filters: Dict[str, bool] = None):
+        # Filtre de base : Non supprimés
+        query = self.session.query(Patient).filter(Patient.is_deleted == False)
 
-    def list_patients(self, page: int=1, per_page: int=10, search: Optional[str] = None):
-        query = self.session.query(Patient)
+        # 1. Filtres de Service
+        if filters:
+            if filters.get('is_clinical'):
+                query = query.filter(Patient.is_clinical == True)
+            if filters.get('is_toxicology'):
+                query = query.filter(Patient.is_toxicology == True)
+            if filters.get('is_spiritual'):
+                query = query.filter(Patient.is_spiritual == True)
+
+        # 2. Recherche
         if search:
             term = f"%{search}%"
             query = query.filter(
-                Patient.first_name.ilike(term) |
-                Patient.last_name.ilike(term) |
-                Patient.national_id.ilike(term) |
-                Patient.code_patient.ilike(term)
+                or_(
+                    Patient.first_name.ilike(term),
+                    Patient.last_name.ilike(term),
+                    Patient.national_id.ilike(term),
+                    Patient.code_patient.ilike(term),
+                    Patient.contact_phone.ilike(term)
+                )
             )
-        return query.order_by(Patient.last_name).offset((page-1)*per_page).limit(per_page).all()
+        
+        query = query.order_by(Patient.last_updated_at.desc()) 
+        return query.offset((page - 1) * per_page).limit(per_page).all()
     
     def find_by_code(self, code: Optional[str]):
-        """
-        Retourne le Patient dont code_patient correspond à 'code', 
-        en normalisant :
-          - on trim() et on met en majuscules,
-          - on ajoute 'AH2-' en préfixe si absent.
-        La comparaison est ensuite faite en majuscules (case-insensitive).
-        """
-        if not code:
-            return None
-
-        # 1) Normalisation de la saisie :
+        if not code: return None
         raw = code.strip().upper()
-        if not raw.startswith("AH2-"):
-            raw = "AH2-" + raw
-
-        # 2) Requête case-insensitive sur code_patient
-        return (
-            self.session
-                .query(Patient)
-                .filter(func.upper(Patient.code_patient) == raw)
-                .first()
-        )
+        if not raw.startswith("AH2-"): raw = "AH2-" + raw
+        
+        return self.session.query(Patient).filter(
+            func.upper(Patient.code_patient) == raw,
+            Patient.is_deleted == False # <-- ICI
+        ).first()
     
     def find_by_creator_role(self, role_name: str):
         """
@@ -368,7 +413,7 @@ class PatientRepository:
             .count()
         )
     
-    def _day_range(self, target_day: date) -> (datetime, datetime):
+    def _day_range(self, target_day: date) -> (datetime, datetime): # type: ignore
         start = datetime.combine(target_day, time.min)
         end = start + timedelta(days=1)
         return start, end
@@ -418,4 +463,93 @@ class PatientRepository:
                                  page: int = 1, per_page: int = 200) -> List[Patient]:
         start, end = self._day_range(target_day)
         return self.find_by_creation_date_range(start, end, doctor_id=doctor_id, page=page, per_page=per_page)
+    
+    def count_patients_by_creator_role(self, role_name: str) -> int:
+        """
+        Compte le nombre total de patients créés par des utilisateurs ayant un rôle spécifique.
+        """
+        q = (
+            self.session.query(Patient.patient_id) # Sélectionner l'ID pour le comptage
+            .join(User, Patient.created_by == User.user_id)
+            .join(ApplicationRole, User.role_id == ApplicationRole.role_id)
+            .filter(func.lower(ApplicationRole.role_name) == role_name.lower())
+            .distinct() # S'assurer de compter les patients uniques
+        )
+        return q.count()
+    
+    SECRETARY_ROLE_NAME = "secretaire" # Constante pour la clarté
+
+    # 1. KPI Nouveaux Patients Spirituels (sur une période)
+    def count_new_spiritual_patients_by_range(self, start_date: datetime, end_date: datetime) -> int:
+        """
+        Compte le nombre de patients créés par une 'secretaire' dans une plage de dates.
+        """
+        q = (
+            self.session.query(Patient.patient_id)
+            .join(User, Patient.created_by == User.user_id)
+            .join(ApplicationRole, User.role_id == ApplicationRole.role_id)
+            .filter(func.lower(ApplicationRole.role_name) == SECRETARY_ROLE_NAME) # type: ignore
+            .filter(Patient.created_at >= start_date)
+            .filter(Patient.created_at < end_date)
+            .distinct()
+        )
+        return q.count()
+
+    # 2. KPI Statut Actif/Inactif des Patients Spirituels
+    def get_spiritual_patient_status_distribution(self, active_threshold_days: int = 365) -> Dict[str, int]:
+        """
+        Calcule la distribution Actifs/Inactifs UNIQUEMENT pour les patients Spirituels (créés par 'secretaire').
+        """
+        date_limit = datetime.combine(date.today() - timedelta(days=active_threshold_days), time.min)
+
+        # 1. Sous-requête des patients spirituels
+        spiritual_patients_query = (
+            self.session.query(Patient)
+            .join(User, Patient.created_by == User.user_id)
+            .join(ApplicationRole, User.role_id == ApplicationRole.role_id)
+            .filter(func.lower(ApplicationRole.role_name) == SECRETARY_ROLE_NAME)
+        )
+        
+        # 2. Compter le total des patients spirituels
+        total_count = spiritual_patients_query.count()
+
+        # 3. Compter les patients spirituels actifs (ayant un RDV récent)
+        active_patient_ids_query = (
+            spiritual_patients_query
+            .join(Appointment, Patient.patient_id == Appointment.patient_id)
+            .filter(Appointment.appointment_date >= date_limit)
+            .distinct()
+            .subquery()
+        )
+
+        active_count = self.session.query(func.count(active_patient_ids_query.c.patient_id)).scalar()
+        
+        inactive_count = total_count - int(active_count or 0)
+
+        return {
+            "active_patients_count": int(active_count or 0),
+            "inactive_patients_count": inactive_count,
+            "total_patients_count": total_count,
+        }
+
+    # 3. KPI Répartition Assurance des Patients Spirituels
+    def get_spiritual_assurance_distribution(self) -> Dict[str, int]:
+        """
+        Compte le nombre de patients par type d'assurance, UNIQUEMENT pour les patients Spirituels.
+        """
+        q = (
+            self.session.query(Patient.assurance, func.count(Patient.patient_id))
+            .join(User, Patient.created_by == User.user_id)
+            .join(ApplicationRole, User.role_id == ApplicationRole.role_id)
+            .filter(func.lower(ApplicationRole.role_name) == SECRETARY_ROLE_NAME)
+            .group_by(Patient.assurance)
+            .all()
+        )
+        
+        result = {}
+        for assurance_type, count in q:
+            key = assurance_type.strip() if assurance_type else "Non spécifié"
+            result[key] = int(count)
+            
+        return result
 

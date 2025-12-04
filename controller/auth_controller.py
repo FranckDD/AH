@@ -22,12 +22,17 @@ from repositories.caisse_retrait_repo import CaisseRetraitRepository
 from controller.caisse_retrait_controller import CaisseRetraitController
 from repositories.lab_repo import LabRepository
 from controller.lab_controller import LabController
+from repositories.toxico_repo import ToxicoRepository
+from controller.toxico_controller import ToxicoController
+from repositories.audit_repo import AuditRepository
+from controller.audit_controller import AuditController
 from models.database import DatabaseManager
 from api_backend.backend_app.config import DATABASE_URL
+from typing import Optional
 
 
 class AuthController:
-    def __init__(self, db_session=None):
+    def __init__(self, db_session=None, audit_repo: Optional[AuditRepository] = None):
         # Utilise la session passée par FastAPI ou crée la sienne
         if db_session:
             self.session = db_session
@@ -36,6 +41,7 @@ class AuthController:
             self.db = DatabaseManager(db_url)
             self.session = self.db.get_session()
             
+        self.audit_repo = audit_repo if audit_repo else AuditRepository(self.session)    
 
         # 2) Passe la session à TOUS tes repositories
         self.user_repo = UserRepository(self.session)
@@ -48,6 +54,8 @@ class AuthController:
         self.pharmacy_repo = PharmacyRepository(self.session)
         self.caisse_repo = CaisseRepository(self.session)
         self.lab_repo = LabRepository(self.session)
+        self.toxico_repo = ToxicoRepository(self.session)
+        
 
 
     def authenticate(self, username: str, password: str):
@@ -64,25 +72,30 @@ class AuthController:
                 return None
 
             self.current_user = user
+            try:
+                self.audit_repo.log_access(user, "LOGIN_SUCCESS", details="Connexion via API")
+            except Exception: pass
             
 
             # instanciation des sous-contrôleurs
             self.user_controller         = UserController(self.user_repo, self.role_repo)
             pat_repo = PatientRepository(self.session)
-            self.patient_controller = PatientController(pat_repo, self.current_user)
+            self.patient_controller = PatientController(pat_repo, self.current_user, audit_repo=self.audit_repo)
 
             med_repo = MedicalRecordRepository(self.session)
             self.medical_record_controller = MedicalRecordController(
                 repo=med_repo,
                 patient_controller=self.patient_controller,
-                current_user=self.current_user
+                current_user=self.current_user,
+                audit_repo=self.audit_repo
             )
 
             presc_repo = PrescriptionRepository(self.session)
             self.prescription_controller = PrescriptionController(
                 repo=presc_repo,
                 patient_controller=self.patient_controller,
-                current_user=self.current_user
+                current_user=self.current_user,
+                audit_repo=self.audit_repo
             )
 
             repo = AppointmentRepository(pat_repo.session)
@@ -100,7 +113,8 @@ class AuthController:
             pharm_repo = PharmacyRepository(self.session)
             self.pharmacy_controller = PharmacyController(
                 pharm_repo,
-                self.current_user
+                self.current_user,
+                audit_repo=self.audit_repo
             )
             caisse_retrait_repo = CaisseRetraitRepository(self.session)
             self.caisse_retrait_controller = CaisseRetraitController(
@@ -110,20 +124,33 @@ class AuthController:
             self.stock_controller = self.pharmacy_controller
 
             caisse_repo = CaisseRepository(self.session)
-            self.caisse_controller = CaisseController(caisse_repo, self.current_user)
+            self.caisse_controller = CaisseController(caisse_repo, self.current_user,audit_repo=self.audit_repo)
 
             self.lab_repo = LabRepository(self.session)
             self.lab_controller = LabController(
                 repo=self.lab_repo,
                 current_user=self.current_user
             )
-
+            # AJOUTER ICI : Instanciation du ToxicoController
+            self.toxico_controller = ToxicoController(
+                repo=self.toxico_repo, 
+                patient_controller=self.patient_controller, 
+                current_user=self.current_user
+            )
+            
             return user
 
         except Exception as e:
+            try:
+                self.audit_repo.log_access(None, "LOGIN_FAILURE", details=f"User: {username}. Erreur: {str(e)}")
+            except Exception: pass
+
             print(f"Erreur d'authentification pour {username}: {e}")
             import traceback; traceback.print_exc()
             return None
+        
+
+
 
     # — pass-through pour Patients —
     def list_patients(self, *args, **kwargs):

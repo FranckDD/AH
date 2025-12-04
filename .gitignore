@@ -16,3 +16,10 @@ Thumbs.db
 #secret key
 generate_secret.py
 locustfile.py
+build_exe.py
+
+view_pyqt6/
+view/
+htmlcov/
+build/
+dist/

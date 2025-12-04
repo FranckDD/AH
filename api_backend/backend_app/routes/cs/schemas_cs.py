@@ -71,3 +71,10 @@ class ConsultationResponse(ConsultationBase):
             "created_by_name": "dr.john"
         }
     })
+
+class PrayerBookTypeResponse(BaseModel):
+    id: int
+    type_code: str
+    label: Optional[str] = None
+
+    model_config = ConfigDict(from_attributes=True)    

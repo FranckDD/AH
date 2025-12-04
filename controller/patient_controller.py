@@ -1,49 +1,161 @@
 # controller/patient_controller.py
 import logging
 from sqlalchemy import func
-from typing import Optional, Dict, Any, List    
+from typing import Optional, Dict, Any, List
 from models.application_role import ApplicationRole
 from models.user import User
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime, time
+from repositories.audit_repo import AuditRepository
+from sqlalchemy.exc import SQLAlchemyError # 🟢 AJOUT
+
 
 class PatientController:
-    def __init__(self, repo, current_user):
+    def __init__(self, repo, current_user, audit_repo: Optional[AuditRepository] = None):
         self.repo = repo
         self.user = current_user
+        self.audit_repo = audit_repo
+        self.session = repo.session
         self.logger = logging.getLogger(__name__)
 
     def create_patient(self, data: dict) -> tuple[int,str]:
+        """
+        Crée un patient et son log d'audit de manière atomique.
+        Si l'une des deux étapes échoue, toute l'opération est annulée (rollback).
+        """
         required = ['first_name', 'last_name', 'birth_date']
         if any(not data.get(f) for f in required):
             raise ValueError("Champs obligatoires manquants")
-        return self.repo.create_patient(data, self.user)
+        
+        # 🟢 1. Injection automatique des drapeaux selon le rôle (Logique métier)
+        user_app_role = getattr(self.user, 'role_name', '').lower()
+
+        if 'secretaire' in user_app_role:
+            data['is_spiritual'] = True
+        elif 'medecin' in user_app_role or 'nurse' in user_app_role or 'assistant' in user_app_role:
+            data['is_clinical'] = True
+        # L'admin/toxico utilise les valeurs passées ou par défaut (False)
+            
+        try:
+            # 2. Opération Patient : Ajout à la session
+            result = self.repo.create_patient(data, self.user)
+            patient_id, patient_code = result
+            
+            # 3. Opération Audit : Ajout à la session
+            if self.audit_repo and self.user:
+                self.audit_repo.log_user_action(
+                    current_user=self.user,
+                    resource_type="Patient",
+                    action_performed="CREATE",
+                    resource_id=patient_id,
+                    details=f"Nom: {data.get('last_name')} {data.get('first_name')}",
+                    new_values=data 
+                )
+            
+            # 4. Validation Atomique : Commit toutes les opérations en même temps
+            self.session.commit()
+            
+            return patient_id, patient_code
+
+        except SQLAlchemyError as e:
+            # 5. Annulation Atomique : Rollback toutes les opérations en cas d'erreur BD
+            self.session.rollback()
+            self.logger.error(f"Erreur SQL lors de la création atomique du patient : {e}")
+            raise # Remonte l'erreur pour la gestion d'API (500)
+        except Exception as e:
+             # Annulation pour les autres erreurs (ex: ValueError)
+            self.session.rollback()
+            raise # Remonte l'erreur (pour la gestion d'API, souvent 400)
 
     def update_patient(self, patient_id: int, data: dict) -> tuple[int, str]:
-        return self.repo.update_patient(patient_id, data, self.user)
+        """
+        Met à jour un patient et son log d'audit de manière atomique.
+        """
+        # 1. Récupérer l'état actuel (pour protéger les drapeaux et l'audit)
+        existing_patient = self.repo.get_by_id(patient_id)
+        if not existing_patient:
+            raise ValueError("Patient introuvable")
+
+        # 2. Logique de protection des drapeaux
+        user_app_role = getattr(self.user, 'role_name', '').lower()
+
+        if 'admin' not in user_app_role:
+            # Protection TOXICOLOGIE (Réservé Admin)
+            data['is_toxicology'] = existing_patient['is_toxicology']
+
+            # Protection CLINIQUE (Réservé Médecin/Nurse/Assistant)
+            if not ('medecin' in user_app_role or 'nurse' in user_app_role or 'assistant' in user_app_role):
+                data['is_clinical'] = existing_patient['is_clinical']
+
+            # Protection SPIRITUEL (Réservé Secrétaire)
+            if 'secretaire' not in user_app_role:
+                data['is_spiritual'] = existing_patient['is_spiritual']
+        
+        # Préparation des anciennes valeurs pour l'audit
+        old_values = {k: existing_patient.get(k) for k in data.keys() if k in existing_patient}
+
+        try:
+            # 3. Opération Patient : Ajout à la session
+            self.repo.update_patient(patient_id, data, self.user)
+            
+            # 4. Opération Audit : Ajout à la session
+            if self.audit_repo and self.user:
+                self.audit_repo.log_user_action(
+                    current_user=self.user,
+                    resource_type="Patient",
+                    action_performed="UPDATE",
+                    resource_id=patient_id,
+                    old_values=old_values, 
+                    new_values=data
+                )
+                
+            # 5. Validation Atomique : Commit toutes les opérations en même temps
+            self.session.commit()
+            
+            return patient_id, existing_patient['code_patient']
+
+        except SQLAlchemyError as e:
+            # 6. Annulation Atomique : Rollback toutes les opérations en cas d'erreur BD
+            self.session.rollback()
+            self.logger.error(f"Erreur SQL lors de la mise à jour atomique du patient : {e}")
+            raise # Remonte l'erreur
+        except Exception:
+            self.session.rollback()
+            raise
 
     def delete_patient(self, patient_id: int) -> bool:
-        return self.repo.delete_patient(patient_id)
+        # 🟢 Passage de l'ID utilisateur pour le Soft Delete
+        user_id = getattr(self.user, 'user_id', None)
+        success = self.repo.delete_patient(patient_id, user_id)
+        
+        if success and self.audit_repo and self.user:
+            try:
+                self.audit_repo.log_user_action(
+                    current_user=self.user,
+                    resource_type="Patient",
+                    action_performed="SOFT_DELETE",
+                    resource_id=patient_id
+                )
+            except Exception: pass
+        return success
 
     def get_patient(self, patient_id: int) -> dict:
         return self.repo.get_by_id(patient_id)
 
     def list_patients(self, page=1, per_page=10, search=None):
-        # 1) Récupère le role_name de l'utilisateur via la relation User.role_id
-        user_role_name = (
-            self.repo.session
-                .query(ApplicationRole.role_name)
-                .join(User, User.role_id == ApplicationRole.role_id)
-                .filter(User.user_id == self.user.user_id)
-                .scalar() or ''
-        )
-        role_lower = user_role_name.lower()
+        # 🟢 1. Récupération du rôle APPLICATIF
+        user_app_role = getattr(self.user, 'role_name', '').lower()
+        filters = {}
 
-        # 2) Si c'est un secrétaire, on renvoie tous les patients créés par un secrétaire
-        if 'secr' in role_lower:
-            return self.repo.find_by_creator_role(role_lower)
+        # 🟢 2. Filtres de visibilité
+        if 'secretaire' in user_app_role:
+            filters['is_spiritual'] = True
+        elif 'medecin' in user_app_role or 'nurse' in user_app_role or 'assistant' in user_app_role:
+            filters['is_clinical'] = True
+        
+        # 'admin' voit TOUT (pas de filtre).
+        # 'toxico' n'est pas un rôle distinct, c'est l'admin qui gère.
 
-        # 3) Sinon, pagination + recherche
-        return self.repo.list_patients(page=page, per_page=per_page, search=search)
+        return self.repo.list_patients(page=page, per_page=per_page, search=search, filters=filters)
     
     def list_spiritual_patients(self):
         return self.repo.find_by_creator_role('secretaire')
@@ -183,4 +295,37 @@ class PatientController:
             }
 
         return [serialize(p) for p in pats]    
+    
+    def get_spiritual_new_patients_count_kpi(self, period: str = "week") -> int:
+        """
+        KPI Nouveaux Patients Spirituels : Retourne le nombre de patients créés par Secrétaire.
+        """
+        today = date.today()
+        
+        if period == "day":
+            start_date = datetime.combine(today, time.min)
+            end_date = start_date + timedelta(days=1)
+        elif period == "week":
+            # Début de la semaine (Lundi)
+            start_date = datetime.combine(today - timedelta(days=today.weekday()), time.min)
+            end_date = start_date + timedelta(days=7)
+        else:
+            raise ValueError("Période non valide. Utilisez 'day' ou 'week'")
+            
+        # Utilisation de la nouvelle méthode Repo spécialisée
+        return self.repo.count_new_spiritual_patients_by_range(start_date=start_date, end_date=end_date)
+
+    def get_spiritual_patient_status_kpi(self) -> Dict[str, int]:
+        """
+        KPI Statut Patients Spirituels : Retourne la distribution Actifs / Inactifs.
+        """
+        # Utilisation de la nouvelle méthode Repo spécialisée
+        return self.repo.get_spiritual_patient_status_distribution()
+
+    def get_spiritual_assurance_distribution_kpi(self) -> Dict[str, int]:
+        """
+        KPI Répartition Assurance Patients Spirituels.
+        """
+        # Utilisation de la nouvelle méthode Repo spécialisée
+        return self.repo.get_spiritual_assurance_distribution()
 

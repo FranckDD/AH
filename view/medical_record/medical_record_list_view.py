@@ -1,10 +1,28 @@
 import tkinter as tk
 import customtkinter as ctk
 from tkinter import ttk, filedialog
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta,date
 from tkcalendar import DateEntry
 from utils.export_utils import export_medical_records_to_pdf, export_medical_records_to_excel
 from view.medical_record.medical_record_form_view import MedicalRecordFormView
+
+# === Fonction utilitaire pour formatage de date ===
+def _format_dt_for_ui(value):
+    if value is None:
+        return ""
+    if isinstance(value, datetime):
+        return value.strftime('%Y-%m-%d')
+    if isinstance(value, date):
+        return value.strftime('%Y-%m-%d')
+    if isinstance(value, str):
+        # si la chaîne est déjà 'YYYY-mm-dd' ou 'YYYY-mm-dd HH:MM:SS', on peut prendre la partie date
+        s = value.strip()
+        if " " in s:
+            s = s.split(" ")[0]
+        if "T" in s:
+            s = s.split("T")[0]
+        return s
+    return str(value)
 
 class MedicalRecordListView(ctk.CTkFrame):
     def __init__(self, parent, controller, on_prescribe):
@@ -136,7 +154,7 @@ class MedicalRecordListView(ctk.CTkFrame):
                 r.record_id,
                 r.patient.code_patient if r.patient else "",
                 r.patient_id,
-                r.consultation_date.strftime('%Y-%m-%d'),
+                _format_dt_for_ui(r.consultation_date),
                 r.marital_status,
                 r.bp,
                 r.temperature,

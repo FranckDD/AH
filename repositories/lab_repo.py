@@ -5,6 +5,7 @@ from sqlalchemy import func, desc
 from decimal import Decimal, InvalidOperation
 from datetime import datetime
 from sqlalchemy.exc import IntegrityError
+from models.lab import Examen
 
 from models.lab import (
     Examen, Parametre, ReferenceRange,
@@ -44,14 +45,15 @@ class LabRepository:
             return True
         return False
 
-    def get_examen(self, examen_id: int) -> Optional[Examen]:
+    def list_all_examens(self) -> List[Examen]:
+        """Retourne tous les examens (code + nom + id)"""
+        return self.session.query(Examen).order_by(Examen.nom).all()
+
+    def get_examen_by_id(self, examen_id: int) -> Examen | None:
         return self.session.get(Examen, examen_id)
 
-    def get_examen_by_code(self, code: str) -> Optional[Examen]:
+    def get_examen_by_code(self, code: str) -> Examen | None:
         return self.session.query(Examen).filter(Examen.code == code).first()
-
-    def list_examens(self) -> List[Examen]:
-        return self.session.query(Examen).all()
 
     # -----------------
     # Parametres
@@ -138,29 +140,51 @@ class LabRepository:
         base = f"{month}{doy}-{result_id}"
         return f"EXT-{base}" if patient_id is None else base
 
+    def _generate_analysis_code(self, is_external: bool, result_id: int) -> str:
+        """
+        Génère un code unique pour l'analyse.
+        - Interne : LAB-{MMDD}-{ID} (Numéro d'échantillon)
+        - Externe : EXT-{MMDD}-{ID} (Numéro de suivi externe)
+        """
+        now = datetime.now()
+        month_day = now.strftime("%m%d")
+        # On utilise l'ID de la séquence pour garantir l'unicité
+        suffix = f"{result_id:04d}" 
+        
+        if is_external:
+            return f"EXT-{month_day}-{suffix}"
+        return f"LAB-{month_day}-{suffix}"
+
     def create_lab_result(self, data: Dict[str, Any]) -> LabResult:
         """
-        Create a LabResult and (optionally) its details.
-        Behavior:
-         - If Session has no active transaction: repo WILL commit/rollback.
-         - If Session already has transaction: repo will flush but NOT commit/rollback (caller owns tx).
-        Expected input: dict possibly containing 'details': List[dict]
+        Crée un résultat labo.
+        Gère intelligemment les patients INTERNES vs EXTERNES.
         """
         details = data.pop('details', None)
+        # Extraction des infos externes si présentes
+        external_info = data.get('external_patient_info') 
+        patient_id = data.get('patient_id')
+
+        # Validation Logique
+        if not patient_id and not external_info:
+            raise ValueError("Il faut soit un patient_id (Interne), soit external_patient_info (Externe).")
+
         own_tx = not bool(self.session.in_transaction())
 
         try:
-            # Build result object
+            # 1. Création de l'objet Result (sans le code pour l'instant)
             result = LabResult(**{k: v for k, v in data.items()})
             self.session.add(result)
-            # assign PK
-            self.session.flush()
+            
+            # 2. Flush pour obtenir le result_id généré par la séquence
+            self.session.flush() 
 
-            # generate stable code if not provided (use result_id to avoid races)
-            if not getattr(result, "code_lab_patient", None):
-                result.code_lab_patient = self._build_lab_code_from_id(result.result_id, result.patient_id)
+            # 3. Génération du Code Analyse basé sur l'ID et le type de patient
+            is_external = (patient_id is None)
+            if not result.code_lab_patient:
+                result.code_lab_patient = self._generate_analysis_code(is_external, result.result_id)
 
-            # create details if provided
+            # 4. Création des détails (paramètres)
             if details:
                 for d in details:
                     d_copy = dict(d)
@@ -168,23 +192,17 @@ class LabRepository:
                     detail = LabResultDetail(**d_copy)
                     self.session.add(detail)
 
-            # commit or leave to caller
             if own_tx:
                 self.session.commit()
             else:
-                # ensure DB receives changes when caller continues
                 self.session.flush()
 
             self.session.refresh(result)
             return result
 
         except Exception:
-            # rollback only if we started the transaction
             if own_tx:
-                try:
-                    self.session.rollback()
-                except Exception:
-                    pass
+                self.session.rollback()
             raise
 
     def add_result_detail(self, data: Dict[str, Any]) -> LabResultDetail:

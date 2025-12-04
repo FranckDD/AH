@@ -1,7 +1,9 @@
 # repositories/consultation_spirituel_repo.py
 from sqlalchemy.orm import Session
 from models.consultation_spirituelle import ConsultationSpirituel
+from models.prayer_book_type import PrayerBookType
 from datetime import datetime
+from typing import List
 from sqlalchemy import desc
 #from models.consultation_spirituelle import ConsultationSpirituel
 
@@ -37,12 +39,27 @@ class ConsultationSpirituelRepository:
         self.session.commit()
         return cs
 
-    def delete(self, cs_id: int):
-        cs = self.session.get(ConsultationSpirituel, cs_id)
-        if cs:
-            self.session.delete(cs)
-            self.session.commit()
-        return cs
+    
+    def get_history_for_patient(self, patient_id: int):
+        """
+        Récupère l'historique spirituel d'un patient trié par date décroissante.
+        """
+        return (
+            self.session.query(self.model)
+            .filter(self.model.patient_id == patient_id) # 🟢 Filtre Patient
+            .order_by(desc(self.model.consultation_date)) # 🟢 Tri par date
+            .all()
+        )
+    
+    def get_history(self, patient_id: int):
+        return (
+            self.session.query(self.model)
+            .filter(self.model.patient_id == patient_id)
+            # 🔴 ERREUR : .order_by(desc(self.model.date))
+            # 🟢 CORRECTION :
+            .order_by(desc(self.model.consultation_date)) 
+            .all()
+        )
     
     def get_by_id(self, cs_id: int):
         return self.session.get(ConsultationSpirituel, cs_id)
@@ -75,6 +92,16 @@ class ConsultationSpirituelRepository:
             self.session
                 .query(self.model)
                 .filter(self.model.patient_id == patient_id)
-                .order_by(desc(self.model.date))
+                .order_by(desc(self.model.consultation_date))
                 .first()
+        )
+    
+    def get_prayer_book_types(self) -> List[PrayerBookType]:
+        """
+        Retourne tous les types de Prayer Book disponibles.
+        """
+        return (
+            self.session.query(PrayerBookType)
+            .order_by(PrayerBookType.type_code)
+            .all()
         )

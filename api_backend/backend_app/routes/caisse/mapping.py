@@ -22,13 +22,33 @@ def normalize_caisse_data(raw):
         return result
 
     return normalize_data(raw, {
-        "caisse_id": lambda r: get_field(r, "transaction_id"),
+        # Identifiants
+        "transaction_id": lambda r: get_field(r, "transaction_id"), # Clé explicite
+        "caisse_id": lambda r: get_field(r, "transaction_id"),      # Alias pour compatibilité
+        
+        # Patient
         "patient_id": "patient_id",
+        "patient_label": "patient_label",
         "patient_name": lambda r: get_field(getattr(r, "patient_by_id", None), "full_name") or get_field(r, "patient_label"),
+        
+        # Montants (Correction critique ici)
+        "amount": lambda r: parse_decimal(get_field(r, "amount")), # <--- C'est ce que le frontend attend
+        "advance_amount": lambda r: parse_decimal(get_field(r, "advance_amount")),
         "amount_due": lambda r: parse_decimal(get_field(r, "amount") + get_field(r, "advance_amount")),
         "amount_paid": lambda r: parse_decimal(get_field(r, "amount")),
-        "payment_date": lambda r: parse_datetime(get_field(r, "paid_at")),
+        
+        # Dates
+        "paid_at": lambda r: parse_datetime(get_field(r, "paid_at")),
+        "payment_date": lambda r: parse_datetime(get_field(r, "paid_at")), # Alias
+        
+        # Infos métier (Correction critique ici)
         "payment_method": "payment_method",
+        "transaction_type": "transaction_type", # <--- Manquait, maintenant ajouté
+        "note": "note",
         "status": "status",
-        "items": get_items,  # Ajout de tous les items
+        "created_by_name": "created_by_name",
+        "handled_by": "handled_by",
+        
+        # Items
+        "items": get_items,
     })
