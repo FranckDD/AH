@@ -8,6 +8,15 @@
         </h1>
         <p class="text-sm text-gray-500">{{ t('tech.subtitle') }}</p>
       </div>
+      <div class="mt-4 md:mt-0">
+          <input 
+              type="date" 
+              :placeholder="t('tech.filter.date_from')"
+              :value="currentTab === 'ACCESS' ? auditStore.accessFilters.dateFrom : auditStore.actionFilters.dateFrom"
+              @change="handleDateChange($event.target.value, 'dateFrom')"
+              class="border border-gray-300 rounded-md p-2 text-sm focus:ring-indigo-500 focus:border-indigo-500"
+          />
+      </div>
     </div>
 
     <div class="border-b border-gray-200">
@@ -22,7 +31,7 @@
           ]"
         >
           <ShieldCheckIcon class="h-5 w-5 mr-2" />
-          {{ t('tech.tabs.access') }}
+          {{ t('tech.tabs.access') }} ({{ auditStore.accessPagination.total }})
         </button>
 
         <button 
@@ -35,7 +44,7 @@
           ]"
         >
           <CommandLineIcon class="h-5 w-5 mr-2" />
-          {{ t('tech.tabs.actions') }}
+          {{ t('tech.tabs.actions') }} ({{ auditStore.actionPagination.total }})
         </button>
       </nav>
     </div>
@@ -47,60 +56,76 @@
             <p>{{ t('common.loading') }}</p>
         </div>
 
-        <div v-else-if="currentTab === 'ACCESS'" class="overflow-x-auto">
-            <table class="min-w-full text-left border-collapse">
-                <thead>
-                    <tr class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
-                        <th class="px-6 py-3 font-semibold">{{ t('tech.table.date') }}</th>
-                        <th class="px-6 py-3 font-semibold">{{ t('tech.table.user') }}</th>
-                        <th class="px-6 py-3 font-semibold">{{ t('tech.table.action') }}</th>
-                        <th class="px-6 py-3 font-semibold">{{ t('tech.table.ip') }}</th>
-                        <th class="px-6 py-3 font-semibold">{{ t('tech.table.details') }}</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-gray-100">
-                    <tr v-for="log in auditStore.accessLogs" :key="log.access_id" class="hover:bg-gray-50 transition">
-                        <td class="px-6 py-4 text-sm text-gray-600 font-mono">{{ log.timestamp }}</td>
-                        <td class="px-6 py-4 font-medium text-gray-900">{{ log.username }}</td>
-                        <td class="px-6 py-4">
-                            <span :class="getAccessBadge(log.action_type)" class="px-2 py-1 text-xs font-bold rounded-md border">
-                                {{ log.action_type }}
-                            </span>
-                        </td>
-                        <td class="px-6 py-4 text-sm text-gray-500">{{ log.ip_address }}</td>
-                        <td class="px-6 py-4 text-sm text-gray-600">{{ log.details }}</td>
-                    </tr>
-                </tbody>
-            </table>
+        <div v-else-if="currentTab === 'ACCESS'">
+            <div class="overflow-x-auto">
+                <table class="min-w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
+                            <th class="px-6 py-3 font-semibold">{{ t('tech.table.date') }}</th>
+                            <th class="px-6 py-3 font-semibold">{{ t('tech.table.user') }}</th>
+                            <th class="px-6 py-3 font-semibold">{{ t('tech.table.action') }}</th>
+                            <th class="px-6 py-3 font-semibold">{{ t('tech.table.ip') }}</th>
+                            <th class="px-6 py-3 font-semibold">{{ t('tech.table.details') }}</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        <tr v-for="log in auditStore.accessLogs" :key="log.id" class="hover:bg-gray-50 transition">
+                            <td class="px-6 py-4 text-sm text-gray-600 font-mono">{{ formatDate(log.timestamp) }}</td>
+                            <td class="px-6 py-4 font-medium text-gray-900">{{ log.user_name || 'N/A' }}</td>
+                            <td class="px-6 py-4">
+                                <span :class="getAccessBadge(log.action_type)" class="px-2 py-1 text-xs font-bold rounded-md border">
+                                    {{ log.action_type }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-500">{{ log.ip_address }}</td>
+                            <td class="px-6 py-4 text-sm text-gray-600">{{ log.details || '—' }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <Pagination 
+                :pagination="auditStore.accessPagination"
+                @page-change="(p) => auditStore.setAccessPage(p)"
+            />
         </div>
 
-        <div v-else class="overflow-x-auto">
-            <table class="min-w-full text-left border-collapse">
-                <thead>
-                    <tr class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
-                        <th class="px-6 py-3 font-semibold">{{ t('tech.table.date') }}</th>
-                        <th class="px-6 py-3 font-semibold">{{ t('tech.table.user') }}</th>
-                        <th class="px-6 py-3 font-semibold">{{ t('tech.table.resource') }}</th>
-                        <th class="px-6 py-3 font-semibold">{{ t('tech.table.action') }}</th>
-                        <th class="px-6 py-3 font-semibold">{{ t('tech.table.details') }}</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-gray-100">
-                    <tr v-for="act in auditStore.actionLogs" :key="act.action_id" class="hover:bg-gray-50 transition">
-                        <td class="px-6 py-4 text-sm text-gray-600 font-mono">{{ act.timestamp }}</td>
-                        <td class="px-6 py-4 font-medium text-gray-900">{{ act.username }}</td>
-                        <td class="px-6 py-4">
-                            <span class="bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs font-bold">{{ act.resource_type }}</span>
-                        </td>
-                        <td class="px-6 py-4">
-                            <span :class="getActionBadge(act.action_performed)" class="px-2 py-1 text-xs font-bold rounded-md border">
-                                {{ act.action_performed }}
-                            </span>
-                        </td>
-                        <td class="px-6 py-4 text-sm text-gray-600">{{ act.details }}</td>
-                    </tr>
-                </tbody>
-            </table>
+        <div v-else>
+            <div class="overflow-x-auto">
+                <table class="min-w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
+                            <th class="px-6 py-3 font-semibold">{{ t('tech.table.date') }}</th>
+                            <th class="px-6 py-3 font-semibold">{{ t('tech.table.user') }}</th>
+                            <th class="px-6 py-3 font-semibold">{{ t('tech.table.resource') }}</th>
+                            <th class="px-6 py-3 font-semibold">{{ t('tech.table.action') }}</th>
+                            <th class="px-6 py-3 font-semibold">{{ t('tech.table.details') }}</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        <tr v-for="act in auditStore.actionLogs" :key="act.id" class="hover:bg-gray-50 transition">
+                            <td class="px-6 py-4 text-sm text-gray-600 font-mono">{{ formatDate(act.timestamp) }}</td>
+                            <td class="px-6 py-4 font-medium text-gray-900">{{ act.user_name || act.username || 'N/A' }}</td>
+                            <td class="px-6 py-4">
+                                <span class="bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs font-bold">{{ act.resource_type }}</span>
+                            </td>
+                            <td class="px-6 py-4">
+                                <span :class="getActionBadge(act.action_performed)" class="px-2 py-1 text-xs font-bold rounded-md border">
+                                    {{ act.action_performed }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-600 truncate max-w-xs" :title="act.new_values?.details || act.details">
+                                {{ act.new_values?.details || act.details || '—' }}
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <Pagination 
+                :pagination="auditStore.actionPagination"
+                @page-change="(p) => auditStore.setActionPage(p)"
+            />
         </div>
 
     </div>
@@ -108,21 +133,49 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, watch } from 'vue';
 import { useAuditStore } from '@/stores/auditStore';
 import { useI18n } from 'vue-i18n';
 import { ShieldCheckIcon, CommandLineIcon } from '@heroicons/vue/24/outline';
+import Pagination from '@/components/common/Pagination.vue'; 
 
 const { t } = useI18n();
 const auditStore = useAuditStore();
-const currentTab = ref('ACCESS'); // 'ACCESS' ou 'ACTIONS'
+const currentTab = ref('ACCESS');
 
 onMounted(() => {
+    // Appel initial pour charger la page 1
     auditStore.fetchAccessLogs();
     auditStore.fetchActionLogs();
 });
 
-// Helpers pour les couleurs
+// Re-fetch intelligent lors du changement d'onglet si vide
+watch(currentTab, (newTab) => {
+    if (newTab === 'ACCESS' && auditStore.accessLogs.length === 0) {
+        auditStore.fetchAccessLogs();
+    } else if (newTab === 'ACTIONS' && auditStore.actionLogs.length === 0) {
+        auditStore.fetchActionLogs();
+    }
+});
+
+// Gestion date
+const handleDateChange = (value, filterKey) => {
+    const filters = { [filterKey]: value };
+    if (currentTab.value === 'ACCESS') {
+        auditStore.setAccessFilters(filters);
+    } else {
+        auditStore.setActionFilters(filters);
+    }
+};
+
+const formatDate = (timestamp) => {
+    if (!timestamp) return 'N/A';
+    try {
+        return new Date(timestamp).toLocaleString();
+    } catch { return timestamp; }
+};
+
+// Styles
 const getAccessBadge = (type) => {
     switch(type) {
         case 'LOGIN': return 'bg-green-100 text-green-700 border-green-200';

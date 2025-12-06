@@ -1,8 +1,8 @@
 import axios from 'axios';
-// 🟢 CORRECTION 1 : Import du fichier 'auth' (sans le 'Store' dans le nom du fichier)
 import { useAuthStore } from '@/stores/auth'; 
 import router from '@/router';
 
+// URL de base de votre API FastAPI
 const API_URL = 'http://localhost:8000'; 
 
 const api = axios.create({
@@ -13,9 +13,9 @@ const api = axios.create({
 });
 
 // 1. Intercepteur de REQUÊTE
+// Ajoute le token JWT à chaque requête sortante
 api.interceptors.request.use(config => {
-    // 🟢 CORRECTION 2 : Utilisation de la clé 'token' (comme défini dans auth.js)
-    // Au lieu de 'access_token' qui ne marcherait pas
+    // Récupération du token depuis le localStorage
     const token = localStorage.getItem('token');
     
     if (token) {
@@ -26,7 +26,8 @@ api.interceptors.request.use(config => {
     return Promise.reject(error);
 });
 
-// 2. Intercepteur de RÉPONSE (Gestion du 401)
+// 2. Intercepteur de RÉPONSE
+// Gère globalement les erreurs, notamment l'expiration de session (401)
 api.interceptors.response.use(
     (response) => {
         return response;
@@ -36,16 +37,18 @@ api.interceptors.response.use(
 
         // Si le backend renvoie 401 (Non autorisé / Token expiré)
         if (status === 401) {
-            console.warn("Session expirée. Déconnexion automatique.");
+            console.warn("Session expirée ou invalide. Déconnexion automatique.");
 
-            // Éviter la boucle si on est déjà sur le login
+            // Éviter la boucle de redirection si on est déjà sur la page de login
             if (router.currentRoute.value.path !== '/login') {
                 
-                // Instanciation du store ICI pour éviter les erreurs d'initialisation cycliques
+                // On importe le store ici pour éviter les dépendances circulaires au chargement
+                // C'est crucial car api.js est souvent importé par les stores eux-mêmes
                 const authStore = useAuthStore();
                 
-                // Nettoyage complet via l'action du store
+                // Nettoyage complet (token, user info) et redirection
                 authStore.logout();
+                router.push('/login');
             }
         }
 

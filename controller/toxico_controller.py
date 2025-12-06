@@ -1,13 +1,20 @@
 # Fichier: controllers/toxico_controller.py
-
+import os
+import shutil
+# 📂 Configuration du dossier d'upload pour Toxico
+UPLOAD_DIR = "static/uploads/toxico_consents"
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+from fastapi import UploadFile
 from datetime import datetime, date
 from typing import List, Dict, Any,Optional
 from repositories.toxico_repo import ToxicoRepository
 from repositories.patient_repo import PatientRepository
+from api_backend.backend_app.utils.file_storage import save_consent_file
 
 
 from controller.patient_controller import PatientController 
 from repositories.audit_repo import AuditRepository
+
 
 class ToxicoController:
     # 🎯 Retrait de l'audit_repo de la signature du constructeur
@@ -29,7 +36,7 @@ class ToxicoController:
         # Le mapping simple pour la liste déroulante reste ici (logique de sélection)
         return [{"id": u.user_id, "name": f"{u.full_name}"} for u in users]
 
-    def list_dossiers(self, search: str = None, phase: int = None, page: int = 1, per_page: int = 20):
+    def list_dossiers(self, search: str = None, phase: int = None, page: int = 1, per_page: int = 20): # type: ignore
         """
         Liste optimisée pour le tableau de bord avec pagination.
         Retourne les objets ORM et le total.
@@ -58,43 +65,79 @@ class ToxicoController:
 
     # --- ÉCRITURE (BUSINESS LOGIC) ---
 
-    def admission_patient(self, data: dict):
+    async def admission_patient(self, data: dict, consent_file: UploadFile = None, base_url: str = ""): # type: ignore
         """ 
-        Logique métier d'admission. 
-        Délègue la création du patient au PatientController injecté.
+        Logique métier d'admission avec gestion de l'upload de fichier.
         """
-        dob = data['dob']
+        #print("⚡ [CONTROLLER] Début admission_patient")
         
-        patient_data_for_creation = {
-            "first_name": data['firstName'], "last_name": data['lastName'], "birth_date": dob,
-            "mother_name": data.get('mothersName'), "address": data.get('address'), "contact_phone": data.get('contact'),
-            # S'assurer que le drapeau "is_toxicology" est toujours à True
-            "is_toxicology": True, "is_clinical": False, "is_spiritual": False, "gender": "M", 
-            "assurance": None, "residence": data.get('address'), "national_id": None, "father_name": None
-        }
+        # 1. Gestion de l'upload du fichier de consentement
+        file_path_or_url = None # ⬅️ Initialisation
+        
+        if consent_file:
+            #print(f"📂 [CONTROLLER] Fichier détecté: {consent_file.filename}")
+            try:
+                # Génération d'un code temporaire pour le nom du fichier
+                temp_code = f"{data.get('firstName', 'unk')}_{data.get('lastName', 'unk')}"
+                
+                # 🟢 APPEL ASYNCHRONE DE SAUVEGARDE
+                file_path_or_url = await save_consent_file(consent_file, temp_code)
+                
+                # 🟢 DEBUG A : La valeur est-elle bien retournée par la fonction de sauvegarde ?
+                #print(f"DEBUG A: Valeur retournée par SAVE : {file_path_or_url}")
+                
+            except Exception as e:
+                # Si une erreur survient, file_path_or_url reste None
+                print(f"❌  Exception durant sauvegarde fichier: {e}")
+                
+        else:
+            print("⚪  Aucun fichier 'consent_file' reçu.")
 
+        # 2. Création du Patient via PatientController
         try:
-            # 🟢 CORRECTION: Appel du contrôleur Patient injecté
-            # self.patient_controller gère la création et l'audit interne
+            patient_data_for_creation = {
+                "first_name": data['firstName'], 
+                "last_name": data['lastName'], 
+                "birth_date": data['dob'],
+                "mother_name": data.get('mothersName'), 
+                "address": data.get('address'), 
+                "contact_phone": data.get('contact'),
+                "is_toxicology": True, 
+                "is_clinical": False, 
+                "is_spiritual": False, 
+                "gender": "M", 
+                "assurance": None, 
+                "residence": data.get('address'), 
+                "national_id": None, 
+                "father_name": None
+            }
             patient_id, patient_code = self.patient_controller.create_patient(patient_data_for_creation)
         except ValueError as e:
             raise ValueError(f"Erreur lors de la création du patient: {str(e)}")
         
-        admission_dt = data['admissionDate']
-        
-        # Le Controller prépare les données pour le Repo Toxico
+        # 3. Préparation des données Toxico
         toxico_data = {
-            "admission_date": admission_dt, "substance": data['substance'], "psychologist_id": data['psychologist_id'],
-            "guardian_name": data.get('guardianName'), "guardian_contact": data.get('guardianContact'),
-            "notes": data.get('notes'), "consentFile": data.get('consentFile')
+            "admission_date": data['admissionDate'], 
+            "substance": data['substance'], 
+            "psychologist_id": data['psychologist_id'],
+            "guardian_name": data.get('guardianName'), 
+            "guardian_contact": data.get('guardianContact'),
+            "notes": data.get('notes'), 
+            
+            # 🟢 La valeur finale qui doit aller en base
+            "consent_file": file_path_or_url 
         }
 
-        # Crée le dossier toxico en utilisant le ToxicoRepository (self.repo)
+        # 🟢 DEBUG B : La valeur envoyée au Repo est-elle correcte ?
+        #print(f"DEBUG B: Valeur FINALE envoyée au Repo : {toxico_data.get('consent_file')}")
+
+
+        # 4. Création du dossier en base
         return self.repo.create_dossier_after_patient_commit(patient_id, toxico_data)
 
     def submit_evaluation(self, data: dict):
         user_id = self.user.get('user_id') if isinstance(self.user, dict) else self.user.user_id
-        return self.repo.process_evaluation(dossier_id=data['dossier_id'], data=data, user_id=user_id)
+        return self.repo.process_evaluation(dossier_id=data['dossier_id'], data=data, user_id=user_id) # type: ignore
     
     def discharge_patient(self, dossier_id: int):
         return self.repo.discharge(dossier_id)

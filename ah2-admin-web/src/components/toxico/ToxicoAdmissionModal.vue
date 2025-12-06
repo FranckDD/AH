@@ -257,8 +257,8 @@ const handleFileUpload = (event) => {
             errorMessage.value = "Le fichier est trop volumineux (max 5MB)";
             return;
         }
-        fileName.value = file.name;
-        form.consentFile = file.name; 
+        fileName.value = file.name; // Pour l'affichage
+        form.consentFile = file; 
     }
 };
 

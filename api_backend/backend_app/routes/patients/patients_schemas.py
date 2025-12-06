@@ -164,3 +164,17 @@ class PatientAssuranceDistribution(BaseModel):
         ...,
         description="Dictionnaire (Assurance -> Nombre de patients). Clé 'Non spécifié' pour les patients sans assurance."
     )
+
+class PatientListResponse(BaseModel):
+    data: List[PatientResponse]
+    total: int
+    page: int
+    per_page: int
+    total_pages: int    
+
+
+class PatientGlobalCounts(BaseModel):
+    total_all: int
+    total_clinical: int
+    total_toxicology: int
+    total_spiritual: int    

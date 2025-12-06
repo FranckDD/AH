@@ -8,7 +8,8 @@ from datetime import date
 
 from .mapping import normalize_patient_data
 from ...exceptions import translate_integrity_error
-from .patients_schemas import PatientCreate, PatientUpdate, PatientResponse,PatientStatusDistribution,PatientAssuranceDistribution,NewPatientCount
+from .patients_schemas import (PatientCreate, PatientUpdate, PatientResponse,PatientStatusDistribution,
+                               PatientAssuranceDistribution,NewPatientCount,PatientListResponse,PatientGlobalCounts)
 from ...database import SessionLocal
 from repositories.audit_repo import AuditRepository
 from controller.auth_controller import AuthController
@@ -71,6 +72,71 @@ def list_patients(
 ):
     patients_raw = patient_ctrl.list_patients(page=page, per_page=per_page, search=search)
     return [_safe_validate_patient(p) for p in patients_raw]
+
+@router.get("/toxicology", response_model=PatientListResponse)
+def list_toxicology_patients(
+    page: int = Query(1, ge=1),
+    per_page: int = Query(10, ge=1, le=100),
+    search: str = Query(None),
+    patient_ctrl: PatientController = Depends(get_patient_controller)
+):
+    result = patient_ctrl.list_toxicology_patients(page=page, per_page=per_page, search=search)
+    
+    # Validation Pydantic de la liste 'data'
+    validated_data = [_safe_validate_patient(p) for p in result["data"]]
+    
+    return {
+        "data": validated_data,
+        "total": result["total"],
+        "page": result["page"],
+        "per_page": result["per_page"],
+        "total_pages": result["total_pages"]
+    }
+
+# 🟢 2. Endpoint CLINIQUE
+@router.get("/clinical", response_model=PatientListResponse)
+def list_clinical_patients(
+    page: int = Query(1, ge=1),
+    per_page: int = Query(10, ge=1, le=100),
+    search: str = Query(None),
+    patient_ctrl: PatientController = Depends(get_patient_controller)
+):
+    result = patient_ctrl.list_clinical_patients(page=page, per_page=per_page, search=search)
+    validated_data = [_safe_validate_patient(p) for p in result["data"]]
+    
+    return {
+        "data": validated_data,
+        "total": result["total"],
+        "page": result["page"],
+        "per_page": result["per_page"],
+        "total_pages": result["total_pages"]
+    }
+
+# 🟢 3. Endpoint SPIRITUEL (Paginé)
+@router.get("/spiritual/list", response_model=PatientListResponse)
+def list_spiritual_patients_paginated(
+    page: int = Query(1, ge=1),
+    per_page: int = Query(10, ge=1, le=100),
+    search: str = Query(None),
+    patient_ctrl: PatientController = Depends(get_patient_controller)
+):
+    # Attention: j'ai ajouté /list pour ne pas conflire avec votre endpoint existant /spiritual qui n'était pas paginé
+    result = patient_ctrl.list_spiritual_patients_list(page=page, per_page=per_page, search=search)
+    validated_data = [_safe_validate_patient(p) for p in result["data"]]
+    
+    return {
+        "data": validated_data,
+        "total": result["total"],
+        "page": result["page"],
+        "per_page": result["per_page"],
+        "total_pages": result["total_pages"]
+    }
+
+@router.get("/counts/global", response_model=PatientGlobalCounts)
+def get_patient_global_counts(
+    patient_ctrl: PatientController = Depends(get_patient_controller)
+):
+    return patient_ctrl.get_global_counts()
 
 
 

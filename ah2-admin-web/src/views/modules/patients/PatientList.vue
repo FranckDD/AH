@@ -7,7 +7,7 @@
           {{ t('patients.title') }}
         </h1>
         <p class="text-sm text-gray-500">
-            Page {{ patientStore.pagination.page }}
+          Total : {{ activeTabCount }} patients
         </p>
       </div>
       
@@ -40,6 +40,9 @@
         >
           <component :is="tab.icon" class="h-5 w-5 mr-2" />
           {{ t(tab.labelKey) }}
+          <span class="ml-2 bg-gray-100 text-gray-600 py-0.5 px-2.5 rounded-full text-xs font-bold">
+            {{ tab.count }}
+          </span>
         </button>
       </nav>
     </div>
@@ -47,12 +50,12 @@
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
       
       <div v-if="patientStore.isLoading" class="p-10 text-center">
-         <span class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></span>
-         <p class="mt-2 text-gray-500">Chargement des données...</p>
+        <span class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></span>
+        <p class="mt-2 text-gray-500">Chargement des données...</p>
       </div>
 
       <div v-else-if="patientStore.error" class="p-10 text-center text-red-500">
-          {{ patientStore.error }}
+        {{ patientStore.error }}
       </div>
 
       <div v-else class="overflow-x-auto">
@@ -110,11 +113,13 @@
             <ChevronLeftIcon class="h-4 w-4 mr-2"/> Précédent
         </button>
 
-        <span class="text-sm font-medium text-gray-700">Page {{ patientStore.pagination.page }}</span>
+        <span class="text-sm font-medium text-gray-700">
+            Page {{ patientStore.pagination.page }} sur {{ patientStore.pagination.total_pages }}
+        </span>
 
         <button 
             @click="goToPage(patientStore.pagination.page + 1)" 
-            :disabled="!patientStore.pagination.hasNext && patientStore.patients.length === 0" 
+            :disabled="!patientStore.pagination.hasNext" 
             class="px-4 py-2 border rounded-lg bg-white hover:bg-gray-50 disabled:opacity-50 flex items-center"
         >
             Suivant <ChevronRightIcon class="h-4 w-4 ml-2"/>
@@ -126,7 +131,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue';
+import { computed, onMounted } from 'vue';
 import { usePatientStore } from '@/stores/patientStore';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
@@ -139,26 +144,54 @@ const { t } = useI18n();
 const patientStore = usePatientStore();
 const router = useRouter();
 
-// Configuration des Onglets
-const tabs = [
-    { value: 'ALL', labelKey: 'patients.tabs.all', icon: UsersIcon },
-    { value: 'CLINIQUE', labelKey: 'patients.tabs.clinical', icon: HeartIcon },
-    { value: 'TOXICO', labelKey: 'patients.tabs.toxico', icon: BeakerIcon },
-    { value: 'SPIRITUEL', labelKey: 'patients.tabs.spiritual', icon: SparklesIcon },
-];
+// 🟢 Chargement initial
+onMounted(() => {
+    patientStore.fetchPatients();
+    // 🟢 Charger les compteurs globaux au montage
+    patientStore.fetchCounts();
+});
+
+// 🟢 Configuration des Onglets (MAINTENANT COMPUTED)
+const tabs = computed(() => [
+    { 
+        value: 'ALL', 
+        labelKey: 'patients.tabs.all', 
+        icon: UsersIcon,
+        count: patientStore.counts.ALL 
+    },
+    { 
+        value: 'CLINIQUE', 
+        labelKey: 'patients.tabs.clinical', 
+        icon: HeartIcon,
+        count: patientStore.counts.CLINIQUE 
+    },
+    { 
+        value: 'TOXICO', 
+        labelKey: 'patients.tabs.toxico', 
+        icon: BeakerIcon,
+        count: patientStore.counts.TOXICO 
+    },
+    { 
+        value: 'SPIRITUEL', 
+        labelKey: 'patients.tabs.spiritual', 
+        icon: SparklesIcon,
+        count: patientStore.counts.SPIRITUEL 
+    },
+]);
+
+// Helper pour afficher le total de l'onglet actif sous le titre
+const activeTabCount = computed(() => {
+    const active = tabs.value.find(t => t.value === currentTab.value);
+    return active ? active.count : 0;
+});
 
 // 3. Créer la fonction de navigation
 const viewPatientDossier = (patientId) => {
     router.push({ 
-        name: 'PatientDetail', // Assurez-vous que ce nom correspond à votre router/index.js
+        name: 'PatientDetail', 
         params: { id: patientId } 
     });
 };
-
-// Chargement initial
-onMounted(() => {
-    patientStore.fetchPatients();
-});
 
 // Getter/Setter pour la recherche
 const searchQuery = computed({
@@ -167,7 +200,6 @@ const searchQuery = computed({
 });
 
 // Getter/Setter pour les onglets
-// Note: Le changement d'onglet déclenche un refetch ou un filtrage local selon la logique du store
 const currentTab = computed({
     get: () => patientStore.filters.type,
     set: (val) => patientStore.setFilters({ type: val })

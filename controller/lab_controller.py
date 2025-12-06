@@ -1,7 +1,8 @@
 import logging
-from models.lab import Examen
+# Assurez-vous d'importer toutes les classes de models.lab si nécessaire
+from models.lab import Examen, Parametre, ReferenceRange, LabResult, LabResultDetail 
 from repositories.lab_repo import LabRepository
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Any
 from datetime import datetime
 from sqlalchemy import func
 
@@ -31,10 +32,57 @@ class LabController:
             
         return "Patient Inconnu"    
 
-    # Examens
-    def create_examen(self, code:str, nom:str, categorie:str) -> Dict:
-        ex = self.repo.create_examen({"code":code, "nom":nom, "categorie":categorie})
-        return {"id":ex.id, "code":ex.code}
+    # ---------------------------------------------------------
+    # GESTION DES EXAMENS (CRUD/CONFIGURATION) 🟢 MODIFIÉ
+    # ---------------------------------------------------------
+
+    def create_examen(self, data: Dict[str, Any]) -> Dict:
+        """
+        Crée un nouvel examen. Attend {code, nom, categorie, prix, ...}
+        """
+        ex = self.repo.create_examen(data)
+        return {
+            "id": ex.id, 
+            "code": ex.code, 
+            "nom": ex.nom, 
+            "categorie": ex.categorie,
+            "prix": float(ex.prix) if ex.prix is not None else 0.0 # Retourne en float pour JSON
+        }
+    
+    def update_examen(self, examen_id: int, data: Dict[str, Any]) -> Dict:
+        """Met à jour un examen existant."""
+        # On filtre les valeurs None/nulles pour ne pas écraser les données existantes, sauf si le prix est explicitement 0
+        clean_data = {k: v for k, v in data.items() if v is not None}
+        
+        ex = self.repo.update_examen(examen_id, clean_data)
+        if not ex:
+            raise ValueError(f"Examen introuvable (ID={examen_id})")
+            
+        return {
+            "id": ex.id,
+            "code": ex.code,
+            "nom": ex.nom,
+            "categorie": ex.categorie,
+            "prix": float(ex.prix) if ex.prix is not None else 0.0
+        }
+
+    def delete_examen(self, examen_id: int) -> bool:
+        """Supprime un examen."""
+        return self.repo.delete_examen(examen_id)
+
+    # ---------------------------------------------------------
+    # GESTION DES EXAMENS (LECTURE)
+    # ---------------------------------------------------------
+
+    def list_examens(self) -> List[Examen]:
+        """Retourne la liste complète des examens (pour Caisse/Liste)."""
+        return self.repo.list_all_examens()
+
+    def get_examen(self, examen_id: int) -> Examen:
+        ex = self.repo.get_examen_by_id(examen_id)
+        if not ex:
+            raise ValueError(f"Examen non trouvé (ID={examen_id})")
+        return ex
     
     def list_parametres_for_examen(self, examen_id: int) -> List[Dict]:
         params = self.repo.list_parametres_for_examen(examen_id)
@@ -47,39 +95,30 @@ class LabController:
             }
             for p in params
         ]
-
-    def list_examens(self) -> List[Examen]:
-            """Utilisé par la vue caisse pour afficher la liste des examens"""
-            return self.repo.list_all_examens()
-
-    def get_examen(self, examen_id: int) -> Examen:
-        ex = self.repo.get_examen_by_id(examen_id)
-        if not ex:
-            raise ValueError(f"Examen non trouvé (ID={examen_id})")
-        return ex
     
+    # ---------------------------------------------------------
+    # HISTORIQUE & RÉSULTATS (GESTION DU DOSSIER)
+    # ---------------------------------------------------------
 
-    # --- NOUVELLE MÉTHODE POUR LE DOSSIER ---
     def get_patient_lab_history(self, patient_id: int) -> List[Dict]:
+        """
+        Récupère l'historique pour un patient interne (ID connu).
+        """
         results = self.repo.list_results_for_patient(patient_id)
         out = []
         for r in results:
-            # Correction ici : Vérifier si la date existe
-            test_date_str = r.test_date.strftime('%Y-%m-%d %H:%M') if r.test_date else '-'
-
+            date_str = r.test_date.strftime('%Y-%m-%d %H:%M') if r.test_date else '-'
             out.append({
                 'result_id': r.result_id,
-                # Utiliser la variable corrigée
-                'test_date': test_date_str, 
+                'code_lab': r.code_lab_patient, # C'est le bon champ à utiliser
+                'test_date': date_str,
                 'examen_name': r.examen.nom if r.examen else 'Inconnu',
                 'status': r.status,
                 'technician': r.technician_name or 'Inconnu',
-                'prescribed_by': r.prescribed_by or 'Inconnu'
+                'prescribed_by': r.prescribed_by 
             })
         return out
-
-    # Résultats
-    # --- CRÉATION DE RÉSULTAT (Mise à jour pour Externe) ---
+    
     def create_result(
         self, 
         examen_id: int, 
@@ -88,9 +127,7 @@ class LabController:
         external_patient_info: Optional[Dict] = None
     ) -> Dict:
         """
-        Crée une analyse.
-        - Si patient_id est fourni -> Patient Interne.
-        - Si external_patient_info est fourni -> Patient Externe.
+        Crée une analyse (Interne ou Externe).
         """
         
         # Validation basique avant d'appeler le repo
@@ -101,10 +138,9 @@ class LabController:
         payload = {
             "examen_id": examen_id,
             "test_date": datetime.now(),
-            "prescribed_by": getattr(self.user, "user_id", None), # Attention: user_id ou id selon votre modèle User
+            "prescribed_by": getattr(self.user, "user_id", None),
             "technician_id": getattr(self.user, "user_id", None),
             "technician_name": getattr(self.user, "username", None),
-            # On passe les deux, le repo saura lequel utiliser (patient_id sera None pour externe)
             "patient_id": patient_id,
             "external_patient_info": external_patient_info 
         }
@@ -113,7 +149,7 @@ class LabController:
         if details:
             payload["details"] = details
 
-        # Appel du Repository (qui gère la génération du code EXT/LAB)
+        # Appel du Repository
         lr = self.repo.create_lab_result(payload)
 
         return {
@@ -135,7 +171,7 @@ class LabController:
                 "test_date": fr.test_date,
                 "patient_name": self._format_patient_name(fr),
                 "is_external": (fr.patient_id is None),
-                "external_info": fr.external_patient_info # On renvoie les détails bruts si besoin (tel, etc.)
+                "external_info": fr.external_patient_info
             },
             "examen": {
                 "nom": fr.examen.nom if fr.examen else "N/A"
@@ -143,41 +179,52 @@ class LabController:
             "details": fr.details
         }
 
-    def complete_result(self, result_id:int, age:int, sexe:str) -> Dict:
+    def complete_result(self, result_id: int, age: int, sexe: str) -> Dict:
         cr = self.repo.complete_result(result_id, age, sexe)
-        return {"status":cr.status}
+        return {"status": cr.status if cr else "error"}
     
     def list_results_by_status(self, status: str) -> List[Dict]:
         results = self.repo.list_results_by_status(status)
         out = []
         for r in results:
-            # Gestion sécurisée de la date (pour éviter l'erreur strftime sur None)
             date_str = r.test_date.strftime('%Y-%m-%d %H:%M') if r.test_date else "Date inconnue"
 
             out.append({
-                'result_id':        r.result_id,
+                'result_id': r.result_id,
                 'code_lab_patient': r.code_lab_patient,
-                # 🟢 Utilisation du helper pour le nom (Interne ou Externe)
-                'patient_name':     self._format_patient_name(r),
-                'examen_name':      r.examen.nom if r.examen else "Examen supprimé",
-                'test_date':        date_str,
-                'status':           r.status,
-                'is_external':      (r.patient_id is None) # Flag utile pour le frontend
+                'patient_name': self._format_patient_name(r),
+                'examen_name': r.examen.nom if r.examen else "Examen supprimé",
+                'test_date': date_str,
+                'status': r.status,
+                'is_external': (r.patient_id is None)
             })
         return out
 
 
     def get_patient_age(self, result_id: int) -> int:
         res = self.repo.get_full_lab_result(result_id)
-        birth = res.patient.birth_date  # suppose birth_date exists
+        # Gestion des dates (vérifier l'existence de patient et birth_date)
+        if not res or not res.patient or not hasattr(res.patient, 'birth_date'):
+             raise ValueError("Patient ou date de naissance introuvable pour l'âge.")
+             
+        birth = res.patient.birth_date
         today = datetime.now().date()
         return today.year - birth.year - ((today.month, today.day) < (birth.month, birth.day))
 
     def get_patient_sex(self, result_id: int) -> str:
         res = self.repo.get_full_lab_result(result_id)
+        # Gestion du sexe (vérifier l'existence de patient et sexe)
+        if not res or not res.patient or not hasattr(res.patient, 'sexe'):
+             raise ValueError("Patient ou sexe introuvable.")
+             
         return res.patient.sexe
     
+    # ---------------------------------------------------------
+    # PARAMÈTRES & RÉFÉRENCES (CRUD)
+    # ---------------------------------------------------------
+
     def list_params(self) -> List[Dict]:
+        # ... (Logique inchangée) ...
         return [{
             "id": p.id,
             "nom_parametre": p.nom_parametre,
@@ -226,11 +273,12 @@ class LabController:
         return None
     
     def list_reference_ranges(self, parametre_id: Optional[int] = None) -> List[Dict]:
+        # ... (Logique inchangée) ...
         ranges = self.repo.list_reference_ranges(parametre_id)
         return [
             {
-                "id":    rr.id,
-                "parametre_id":  rr.parametre_id,
+                "id": rr.id,
+                "parametre_id": rr.parametre_id,
                 "sexe": rr.sexe,
                 "age_min": rr.age_min,
                 "age_max": rr.age_max,
@@ -241,12 +289,13 @@ class LabController:
         ]
 
     def get_reference_range(self, range_id: int) -> Optional[Dict]:
+        # ... (Logique inchangée) ...
         rr = self.repo.get_reference_range(range_id)
         if not rr:
             return None
         return {
-            "id":    rr.id,
-            "parametre_id":  rr.parametre_id,
+            "id": rr.id,
+            "parametre_id": rr.parametre_id,
             "sexe": rr.sexe,
             "age_min": rr.age_min,
             "age_max": rr.age_max,
@@ -255,9 +304,7 @@ class LabController:
         }
 
     def create_reference_range(self, data: Dict) -> Dict:
-        """
-        data doit contenir : parametre_id, sexe, age_min, age_max, valeur_min, valeur_max
-        """
+        # ... (Logique inchangée) ...
         rr = self.repo.create_reference_range(data)
         return {
             "id": rr.id,
@@ -270,6 +317,7 @@ class LabController:
         }
 
     def update_reference_range(self, range_id: int, data: Dict) -> Optional[Dict]:
+        # ... (Logique inchangée) ...
         rr = self.repo.update_reference_range(range_id, data)
         if not rr:
             return None
@@ -296,34 +344,3 @@ class LabController:
         # Stocker les données du patient externe si nécessaire
         # (dans une table dédiée ou dans la session)
         return {"code_patient": code_patient, **data}
-    
-
-    def complete_result(self, result_id: int, age: int, sexe: str) -> Dict:
-        # Note : Pour un patient externe, l'âge et le sexe doivent être fournis 
-        # par le frontend lors de la validation, car on ne les a pas en BDD patient.
-        cr = self.repo.complete_result(result_id, age, sexe)
-        return {"status": cr.status if cr else "error"}
-
-    # --- HISTORIQUE (Pour le dossier patient interne) ---
-    def get_patient_lab_history(self, patient_id: int) -> List[Dict]:
-        """
-        Récupère l'historique pour un patient interne (ID connu).
-        """
-        results = self.repo.list_results_for_patient(patient_id)
-        out = []
-        for r in results:
-            date_str = r.test_date.strftime('%Y-%m-%d %H:%M') if r.test_date else '-'
-            out.append({
-                'result_id': r.result_id,
-                'code_lab': r.code_lab_patient,
-                'test_date': date_str,
-                'examen_name': r.examen.nom if r.examen else 'Inconnu',
-                'status': r.status,
-                'technician': r.technician_name or 'Inconnu',
-                # 'prescribed_by' est un ID, idéalement on voudrait le nom, 
-                # mais laissons l'ID ou gérons une jointure User si besoin.
-                'prescribed_by': r.prescribed_by 
-            })
-        return out
-    
-   

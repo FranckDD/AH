@@ -1,9 +1,11 @@
 # Fichier: routes/toxico_routes.py
 
-from fastapi import APIRouter, Depends, HTTPException, status, Query
-from typing import List, Any,Dict
+from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile, File, Form, Request
+from typing import List, Any, Dict, Optional
 from sqlalchemy.orm import Session
 from fastapi import Request
+from datetime import date
+
 
 from api_backend.backend_app.database import SessionLocal
 from api_backend.backend_app.routes.auth.auth_endpoints import get_current_user, role_required
@@ -167,18 +169,60 @@ def get_patient_detail(
 
 @router.post("/admission", status_code=status.HTTP_201_CREATED,
              dependencies=[Depends(role_required("ToxicoManager", "admin", "Assistant"))])
-def admission_patient(
-    data: ToxicoAdmissionCreate,
+async def admission_patient( # ⚠️ Ajout de async car on lit un fichier
+    request: Request,
+    
+    # 🟢 Remplacement du modèle Pydantic par des champs Form(...)
+    # Ces noms doivent correspondre exactement au formData.append('key', value) du VueJS
+    firstName: str = Form(...),
+    lastName: str = Form(...),
+    dob: date = Form(...),
+    mothersName: str = Form(...),
+    address: Optional[str] = Form(None),
+    contact: Optional[str] = Form(None),
+    admissionDate: date = Form(...),
+    substance: str = Form(...),
+    psychologist: int = Form(...), # Le Front envoie 'psychologist' (ID)
+    guardianName: str = Form(...),
+    guardianContact: str = Form(...),
+    notes: Optional[str] = Form(None),
+    
+    # 🟢 Ajout du fichier (Optionnel)
+    consentFile: Optional[UploadFile] = File(None),
+    
     ctrl: ToxicoController = Depends(get_toxico_controller)
 ):
     try:
-        dossier = ctrl.admission_patient(data.model_dump())
+        # On reconstruit un dictionnaire propre pour le contrôleur
+        # Note: On map 'psychologist' (paramètre form) vers 'psychologist_id' (attendu par le ctrl)
+        data = {
+            "firstName": firstName,
+            "lastName": lastName,
+            "dob": dob,
+            "mothersName": mothersName,
+            "address": address,
+            "contact": contact,
+            "admissionDate": admissionDate,
+            "substance": substance,
+            "psychologist_id": psychologist, 
+            "guardianName": guardianName,
+            "guardianContact": guardianContact,
+            "notes": notes
+        }
+        
+        # Pour construire l'URL absolue (http://localhost:8000...)
+        base_url = str(request.base_url).rstrip("/")
+
+        # Appel du contrôleur avec le dict ET le fichier
+        dossier = await ctrl.admission_patient(data=data, consent_file=consentFile, base_url=base_url) # type: ignore
+        
         return {"message": "Admission réussie", "code_patient": dossier.patient.code_patient}
+        
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         print(f"[ERREUR ADMISSION] {str(e)}")
-        raise HTTPException(status_code=500, detail="Erreur interne lors de l'admission.")
+        raise HTTPException(status_code=500, detail=f"Erreur interne: {str(e)}")
 
 @router.post("/evaluation", status_code=status.HTTP_200_OK,
              dependencies=[Depends(role_required("Psychologist", "SpiritualCounsellor", "admin"))])

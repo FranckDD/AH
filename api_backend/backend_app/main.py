@@ -1,6 +1,8 @@
 import sys, os
+os.makedirs("static", exist_ok=True)
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 # Permet d'importer les modules depuis la racine AH2
 root_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
@@ -19,9 +21,9 @@ from .routes.toxico import toxico_endpoint
 
 # --- AJOUT IMPORT LABO ---
 from .routes.labo import lab_endpoints  # <--- AJOUT ICI
-
+from .routes.audit import audit_endpoint
 from .routes.pharmacy import pharmacy_endpoints
-from .routes.admin import users_endpoint
+from .routes.admin import users_endpoint,config_endpoints
 from .routes import health_endpoint
 
 from fastapi.exceptions import RequestValidationError
@@ -96,10 +98,13 @@ app.include_router(toxico_endpoint.router)
 
 # --- AJOUT ROUTER LABO ---
 app.include_router(lab_endpoints.router) # <--- AJOUT ICI (Le préfixe "/labo" est déjà défini dans le fichier endpoint)
-
+app.include_router(audit_endpoint.router)
 app.include_router(pharmacy_endpoints.router)
 app.include_router(users_endpoint.router)
+app.include_router(config_endpoints.router)
 app.include_router(health_endpoint.router) 
+
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 
 #if __name__ == "__main__":

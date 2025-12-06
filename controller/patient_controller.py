@@ -160,6 +160,18 @@ class PatientController:
     def list_spiritual_patients(self):
         return self.repo.find_by_creator_role('secretaire')
     
+    # ... méthodes existantes ...
+
+    def list_clinical_patients(self, page=1, per_page=10, search=None):
+        return self.repo.list_clinical_patients(page, per_page, search)
+
+    def list_toxicology_patients(self, page=1, per_page=10, search=None):
+        return self.repo.list_toxicology_patients(page, per_page, search)
+
+    def list_spiritual_patients_list(self, page=1, per_page=10, search=None):
+        # Nommé _list pour ne pas confondre avec votre méthode existante list_spiritual_patients (qui n'était pas paginée)
+        return self.repo.list_spiritual_patients_paginated(page, per_page, search)
+    
     def find_by_code(self, code: str) -> Optional[Dict[str, Any]]:
         p = self.repo.find_by_code(code)
         if not p:
@@ -195,6 +207,9 @@ class PatientController:
         if d is None:
             raise RuntimeError("Doctor id non disponible")
         return self.repo.patients_followed_by_doctor(d, page=page, per_page=per_page)
+    
+    def get_global_counts(self):
+        return self.repo.get_global_patient_counts()
 
     def patients_by_consultation_type(self, doctor_id: Optional[int] = None, start: Optional[date]=None, end: Optional[date]=None):
         d = doctor_id or getattr(self.user, 'user_id', None)

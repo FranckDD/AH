@@ -125,7 +125,7 @@ class ToxicoRepository:
                 guardian_contact=toxico_data.get('guardian_contact'),
                 notes_admission=toxico_data.get('notes'),
                 # 🟢 AJOUT : Gestion du fichier
-                consent_file=toxico_data.get('consentFile')
+                consent_file=toxico_data.get('consent_file')
             )
             self.session.add(dossier)
             self.session.flush() # Génère l'ID

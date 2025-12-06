@@ -106,6 +106,42 @@ class RemoteGateway:
         if search:
             params["search"] = search
         return self.request("GET", "/patients/", params=params)
+    
+    def list_clinical_patients(self, page: int = 1, per_page: int = 20, search: Optional[str] = None):
+        """Liste les patients Cliniques avec pagination et recherche"""
+        params = {
+            "page": page,
+            "per_page": per_page
+        }
+        if search:
+            params["search"] = search
+            
+        # 🟢 Utilise l'endpoint /patients/clinical
+        return self.request("GET", "/patients/clinical", params=params)
+
+    def list_toxicology_patients(self, page: int = 1, per_page: int = 20, search: Optional[str] = None):
+        """Liste les patients Toxicologie avec pagination et recherche"""
+        params = {
+            "page": page,
+            "per_page": per_page
+        }
+        if search:
+            params["search"] = search
+            
+        # 🟢 Utilise l'endpoint /patients/toxicology
+        return self.request("GET", "/patients/toxicology", params=params)
+
+    def lists_spiritual_patients(self, page: int = 1, per_page: int = 20, search: Optional[str] = None):
+        """Liste les patients Spirituels avec pagination et recherche"""
+        params = {
+            "page": page,
+            "per_page": per_page
+        }
+        if search:
+            params["search"] = search
+            
+        # 🟢 Utilise l'endpoint /patients/spiritual/list
+        return self.request("GET", "/patients/spiritual/list", params=params)
 
     def update_patient(self, patient_id: int, patient_data: dict):
         return self.request("PUT", f"/patients/{patient_id}", json=patient_data)
@@ -212,9 +248,26 @@ class RemoteGateway:
         return self.request("GET", f"/toxico/patients/{patient_id}")
         
     def admit_toxico_patient(self, admission_data: dict) -> Dict[str, Any]:
-        """Admet un patient dans le programme Toxico (création Patient + Dossier)."""
-        # Le endpoint FastAPI s'attend à un JSON
-        return self.request("POST", "/toxico/admission", json=admission_data)
+        """
+        Admet un patient dans le programme Toxico.
+        Gère l'envoi en multipart/form-data pour supporter l'upload de fichier.
+        """
+        # 1. On fait une copie pour ne pas modifier le dictionnaire original
+        form_data = admission_data.copy()
+        
+        # 2. On prépare le dictionnaire de fichiers
+        files = None
+        
+        # On vérifie si la clé 'consentFile' existe et contient quelque chose
+        if "consentFile" in form_data and form_data["consentFile"]:
+            files = {"consentFile": form_data.pop("consentFile")}
+        
+        return self.request(
+            "POST", 
+            "/toxico/admission", 
+            data=form_data,  # ⚠️ REMPLACE 'json=admission_data'
+            files=files
+        )
 
     def submit_toxico_evaluation(self, evaluation_data: dict) -> Dict[str, Any]:
         """Enregistre une nouvelle évaluation psychologique et met à jour la phase."""
@@ -232,6 +285,45 @@ class RemoteGateway:
         """
         # Utilisation de la méthode générique pour un GET sur le nouvel endpoint
         return self.request("GET", "/toxico/stats/dashboard")
+    
+    # --------------------
+    # CONFIGURATION DE LA STRUCTURE (NOUVEAU)
+    # --------------------
+
+    def get_structure_info(self) -> Dict[str, Any]:
+        """Récupère les informations de configuration de la structure."""
+        return self.request("GET", "/config/structure")
+
+    def update_structure_info(self, data: Dict[str, Any], logo_file_path: Optional[str] = None) -> Dict[str, Any]:
+        """
+        Met à jour les informations de la structure, incluant potentiellement l'upload d'un logo.
+
+        Args:
+            data (Dict): Dictionnaire des champs textuels (name, slogan, address, etc.).
+            logo_file_path (Optional[str]): Chemin local vers le fichier logo à uploader.
+        """
+        endpoint = "/config/structure"
+        
+        files = None
+        if logo_file_path and os.path.exists(logo_file_path):
+            # Préparation du fichier pour l'upload multipart
+            # Clé 'logo' correspond au paramètre `logo: Optional[UploadFile] = File(None)` dans le router FastAPI
+            files = {'logo': (os.path.basename(logo_file_path), open(logo_file_path, 'rb'), 'image/*')}
+        
+        # Les données textuelles sont envoyées comme `data` (form fields)
+        response = self.request(
+            method="POST", 
+            endpoint=endpoint, 
+            data=data, 
+            files=files
+        )
+        
+        # Fermeture du fichier après l'envoi
+        if files:
+            files['logo'][1].close()
+        
+        return response
+
 
 
     # --------------------
@@ -1134,15 +1226,43 @@ class RemoteGateway:
     
 
     # --------------------
-    # Laboratoire
+    # Laboratoire 🟢 AJOUTS CRUD EXAMEN
     # --------------------
     def list_examens(self):
         """
         Récupère la liste complète des examens depuis l'API.
-        Route Backend: GET /labo/ (prefixe défini dans le router)
+        Route Backend: GET /labo/
         """
-        # Correction ici : on appelle "/labo/" et non "/labo/examens"
         return self.request("GET", "/labo/")
+    
+    def create_examen(self, data: Dict[str, Any]):
+        """
+        Crée un nouvel examen.
+        Route Backend: POST /labo/exams
+        """
+        return self.request("POST", "/labo/exams", json=data)
+
+    def update_examen(self, examen_id: int, data: Dict[str, Any]):
+        """
+        Met à jour un examen existant.
+        Route Backend: PUT /labo/exams/{examen_id}
+        """
+        return self.request("PUT", f"/labo/exams/{examen_id}", json=data)
+
+    def delete_examen(self, examen_id: int):
+        """
+        Supprime un examen.
+        Route Backend: DELETE /labo/exams/{examen_id}
+        """
+        # Le backend renvoie 204 No Content, donc on gère le statut plutôt que le JSON.
+        response = self.request("DELETE", f"/labo/exams/{examen_id}")
+        if isinstance(response, dict) and "_status_code" in response:
+             return response["_status_code"] == 200
+        # Si la requête réussit sans corps, requests.request peut ne pas retourner de JSON.
+        # Nous modifions request pour capturer le statut HTTP si l'appel réussit mais ne renvoie pas de JSON.
+        # Pour une méthode DELETE qui renvoie 204, on suppose que le succès est 204.
+        return response
+
     
     def get_patient_lab_history(self, patient_id: int):
         """
@@ -1151,3 +1271,100 @@ class RemoteGateway:
         """
         return self.request("GET", f"/labo/patient/{patient_id}/history")
     
+
+    #-----------
+    # Log Actions
+    #------------
+    def get_total_retraits(self, status: str = None, date_from=None, date_to=None):
+        """
+        Calcule le total des retraits via l'API, en assurant une plage de temps complète.
+        """
+        params = {}
+        if status:
+            params["status"] = status
+        
+        if date_from:
+            d_str = date_from.isoformat() if hasattr(date_from, 'isoformat') else str(date_from)
+            # Force le début de journée si l'heure est absente
+            if "T" not in d_str and len(d_str) <= 10:
+                d_str += "T00:00:00"
+            params["date_from"] = d_str
+
+        if date_to:
+            d_str = date_to.isoformat() if hasattr(date_to, 'isoformat') else str(date_to)
+            # Correction: Force la FIN de journée (23:59:59)
+            if "T" not in d_str and len(d_str) <= 10:
+                d_str += "T23:59:59"
+            params["date_to"] = d_str
+            
+        return self.request("GET", "/retrait/total", params=params)
+
+    def get_caisse_financial_kpis(self, date_from: date, date_to: date) -> Dict:
+        """
+        Appelle l'endpoint Backend pour récupérer les KPIs financiers de la caisse.
+        """
+        # Assurer que les dates incluent la fin de journée
+        d_from_str = date_from.isoformat() if hasattr(date_from, 'isoformat') else str(date_from)
+        if "T" not in d_from_str and len(d_from_str) <= 10:
+             d_from_str += "T00:00:00"
+
+        d_to_str = date_to.isoformat() if hasattr(date_to, 'isoformat') else str(date_to)
+        if "T" not in d_to_str and len(d_to_str) <= 10:
+             d_to_str += "T23:59:59"
+
+        params = {
+            "date_from": d_from_str,
+            "date_to": d_to_str
+        }
+        return self.request("GET", "/dashboard/caisse/kpis", params=params)
+        
+        
+    # --- 2. FONCTIONS D'AUDIT (NOUVELLES) ---
+    
+    def list_access_logs(self, page: int = 1, per_page: int = 20, user_id: Optional[int] = None, 
+                         date_from: Optional[date] = None, date_to: Optional[date] = None, 
+                         action_type: Optional[str] = None) -> Dict:
+        """
+        Récupère les logs d'accès (Login/Logout) paginés.
+        Endpoint: GET /audit/access
+        """
+        params = {
+            "page": page,
+            "per_page": per_page,
+            "user_id": user_id,
+            "action_type": action_type
+        }
+        # Convertir les dates si elles existent
+        if date_from:
+            params["date_from"] = date_from.isoformat()
+        if date_to:
+            params["date_to"] = date_to.isoformat()
+            
+        # Nettoyage des paramètres None avant envoi (important pour les requêtes GET)
+        cleaned_params = {k: v for k, v in params.items() if v is not None}
+        
+        return self.request("GET", "/audit/access", params=cleaned_params)
+
+    def list_action_logs(self, page: int = 1, per_page: int = 20, user_id: Optional[int] = None, 
+                         date_from: Optional[date] = None, date_to: Optional[date] = None, 
+                         resource_type: Optional[str] = None) -> Dict:
+        """
+        Récupère les logs d'actions métier (CRUD) paginés.
+        Endpoint: GET /audit/actions
+        """
+        params = {
+            "page": page,
+            "per_page": per_page,
+            "user_id": user_id,
+            "resource_type": resource_type
+        }
+        # Convertir les dates si elles existent
+        if date_from:
+            params["date_from"] = date_from.isoformat()
+        if date_to:
+            params["date_to"] = date_to.isoformat()
+            
+        # Nettoyage des paramètres None
+        cleaned_params = {k: v for k, v in params.items() if v is not None}
+        
+        return self.request("GET", "/audit/actions", params=cleaned_params)

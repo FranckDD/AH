@@ -1,59 +1,133 @@
-// src/stores/auditStore.js
+// Fichier : src/stores/auditStore.js
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
-
-// MOCK : audit_access (Connexions - Inchangé)
-const mockAccessLogs = [
-    { access_id: 105, username: 'ToxicoManager', action_type: 'LOGIN', timestamp: '2023-11-26 14:00:00', ip_address: '10.0.0.5', details: 'Connexion réussie' },
-    { access_id: 104, username: 'Admin', action_type: 'LOGOUT', timestamp: '2023-11-26 12:00:00', ip_address: '192.168.1.10', details: 'Déconnexion manuelle' },
-    { access_id: 103, username: 'Mme. Nurse', action_type: 'LOGIN_FAILED', timestamp: '2023-11-26 08:20:00', ip_address: '192.168.1.15', details: 'Mot de passe incorrect' },
-];
-
-// 🟢 MOCK : audit_user_actions (Reflétant tes contrôleurs)
-// Les types de ressources correspondent à tes modules backend
-const mockActionLogs = [
-    // Toxico
-    { action_id: 601, username: 'Dr. Nkono', resource_type: 'TOXICO', action_performed: 'EVALUATION', timestamp: '2023-11-26 15:30:00', details: 'Ajout évaluation phase 2 (Marie Curie)' },
-    // Pharma / Stock
-    { action_id: 602, username: 'Pharmacien', resource_type: 'PHARMACY', action_performed: 'DISPENSE', timestamp: '2023-11-26 14:10:00', details: 'Sortie stock: Doliprane x2 boites' },
-    // Caisse
-    { action_id: 603, username: 'Caissier', resource_type: 'CAISSE', action_performed: 'PAYMENT', timestamp: '2023-11-26 11:45:00', details: 'Encaissement facture #FAC-2023-889' },
-    // Médical
-    { action_id: 604, username: 'Dr. House', resource_type: 'MEDICAL_RECORD', action_performed: 'CREATE', timestamp: '2023-11-26 09:15:00', details: 'Création dossier médical initial' },
-    // Labo
-    { action_id: 605, username: 'Laborantin', resource_type: 'LAB', action_performed: 'VALIDATE', timestamp: '2023-11-26 10:20:00', details: 'Validation résultats NFS' },
-    // Spirituel
-    { action_id: 606, username: 'Père Jean', resource_type: 'SPIRITUEL', action_performed: 'NOTE', timestamp: '2023-11-26 16:00:00', details: 'Ajout note consultation spirituelle' },
-    // Admin
-    { action_id: 607, username: 'Admin', resource_type: 'USER', action_performed: 'UPDATE', timestamp: '2023-11-26 08:05:00', details: 'Changement rôle utilisateur ID 45' },
-];
-
-const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+import { AuditGateway } from '@/services/AuditGateway'; // 🟢 Import de la Gateway réelle
 
 export const useAuditStore = defineStore('audit', () => {
+    
+    // --- STATE ---
     const accessLogs = ref([]);
     const actionLogs = ref([]);
+    
+    // Pagination et filtres pour les Logs d'Accès
+    const accessPagination = ref({ page: 1, per_page: 20, total: 0, total_pages: 1 });
+    const accessFilters = ref({
+        userId: null,
+        dateFrom: null,
+        dateTo: null,
+        actionType: null // 'LOGIN', 'LOGOUT', 'LOGIN_FAILED'
+    });
+
+    // Pagination et filtres pour les Logs d'Actions
+    const actionPagination = ref({ page: 1, per_page: 20, total: 0, total_pages: 1 });
+    const actionFilters = ref({
+        userId: null,
+        dateFrom: null,
+        dateTo: null,
+        resourceType: null, // 'PATIENT', 'TOXICO', etc.
+        actionType: null // 'CREATE', 'UPDATE', 'DELETE', etc.
+    });
+    
     const isLoading = ref(false);
+
+    // --- ACTIONS ---
 
     async function fetchAccessLogs() {
         isLoading.value = true;
-        await delay(500);
-        accessLogs.value = [...mockAccessLogs];
-        isLoading.value = false;
+        try {
+            const params = { 
+                ...accessFilters.value, 
+                page: accessPagination.value.page, 
+                per_page: accessPagination.value.per_page 
+            };
+            
+            // 🟢 Appel API réel
+            const res = await AuditGateway.fetchAccessLogs(params);
+            
+            accessLogs.value = res.data.data || [];
+            accessPagination.value = {
+                page: res.data.page,
+                per_page: res.data.per_page,
+                total: res.data.total,
+                total_pages: res.data.total_pages
+            };
+        } catch (error) {
+            console.error("Erreur chargement logs accès:", error);
+            accessLogs.value = [];
+        } finally {
+            isLoading.value = false;
+        }
     }
 
     async function fetchActionLogs() {
         isLoading.value = true;
-        await delay(500);
-        actionLogs.value = [...mockActionLogs];
-        isLoading.value = false;
+        try {
+            const params = { 
+                ...actionFilters.value, 
+                page: actionPagination.value.page, 
+                per_page: actionPagination.value.per_page 
+            };
+            
+            // 🟢 Appel API réel
+            const res = await AuditGateway.fetchActionLogs(params);
+            
+            actionLogs.value = res.data.data || [];
+            actionPagination.value = {
+                page: res.data.page,
+                per_page: res.data.per_page,
+                total: res.data.total,
+                total_pages: res.data.total_pages
+            };
+        } catch (error) {
+            console.error("Erreur chargement logs actions:", error);
+            actionLogs.value = [];
+        } finally {
+            isLoading.value = false;
+        }
     }
 
-    return { 
-        accessLogs, 
-        actionLogs, 
-        isLoading, 
-        fetchAccessLogs, 
-        fetchActionLogs 
+    // Méthodes pour changer la page
+    function setAccessPage(page) {
+        if (page > 0 && page <= accessPagination.value.total_pages) {
+            accessPagination.value.page = page;
+            fetchAccessLogs();
+        }
+    }
+
+    function setActionPage(page) {
+        if (page > 0 && page <= actionPagination.value.total_pages) {
+            actionPagination.value.page = page;
+            fetchActionLogs();
+        }
+    }
+    
+    // Méthodes pour changer les filtres (à utiliser dans le composant Vue)
+    function setAccessFilters(newFilters) {
+        accessFilters.value = { ...accessFilters.value, ...newFilters };
+        accessPagination.value.page = 1; // Toujours revenir à la première page
+        fetchAccessLogs();
+    }
+    
+    function setActionFilters(newFilters) {
+        actionFilters.value = { ...actionFilters.value, ...newFilters };
+        actionPagination.value.page = 1; // Toujours revenir à la première page
+        fetchActionLogs();
+    }
+
+
+    return {
+        isLoading,
+        accessLogs,
+        actionLogs,
+        accessPagination,
+        actionPagination,
+        accessFilters,
+        actionFilters,
+        fetchAccessLogs,
+        fetchActionLogs,
+        setAccessPage,
+        setActionPage,
+        setAccessFilters,
+        setActionFilters
     };
 });

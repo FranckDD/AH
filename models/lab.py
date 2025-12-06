@@ -15,6 +15,7 @@ class Examen(Base):
     categorie: Mapped[str] = mapped_column(Text, nullable=False)
 
     parametres: Mapped[List["Parametre"]] = relationship("Parametre", back_populates="examen")
+    prix = mapped_column(Numeric(10, 2), default=0.0)
 
 
 class Parametre(Base):

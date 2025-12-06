@@ -223,6 +223,7 @@ import StatCard from '@/components/dashboard/StatCard.vue';
 // Assurez-vous que les chemins correspondent exactement à votre arborescence
 import ToxicoAdmissionModal from '@/components/toxico/ToxicoAdmissionModal.vue';
 import FinanceModal from '@/components/finance/FinanceModal.vue'; 
+import { useConfigStore } from '@/stores/configStore';
 
 import { 
   BanknotesIcon, UserGroupIcon, HomeModernIcon, 
@@ -267,6 +268,12 @@ const handleFinanceSaved = () => {
     // On met à jour le dashboard pour voir les revenus augmenter
     dashboardStore.fetchDashboardData();
 };
+const configStore = useConfigStore();
+
+onMounted(() => {
+    dashboardStore.fetchDashboardData();
+    configStore.fetchStructureInfo(); // S'assurer que les infos sont chargées
+});
 
 // --- HELPERS D'AFFICHAGE ---
 const currentDate = computed(() => {

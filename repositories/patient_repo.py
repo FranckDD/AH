@@ -272,6 +272,56 @@ class PatientRepository:
             Patient.is_deleted == False # <-- ICI
         ).first()
     
+    # ... méthodes existantes ...
+
+    def _list_by_flag(self, flag_name: str, page: int, per_page: int, search: Optional[str]) -> Dict[str, Any]:
+        """Méthode interne pour filtrer par un drapeau spécifique (is_clinical, is_toxicology, is_spiritual)"""
+        
+        # 1. Base Query : Non supprimés ET le flag est True
+        query = self.session.query(Patient).filter(
+            Patient.is_deleted == False,
+            getattr(Patient, flag_name) == True 
+        )
+
+        # 2. Recherche (si applicable)
+        if search:
+            term = f"%{search}%"
+            query = query.filter(
+                or_(
+                    Patient.first_name.ilike(term),
+                    Patient.last_name.ilike(term),
+                    Patient.national_id.ilike(term),
+                    Patient.code_patient.ilike(term),
+                    Patient.contact_phone.ilike(term)
+                )
+            )
+
+        # 3. Calcul du Total (AVANT pagination)
+        total_count = query.count()
+
+        # 4. Pagination
+        query = query.order_by(Patient.last_updated_at.desc())
+        items = query.offset((page - 1) * per_page).limit(per_page).all()
+
+        return {
+            "data": items,
+            "total": total_count,
+            "page": page,
+            "per_page": per_page,
+            "total_pages": (total_count + per_page - 1) // per_page if per_page > 0 else 1
+        }
+
+    # --- MÉTHODES PUBLIQUES SPÉCIFIQUES ---
+
+    def list_clinical_patients(self, page=1, per_page=10, search=None):
+        return self._list_by_flag('is_clinical', page, per_page, search)
+
+    def list_toxicology_patients(self, page=1, per_page=10, search=None):
+        return self._list_by_flag('is_toxicology', page, per_page, search)
+
+    def list_spiritual_patients_paginated(self, page=1, per_page=10, search=None):
+        return self._list_by_flag('is_spiritual', page, per_page, search)
+    
     def find_by_creator_role(self, role_name: str):
         """
         Renvoie tous les patients dont le créateur a pour role_name (secrétaire, etc.).
@@ -552,4 +602,24 @@ class PatientRepository:
             result[key] = int(count)
             
         return result
+    
+    def get_global_patient_counts(self) -> Dict[str, int]:
+        """
+        Compte tous les patients par catégorie en une seule requête DB.
+        """
+        query = self.session.query(
+            func.count(Patient.patient_id).label('total'),
+            func.count(Patient.patient_id).filter(Patient.is_clinical == True).label('clinical'),
+            func.count(Patient.patient_id).filter(Patient.is_toxicology == True).label('toxicology'),
+            func.count(Patient.patient_id).filter(Patient.is_spiritual == True).label('spiritual')
+        ).filter(Patient.is_deleted == False)
+
+        result = query.one()
+
+        return {
+            "total_all": result.total,
+            "total_clinical": result.clinical,
+            "total_toxicology": result.toxicology,
+            "total_spiritual": result.spiritual
+        }
 

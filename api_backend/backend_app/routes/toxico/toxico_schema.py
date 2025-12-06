@@ -100,7 +100,7 @@ class ToxicoAdmissionCreate(BaseModel):
     psychologist_id: int = Field(..., alias="psychologist") # Mappe 'psychologist' du front vers 'psychologist_id'
     guardianName: str
     guardianContact: str
-    consentFile: Optional[str] = None # On reçoit le nom du fichier pour l'instant
+    consentFile: Optional[str] = Field(None) # On reçoit le nom du fichier pour l'instant
     notes: Optional[str] = None
 
 class ToxicoEvaluationCreate(BaseModel):

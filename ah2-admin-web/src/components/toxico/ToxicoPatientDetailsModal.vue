@@ -126,9 +126,22 @@
                 <p class="font-semibold text-gray-800">{{ patient.guardianContact || patient.guardian_contact || 'Non renseigné' }}</p>
               </div>
               <div class="col-span-2">
-                <label class="block text-xs font-medium text-gray-500 uppercase mb-1">Consentement signé</label>
-                <p class="font-semibold text-gray-800">{{ patient.consentFile || patient.consent_file || 'Aucun fichier téléchargé' }}</p>
+  <label class="block text-xs font-medium text-gray-500 uppercase mb-1">Consentement signé</label>
+  
+              <div v-if="patient.consentFile || patient.consent_file" class="flex items-center mt-1">
+                <PaperClipIcon class="h-5 w-5 text-gray-400 mr-2" />
+                <a 
+                  :href="getFileUrl(patient.consentFile || patient.consent_file)" 
+                  target="_blank" 
+                  class="text-blue-600 hover:text-blue-800 font-medium underline flex items-center transition-colors"
+                  download>
+                  Télécharger le document
+                  <ArrowDownTrayIcon class="h-4 w-4 ml-1" />
+                </a>
               </div>
+
+              <p v-else class="text-gray-400 italic text-sm mt-1">Aucun fichier joint</p>
+            </div>
             </div>
           </div>
 
@@ -184,7 +197,9 @@ import {
   CalendarIcon,
   ShieldCheckIcon,
   DocumentTextIcon,
-  ClipboardDocumentListIcon
+  ClipboardDocumentListIcon,
+  PaperClipIcon, 
+  ArrowDownTrayIcon
 } from '@heroicons/vue/24/outline';
 
 const props = defineProps({
@@ -227,8 +242,28 @@ const calculateAge = (dob) => {
     return '?';
   }
 };
+const API_BASE_URL = 'http://localhost:8000'; // À remplacer par import.meta.env.VITE_API_URL en prod
+// Fonction intelligente pour générer l'URL
+const getFileUrl = (path) => {
+  if (!path) return '#';
+  // Si c'est déjà une URL complète (Supabase), on la retourne telle quelle
+
+  if (path.startsWith('http')) {
+    return path;
+  }
+
+
+  // Sinon, c'est un ancien chemin local (static/uploads/...), on construit l'URL API
+  // Assure-toi que ton backend sert bien les fichiers statiques
+  // return `${API_BASE_URL}/${path}`; 
+  // Ou si le path commence déjà par 'static/', juste concaténer
+
+  return path.startsWith('/') ? `${API_BASE_URL}${path}` : `${API_BASE_URL}/${path}`;
+
+};
 
 // Couleur de phase (identique à celle dans la liste)
+
 const getPhaseColor = (phase) => {
   switch(phase) {
     case 1: return 'bg-red-100 text-red-800 border-red-200'; 
@@ -237,6 +272,7 @@ const getPhaseColor = (phase) => {
     case 4: return 'bg-green-100 text-green-800 border-green-200'; 
     default: return 'bg-gray-100';
   }
+
 };
 
 // Ouvrir le dossier complet
