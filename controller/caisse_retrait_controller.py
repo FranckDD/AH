@@ -91,3 +91,11 @@ class CaisseRetraitController:
             cancelled_by=self.user.user_id,
             justification=cancel_justification
         )
+
+    def list_transactions(self):
+        """
+        Méthode appelée par la vue pour récupérer toutes les transactions.
+        """
+        return self.repo.list_retraits()
+
+        

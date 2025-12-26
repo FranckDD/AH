@@ -56,199 +56,137 @@ class CaisseFormView(ctk.CTkToplevel):
         # Code patient
         self.var_code = ctk.StringVar(value="")
 
-        # Avance de paiement (nouveau champ)
+        # Avance de paiement
         self.var_advance_amount = tk.StringVar(value="0.00")
 
-        # 3 cases à cocher pour type de transaction
+        # Cases à cocher pour type de transaction
         self.var_trans_consult = tk.BooleanVar(value=False)
-        self.var_trans_med = tk.BooleanVar(value=False)
+        self.var_trans_med     = tk.BooleanVar(value=False)
         self.var_trans_booklet = tk.BooleanVar(value=False)
+        self.var_trans_hosp    = tk.BooleanVar(value=False)
+        self.var_trans_exam    = tk.BooleanVar(value=False)
 
         # Mode paiement
         self.var_payment = ctk.StringVar(value=("Espèces" if self.locale == "fr" else "Cash"))
         # Note libre
-        self.var_note = tk.StringVar(value="")
+        self.var_note = ctk.StringVar(value="")
         # Date/heure (readonly)
         self.var_date = ctk.StringVar(value=datetime.utcnow().strftime("%Y-%m-%d %H:%M"))
-        # Montant total des lignes (calcule dynamique)
+        # Montant total des lignes
         self.var_amount = tk.StringVar(value="0.00")
-
 
     def _build_ui(self):
         pad_label = {"padx": 10, "pady": 5}
         pad_entry = {"padx": 10, "pady": 5}
 
-        # ——— Titre de la fenêtre ———
+        # Titre
         title = {"fr": "Transaction Caisse", "en": "Cash Transaction"}[self.locale]
-        if self.transaction:
-            title += {"fr": " [Édition]", "en": " [Edit]"}[self.locale]
-        else:
-            title += {"fr": " [Nouveau]", "en": " [New]"}[self.locale]
+        title += {True: {"fr": " [Édition]", "en": " [Edit]"}[self.locale],
+                  False: {"fr": " [Nouveau]", "en": " [New]"}[self.locale]}[bool(self.transaction)]
         self.title(title)
 
-        # ——— Cadre supérieur : Patient, Date, Avance, Type (3 cases), Payment Method ———
+        # Cadre supérieur
         frm_top = ctk.CTkFrame(self)
         frm_top.pack(fill="x", padx=10, pady=(10, 5))
 
-        # 1) Code patient (optionnel)
-        ctk.CTkLabel(
-            frm_top,
-            text={"fr": "Code patient :", "en": "Patient code:"}[self.locale]
-        ).grid(row=0, column=0, sticky="w", **pad_label)
-        ctk.CTkEntry(frm_top, textvariable=self.var_code).grid(
-            row=0, column=1, **pad_entry
-        )
-        ctk.CTkButton(
-            frm_top,
-            text={"fr": "Charger", "en": "Load"}[self.locale],
-            command=self._load_patient
-        ).grid(row=0, column=2, **pad_entry)
+        # Code patient
+        ctk.CTkLabel(frm_top, text={"fr": "Code patient :", "en": "Patient code:"}[self.locale])\
+            .grid(row=0, column=0, sticky="w", **pad_label)
+        ctk.CTkEntry(frm_top, textvariable=self.var_code).grid(row=0, column=1, **pad_entry)
+        ctk.CTkButton(frm_top, text={"fr": "Charger", "en": "Load"}[self.locale], command=self._load_patient)\
+            .grid(row=0, column=2, **pad_entry)
 
-        # Label supplémentaire pour afficher nom et dernière consultation
-        self.lbl_patient_info = ctk.CTkLabel(
-            frm_top,
-            text="",
-            justify="left"
-        )
+        self.lbl_patient_info = ctk.CTkLabel(frm_top, text="", justify="left")
         self.lbl_patient_info.grid(row=1, column=0, columnspan=3, sticky="w", padx=10, pady=(0, 5))
 
-        # 2) Date/Heure (readonly)
-        ctk.CTkLabel(
-            frm_top,
-            text={"fr": "Date/Heure :", "en": "Date/Time:"}[self.locale]
-        ).grid(row=2, column=0, sticky="w", **pad_label)
-        ent_date = ctk.CTkEntry(
-            frm_top,
-            textvariable=self.var_date,
-            state="disabled"
-        )
-        ent_date.grid(row=2, column=1, columnspan=2, sticky="ew", **pad_entry)
+        # Date/Heure
+        ctk.CTkLabel(frm_top, text={"fr": "Date/Heure :", "en": "Date/Time:"}[self.locale])\
+            .grid(row=2, column=0, sticky="w", **pad_label)
+        ctk.CTkEntry(frm_top, textvariable=self.var_date, state="disabled").grid(
+            row=2, column=1, columnspan=2, sticky="ew", **pad_entry)
 
-        # 3) Montant avance (optionnel)
-        ctk.CTkLabel(
-            frm_top,
-            text={"fr": "Avance (€) :", "en": "Advance (€):"}[self.locale]
-        ).grid(row=3, column=0, sticky="w", **pad_label)
-        ent_advance = ctk.CTkEntry(
-            frm_top,
-            textvariable=self.var_advance_amount
-        )
-        ent_advance.grid(row=3, column=1, columnspan=2, sticky="ew", **pad_entry)
+        # Avance
+        ctk.CTkLabel(frm_top, text={"fr": "Avance (CFA) :", "en": "Advance (CFA):"}[self.locale])\
+            .grid(row=3, column=0, sticky="w", **pad_label)
+        ctk.CTkEntry(frm_top, textvariable=self.var_advance_amount).grid(
+            row=3, column=1, columnspan=2, sticky="ew", **pad_entry)
 
-        # 4) “Type de transaction” en 3 cases
-        ctk.CTkLabel(
-            frm_top,
-            text={"fr": "Type transac. :", "en": "Trans. type:"}[self.locale]
-        ).grid(row=4, column=0, sticky="nw", **pad_label)
-
+        # Type transaction
+        ctk.CTkLabel(frm_top, text={"fr": "Type transac. :", "en": "Trans. type:"}[self.locale])\
+            .grid(row=4, column=0, sticky="nw", **pad_label)
         box_frame = ctk.CTkFrame(frm_top)
         box_frame.grid(row=4, column=1, columnspan=2, sticky="w", **pad_entry)
 
-        ctk.CTkCheckBox(
-            box_frame,
-            text={"fr": "Consultation", "en": "Consultation"}[self.locale],
-            variable=self.var_trans_consult,
-            command=self._on_type_change
-        ).pack(side="left", padx=(0, 10))
+        for var, text in [
+            (self.var_trans_consult, {"fr": "Consultation", "en": "Consultation"}[self.locale]),
+            (self.var_trans_med,     {"fr": "Vente Médicament", "en": "Sale Medication"}[self.locale]),
+            (self.var_trans_booklet, {"fr": "Vente Carnet", "en": "Sale Booklet"}[self.locale]),
+            (self.var_trans_hosp,    {"fr": "Hospitalisation", "en": "Hospitalization"}[self.locale]),
+            (self.var_trans_exam,    {"fr": "Examens", "en": "Exams"}[self.locale])
+        ]:
+            ctk.CTkCheckBox(box_frame, text=text, variable=var, command=self._on_type_change)\
+                .pack(side="left", padx=(0, 10))
 
-        ctk.CTkCheckBox(
-            box_frame,
-            text={"fr": "Vente Médicament", "en": "Sale Medication"}[self.locale],
-            variable=self.var_trans_med,
-            command=self._on_type_change
-        ).pack(side="left", padx=(0, 10))
-
-        ctk.CTkCheckBox(
-            box_frame,
-            text={"fr": "Vente Carnet", "en": "Sale Booklet"}[self.locale],
-            variable=self.var_trans_booklet,
-            command=self._on_type_change
-        ).pack(side="left")
-
-        # 5) Mode de paiement
-        ctk.CTkLabel(
-            frm_top,
-            text={"fr": "Mode paiement :", "en": "Payment method:"}[self.locale]
-        ).grid(row=5, column=0, sticky="w", **pad_label)
-
+        # Mode paiement
+        ctk.CTkLabel(frm_top, text={"fr": "Mode paiement :", "en": "Payment method:"}[self.locale])\
+            .grid(row=5, column=0, sticky="w", **pad_label)
         self.cb_pay = ctk.CTkComboBox(
             frm_top,
             variable=self.var_payment,
             values=(
-                ["Espèces", "Carte", "Chèque", "Virement", "Orange Money", "MTN Money"]
-                if self.locale == "fr"
-                else ["Cash", "Card", "Check", "Transfer", "Orange Money", "MTN Money"]
+                ["Espèces","Carte","Chèque","Virement","Orange Money","MTN Money"]
+                if self.locale=="fr"
+                else ["Cash","Card","Check","Transfer","Orange Money","MTN Money"]
             ),
             width=200
         )
         self.cb_pay.grid(row=5, column=1, columnspan=2, sticky="ew", **pad_entry)
 
-        # 6) Note (facultative)
-        ctk.CTkLabel(self, text={"fr": "Note :", "en": "Note:"}[self.locale]) \
+        # Note
+        ctk.CTkLabel(self, text={"fr": "Note :", "en": "Note:"}[self.locale])\
             .pack(anchor="w", padx=10, pady=(10, 0))
         self.txt_note = ctk.CTkTextbox(self, height=60)
         self.txt_note.pack(fill="x", padx=10, pady=(0, 5))
         if self.transaction and self.transaction.note:
             self.txt_note.insert("0.0", self.transaction.note)
 
-        # ——— Cadre “Lignes” : tableau + boutons Ajouter/Supprimer ———
-        lbl_items = ctk.CTkLabel(self, text={"fr": "Lignes :", "en": "Lines:"}[self.locale])
-        lbl_items.pack(anchor="w", padx=10, pady=(10, 0))
-
+        # Lignes
+        ctk.CTkLabel(self, text={"fr": "Lignes :", "en": "Lines:"}[self.locale])\
+            .pack(anchor="w", padx=10, pady=(10, 0))
         frm_items = ctk.CTkFrame(self)
         frm_items.pack(fill="both", expand=True, padx=10, pady=(0, 5))
-
-        cols = ("Type", "Réf. ID", "Quantité", "Prix unitaire", "Total", "Note")
+        cols = ("Type","Réf. ID","Quantité","Prix unitaire","Total","Note")
         self.tree_items = ttk.Treeview(frm_items, columns=cols, show="headings", height=5)
-        for c_ in cols:
-            self.tree_items.heading(c_, text=c_, anchor="center")
-            self.tree_items.column(c_, anchor="center", width=100)
+        for c in cols:
+            self.tree_items.heading(c, text=c, anchor="center")
+            self.tree_items.column(c, anchor="center", width=100)
         self.tree_items.pack(side="left", fill="both", expand=True)
-
         scrollbar = ttk.Scrollbar(frm_items, orient="vertical", command=self.tree_items.yview)
-        self.tree_items.configure(yscrollcommand=scrollbar.set)
         scrollbar.pack(side="right", fill="y")
+        self.tree_items.configure(yscrollcommand=scrollbar.set)
 
-        # Boutons Ajouter/Supprimer ligne
         btn_frame = ctk.CTkFrame(self)
         btn_frame.pack(fill="x", padx=10, pady=(5, 10))
-        ctk.CTkButton(
-            btn_frame,
-            text={"fr": "Ajouter ligne", "en": "Add Line"}[self.locale],
-            command=self._add_line
-        ).pack(side="left", padx=(0, 10))
-        ctk.CTkButton(
-            btn_frame,
-            text={"fr": "Supprimer ligne", "en": "Remove Line"}[self.locale],
-            command=self._remove_selected_line,
-            fg_color="#D32F2F"
-        ).pack(side="left")
+        ctk.CTkButton(btn_frame, text={"fr": "Ajouter ligne", "en": "Add Line"}[self.locale], command=self._add_line)\
+            .pack(side="left", padx=(0, 10))
+        ctk.CTkButton(btn_frame, text={"fr": "Supprimer ligne", "en": "Remove Line"}[self.locale], fg_color="#D32F2F", command=self._remove_selected_line)\
+            .pack(side="left")
 
-        # ——— Montant total (somme des lignes) ———
+        # Total
         frm_total = ctk.CTkFrame(self)
         frm_total.pack(fill="x", padx=10, pady=(0, 10))
-        ctk.CTkLabel(
-            frm_total,
-            text={"fr": "Montant total :", "en": "Total amount:"}[self.locale]
-        ).grid(row=0, column=0, sticky="w", padx=10, pady=5)
-        ent_total = ctk.CTkEntry(frm_total, textvariable=self.var_amount, state="disabled")
-        ent_total.grid(row=0, column=1, sticky="ew", padx=10, pady=5)
+        ctk.CTkLabel(frm_total, text={"fr": "Montant total :", "en": "Total amount:"}[self.locale])\
+            .grid(row=0, column=0, sticky="w", padx=10, pady=5)
+        ctk.CTkEntry(frm_total, textvariable=self.var_amount, state="disabled").grid(row=0, column=1, sticky="ew", padx=10, pady=5)
         frm_total.grid_columnconfigure(1, weight=1)
 
-        # ——— Boutons Enregistrer / Annuler ———
+        # Enregistrer / Annuler
         action_frame = ctk.CTkFrame(self)
         action_frame.pack(pady=(0, 15))
-        ctk.CTkButton(
-            action_frame,
-            text={"fr": "Enregistrer", "en": "Save"}[self.locale],
-            command=self._on_save
-        ).pack(side="left", padx=10)
-        ctk.CTkButton(
-            action_frame,
-            text={"fr": "Annuler", "en": "Cancel"}[self.locale],
-            fg_color="#D32F2F",
-            command=self.destroy
-        ).pack(side="left", padx=10)
+        ctk.CTkButton(action_frame, text={"fr": "Enregistrer", "en": "Save"}[self.locale], command=self._on_save)\
+            .pack(side="left", padx=10)
+        ctk.CTkButton(action_frame, text={"fr": "Annuler", "en": "Cancel"}[self.locale], fg_color="#D32F2F", command=self.destroy)\
+            .pack(side="left", padx=10)
 
 
     def _on_type_change(self):
@@ -331,37 +269,29 @@ class CaisseFormView(ctk.CTkToplevel):
 
 
     def _add_line(self):
-        """
-        Ouvre AddItemDialog en lui passant la liste des types cochés,
-        + patient_id pour préremplir la consultation.
-        """
         allowed = []
         if self.var_trans_consult.get():
-            # Si l’utilisateur coche “Consultation”, on propose les deux sous‐types
-            if self.locale == 'fr':
-                allowed.append('Consultation Spirituel')
-                allowed.append('Consultation Médical')
-            else:
-                allowed.append('Spiritual Consultation')
-                allowed.append('Medical Consultation')
+            allowed += [ {"fr":"Consultation Spirituel","en":"Spiritual Consultation"}[self.locale],
+                         {"fr":"Consultation Médical","en":"Medical Consultation"}[self.locale] ]
         if self.var_trans_med.get():
-            allowed.append('Médicament' if self.locale == 'fr' else 'Medication')
+            allowed.append({"fr":"Médicament","en":"Medication"}[self.locale])
         if self.var_trans_booklet.get():
-            allowed.append('Carnet' if self.locale == 'fr' else 'Booklet')
-
+            allowed.append({"fr":"Carnet","en":"Booklet"}[self.locale])
+        if self.var_trans_hosp.get():
+            allowed += [ {"fr":"Hospitalisation","en":"Hospitalization"}[self.locale],
+                         {"fr":"Désintox","en":"Detox"}[self.locale] ]
+        if self.var_trans_exam.get():
+            allowed.append({"fr":"Examens","en":"Exams"}[self.locale])
         if not allowed:
             messagebox.showerror(
-                {"fr": "Erreur", "en": "Error"}[self.locale],
-                {"fr": "Cochez au moins un type de transaction avant d’ajouter une ligne.",
-                 "en": "Please check at least one transaction type before adding a line."}[self.locale]
+                {"fr":"Erreur","en":"Error"}[self.locale],
+                {"fr":"Cochez au moins un type...","en":"Please check at least one type..."}[self.locale]
             )
             return
-
         def on_item_confirm(item_dict):
             self.items.append(item_dict)
             self._refresh_items()
             self._update_total()
-
         AddItemDialog(
             master=self,
             on_confirm=on_item_confirm,
@@ -512,17 +442,22 @@ class CaisseFormView(ctk.CTkToplevel):
             types_sel.append("Vente Médicament" if self.locale == "fr" else "Sale Medication")
         if self.var_trans_booklet.get():
             types_sel.append("Vente Carnet" if self.locale == "fr" else "Sale Booklet")
+        if self.var_trans_hosp.get():
+            types_sel.append("Hospitalisation" if self.locale == "fr" else "Hospitalization")
+        if self.var_trans_exam.get():
+            types_sel.append("Examens" if self.locale == "fr" else "Exams")
+
         if not types_sel:
             messagebox.showerror(
                 {"fr": "Erreur", "en": "Error"}[self.locale],
                 {"fr": "Sélectionnez au moins un type de transaction.",
-                 "en": "Select at least one transaction type."}[self.locale]
+                "en": "Select at least one transaction type."}[self.locale]
             )
             return
+
         data["transaction_type"] = ", ".join(types_sel)
 
         # b) Patient (optionnel, mais si avance > 0, alors obligatoire)
-        advance_val = 0.0
         try:
             advance_val = float(self.var_advance_amount.get())
         except ValueError:
@@ -536,7 +471,7 @@ class CaisseFormView(ctk.CTkToplevel):
             messagebox.showerror(
                 {"fr": "Erreur", "en": "Error"}[self.locale],
                 {"fr": "Vous devez renseigner un code patient si vous faites une avance.",
-                 "en": "You must provide a patient code if there is an advance."}[self.locale]
+                "en": "You must provide a patient code if there is an advance."}[self.locale]
             )
             return
 

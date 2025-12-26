@@ -1,6 +1,8 @@
+#user-controller.py
 from repositories.user_repo import UserRepository
 from repositories.role_repo import RoleRepository
 from models.user import User
+from models.application_role import ApplicationRole
 from sqlalchemy.exc import SQLAlchemyError
 
 class UserController:
@@ -9,10 +11,14 @@ class UserController:
         self.role_repo = role_repo
 
     def get_all_roles(self) -> list[str]:
-        return [r.role_name for r in self.role_repo.list_roles()]
+        """Retourne la liste des noms de rôles"""
+        roles = self.role_repo.list_roles()
+        return [str(r.role_name) for r in roles]  # Conversion explicite en str
 
     def get_all_specialties(self) -> list[str]:
-        return [s.name for s in self.role_repo.list_specialties()]
+        """Retourne la liste des noms de spécialités"""
+        specialties = self.role_repo.list_specialties()
+        return [str(s.name) for s in specialties]  # Conversion explicite en str
 
     def create_user(self, data: dict) -> User:
         try:
@@ -70,3 +76,26 @@ class UserController:
     def list_specialties(self):
      
         return self.role_repo.list_specialties()
+    
+    def delete_user(self, user_id: int) -> bool:
+        return self.user_repo.delete_user(user_id)
+    
+    def assign_role(self, user_id: int, role_name: str) -> User:
+        user = self.get_user_by_id(user_id)
+        
+        # Trouver le rôle par nom
+        role = self.role_repo.session.query(ApplicationRole).filter_by(role_name=role_name).first()
+        if not role:
+            raise ValueError(f"Rôle '{role_name}' introuvable")
+        
+        user.role_id = role.role_id
+        try:
+            self.user_repo.session.commit()
+            return user
+        except SQLAlchemyError as e:
+            self.user_repo.session.rollback()
+            raise RuntimeError(f"Erreur attribution rôle : {e}")
+    
+    def get_user_roles(self, user_id: int) -> list[str]:
+        user = self.get_user_by_id(user_id)
+        return user.roles

@@ -141,3 +141,14 @@ class CaisseRetraitRepository:
         (Appelle cancel_with_justification avec justification vide ou None.)
         """
         self.cancel_with_justification(retrait_id, cancelled_by=None, justification="")
+
+    def list_retraits(self) -> list[CaisseRetrait]:
+        """
+        Renvoie la liste de tous les retraits (ou applique un filtre si besoin).
+        """
+        return (
+            self.session
+                .query(CaisseRetrait)
+                .order_by(CaisseRetrait.retrait_at.desc())
+                .all()
+        )

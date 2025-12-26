@@ -15,5 +15,11 @@ class Prescription(Base):
     start_date      = Column(Date, nullable=False)
     end_date        = Column(Date)
     notes           = Column(Text)
+    status          = Column(String(20), default="active")
+    prescribed_by   = Column(Integer, ForeignKey("users.user_id"))
+    prescribed_by_name = Column(String(100))
+
+    #relations
     patient         = relationship("Patient", back_populates="prescriptions")
     medical_record = relationship("MedicalRecord", back_populates="prescriptions")
+    
