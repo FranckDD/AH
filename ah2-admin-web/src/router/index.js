@@ -153,7 +153,10 @@ router.beforeEach((to, from, next) => {
     const requiredRoles = to.meta.roles; 
     const userRole = authStore.userRole; 
 
-    if (!requiredRoles.includes(userRole)) {
+    const normalizedUserRole = (userRole || '').toLowerCase();
+    const normalizedRequired = requiredRoles.map((r) => r.toLowerCase());
+
+    if (!normalizedRequired.includes(normalizedUserRole)) {
       if (to.path !== '/forbidden') {
         console.warn(`Accès refusé pour ${userRole} vers ${to.path}`);
         return next('/forbidden'); 
