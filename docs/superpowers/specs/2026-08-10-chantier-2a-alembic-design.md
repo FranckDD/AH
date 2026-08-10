@@ -27,11 +27,11 @@ Aujourd'hui, `migrations/` ne contient qu'un script ponctuel de synchronisation 
 
 - Ajout du chemin racine du projet à `sys.path` (même pattern que `migrations/import_users_pg_to_sqlite.py`), pour pouvoir importer `api_backend.backend_app.config` et `models.*` depuis un script exécuté hors du contexte FastAPI.
 - `DATABASE_URL` importé depuis `api_backend.backend_app.config` (source unique de vérité) et injecté dans la config Alembic via `config.set_main_option("sqlalchemy.url", DATABASE_URL)` — pas de duplication de la chaîne de connexion dans `alembic.ini`.
-- Import explicite des 20 modules de modèles réels (tous sauf `App.py`) pour que `Base.metadata` (import depuis `models.database`) reflète le schéma complet au moment de l'autogénération.
+- Import explicite des 19 modules de modèles réels (`App.py` et `medical.py`, tous deux vides de contenu SQLAlchemy — `App.py` un reliquat customtkinter, `medical.py` un fichier entièrement vide — exclus) pour que `Base.metadata` (import depuis `models.database`) reflète le schéma complet au moment de l'autogénération.
 
 ### 3. `models/__init__.py` étendu
 
-Actuellement 3 imports sur 21. Étendu pour importer les 20 modèles réels (hors `App.py`). Corrige un manque réel indépendant d'Alembic : aujourd'hui, tout code qui fait `import models` sans plus n'a pas accès à un `Base.metadata` complet.
+Actuellement 3 imports sur 21 fichiers. Étendu pour importer les 19 modèles réels (`App.py` et `medical.py` exclus, vides de contenu SQLAlchemy). Corrige un manque réel indépendant d'Alembic : aujourd'hui, tout code qui fait `import models` sans plus n'a pas accès à un `Base.metadata` complet.
 
 ### 4. Migration de référence
 
@@ -52,7 +52,7 @@ alembic stamp head
 - `alembic current` affiche la révision baseline après le `stamp`
 - `alembic check` (ou `alembic revision --autogenerate` à blanc immédiatement après) ne détecte aucune différence entre les modèles et la base — confirme que la baseline capture fidèlement le schéma réel
 - L'API démarre toujours normalement après ces changements (aucun impact sur le chemin d'exécution habituel, Alembic est un outil hors-ligne)
-- `python -c "import models; from models.database import Base; print(len(Base.metadata.tables))"` retourne un nombre de tables cohérent avec les 20 modèles
+- `python -c "import models; from models.database import Base; print(len(Base.metadata.tables))"` retourne un nombre de tables cohérent avec les 19 modèles
 
 ## Risques et hypothèses
 
