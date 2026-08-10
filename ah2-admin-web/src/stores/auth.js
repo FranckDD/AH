@@ -1,9 +1,7 @@
 // src/stores/auth.js
 import { defineStore } from 'pinia';
-import axios from 'axios';
+import api from '@/services/api';
 import router from '@/router'; // 🟢 1. Importer le router pour la redirection
-
-const API_URL = 'http://localhost:8000';
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
@@ -41,16 +39,16 @@ export const useAuthStore = defineStore('auth', {
         formData.append('username', username);
         formData.append('password', password);
 
-        const response = await axios.post(`${API_URL}/auth/login`, formData, {
+        const response = await api.post('/auth/login', formData, {
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
         });
 
         this.token = response.data.access_token;
-        
+
         // 🟢 Stockage avec la clé 'token' (Doit être identique dans api.js)
         localStorage.setItem('token', this.token);
 
-        const meResponse = await axios.get(`${API_URL}/auth/me`, {
+        const meResponse = await api.get('/auth/me', {
             headers: { Authorization: `Bearer ${this.token}` }
         });
 

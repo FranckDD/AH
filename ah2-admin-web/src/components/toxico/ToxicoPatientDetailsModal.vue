@@ -190,7 +190,8 @@
 
 <script setup>
 import { computed } from 'vue';
-import { 
+import { API_URL as API_BASE_URL } from '@/services/api';
+import {
   UserCircleIcon,
   IdentificationIcon,
   PhoneIcon,
@@ -242,7 +243,6 @@ const calculateAge = (dob) => {
     return '?';
   }
 };
-const API_BASE_URL = 'http://localhost:8000'; // À remplacer par import.meta.env.VITE_API_URL en prod
 // Fonction intelligente pour générer l'URL
 const getFileUrl = (path) => {
   if (!path) return '#';

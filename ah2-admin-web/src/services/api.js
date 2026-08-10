@@ -3,7 +3,7 @@ import { useAuthStore } from '@/stores/auth';
 import router from '@/router';
 
 // URL de base de votre API FastAPI
-const API_URL = 'http://localhost:8000'; 
+export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 const api = axios.create({
     baseURL: API_URL,
