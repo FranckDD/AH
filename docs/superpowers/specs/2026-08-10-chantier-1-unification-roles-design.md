@@ -48,12 +48,13 @@ S'y ajoute un **10ᵉ canonique réservé, `manager`**, sans ligne correspondant
 
 Purement additif pour les 5 rôles déjà gérés aujourd'hui (`admin`, `medecin`, `nurse`, `secretaire`, `laborantin`) : ni code canonique ni comportement ne changent.
 
-### 2. Fermeture de `SEC-06` — fail-closed dans `get_current_user()`
+### 2. `SEC-06` — déjà fermé sur la version committée, risque résiduel identifié
 
-Dans `api_backend/backend_app/routes/auth/auth_endpoints.py`, fonction `get_current_user()` :
+Découverte en préparant le plan d'implémentation : la version **committée** (`HEAD`) de `get_current_user()` dans `auth_endpoints.py` n'a **pas** le repli permissif décrit par l'audit initial. Elle est déjà fail-closed (repli DB → repli token via `normalize_roles_list()` → liste vide). Le repli permissif lu lors de l'audit initial provenait de la **copie de travail non commitée** de l'utilisateur — une tentative locale de débloquer les comptes `Psychologist`/`Assistant`, non sécurisée, jamais commitée.
 
-- Repli primaire (rôle DB non reconnu) : au lieu de `canonical_roles = [raw_role_str.strip().lower()]`, l'utilisateur reçoit `canonical_roles = []`. Un rôle présent en base mais absent de la table de correspondance n'accorde plus aucun accès implicite.
-- Repli secondaire (rôles du token, utilisé seulement si la relation `application_role` n'a pas pu être chargée) : actuellement `canonical_roles = [str(r).strip().lower() for r in roles_from_token if r]`, sans passer par la normalisation. Remplacé par `normalize_roles_list(roles_from_token)`, pour la même raison de cohérence — ce repli est signé par le serveur donc peu exploitable, mais il doit suivre la même règle que le reste.
+**Conséquence pour ce chantier** : aucune modification de `get_current_user()` n'est nécessaire. Le problème réel sur la version committée n'est pas un excès de permissivité mais l'inverse — les comptes `Psychologist`, `ToxicoManager`, `SpiritualCounsellor`, `Assistant` obtiennent aujourd'hui `roles = []` (verrouillés) car `role_map.py` ne les couvre pas. Le point 1 (extension de `role_map.py`) suffit à corriger ce verrouillage, sans toucher à la logique de `get_current_user()`.
+
+**Risque résiduel signalé à l'utilisateur** : sa copie de travail contient toujours la version avec repli permissif. Si ce fichier est commité plus tard sans revoir ce point précis, la vulnérabilité reviendrait. Ce chantier touche bien `auth_endpoints.py` pour le point 3 ci-dessous (`role_required()`), mais laisse `get_current_user()` intact et isolé du reste du travail en cours (cf. contrainte d'isolation habituelle) ; le repli permissif de la copie de travail reste un point de vigilance pour l'utilisateur, pas une action de ce chantier.
 
 ### 3. Nettoyage de `role_required()`
 
@@ -82,7 +83,7 @@ Avec le fail-closed du point 2, ce compte serait sinon passé d'un comportement 
 ## Vérification
 
 - Tests unitaires sur `normalize_role_name()` / `normalize_roles_list()` pour les 10 rôles canoniques (9 issus de la base + `manager` réservé) et leurs alias, y compris les 4 nouveaux issus de la base
-- Test que `get_current_user()` retourne `roles = []` (pas de repli permissif) pour un rôle DB réellement inconnu de la table de correspondance (aucun cas réel aujourd'hui, mais le comportement doit être vérifié)
+- Vérification (sans modification de code) que `get_current_user()`, tel que committé, reste fail-closed après l'extension de `role_map.py` : un rôle DB toujours non couvert continuerait de produire `roles = []`, jamais un repli permissif
 - Test que `role_required("admin", "manager")` reconnaît toujours `"manager"` comme rôle autorisé valide (pas de régression sur ce point précis, malgré le retrait du repli permissif)
 - Vérification manuelle par connexion réelle : `kouam2` (Psychologist) et `thegoat` (Assistant), les deux comptes actifs déjà concernés par `SEC-06` dans l'audit, doivent conserver un accès fonctionnel identique après le durcissement
 - Vérification manuelle que `secretaire1` peut se connecter et obtient les permissions du rôle secrétaire après la correction de données
