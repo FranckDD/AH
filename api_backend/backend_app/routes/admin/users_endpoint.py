@@ -68,7 +68,7 @@ def list_specialties(controller: UserController = Depends(get_user_controller)):
         raise HTTPException(status_code=500, detail="Erreur serveur lecture spécialités")
 
 
-@router.get("/", response_model=List[UserOut])
+@router.get("/", response_model=List[UserOut], dependencies=[Depends(role_required("admin", "manager"))])
 def list_users(
     page: int = Query(1, ge=1),
     per_page: int = Query(50, ge=1, le=500),
@@ -85,13 +85,13 @@ def list_users(
     return results
 
 
-@router.get("/search", response_model=List[UserOut])
+@router.get("/search", response_model=List[UserOut], dependencies=[Depends(role_required("admin", "manager"))])
 def search_users(q: str = Query(..., min_length=1), user_ctrl: UserController = Depends(get_user_controller)):
     results = user_ctrl.search_users(q)
     return [_safe_validate_user(u) for u in results]
 
 
-@router.get("/{user_id}", response_model=UserOut)
+@router.get("/{user_id}", response_model=UserOut, dependencies=[Depends(role_required("admin", "manager"))])
 def get_user(user_id: int, user_ctrl: UserController = Depends(get_user_controller)):
     try:
         u = user_ctrl.get_user_by_id(user_id)
