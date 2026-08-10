@@ -168,8 +168,9 @@ def role_required(*allowed_roles: str):
     for r in allowed_roles:
         if not r:
             continue
-        c = normalize_role_name(r) or r.strip().lower()
-        allowed_canon.add(c)
+        c = normalize_role_name(r)
+        if c:
+            allowed_canon.add(c)
 
     def wrapper(user = Depends(get_current_user)):
         user_roles = set([r.strip().lower() for r in getattr(user, "roles", []) if r])
