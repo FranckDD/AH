@@ -54,7 +54,7 @@ def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends(), db
                 role_list = [canon]
 
     # construire le token (sub + roles + exp + hygiene JWT : ver/jti/iss/aud)
-    expire = datetime.datetime.utcnow() + datetime.timedelta(minutes=JWT_EXPIRE_MINUTES)
+    expire = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(minutes=JWT_EXPIRE_MINUTES)
     payload = {
         "sub": str(user.user_id),
         "roles": role_list,

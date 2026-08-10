@@ -94,3 +94,38 @@ def test_wrong_issuer_is_rejected():
         assert resp.status_code == 401
     finally:
         patcher.stop()
+
+
+def test_login_issues_token_with_correct_utc_expiry():
+    fake_user = make_fake_user(user_id=1, token_version=0)
+    fake_user.application_role = None
+
+    fake_ctrl = MagicMock()
+    fake_ctrl.authenticate.return_value = fake_user
+
+    with patch.object(auth_mod, "AuthController", return_value=fake_ctrl):
+        app = FastAPI()
+        app.state.limiter = auth_mod.limiter
+        app.include_router(auth_mod.router)
+
+        client = TestClient(app)
+        before = time.time()
+        resp = client.post(
+            "/auth/login",
+            data={"username": "admin_test", "password": "whatever"},
+        )
+        after = time.time()
+
+    assert resp.status_code == 200
+    token = resp.json()["access_token"]
+    payload = jose_jwt.decode(
+        token, JWT_SECRET, algorithms=[JWT_ALGORITHM],
+        issuer=auth_mod.JWT_ISSUER, audience=auth_mod.JWT_AUDIENCE,
+    )
+
+    from api_backend.backend_app.config import JWT_EXPIRE_MINUTES
+    expected_exp = before + JWT_EXPIRE_MINUTES * 60
+    # tolerance de 5s pour le temps d'execution du test, pas pour le bug de fuseau
+    # (le bug de fuseau introduit un ecart de plusieurs minutes selon le fuseau serveur)
+    assert abs(payload["exp"] - expected_exp) < 5
+    assert payload["exp"] <= after + JWT_EXPIRE_MINUTES * 60 + 5
