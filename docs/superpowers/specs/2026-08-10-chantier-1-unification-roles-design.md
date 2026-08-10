@@ -19,7 +19,7 @@ En cadrant ce chantier, l'exploration a révélé que le problème dépasse les 
 7. Le front (`ah2-admin-web/src/router/index.js`) — compare des rôles bruts sans normalisation, avec deux fautes de casse réelles constatées : `'assistant'` en minuscule dans les métadonnées de route (la base stocke `'Assistant'`, donc un compte Assistant connecté se voit refuser l'accès à la réception labo) et `'biologiste'`, un rôle qui n'existe dans aucune des 9 lignes de la base
 8. `ah2-admin-web/src/components/users/UserModal.vue` — un 4ᵉ regroupement (`GROUP_MAPPING` : `app_admin`/`app_medical`/`app_secretaire`/`app_laborantin`), lié à la colonne `postgres_role`, utilisé uniquement pour filtrer le formulaire de création d'utilisateur
 
-Découverte additionnelle : plusieurs `role_required("admin", "manager")` (création/modification/suppression d'utilisateurs dans `users_endpoint.py`) référencent un rôle `"manager"` qui n'existe dans aucune des 9 lignes de la base — ces routes sont donc, dans les faits, admin-only, mais le code laisse croire qu'un rôle manager est prévu.
+Découverte additionnelle : plusieurs `role_required("admin", "manager")` (création/modification/suppression d'utilisateurs dans `users_endpoint.py`) référencent un rôle `"manager"` absent des 9 lignes de la base. **Confirmé avec l'utilisateur : ce n'est pas un vestige** — `manager` est un rôle réel, prévu avec un niveau d'accès inférieur à `admin`, dont le câblage côté Python a commencé mais dont le reste (ligne en base, écran d'assignation) arrive dans une phase de développement ultérieure.
 
 Découverte additionnelle : le compte `secretaire1` a un `role_id` NULL en base (vérifié par requête directe) — un compte cassé en silence.
 
@@ -38,13 +38,15 @@ Ce chantier couvre **exclusivement le chemin web** : `role_map.py`, `get_current
 
 Les codes canoniques deviennent le strict équivalent en minuscules des 9 rôles réels de la table `application_roles` : `admin`, `medecin`, `nurse`, `secretaire`, `laborantin`, `psychologist`, `spiritualcounsellor`, `toxicomanager`, `assistant`. La base reste autoritaire sur l'orthographe — aucune nouvelle nomenclature n'est inventée, aucune migration de données sur les rôles existants n'est nécessaire.
 
-`ROLE_ALIASES` s'enrichit d'alias lisibles pour les 4 nouveaux rôles, sur le modèle des 5 existants :
+`ROLE_ALIASES` s'enrichit d'alias lisibles pour les 4 nouveaux rôles issus de la base, sur le modèle des 5 existants :
 - `psychologist` : `{"psychologist", "psychologue"}`
 - `spiritualcounsellor` : `{"spiritualcounsellor", "spiritual_counsellor", "conseiller_spirituel", "conseiller spirituel"}`
 - `toxicomanager` : `{"toxicomanager", "toxico_manager", "responsable_toxico"}`
 - `assistant` : `{"assistant", "assistante"}`
 
-Purement additif : les 5 rôles déjà gérés aujourd'hui (`admin`, `medecin`, `nurse`, `secretaire`, `laborantin`) ne changent ni de code canonique ni de comportement.
+S'y ajoute un **10ᵉ canonique réservé, `manager`**, sans ligne correspondante dans `application_roles` : la table de correspondance le reconnaît comme un rôle valide (accès de niveau inférieur à `admin`, prévu par l'utilisateur), mais aucune ligne en base ne le rend assignable pour l'instant — décision explicite pour ne pas anticiper sur un développement en cours côté produit. `role_required("admin", "manager")` redeviendra fonctionnel dès qu'une ligne `manager` existera en base et qu'un compte s'y verra assigné ; d'ici là, ces routes restent admin-only dans les faits, sans que le code mente sur l'intention.
+
+Purement additif pour les 5 rôles déjà gérés aujourd'hui (`admin`, `medecin`, `nurse`, `secretaire`, `laborantin`) : ni code canonique ni comportement ne changent.
 
 ### 2. Fermeture de `SEC-06` — fail-closed dans `get_current_user()`
 
@@ -57,7 +59,7 @@ Dans `api_backend/backend_app/routes/auth/auth_endpoints.py`, fonction `get_curr
 
 Le repli `c = normalize_role_name(r) or r.strip().lower()` sur la liste des rôles **autorisés** (fournie par le code, pas par l'utilisateur) est retiré. Un rôle non reconnu passé à `role_required(...)` est désormais silencieusement ignoré plutôt que conservé tel quel en minuscules.
 
-Conséquence directe et attendue : les appels `role_required("admin", "manager")` perdent `"manager"` de leur ensemble autorisé. Comme ce rôle n'existe dans aucune des 9 lignes de la base, **aucun changement de comportement observable** — ces routes sont déjà admin-only dans les faits aujourd'hui. Si un rôle manager distinct est un jour souhaité, ce sera une décision produit délibérée (créer la ligne en base, l'ajouter aux alias), pas un vestige de code qui ne fait rien.
+Grâce au canonique réservé `manager` ajouté au point 1, `role_required("admin", "manager")` continue de résoudre `"manager"` correctement (ce n'est plus un rôle "non reconnu" pour la table de correspondance) — son ensemble autorisé ne change donc pas. Le comportement observable reste identique à aujourd'hui (admin-only dans les faits, faute de compte `manager` existant), mais pour la bonne raison : le rôle est reconnu et simplement pas encore assigné, plutôt que silencieusement accepté sans jamais matcher personne.
 
 ### 4. Suppression du code mort
 
@@ -79,9 +81,9 @@ Avec le fail-closed du point 2, ce compte serait sinon passé d'un comportement 
 
 ## Vérification
 
-- Tests unitaires sur `normalize_role_name()` / `normalize_roles_list()` pour les 9 rôles canoniques et leurs alias, y compris les 4 nouveaux
-- Test que `get_current_user()` retourne `roles = []` (pas de repli permissif) pour un rôle DB inconnu de la table de correspondance
-- Test que `role_required()` ignore silencieusement un rôle autorisé non reconnu (cas `"manager"`) sans lever d'exception
+- Tests unitaires sur `normalize_role_name()` / `normalize_roles_list()` pour les 10 rôles canoniques (9 issus de la base + `manager` réservé) et leurs alias, y compris les 4 nouveaux issus de la base
+- Test que `get_current_user()` retourne `roles = []` (pas de repli permissif) pour un rôle DB réellement inconnu de la table de correspondance (aucun cas réel aujourd'hui, mais le comportement doit être vérifié)
+- Test que `role_required("admin", "manager")` reconnaît toujours `"manager"` comme rôle autorisé valide (pas de régression sur ce point précis, malgré le retrait du repli permissif)
 - Vérification manuelle par connexion réelle : `kouam2` (Psychologist) et `thegoat` (Assistant), les deux comptes actifs déjà concernés par `SEC-06` dans l'audit, doivent conserver un accès fonctionnel identique après le durcissement
 - Vérification manuelle que `secretaire1` peut se connecter et obtient les permissions du rôle secrétaire après la correction de données
 - `npm run build` sur la console web après la correction du garde de navigation
