@@ -68,15 +68,23 @@ export const useAuthStore = defineStore('auth', {
       }
     },
 
-    logout() {
+    async logout() {
+      // 0. Revoquer le token cote serveur (best-effort : si l'appel echoue,
+      //    on nettoie quand meme localement pour ne jamais bloquer l'utilisateur)
+      try {
+        await api.post('/auth/logout');
+      } catch (error) {
+        console.warn("Echec de la revocation serveur du token :", error);
+      }
+
       // 1. Nettoyer l'état Pinia
       this.token = null;
       this.user = null;
-      
+
       // 2. Nettoyer le LocalStorage
       localStorage.removeItem('token');
       localStorage.removeItem('user');
-      
+
       // 3. 🟢 Redirection forcée via le router Vue
       router.push('/login');
     }
