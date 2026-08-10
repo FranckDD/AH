@@ -57,9 +57,17 @@ Justifié par l'inventaire réel des ressources chargées (vérifié pendant le 
 - A1 : décoder un token émis après le correctif, vérifier que `exp - iat` correspond exactement à `JWT_EXPIRE_MINUTES` (à la seconde près), quel que soit le fuseau du serveur
 - A2 : changer le rôle d'un compte déjà pourvu d'un profil métier (via l'API, pas en contournant le trigger comme au chantier 1) ne lève plus d'erreur
 - A3 : `alembic revision --autogenerate` à blanc ne propose plus la suppression des 17 tables listées
-- A4 : build de la console web, puis **usage réel dans un navigateur** (pas seulement `curl -I`) — se connecter, naviguer dans plusieurs modules, confirmer l'absence d'erreurs CSP dans la console développeur
+- A4 : build de la console web, puis **usage réel dans un navigateur** (pas seulement `curl -I`) — se connecter, naviguer dans plusieurs modules, confirmer l'absence d'erreurs CSP dans la console développeur. **Non réalisable dans cet environnement** (voir Notes post-implémentation) — remplacé par une analyse statique du bundle buildé.
 
 ## Hors périmètre
 
 - Écrire des modèles SQLAlchemy pour les 17 tables (A3 ne fait qu'empêcher leur suppression accidentelle, pas les rendre gérables par l'ORM)
 - Durcissement CSP plus strict (nonces, `strict-dynamic`) — la politique actuelle est un point de départ pragmatique, pas une fin en soi
+
+## Notes post-implémentation
+
+- **A4 — aucun outil de navigateur disponible dans cet environnement d'exécution** : ni navigateur automatisé (Playwright/Puppeteer), ni accès à `localhost` depuis l'outil de récupération web disponible (`WebFetch` échoue en `ECONNREFUSED` sur une IP locale — c'est un service distant, pas un navigateur local). La vérification prévue dans la spec (usage réel en navigateur, plusieurs modules, console développeur) **n'a pas pu être réalisée**. Remplacée par une analyse statique du bundle de production (`dist/assets/*.js`, `dist/index.html`), qui a effectivement trouvé deux violations réelles qu'un `curl -I` n'aurait jamais révélées :
+  - `vue-i18n` compile les messages traduits via `new Function()` à l'exécution (pas de précompilation au build) → `script-src` sans `'unsafe-eval'` aurait cassé toute traduction. Ajouté.
+  - `SystemConfig.vue` prévisualise le logo avant envoi via `URL.createObjectURL(file)` affiché en `<img>` → `img-src` sans `blob:` aurait cassé cette prévisualisation. Ajouté.
+  - Vérifiés sans trouver de problème : pas d'`<iframe>`, pas de WebSocket, pas d'appel direct à Supabase depuis le front, pas de police embarquée, pas de domaine externe référencé dans les bundles.
+  - **Ce que l'analyse statique ne peut pas garantir** : le comportement à l'exécution dans un vrai navigateur (erreurs de timing, ressources chargées conditionnellement selon les données, extensions navigateur, etc.). Un utilisateur avec accès à un navigateur devrait faire un tour rapide de l'application (connexion, 2-3 modules) et vérifier l'onglet Console (F12) pour des messages `Refused to ... because it violates the following Content Security Policy directive` avant de considérer A4 définitivement clos.
