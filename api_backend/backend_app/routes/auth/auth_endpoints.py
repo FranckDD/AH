@@ -10,6 +10,10 @@ from ...rate_limit import limiter
 from controller.auth_controller import AuthController
 from .schemas import Token
 from typing import Any
+import uuid
+
+JWT_ISSUER = "ah2-api"
+JWT_AUDIENCE = "ah2-web"
 
 router = APIRouter()
 
@@ -49,9 +53,17 @@ def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends(), db
             if canon:
                 role_list = [canon]
 
-    # construire le token (sub + roles + exp)
+    # construire le token (sub + roles + exp + hygiene JWT : ver/jti/iss/aud)
     expire = datetime.datetime.utcnow() + datetime.timedelta(minutes=JWT_EXPIRE_MINUTES)
-    payload = {"sub": str(user.user_id), "roles": role_list, "exp": int(expire.timestamp())}
+    payload = {
+        "sub": str(user.user_id),
+        "roles": role_list,
+        "exp": int(expire.timestamp()),
+        "ver": getattr(user, "token_version", 0) or 0,
+        "jti": uuid.uuid4().hex,
+        "iss": JWT_ISSUER,
+        "aud": JWT_AUDIENCE,
+    }
 
     token = jose_jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)  # pyright: ignore[reportArgumentType]
     return {"access_token": token, "token_type": "bearer"}
@@ -72,7 +84,10 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
 
     # --- Décodage unique du token ---
     try:
-        payload = jose_jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        payload = jose_jwt.decode(
+            token, JWT_SECRET, algorithms=[JWT_ALGORITHM],
+            issuer=JWT_ISSUER, audience=JWT_AUDIENCE,
+        )
     except ExpiredSignatureError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token expiré")
     except JWTError:
@@ -99,6 +114,11 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     user = auth_ctrl.user_repo.get_user_by_id(user_id_int)
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Utilisateur non trouvé")
+
+    # --- Révocation : le token doit correspondre à la version courante ---
+    token_ver = payload.get("ver")
+    if token_ver != (getattr(user, "token_version", 0) or 0):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Session invalidée, veuillez vous reconnecter")
 
     # Charger explicitement la relation application_role si besoin (sécurise l'accès aux attributs)
     try:
@@ -182,4 +202,10 @@ def role_required(*allowed_roles: str):
         return user
     return wrapper
 
-
+@router.post("/auth/logout", status_code=status.HTTP_200_OK, tags=["Authentication"])
+def logout(db: Session = Depends(get_db), current_user = Depends(get_current_user)):
+    """Révoque tous les tokens actuellement émis pour l'utilisateur courant."""
+    current_user.token_version = (getattr(current_user, "token_version", 0) or 0) + 1
+    db.add(current_user)
+    db.commit()
+    return {"message": "Déconnexion effectuée"}
