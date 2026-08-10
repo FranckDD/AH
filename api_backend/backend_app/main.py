@@ -58,9 +58,6 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
         print(f"❌ Erreur #{i+1}:")
         print(f"   📍 Emplacement : {loc}")
         print(f"   ⚠️ Message     : {msg}")
-        # Affiche la valeur reçue si disponible dans le contexte (dépend version Pydantic)
-        if 'input' in error:
-             print(f"   📥 Valeur reçue: {error['input']}")
     
     print("="*50 + "\n")
 
