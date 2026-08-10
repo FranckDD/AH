@@ -1,14 +1,25 @@
 # app/security/role_map.py
 from typing import Dict, Set
 
-# Codes canoniques utilisés dans ton projet (conservés tels quels)
+# Codes canoniques : strict equivalent en minuscules des role_name reels
+# de la table application_roles, plus 'manager', reserve sans ligne en
+# base (role en developpement, niveau d'acces inferieur a admin).
 ADMIN = "admin"
 MEDECIN = "medecin"
 NURSE = "nurse"
 SECRETAIRE = "secretaire"
 LABORANTIN = "laborantin"
+PSYCHOLOGIST = "psychologist"
+SPIRITUALCOUNSELLOR = "spiritualcounsellor"
+TOXICOMANAGER = "toxicomanager"
+ASSISTANT = "assistant"
+MANAGER = "manager"
 
-ROLE_CANONICALS = {ADMIN, MEDECIN, NURSE, SECRETAIRE, LABORANTIN}
+ROLE_CANONICALS = {
+    ADMIN, MEDECIN, NURSE, SECRETAIRE, LABORANTIN,
+    PSYCHOLOGIST, SPIRITUALCOUNSELLOR, TOXICOMANAGER, ASSISTANT,
+    MANAGER,
+}
 
 # mapping canonical -> set d'alias (fr, en, variations possibles)
 ROLE_ALIASES: Dict[str, Set[str]] = {
@@ -16,7 +27,12 @@ ROLE_ALIASES: Dict[str, Set[str]] = {
     MEDECIN: {"medecin", "médecin", "doctor", "dr", "physician"},
     NURSE: {"nurse", "infirmier", "infirmiere", "infirmière", "nurse_fr"},
     SECRETAIRE: {"secretaire", "secrétaire", "secretary", "secretary_fr"},
-    LABORANTIN: {"laborantin", "lab_tech", "laboratory", "laboratory_technician", "technicien_lab"}
+    LABORANTIN: {"laborantin", "lab_tech", "laboratory", "laboratory_technician", "technicien_lab"},
+    PSYCHOLOGIST: {"psychologist", "psychologue"},
+    SPIRITUALCOUNSELLOR: {"spiritualcounsellor", "spiritual_counsellor", "conseiller_spirituel", "conseiller spirituel"},
+    TOXICOMANAGER: {"toxicomanager", "toxico_manager", "responsable_toxico"},
+    ASSISTANT: {"assistant", "assistante"},
+    MANAGER: {"manager", "gestionnaire"},
 }
 
 # Construire reverse map alias (lowercase) -> canonical
