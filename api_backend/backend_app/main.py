@@ -30,8 +30,15 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi import Request
 import json
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
+from .rate_limit import limiter
 
 app = FastAPI(title="AH2 API")
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_middleware(SlowAPIMiddleware)
 
 # 🟢 AJOUTER CE BLOC POUR LE DÉBOGAGE 422
 @app.exception_handler(RequestValidationError)

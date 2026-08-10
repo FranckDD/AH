@@ -1,11 +1,12 @@
 import datetime
 from ...security.role_map import normalize_role_name, normalize_roles_list
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from jose import ExpiredSignatureError, jwt as jose_jwt ,JWTError
 from ...database import SessionLocal
 from ...config import JWT_SECRET, JWT_ALGORITHM, JWT_EXPIRE_MINUTES
+from ...rate_limit import limiter
 from controller.auth_controller import AuthController
 from .schemas import Token
 from typing import Any
@@ -24,7 +25,8 @@ def get_db():
         db.close()
 
 @router.post("/auth/login", response_model=Token, tags=["Authentication"])
-def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     auth_ctrl = AuthController(db_session=db)
     user = auth_ctrl.authenticate(form_data.username, form_data.password)
     if not user:
