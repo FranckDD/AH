@@ -6,6 +6,7 @@ from api_backend.backend_app.database import SessionLocal
 from controller.config_controller import ConfigController
 from repositories.config_repo import ConfigRepository
 from models.organization_config import OrganizationConfig
+from api_backend.backend_app.routes.auth.auth_endpoints import role_required
 
 router = APIRouter(
     prefix="/config",
@@ -57,7 +58,7 @@ def get_structure_info(
     config = ctrl.get_structure_info()
     return normalize_config_data(config)
 
-@router.post("/structure", response_model=Any)
+@router.post("/structure", response_model=Any, dependencies=[Depends(role_required("admin"))])
 async def update_structure_info(
     request: Request,
     # On utilise Form() pour chaque champ car c'est du multipart/form-data
