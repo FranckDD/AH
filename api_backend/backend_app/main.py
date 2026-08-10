@@ -42,12 +42,26 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(SlowAPIMiddleware)
 
 
+CONTENT_SECURITY_POLICY = (
+    "default-src 'self'; "
+    # 'unsafe-eval' necessaire : vue-i18n compile les messages traduits via
+    # new Function() a l'execution (pas de precompilation au build ici).
+    "script-src 'self' 'unsafe-eval'; "
+    "style-src 'self' 'unsafe-inline'; "
+    # blob: necessaire : previsualisation du logo avant envoi (SystemConfig.vue)
+    # utilise URL.createObjectURL() sur le fichier local, affiche via <img>.
+    "img-src 'self' data: blob: https://*.supabase.co; "
+    "connect-src 'self' http://localhost:8000 http://127.0.0.1:8000"
+)
+
+
 @app.middleware("http")
 async def security_headers_middleware(request: Request, call_next):
     response = await call_next(request)
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Content-Security-Policy"] = CONTENT_SECURITY_POLICY
     if IS_PROD:
         response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains"
     return response
