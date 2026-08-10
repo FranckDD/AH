@@ -25,7 +25,7 @@ Explicitement hors périmètre (avec justification) :
 ## Décisions validées avec l'utilisateur
 
 1. **Historique Git** : purge complète de `.env` de tout l'historique via `git filter-repo`, puis `git push --force` sur `origin`. Autorisé explicitement — dépôt à auteur unique, sauvegarde locale prise avant réécriture.
-2. **`/config/structure`** : **GET et POST** protégés par `role_required("admin")` — décision explicite de l'utilisateur, revenant sur ma proposition initiale de laisser le GET public. **Conséquence assumée** : l'écran de connexion ne pourra plus récupérer le nom/logo de l'établissement avant authentification. Non traité dans ce chantier ; si un affichage de marque pré-connexion est souhaité plus tard, il faudra soit une route dédiée à données non sensibles, soit un contenu statique côté front.
+2. **`/config/structure`** : seul **POST** est protégé par `role_required("admin")`. **GET reste public** — décision finale de l'utilisateur, après un aller-retour : la conséquence de le fermer (casser l'affichage du nom/logo de l'établissement sur l'écran de connexion, avant authentification) a été jugée plus coûteuse que le risque, la donnée exposée (identité de l'établissement) n'étant pas sensible.
 
 ## Détail des correctifs
 
@@ -44,8 +44,9 @@ Explicitement hors périmètre (avec justification) :
 
 ### 2. `/config` non authentifié (SEC-02)
 
-- `router = APIRouter(prefix="/config", tags=[...], dependencies=[Depends(role_required("admin"))])` — protection au niveau du router, cohérente avec le pattern déjà utilisé sur `appointments`, `toxico`, etc.
-- S'applique à `GET /config/structure` **et** `POST /config/structure`
+- Le router `/config` reste sans dépendance globale (le GET doit rester public)
+- `role_required("admin")` ajouté uniquement sur la route `POST /config/structure`, via `dependencies=[Depends(role_required("admin"))]` sur le décorateur de la route
+- `GET /config/structure` reste sans authentification
 
 ### 3. Upload de logo (SEC-03)
 
@@ -95,7 +96,7 @@ Pas de suite de tests d'intégration existante à étendre pour ce chantier (le 
 - Upload avec un nom de fichier contenant `../` → rejeté
 - Upload d'un fichier renommé en `.png` mais n'étant pas une image → rejeté par Pillow
 - `POST /config/structure` sans jeton → 401
-- `GET /config/structure` sans jeton → 401
+- `GET /config/structure` sans jeton → 200 (comportement volontairement inchangé)
 - `GET /users/` avec un compte non-admin → 403
 - 6e tentative de connexion en échec sur la même combinaison IP/utilisateur en moins de 5 minutes → bloquée
 - Le gestionnaire 422 n'imprime plus de valeurs de champs dans la console serveur
@@ -109,4 +110,4 @@ Deux unités neuves et isolées reçoivent un test ciblé plutôt qu'une vérifi
 
 - La réécriture d'historique change les hachages de commit sur toutes les branches distantes. Si un clone existe ailleurs (autre poste, fork), il devra être resynchronisé manuellement — acceptable ici, auteur unique confirmé.
 - La disponibilité d'un Redis natif pour `slowapi` sera confirmée au moment de l'implémentation ; un repli en mémoire est prévu si nécessaire, sans bloquer le chantier.
-- Le blocage du GET `/config/structure` retire une fonctionnalité de marque pré-connexion qui pourrait exister côté front (à vérifier au moment de l'implémentation si l'écran de connexion tente déjà de l'afficher).
+- `GET /config/structure` restant public, il continue d'exposer l'identité de l'établissement (nom, adresse, logo, NIU, RCCM) sans authentification. Jugé acceptable : aucune donnée patient, et nécessaire à l'affichage de marque sur l'écran de connexion.
