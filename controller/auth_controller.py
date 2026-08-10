@@ -37,8 +37,12 @@ class AuthController:
         if db_session:
             self.session = db_session
         else:
-            db_url = DATABASE_URL or "postgresql://postgres:Admin_2025@localhost/AH2"
-            self.db = DatabaseManager(db_url)
+            if not DATABASE_URL:
+                raise RuntimeError(
+                    "DATABASE_URL doit etre defini (variable d'environnement ou .env) "
+                    "pour instancier AuthController sans session existante."
+                )
+            self.db = DatabaseManager(DATABASE_URL)
             self.session = self.db.get_session()
             
         self.audit_repo = audit_repo if audit_repo else AuditRepository(self.session)    

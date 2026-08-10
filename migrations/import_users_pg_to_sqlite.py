@@ -1,4 +1,5 @@
 # migrations/import_users_pg_to_sqlite.py
+import os
 import sys
 from pathlib import Path
 from sqlalchemy import create_engine, text
@@ -11,10 +12,13 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from repositories.repo_offline.sqlite_manager import SQLiteManager  # now works
 
-# Remplace par ta chaîne Postgres
-PG_CONN = "postgresql://postgres:Admin_2025@localhost/AH2"
+PG_CONN = os.environ.get("DATABASE_URL")
 
 def import_users(pg_conn=PG_CONN, sqlite_path="offline.db"):
+    if not pg_conn:
+        raise RuntimeError(
+            "DATABASE_URL doit etre defini dans l'environnement pour executer cette migration."
+        )
     # Postgres session
     pg_engine = create_engine(pg_conn)
     PgSession = sessionmaker(bind=pg_engine)

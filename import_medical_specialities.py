@@ -9,10 +9,11 @@ Si tu ne passes pas d'args, il prendra les valeurs par défaut.
 """
 
 import argparse
+import os
 from sqlalchemy import create_engine, text
 from sqlalchemy.exc import SQLAlchemyError
 
-DEFAULT_PG = "postgresql://postgres:Admin_2025@localhost/AH2"
+DEFAULT_PG = os.environ.get("DATABASE_URL")
 DEFAULT_SQLITE = "sqlite:///offline.db"
 
 def main(pg_url: str, sqlite_url: str):
@@ -61,7 +62,9 @@ def main(pg_url: str, sqlite_url: str):
 
 if __name__ == "__main__":
     p = argparse.ArgumentParser()
-    p.add_argument("--pg", default=DEFAULT_PG, help="Postgres connection string")
+    p.add_argument("--pg", default=DEFAULT_PG, help="Postgres connection string (ou variable d'environnement DATABASE_URL)")
     p.add_argument("--sqlite", default=DEFAULT_SQLITE, help="SQLite connection string (SQLAlchemy style)")
     args = p.parse_args()
+    if not args.pg:
+        p.error("--pg est requis (ou definissez DATABASE_URL dans l'environnement)")
     main(args.pg, args.sqlite)

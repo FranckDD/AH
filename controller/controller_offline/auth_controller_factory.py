@@ -26,8 +26,11 @@ def get_auth_controller(mode: str = "auto",
     """
     # Définir une chaîne de connexion par défaut si aucune n'est fournie
     if pg_conn_string is None:
-        pg_conn_string = os.environ.get("DATABASE_URL", "postgresql://postgres:Admin_2025@localhost/A")
-        logger.info(f"Utilisation de la chaîne de connexion PostgreSQL: {pg_conn_string}")
+        pg_conn_string = os.environ.get("DATABASE_URL")
+        logger.info(
+            "Chaine de connexion PostgreSQL: %s",
+            "definie" if pg_conn_string else "absente - bascule offline attendue"
+        )
     
     try:
         user_repo, backend, session_or_mgr = get_user_repo_backend(
