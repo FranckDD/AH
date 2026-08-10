@@ -15,6 +15,7 @@ JWT_EXPIRE_MINUTES = int(os.getenv("JWT_EXPIRE_MINUTES", 60))
 AH2_API_BASE = os.getenv('AH2_API_BASE')
 
 IS_CLIENT = os.getenv("IS_CLIENT", "false").lower() == "true"
+IS_PROD = os.getenv("IS_PROD", "false").lower() == "true"
 
 if not IS_CLIENT:
     # Backend strict
