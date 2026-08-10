@@ -1,7 +1,7 @@
 # SEC-09 — Cycle de vie JWT et en-têtes de sécurité
 
 **Date :** 2026-08-10
-**Statut :** validé, prêt pour plan d'implémentation
+**Statut :** implémenté et poussé sur `AH2_V3-1` (6 commits, `aee12e0`..`86086cf`)
 **Référence :** audit `SEC-09` ; suite des chantiers 0 et 1
 
 ## Contexte
@@ -73,10 +73,16 @@ Le CSP (`Content-Security-Policy`) est **délibérément exclu** de ce chantier 
 - Test unitaire : un jeton signé avec un `ver` différent du `token_version` courant en base est rejeté par `get_current_user()`
 - Test unitaire : un jeton avec `iss`/`aud` incorrects est rejeté
 - Vérification manuelle : connexion, appel `POST /auth/logout`, nouvel appel avec l'ancien jeton → `401`
-- Vérification manuelle : `curl -I` sur une route quelconque confirme la présence des en-têtes `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, et l'absence de `Strict-Transport-Security` en local (`IS_PROD` non positionné à `true` en développement)
+- Vérification manuelle : `curl -I` sur une route quelconque confirme la présence des en-têtes `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy` ; `Strict-Transport-Security` bascule correctement selon `IS_PROD` (testé dans les deux sens)
 - `npm run build` sur la console web après la modification de `stores/auth.js`
 
 ## Risques et hypothèses
 
 - La migration SQL directe (`ALTER TABLE`) doit être appliquée manuellement sur chaque environnement (dev local maintenant, tout autre environnement plus tard) tant qu'Alembic n'existe pas — risque de dérive de schéma entre environnements, atténué par le fait qu'il n'y a aujourd'hui qu'un seul environnement actif (dev local).
 - La révocation globale par compte (et non par jeton) signifie qu'un `POST /auth/logout` déconnecte aussi les autres sessions actives du même utilisateur sur d'autres appareils. Comportement jugé acceptable et même souhaitable pour un outil de gestion hospitalière (pas de cas d'usage identifié nécessitant des sessions multiples indépendantes non révocables ensemble).
+
+## Notes post-implémentation
+
+- **`.env` local a `IS_PROD=true`** — l'hypothèse initiale d'un environnement de développement avec `IS_PROD=false` était fausse. L'en-tête `Strict-Transport-Security` est donc déjà actif en local avec la configuration actuelle. Le comportement conditionnel a été vérifié dans les deux sens (variable de processus forcée à `false` pour confirmer l'absence de l'en-tête), donc le code est correct ; c'est la valeur de `.env` qui diffère de l'hypothèse de départ. Pas d'action requise, simplement noté pour éviter la confusion si quelqu'un cherche l'en-tête HSTS et le trouve présent en dev.
+- **Découverte pendant les tests (Task 2)** : `python-jose` rejette tout jeton contenant une revendication `aud` si le paramètre `audience=` n'est pas passé à `decode()` (`JWTError: Invalid audience`), même sans validation explicitement demandée. Cela confirme que l'ajout de `issuer=`/`audience=` au décodage n'était pas une amélioration optionnelle mais une correction nécessaire : sans elle, l'ajout de `aud`/`iss` à l'émission aurait rendu tous les tokens rejetés dès le premier déploiement.
+- Les 6 commits sont poussés sur `origin/AH2_V3-1` : `aee12e0` (spec), `99c3b1f` (plan), `e43ed17` (token_version), `42c6f19` (émission/vérification JWT + logout), `9bbef3f` (front logout), `86086cf` (en-têtes + IS_PROD).
