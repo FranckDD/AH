@@ -60,3 +60,28 @@ def test_create_patient_role_flag_injection_does_not_trigger(db_session, api_cli
 
     assert resp.status_code == 201
     assert resp.json()["is_spiritual"] is False
+
+
+def test_get_patient_success(db_session, api_client):
+    user = create_test_user(db_session, "test_patients_admin_get", "admin", password="Correct123!")
+    patient_id, code = create_test_patient(db_session, user, last_name="Lecture")
+    client = api_client(auth_endpoints, patients_endpoints)
+    headers = _auth_headers(client, "test_patients_admin_get", "Correct123!")
+
+    resp = client.get(f"/patients/{patient_id}", headers=headers)
+
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["patient_id"] == patient_id
+    assert body["code_patient"] == code
+    assert body["last_name"] == "Lecture"
+
+
+def test_get_patient_not_found(db_session, api_client):
+    create_test_user(db_session, "test_patients_admin_get404", "admin", password="Correct123!")
+    client = api_client(auth_endpoints, patients_endpoints)
+    headers = _auth_headers(client, "test_patients_admin_get404", "Correct123!")
+
+    resp = client.get("/patients/999999999", headers=headers)
+
+    assert resp.status_code == 404
