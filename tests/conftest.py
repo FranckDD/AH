@@ -9,6 +9,9 @@ from sqlalchemy import event
 from sqlalchemy.orm import Session
 
 from api_backend.backend_app.database import engine
+from models.user import User, pwd_context
+from models.application_role import ApplicationRole
+from api_backend.backend_app.rate_limit import limiter
 
 
 @pytest.fixture
@@ -55,3 +58,34 @@ def override_get_db(app, module, session):
     Usage : override_get_db(app, patients_endpoints, db_session)
     """
     app.dependency_overrides[module.get_db] = lambda: session
+
+
+def create_test_user(session, username, role_name, password="TestPass123!", is_active=True):
+    """
+    Cree un utilisateur ephemere dans la transaction de test (flush, jamais
+    commit) rattache a un role deja seede en base (ex: 'admin', 'secretaire').
+    Reutilisable par les sous-chantiers 2d-2 a 2d-4.
+    """
+    role = session.query(ApplicationRole).filter_by(role_name=role_name).one()
+    user = User(
+        username=username,
+        password_hash=pwd_context.hash(password),
+        full_name=f"Test {username}",
+        role_id=role.role_id,
+        is_active=is_active,
+    )
+    session.add(user)
+    session.flush()
+    return user
+
+
+@pytest.fixture(autouse=True)
+def reset_rate_limiter():
+    """
+    Evite que les tests successifs de /auth/login ne se bloquent entre eux :
+    TestClient envoie toutes ses requetes avec la meme adresse cliente
+    ('testclient'), slowapi la traiterait sinon comme un seul appelant
+    cumulant les appels de tous les tests (limite : 5/minute, SEC-05).
+    """
+    limiter.reset()
+    yield
