@@ -19,7 +19,7 @@ C'est aussi le chantier qui valide concrètement le cycle de vie JWT ajouté en 
 
 1. **Comptes seedés existants** (`admin_test`, `bonne`, `kouam2`, `labotest`, `Letto`, `Med2`, `Med3`, `nurse_test`, `secretaire0-3`, `thegoat`) confirment que les rôles `admin` et `secretaire` sont déjà seedés en base avec un `role_name` en minuscules, strictement aligné sur les canoniques de `role_map.py` — aucune ambiguïté de casse pour ces deux rôles précisément.
 2. **Le trigger `create_metier_profile()`** (rendu idempotent en A2) se déclenche à l'insertion d'un `User` et route vers `admin`/`secretaire`/`medecin`/`nurse`/`laborantin` selon `role_id`. Créer un utilisateur éphémère avec `role_id` pointant vers le rôle `admin` ou `secretaire` déjà seedé fonctionne donc sans modification du trigger, et reste sans effet observable hors de la transaction du test (rollback).
-3. **`GET /admin/users/` exige un double `override_get_db`** : `role_required()` dépend de `get_current_user()`, défini dans `auth_endpoints.py` (son propre `get_db`) ; `get_user_controller()` dans `users_endpoint.py` dépend d'un second `get_db`, défini dans ce même fichier. Sans surcharger les deux, une des deux dépendances utiliserait une session réelle (`SessionLocal()`) hors transaction de test. Confirme concrètement le besoin `ARC-05` déjà noté au registre (`SUIVI-AVANCEMENT.md`).
+3. **`GET /users/` exige un double `override_get_db`** (le routeur `users_endpoint.py` a `prefix="/users"` et n'est monté avec aucun préfixe supplémentaire dans `main.py` — le chemin réel n'est pas `/admin/users/`) : `role_required()` dépend de `get_current_user()`, défini dans `auth_endpoints.py` (son propre `get_db`) ; `get_user_controller()` dans `users_endpoint.py` dépend d'un second `get_db`, défini dans ce même fichier. Sans surcharger les deux, une des deux dépendances utiliserait une session réelle (`SessionLocal()`) hors transaction de test. Confirme concrètement le besoin `ARC-05` déjà noté au registre (`SUIVI-AVANCEMENT.md`).
 4. **`POST /auth/login` est limité à 5/minute** (`slowapi`, chantier 0 `SEC-05`). `TestClient` envoie toutes ses requêtes avec la même adresse cliente (`testclient`) — sans réinitialisation, la suite de tests finirait par se faire bloquer elle-même par sa propre limite de débit. `slowapi.Limiter` expose `.reset()` pour vider son stockage en mémoire.
 5. **Le message d'échec de connexion est volontairement générique** (`authenticate()` retourne `None` aussi bien pour mot de passe erroné que pour compte inactif ou utilisateur inconnu — même réponse 401 "Identifiants invalides" dans les trois cas). Comportement existant, non modifié par ce chantier — les tests le documentent tel quel plutôt que d'exiger une différenciation.
 
@@ -71,7 +71,7 @@ Placée dans `conftest.py` (portée globale) plutôt que localisée à `test_aut
 
 ### 5. `tests/test_rbac.py`
 
-Cible : `GET /admin/users/` (`role_required("admin", "manager")`, durci au chantier 0 pour restreindre la lecture des comptes — `SEC-07`).
+Cible : `GET /users/` (`role_required("admin", "manager")`, durci au chantier 0 pour restreindre la lecture des comptes — `SEC-07`).
 
 - `test_admin_role_can_list_users` — utilisateur `admin` → 200.
 - `test_secretaire_role_forbidden_from_admin_route` — utilisateur `secretaire` (rôle valide mais non autorisé sur cette route) → 403 "Accès refusé : rôle utilisateur insuffisant".
