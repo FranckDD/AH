@@ -61,6 +61,24 @@ def test_medical_controller_logs_when_audit_fails_on_delete(caplog):
     assert any("audit" in r.message.lower() for r in caplog.records)
 
 
+def test_prescription_controller_logs_when_audit_fails_on_delete(caplog):
+    from controller.prescription_controller import PrescriptionController
+
+    repo = MagicMock()
+    repo.delete.return_value = True
+    user = MagicMock()
+    audit_repo = MagicMock()
+    audit_repo.log_user_action.side_effect = Exception("boom")
+
+    ctrl = PrescriptionController(repo=repo, current_user=user, audit_repo=audit_repo)
+
+    with caplog.at_level(logging.ERROR):
+        result = ctrl.delete_prescription(prescription_id=1)
+
+    assert result is True
+    assert any("audit" in r.message.lower() for r in caplog.records)
+
+
 def test_pharmacy_controller_logs_when_audit_helper_fails(caplog):
     from controller.pharmacy_controller import PharmacyController
 

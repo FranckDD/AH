@@ -88,7 +88,8 @@ class PrescriptionController:
                     resource_id=presc_id,
                     details=f"Patient: {data.get('patient_id')}. Médicament: {data.get('medication')}" # type: ignore
                 )
-            except Exception: pass
+            except Exception:
+                self.logger.exception("Échec de l'écriture d'audit")
             
         return presc
 
@@ -109,7 +110,8 @@ class PrescriptionController:
                     resource_id=prescription_id,
                     new_values=data
                 )
-            except Exception: pass
+            except Exception:
+                self.logger.exception("Échec de l'écriture d'audit")
         return presc
 
     def delete_prescription(self, prescription_id: int):
@@ -123,7 +125,8 @@ class PrescriptionController:
                     action_performed="DELETE",
                     resource_id=prescription_id
                 )
-            except Exception: pass
+            except Exception:
+                self.logger.exception("Échec de l'écriture d'audit")
         return res
     
     def get_by_day(self, target_date: date) -> list:
