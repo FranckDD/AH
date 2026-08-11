@@ -3,6 +3,10 @@ from decimal import Decimal
 from repositories.audit_repo import AuditRepository
 from typing import Optional
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 class PharmacyController:
     def __init__(self, repo, current_user, audit_repo: Optional[AuditRepository] = None):
         self.repo = repo
@@ -170,4 +174,4 @@ class PharmacyController:
                     new_values=new_values
                 )
             except Exception:
-                pass
+                logger.exception("Échec de l'écriture d'audit")
