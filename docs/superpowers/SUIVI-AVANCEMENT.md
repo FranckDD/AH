@@ -1,6 +1,6 @@
 # Suivi d'avancement — AH2 / Glostone-Kare
 
-**Dernière mise à jour :** 2026-08-11 (chantier 2d-0)
+**Dernière mise à jour :** 2026-08-11 (chantier 2d-1)
 **But de ce document :** état d'avancement des chantiers de remise en service et de sécurisation, et registre des découvertes faites en cours de route mais non encore traitées. Pour le contexte général du projet, voir `docs/superpowers/CONTEXTE-PROJET.md`. Pour le détail d'un chantier, voir les fichiers correspondants dans `docs/superpowers/specs/` et `docs/superpowers/plans/`.
 
 ## Feuille de route
@@ -17,8 +17,8 @@ Issue de l'audit initial du projet (2026-08-10), découpée en chantiers indépe
 | — | Correction affichage erreur de connexion (desktop) | ✅ Terminé | `76d64ad` |
 | 2e | Piste d'audit non silencieuse | ✅ Terminé | `389cc1a`..`7eb1b15` |
 | 2d-0 | Infrastructure de test d'intégration | ✅ Terminé | `beeb508`..`e37aa7b` |
-| 2d-1 | Tests auth + RBAC | ⬜ À faire (prochain) | — |
-| 2d-2 | Tests patients | ⬜ À faire | — |
+| 2d-1 | Tests auth + RBAC | ✅ Terminé | `e71a70d`..`810d2ba` |
+| 2d-2 | Tests patients | ⬜ À faire (prochain) | — |
 | 2d-3 | Tests prescriptions | ⬜ À faire | — |
 | 2d-4 | Tests caisse | ⬜ À faire | — |
 | 2b | CI (GitHub Actions) | ⬜ À faire | — |
@@ -65,6 +65,22 @@ Fondation des sous-chantiers 2d-1 à 2d-4. Fixture `db_session` (`tests/conftest
 **Décision utilisateur** : base `AH2` réelle plutôt qu'une base `AH2_test` dédiée — les données actuelles sont des données de test.
 **Vérification** : pattern testé manuellement contre la base réelle pendant le cadrage, puis via un méta-test pytest committé, puis via un test de bout en bout (`TestClient` + route `/health` réelle). Confirmé sans fuite de donnée à chaque étape.
 
+### Chantier 2d-1 — Tests d'intégration auth + RBAC
+Spec : `2026-08-11-chantier-2d1-tests-auth-rbac-design.md` · Plan : `2026-08-11-chantier-2d1-tests-auth-rbac.md`
+Premier sous-chantier métier construit sur 2d-0. Exécuté via subagent-driven-development, dans un worktree isolé (`.claude/worktrees/chantier-2d1-tests-auth-rbac`) pour ne jamais toucher au travail en cours de l'utilisateur. 11 tests neufs sur 3 fichiers :
+- `tests/test_auth_login.py` — `POST /auth/login` : succès (rôle correctement encodé dans le JWT), mauvais mot de passe, compte inactif, utilisateur inconnu (mêmes 401 génériques "Identifiants invalides", comportement existant).
+- `tests/test_auth_token_lifecycle.py` — `GET /auth/me`/`POST /auth/logout` : token valide, token expiré (forgé), signature invalide (forgée), et révocation effective via `token_version` (login → logout → réutilisation de l'ancien token → 401).
+- `tests/test_rbac.py` — `role_required()` sur `GET /users/` (route réelle durcie au chantier 0, `SEC-07`) : rôle admin autorisé, rôle secretaire refusé (403), non authentifié (401).
+
+Ajout à `tests/conftest.py` (infrastructure partagée, réutilisable par 2d-2 à 2d-4) : `create_test_user()` (compte éphémère, `flush()` jamais `commit()`) et une fixture `autouse` réinitialisant le rate limiter entre tests (`/auth/login` limité à 5/minute, `SEC-05` — sans cela `TestClient` se bloquerait lui-même).
+
+**Découvertes pendant le cadrage/l'implémentation :**
+- La spec initiale ciblait `GET /admin/users/` pour le test RBAC — corrigé en `GET /users/` avant l'écriture du plan (`users_endpoint.py` a `prefix="/users"`, aucun préfixe `/admin` n'est ajouté dans `main.py`).
+- `GET /users/` nécessite un double `override_get_db()` (module `auth_endpoints` + module `users_endpoint`, chacun avec son propre `get_db()`) — confirmation concrète du besoin `ARC-05`.
+- Les 4 échecs de tests pré-existants notés au chantier 2d-0 ne sont plus que 2 (`test_patient_repo.py::test_update_patient_success`, `test_update_patient_not_found`) — `test_prescription_repo.py` passe désormais, sans lien avec ce chantier.
+
+**Minor différé** (voir revue de tâche) : `tests/test_auth_token_lifecycle.py` redéfinit `JWT_ISSUER`/`JWT_AUDIENCE` en constantes locales plutôt que de les importer depuis `auth_endpoints` — cosmétique, à corriger si l'occasion se présente.
+
 ## Registre des découvertes non traitées
 
 Compilé le 2026-08-10, mis à jour au fil des chantiers. Catégorisé par ce qui bloque la correction.
@@ -94,9 +110,9 @@ Compilé le 2026-08-10, mis à jour au fil des chantiers. Catégorisé par ce qu
 ### Autres points ouverts, hors registre A/B/C
 
 - **Console web inaccessible en local** (`EACCES` Vite) — non résolu, voir `CONTEXTE-PROJET.md`. N'affecte pas la CI (build fonctionne).
-- **4 tests pré-existants en échec**, sans lien avec les chantiers de sécurité — candidats pour le chantier 2d.
+- **2 tests pré-existants en échec** (`test_patient_repo.py`), sans lien avec les chantiers de sécurité.
 - **Tailwind reste en v3** alors que la v4 existe (changement de format de config) — à examiner lors de l'audit Vue/Tailwind demandé par l'utilisateur, après 2b-2e.
 
 ## Prochaine étape
 
-Chantier **2d — tests des chemins critiques** (auth, RBAC, patients, prescriptions, caisse), puis **2b — CI**, puis reconsidérer **2c** (toujours bloqué). Ensuite : audit des versions Vue/Tailwind/dépendances front.
+Chantier **2d-2 — tests patients**, puis 2d-3 (prescriptions), 2d-4 (caisse), puis **2b — CI**, puis reconsidérer **2c** (toujours bloqué). Ensuite : audit des versions Vue/Tailwind/dépendances front.
