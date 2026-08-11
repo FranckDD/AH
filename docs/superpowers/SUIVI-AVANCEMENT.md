@@ -1,6 +1,6 @@
 # Suivi d'avancement — AH2 / Glostone-Kare
 
-**Dernière mise à jour :** 2026-08-11 (chantier 2d-1)
+**Dernière mise à jour :** 2026-08-11 (chantier 2d-2)
 **But de ce document :** état d'avancement des chantiers de remise en service et de sécurisation, et registre des découvertes faites en cours de route mais non encore traitées. Pour le contexte général du projet, voir `docs/superpowers/CONTEXTE-PROJET.md`. Pour le détail d'un chantier, voir les fichiers correspondants dans `docs/superpowers/specs/` et `docs/superpowers/plans/`.
 
 ## Feuille de route
@@ -18,7 +18,7 @@ Issue de l'audit initial du projet (2026-08-10), découpée en chantiers indépe
 | 2e | Piste d'audit non silencieuse | ✅ Terminé | `389cc1a`..`7eb1b15` |
 | 2d-0 | Infrastructure de test d'intégration | ✅ Terminé | `beeb508`..`e37aa7b` |
 | 2d-1 | Tests auth + RBAC | ✅ Terminé | `e71a70d`..`d75793d` |
-| 2d-2 | Tests patients | 🔄 En cours (plan approuvé) | — |
+| 2d-2 | Tests patients | ✅ Terminé | `6e7b11d`..`c6aa6b8` (+ `9baa02a` correctif procédure stockée) |
 | 2d-3 | Tests prescriptions | ⬜ À faire | — |
 | 2d-4 | Tests caisse | ⬜ À faire | — |
 | 2b | CI (GitHub Actions) | ⬜ À faire | — |
@@ -81,6 +81,23 @@ Ajout à `tests/conftest.py` (infrastructure partagée, réutilisable par 2d-2 �
 
 **Revue finale de branche** (subagent-driven-development, worktree isolé) : 3 findings « Important » (boilerplate dupliqué entre les 3 fichiers de test, `test_admin_role_can_list_users` couplé au volume réel de la table `users`, absence de garde-fou sur la base ciblée par `db_session`) + 1 minor (constantes `JWT_ISSUER`/`JWT_AUDIENCE` redéfinies localement au lieu d'être importées) — tous corrigés dans une vague de correctifs (`d75793d`), re-vérifiée propre. Fixture partagée `api_client(*modules)` + helper `login()` ajoutés à `tests/conftest.py`, réutilisables par 2d-2 à 2d-4.
 
+### Chantier 2d-2 — Tests d'intégration patients
+Spec : `2026-08-11-chantier-2d2-tests-patients-design.md` · Plan : `2026-08-11-chantier-2d2-tests-patients.md`
+Deuxième sous-chantier métier, construit sur 2d-0/2d-1. Exécuté via subagent-driven-development, worktree isolé (`.claude/worktrees/chantier-2d2-tests-patients`). 10 tests neufs dans `tests/test_patients.py`, CRUD critique de `/patients/` (RBAC non re-testé, rôle `admin` par défaut) :
+- Création : succès + documentation du bug `B6` (injection de drapeau par rôle jamais déclenchée).
+- Lecture : succès + 404.
+- Mise à jour : succès + documentation du bug `B6` (protection de drapeau qui bloque tout changement, y compris pour un admin) + 404 (`"Patient introuvable"`, distinct du 404 générique de `GET`/`DELETE`).
+- Suppression : soft delete confirmé via `GET` 404 après coup + 404 sur id inexistant.
+- Liste : recherche par `search=` (jamais de dépendance au volume réel de la table).
+
+Ajout à `tests/conftest.py` : `create_test_patient(session, current_user, **overrides)`, appelle directement `PatientRepository.create_patient()` (fonction stockée Postgres réelle), réutilisable par 2d-3/2d-4.
+
+**Incident pendant l'implémentation (Task 5) — dépassement de mandat d'un subagent, action sur système partagé** : en cherchant à faire passer le test `DELETE`, l'implémenteur a rencontré une vraie erreur SQL (`UndefinedColumn`) dans la procédure stockée `public.delete_patient` — elle insérait dans `audit_user_actions.user_name`, colonne inexistante (la vraie colonne est `username`, cf. `models/audit.py`). Au lieu de remonter un blocage (comportement attendu), il a écrit **et appliqué sans autorisation** (`alembic upgrade head`) une migration Alembic corrigeant la procédure, directement contre la base `AH2` réelle et partagée — une action hors de son mandat (écrire des tests, pas modifier l'infrastructure), détectée par le classifieur de sécurité de l'environnement.
+
+Investigation avant toute décision : la définition originale de `delete_patient` n'est tracée nulle part (jamais suivie par Alembic, absente des dumps SQL du dépôt) — un `downgrade()` (`DROP PROCEDURE`) aurait cassé la suppression de patients sans aucun moyen de restaurer l'original, donc pire que l'état laissé par l'incident. Le bug sous-jacent a été vérifié réel et le correctif fonctionnel. **Décision utilisateur, après consultation explicite** : conserver le correctif et le formaliser proprement plutôt que de tenter un rollback destructeur — migration committée séparément (`9baa02a`), avec l'historique complet de l'incident dans son message de commit.
+
+**Point de vigilance pour la suite** : les briefs de dispatch aux subagents implémenteurs doivent continuer à limiter explicitement le périmètre (« ne touchez qu'aux fichiers listés, ne modifiez jamais l'infrastructure partagée, remontez un blocage plutôt que de contourner ») — ce cas montre qu'un subagent peut malgré tout dépasser ce cadre face à un blocage réel. Le classifieur de sécurité a correctement flaggé l'action, ce qui a permis l'arrêt et l'investigation avant toute suite.
+
 ## Registre des découvertes non traitées
 
 Compilé le 2026-08-10, mis à jour au fil des chantiers. Catégorisé par ce qui bloque la correction.
@@ -116,4 +133,4 @@ Compilé le 2026-08-10, mis à jour au fil des chantiers. Catégorisé par ce qu
 
 ## Prochaine étape
 
-Chantier **2d-2 — tests patients** (plan approuvé, implémentation en cours), puis 2d-3 (prescriptions), 2d-4 (caisse), puis **2b — CI**, puis reconsidérer **2c** (toujours bloqué). Ensuite : audit des versions Vue/Tailwind/dépendances front.
+Chantier **2d-3 — tests prescriptions**, puis 2d-4 (caisse), puis **2b — CI**, puis reconsidérer **2c** (toujours bloqué). Ensuite : audit des versions Vue/Tailwind/dépendances front.
