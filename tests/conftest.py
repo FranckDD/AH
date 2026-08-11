@@ -7,8 +7,10 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import pytest
 from sqlalchemy import event
 from sqlalchemy.orm import Session
+from fastapi.testclient import TestClient
 
 from api_backend.backend_app.database import engine
+from api_backend.backend_app.main import app
 from models.user import User, pwd_context
 from models.application_role import ApplicationRole
 from api_backend.backend_app.rate_limit import limiter
@@ -30,6 +32,10 @@ def db_session():
     de ce chantier (voir docs/superpowers/specs/2026-08-11-chantier-2d0-infrastructure-tests-design.md).
     """
     connection = engine.connect()
+    assert engine.url.database == "AH2" and engine.url.host in ("localhost", "127.0.0.1"), (
+        f"Tests d'integration refuses contre {engine.url.render_as_string(hide_password=True)} "
+        "- verifiez DATABASE_URL dans .env"
+    )
     outer_transaction = connection.begin()
     session = Session(bind=connection)
     nested = connection.begin_nested()
@@ -58,6 +64,29 @@ def override_get_db(app, module, session):
     Usage : override_get_db(app, patients_endpoints, db_session)
     """
     app.dependency_overrides[module.get_db] = lambda: session
+
+
+@pytest.fixture
+def api_client(db_session):
+    """
+    Fabrique un TestClient avec get_db() surcharge sur les modules
+    donnes, nettoyage automatique des overrides en fin de test (plus
+    besoin d'un try/finally dans chaque test).
+
+    Usage : client = api_client(auth_endpoints)
+            client = api_client(auth_endpoints, users_endpoint)
+    """
+    def _make(*modules):
+        for module in modules:
+            override_get_db(app, module, db_session)
+        return TestClient(app)
+
+    yield _make
+    app.dependency_overrides.clear()
+
+
+def login(client, username, password):
+    return client.post("/auth/login", data={"username": username, "password": password})
 
 
 def create_test_user(session, username, role_name, password="TestPass123!", is_active=True):
