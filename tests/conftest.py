@@ -8,12 +8,14 @@ import pytest
 from sqlalchemy import event
 from sqlalchemy.orm import Session
 from fastapi.testclient import TestClient
+from datetime import date
 
 from api_backend.backend_app.database import engine
 from api_backend.backend_app.main import app
 from models.user import User, pwd_context
 from models.application_role import ApplicationRole
 from api_backend.backend_app.rate_limit import limiter
+from repositories.patient_repo import PatientRepository
 
 
 @pytest.fixture
@@ -106,6 +108,29 @@ def create_test_user(session, username, role_name, password="TestPass123!", is_a
     session.add(user)
     session.flush()
     return user
+
+
+def create_test_patient(session, current_user, **overrides):
+    """
+    Cree un patient ephemere en appelant directement le repository
+    (fonction stockee Postgres reelle create_patient()), dans la
+    transaction de test. Le repo ne commit jamais lui-meme (voir son
+    propre commentaire) - rien a annuler explicitement ici, le rollback
+    de db_session suffit en fin de test.
+
+    Reutilise le User cree par create_test_user() comme current_user
+    (le repo lit user_id/full_name dessus via getattr).
+
+    Retourne (patient_id, code_patient).
+    """
+    data = {
+        "first_name": "Test",
+        "last_name": "Patient",
+        "birth_date": date(1990, 1, 1),
+        **overrides,
+    }
+    repo = PatientRepository(session)
+    return repo.create_patient(data, current_user)
 
 
 @pytest.fixture(autouse=True)
