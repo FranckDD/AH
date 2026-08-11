@@ -128,3 +128,39 @@ def test_update_patient_not_found(db_session, api_client):
 
     assert resp.status_code == 404
     assert resp.json()["detail"] == "Patient introuvable"
+
+
+def test_delete_patient_success(db_session, api_client):
+    user = create_test_user(db_session, "test_patients_admin_delete", "admin", password="Correct123!")
+    patient_id, _ = create_test_patient(db_session, user)
+    client = api_client(auth_endpoints, patients_endpoints)
+    headers = _auth_headers(client, "test_patients_admin_delete", "Correct123!")
+
+    delete_resp = client.delete(f"/patients/{patient_id}", headers=headers)
+    assert delete_resp.status_code == 204
+
+    get_resp = client.get(f"/patients/{patient_id}", headers=headers)
+    assert get_resp.status_code == 404
+
+
+def test_delete_patient_not_found(db_session, api_client):
+    create_test_user(db_session, "test_patients_admin_delete404", "admin", password="Correct123!")
+    client = api_client(auth_endpoints, patients_endpoints)
+    headers = _auth_headers(client, "test_patients_admin_delete404", "Correct123!")
+
+    resp = client.delete("/patients/999999999", headers=headers)
+
+    assert resp.status_code == 404
+
+
+def test_list_patients_search_finds_created_patient(db_session, api_client):
+    user = create_test_user(db_session, "test_patients_admin_list", "admin", password="Correct123!")
+    patient_id, _ = create_test_patient(db_session, user, last_name="Zzuniquesearchname")
+    client = api_client(auth_endpoints, patients_endpoints)
+    headers = _auth_headers(client, "test_patients_admin_list", "Correct123!")
+
+    resp = client.get("/patients/?search=Zzuniquesearchname", headers=headers)
+
+    assert resp.status_code == 200
+    ids = [p["patient_id"] for p in resp.json()]
+    assert patient_id in ids
