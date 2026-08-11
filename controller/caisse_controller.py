@@ -7,6 +7,10 @@ from repositories.caisse_repo import CaisseRepository
 from repositories.audit_repo import AuditRepository
 from models.consultation_spirituelle import ConsultationSpirituel
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class CaisseController:
     def __init__(self, repo: CaisseRepository, current_user,audit_repo: Optional[AuditRepository] = None):
@@ -181,7 +185,8 @@ class CaisseController:
                     resource_id=transaction_id,
                     details="Annulation transaction financière"
                 )
-            except Exception: pass
+            except Exception:
+                logger.exception("Échec de l'écriture d'audit")
         return tx
 
     def delete_transaction(self, transaction_id: int) -> Caisse:

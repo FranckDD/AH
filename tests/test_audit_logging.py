@@ -23,3 +23,21 @@ def test_auth_controller_logs_when_audit_fails_on_login_error(caplog):
 
     assert result is None  # ne doit jamais lever, comportement inchange
     assert any("audit" in r.message.lower() for r in caplog.records)
+
+
+def test_caisse_controller_logs_when_audit_fails_on_cancel(caplog):
+    from controller.caisse_controller import CaisseController
+
+    repo = MagicMock()
+    repo.cancel_transaction.return_value = MagicMock()
+    user = MagicMock()
+    audit_repo = MagicMock()
+    audit_repo.log_user_action.side_effect = Exception("boom")
+
+    ctrl = CaisseController(repo=repo, current_user=user, audit_repo=audit_repo)
+
+    with caplog.at_level(logging.ERROR):
+        tx = ctrl.cancel_transaction(transaction_id=1)
+
+    assert tx is not None  # ne doit jamais lever
+    assert any("audit" in r.message.lower() for r in caplog.records)
