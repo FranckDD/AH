@@ -41,3 +41,21 @@ def test_caisse_controller_logs_when_audit_fails_on_cancel(caplog):
 
     assert tx is not None  # ne doit jamais lever
     assert any("audit" in r.message.lower() for r in caplog.records)
+
+
+def test_medical_controller_logs_when_audit_fails_on_delete(caplog):
+    from controller.medical_controller import MedicalRecordController
+
+    repo = MagicMock()
+    repo.delete.return_value = True
+    user = MagicMock()
+    audit_repo = MagicMock()
+    audit_repo.log_user_action.side_effect = Exception("boom")
+
+    ctrl = MedicalRecordController(repo=repo, current_user=user, audit_repo=audit_repo)
+
+    with caplog.at_level(logging.ERROR):
+        result = ctrl.delete_record(record_id=1)
+
+    assert result is True
+    assert any("audit" in r.message.lower() for r in caplog.records)

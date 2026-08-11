@@ -116,7 +116,8 @@ class MedicalRecordController:
                     resource_id=rec_id,
                     details=f"Patient ID: {pat_id}. Motif: {data.get('motif_code')}" # type: ignore
                 )
-            except Exception: pass
+            except Exception:
+                self.logger.exception("Échec de l'écriture d'audit")
             
         return record
 
@@ -133,7 +134,8 @@ class MedicalRecordController:
                     resource_id=record_id,
                     new_values=data # Log des champs modifiés
                 )
-            except Exception: pass
+            except Exception:
+                self.logger.exception("Échec de l'écriture d'audit")
             
         return record
 
@@ -149,7 +151,8 @@ class MedicalRecordController:
                     action_performed="DELETE",
                     resource_id=record_id
                 )
-            except Exception: pass
+            except Exception:
+                self.logger.exception("Échec de l'écriture d'audit")
             
         return result
 
