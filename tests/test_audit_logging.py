@@ -59,3 +59,22 @@ def test_medical_controller_logs_when_audit_fails_on_delete(caplog):
 
     assert result is True
     assert any("audit" in r.message.lower() for r in caplog.records)
+
+
+def test_patient_controller_logs_when_audit_fails_on_soft_delete(caplog):
+    from controller.patient_controller import PatientController
+
+    repo = MagicMock()
+    repo.session = MagicMock()
+    repo.delete_patient.return_value = True
+    user = MagicMock()
+    audit_repo = MagicMock()
+    audit_repo.log_user_action.side_effect = Exception("boom")
+
+    ctrl = PatientController(repo=repo, current_user=user, audit_repo=audit_repo)
+
+    with caplog.at_level(logging.ERROR):
+        result = ctrl.delete_patient(patient_id=1)
+
+    assert result is True
+    assert any("audit" in r.message.lower() for r in caplog.records)

@@ -135,7 +135,8 @@ class PatientController:
                     action_performed="SOFT_DELETE",
                     resource_id=patient_id
                 )
-            except Exception: pass
+            except Exception:
+                self.logger.exception("Échec de l'écriture d'audit")
         return success
 
     def get_patient(self, patient_id: int) -> dict:
