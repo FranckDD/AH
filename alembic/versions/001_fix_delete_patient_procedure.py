@@ -44,7 +44,12 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    """Downgrade schema."""
-    op.execute("""
-        DROP PROCEDURE IF EXISTS public.delete_patient(INTEGER, INTEGER);
-    """)
+    """
+    Irreversible : la definition d'origine de public.delete_patient
+    n'existe nulle part (jamais suivie par Alembic, absente des dumps
+    -Fc du depot - verifie avec pg_restore -l pendant la revue finale
+    du chantier 2d-2). Un DROP PROCEDURE casserait la suppression de
+    patients sans aucun recours. Voir docs/superpowers/SUIVI-AVANCEMENT.md,
+    section chantier 2d-2, pour le detail complet de l'incident.
+    """
+    pass

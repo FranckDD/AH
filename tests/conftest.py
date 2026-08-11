@@ -91,6 +91,11 @@ def login(client, username, password):
     return client.post("/auth/login", data={"username": username, "password": password})
 
 
+def auth_headers(client, username, password):
+    token = login(client, username, password).json()["access_token"]
+    return {"Authorization": f"Bearer {token}"}
+
+
 def create_test_user(session, username, role_name, password="TestPass123!", is_active=True):
     """
     Cree un utilisateur ephemere dans la transaction de test (flush, jamais

@@ -98,6 +98,8 @@ Investigation avant toute décision : la définition originale de `delete_patien
 
 **Point de vigilance pour la suite** : les briefs de dispatch aux subagents implémenteurs doivent continuer à limiter explicitement le périmètre (« ne touchez qu'aux fichiers listés, ne modifiez jamais l'infrastructure partagée, remontez un blocage plutôt que de contourner ») — ce cas montre qu'un subagent peut malgré tout dépasser ce cadre face à un blocage réel. Le classifieur de sécurité a correctement flaggé l'action, ce qui a permis l'arrêt et l'investigation avant toute suite.
 
+**Précision sur l'investigation (revue finale de branche)** : le dump `ah2_v3_dashmedical.sql` du dépôt est une archive binaire au format personnalisé de `pg_dump` (`-Fc`), pas du texte brut — `grep` ne voit pas son contenu et le signale comme fichier binaire. L'outil correct pour l'inspecter est `pg_restore -l ah2_v3_dashmedical.sql` (liste le contenu de l'archive sans la restaurer), utilisé pendant la revue finale pour confirmer que `delete_patient` en est bien absent. Par ailleurs, on ignore si la procédure d'origine (avant correctif) propageait le soft delete aux enregistrements liés (rendez-vous, prescriptions, dossiers médicaux) — la procédure reconstruite ne touche que `patients` et `audit_user_actions`. Comme l'ancienne procédure échouait systématiquement avec une erreur SQL, aucune suppression n'a jamais réellement abouti historiquement, donc cet écart potentiel n'a jamais été observable en pratique — c'est une inconnue ouverte pour qui reprendra ce sujet plus tard.
+
 ## Registre des découvertes non traitées
 
 Compilé le 2026-08-10, mis à jour au fil des chantiers. Catégorisé par ce qui bloque la correction.
@@ -124,6 +126,16 @@ Compilé le 2026-08-10, mis à jour au fil des chantiers. Catégorisé par ce qu
 | C1 | `patient_controller.py` a son propre mécanisme de résolution de rôle (colonne `postgres_role`), indépendant de `get_current_user()` | Unifier avec `role_map.py`, ou volontairement distinct ? |
 | C2 | Mode hors ligne (`repo_offline/user_repo_offline.py`) a sa propre logique de rôle | Sera remplacé par PowerSync (chantier 4) — vaut-il le coup d'y toucher avant ? |
 | C3 | `UserModal.vue` / `GROUP_MAPPING` — 4ᵉ classification de rôles, UX uniquement | Pas un problème de sécurité — à laisser tel quel ? |
+
+### D — Écarts révélés par l'incident `delete_patient` (préexistants, jamais observables avant le correctif)
+
+L'ancienne procédure stockée `delete_patient` échouait systématiquement avec une erreur SQL (`UndefinedColumn`) — aucune suppression de patient n'a donc jamais réellement abouti avant le correctif du chantier 2d-2. Les trois écarts suivants existaient déjà mais restaient invisibles tant qu'aucune suppression ne pouvait se produire.
+
+| # | Découverte | Fichier | Ce qui bloque |
+|---|---|---|---|
+| D1 | `controller/patient_controller.py` (méthode de suppression) appelle `audit_repo.log_user_action(...)` mais ne commit jamais après — le `delete_patient` du repository a déjà commité plus tôt dans la même méthode, donc la ligne d'audit applicative est silencieusement perdue à chaque soft delete de patient. De plus, la procédure stockée écrit `action_performed = 'SOFT DELETE'` (avec un espace) alors que le reste du code utilise `'SOFT_DELETE'`/`'CREATE'`/`'UPDATE'` (avec underscore) — vocabulaire incohérent. Pertinent pour le chantier 2e (piste d'audit non silencieuse). | `controller/patient_controller.py` | Nécessite une revue du flux de commit de la méthode, pas encore planifiée |
+| D2 | La migration baseline (`6ea9b46b7a65_baseline.py`) ne contient aucune définition `FUNCTION`/`PROCEDURE` — un `alembic upgrade head` sur une base neuve donnerait des tables sans les fonctions/procédures stockées `create_patient()`/`update_patient()`/`delete_patient()` : le module patients (et les tests de ce chantier) ne peut pas tourner contre une base fraîchement provisionnée. | `alembic/versions/6ea9b46b7a65_baseline.py` | Bloque le chantier 2b (CI) tant que non traité |
+| D3 | Aucune étape de déploiement n'exécute les migrations Alembic en attente — le `Procfile` ne lance que `uvicorn`, sans étape release/migrate. Le correctif `delete_patient` de ce chantier n'atteindra donc aucun environnement déployé automatiquement ; là où l'ancienne procédure cassée est installée, la suppression de patients reste cassée jusqu'à un `alembic upgrade head` manuel. | `Procfile` | Nécessite d'ajouter une étape de déploiement (release phase ou équivalent), pas encore décidée |
 
 ### Autres points ouverts, hors registre A/B/C
 
