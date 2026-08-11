@@ -17,8 +17,8 @@ Issue de l'audit initial du projet (2026-08-10), découpée en chantiers indépe
 | — | Correction affichage erreur de connexion (desktop) | ✅ Terminé | `76d64ad` |
 | 2e | Piste d'audit non silencieuse | ✅ Terminé | `389cc1a`..`7eb1b15` |
 | 2d-0 | Infrastructure de test d'intégration | ✅ Terminé | `beeb508`..`e37aa7b` |
-| 2d-1 | Tests auth + RBAC | ✅ Terminé | `e71a70d`..`810d2ba` |
-| 2d-2 | Tests patients | ⬜ À faire (prochain) | — |
+| 2d-1 | Tests auth + RBAC | ✅ Terminé | `e71a70d`..`d75793d` |
+| 2d-2 | Tests patients | 🔄 En cours (plan approuvé) | — |
 | 2d-3 | Tests prescriptions | ⬜ À faire | — |
 | 2d-4 | Tests caisse | ⬜ À faire | — |
 | 2b | CI (GitHub Actions) | ⬜ À faire | — |
@@ -79,7 +79,7 @@ Ajout à `tests/conftest.py` (infrastructure partagée, réutilisable par 2d-2 �
 - `GET /users/` nécessite un double `override_get_db()` (module `auth_endpoints` + module `users_endpoint`, chacun avec son propre `get_db()`) — confirmation concrète du besoin `ARC-05`.
 - Les 4 échecs de tests pré-existants notés au chantier 2d-0 ne sont plus que 2 (`test_patient_repo.py::test_update_patient_success`, `test_update_patient_not_found`) — `test_prescription_repo.py` passe désormais, sans lien avec ce chantier.
 
-**Minor différé** (voir revue de tâche) : `tests/test_auth_token_lifecycle.py` redéfinit `JWT_ISSUER`/`JWT_AUDIENCE` en constantes locales plutôt que de les importer depuis `auth_endpoints` — cosmétique, à corriger si l'occasion se présente.
+**Revue finale de branche** (subagent-driven-development, worktree isolé) : 3 findings « Important » (boilerplate dupliqué entre les 3 fichiers de test, `test_admin_role_can_list_users` couplé au volume réel de la table `users`, absence de garde-fou sur la base ciblée par `db_session`) + 1 minor (constantes `JWT_ISSUER`/`JWT_AUDIENCE` redéfinies localement au lieu d'être importées) — tous corrigés dans une vague de correctifs (`d75793d`), re-vérifiée propre. Fixture partagée `api_client(*modules)` + helper `login()` ajoutés à `tests/conftest.py`, réutilisables par 2d-2 à 2d-4.
 
 ## Registre des découvertes non traitées
 
@@ -98,6 +98,7 @@ Compilé le 2026-08-10, mis à jour au fil des chantiers. Catégorisé par ce qu
 | B3 | Correctif d'import (`api_backend.backend_app.utils.pdf_generator`) reste en local, jamais commité | `lab_endpoints.py` | Le fichier porte un module PDF en cours de développement |
 | B4 | `alembic`, `slowapi`, `limits`, `deprecated` ajoutés à `requirements.txt` en local uniquement | `requirements.txt` | Fichier entièrement divergent de `HEAD` (pip freeze complet vs liste courte), aucune base commune |
 | B5 | Module labo (`router/index.js`, vues, gateway) fonctionnel en local mais jamais commité | `ah2-admin-web/src/` | Développement en cours de l'utilisateur |
+| B6 | `getattr(self.user, 'role_name', '')` sur `HEAD` — attribut inexistant sur `User`, toujours `''`. Conséquence : `create_patient` n'injecte jamais les drapeaux par rôle, et `update_patient` réécrit systématiquement les 3 drapeaux (`is_toxicology`/`is_clinical`/`is_spiritual`) avec leur ancienne valeur pour **tout** appelant, y compris un admin — personne ne peut les changer via `PUT /patients/{id}` aujourd'hui. Découvert et documenté (tests) au chantier 2d-2. | `controller/patient_controller.py` | Le fichier est en plein travail en cours (nouvelle méthode `_get_user_roles_set()` qui combine déjà `roles`/`postgres_role`/`role_name` — la correction semble déjà en chantier côté utilisateur, intégration Redis/Celery en parallèle) |
 
 ### C — Nécessitent une décision produit avant d'être un "problème" à corriger
 
@@ -115,4 +116,4 @@ Compilé le 2026-08-10, mis à jour au fil des chantiers. Catégorisé par ce qu
 
 ## Prochaine étape
 
-Chantier **2d-2 — tests patients**, puis 2d-3 (prescriptions), 2d-4 (caisse), puis **2b — CI**, puis reconsidérer **2c** (toujours bloqué). Ensuite : audit des versions Vue/Tailwind/dépendances front.
+Chantier **2d-2 — tests patients** (plan approuvé, implémentation en cours), puis 2d-3 (prescriptions), 2d-4 (caisse), puis **2b — CI**, puis reconsidérer **2c** (toujours bloqué). Ensuite : audit des versions Vue/Tailwind/dépendances front.
