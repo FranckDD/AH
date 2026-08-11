@@ -1,6 +1,6 @@
 # Suivi d'avancement — AH2 / Glostone-Kare
 
-**Dernière mise à jour :** 2026-08-11
+**Dernière mise à jour :** 2026-08-11 (chantier 2d-0)
 **But de ce document :** état d'avancement des chantiers de remise en service et de sécurisation, et registre des découvertes faites en cours de route mais non encore traitées. Pour le contexte général du projet, voir `docs/superpowers/CONTEXTE-PROJET.md`. Pour le détail d'un chantier, voir les fichiers correspondants dans `docs/superpowers/specs/` et `docs/superpowers/plans/`.
 
 ## Feuille de route
@@ -16,7 +16,11 @@ Issue de l'audit initial du projet (2026-08-10), découpée en chantiers indépe
 | — | Nettoyage A1-A4 (fuseau JWT, trigger, tables non modélisées, CSP) | ✅ Terminé | `ce35863`..`1d9456c` |
 | — | Correction affichage erreur de connexion (desktop) | ✅ Terminé | `76d64ad` |
 | 2e | Piste d'audit non silencieuse | ✅ Terminé | `389cc1a`..`7eb1b15` |
-| 2d | Tests des chemins critiques | ⬜ À faire (prochain) | — |
+| 2d-0 | Infrastructure de test d'intégration | ✅ Terminé | `beeb508`..`e37aa7b` |
+| 2d-1 | Tests auth + RBAC | ⬜ À faire (prochain) | — |
+| 2d-2 | Tests patients | ⬜ À faire | — |
+| 2d-3 | Tests prescriptions | ⬜ À faire | — |
+| 2d-4 | Tests caisse | ⬜ À faire | — |
 | 2b | CI (GitHub Actions) | ⬜ À faire | — |
 | 2c | Split des dépendances (`requirements-api.txt`/`requirements-desktop.txt`) | ⛔ Bloqué — `requirements.txt` en plein travail en cours, sans base commune avec `HEAD` | — |
 | 3 | Portage web (caisse/secrétariat, RDV, prescriptions, dossiers médicaux) | ⬜ Pas commencé | — |
@@ -54,6 +58,12 @@ Commit `76d64ad`. `AuthManager.login()` ne reconnaissait pas la clé `detail` de
 ### Chantier 2e — Piste d'audit non silencieuse
 Spec : `2026-08-11-chantier-2e-audit-non-silencieux-design.md` · Plan : `2026-08-11-chantier-2e-audit-non-silencieux.md`
 11 sites sur 6 contrôleurs : `except Exception: pass` → `logger.exception(...)`, comportement non-bloquant préservé, échecs désormais visibles.
+
+### Chantier 2d-0 — Infrastructure de test d'intégration
+Spec : `2026-08-11-chantier-2d0-infrastructure-tests-design.md` · Plan : `2026-08-11-chantier-2d0-infrastructure-tests.md`
+Fondation des sous-chantiers 2d-1 à 2d-4. Fixture `db_session` (`tests/conftest.py`) : transaction externe + SAVEPOINT auto-relancée, permet aux tests d'utiliser la vraie base `AH2` locale sans laisser de donnée résiduelle, même quand le code testé fait des `commit()` internes. Helper `override_get_db()` pour brancher cette session dans les dépendances FastAPI (14 `get_db()` distincts, un par module de routes — `ARC-05`).
+**Décision utilisateur** : base `AH2` réelle plutôt qu'une base `AH2_test` dédiée — les données actuelles sont des données de test.
+**Vérification** : pattern testé manuellement contre la base réelle pendant le cadrage, puis via un méta-test pytest committé, puis via un test de bout en bout (`TestClient` + route `/health` réelle). Confirmé sans fuite de donnée à chaque étape.
 
 ## Registre des découvertes non traitées
 
