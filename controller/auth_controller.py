@@ -1,5 +1,6 @@
 # controllers/auth_controller.py
 import os
+import logging
 from repositories.user_repo import UserRepository
 from controller.user_controller import UserController
 from repositories.role_repo import RoleRepository
@@ -29,6 +30,8 @@ from controller.audit_controller import AuditController
 from models.database import DatabaseManager
 from api_backend.backend_app.config import DATABASE_URL
 from typing import Optional
+
+logger = logging.getLogger(__name__)
 
 
 class AuthController:
@@ -78,7 +81,8 @@ class AuthController:
             self.current_user = user
             try:
                 self.audit_repo.log_access(user, "LOGIN_SUCCESS", details="Connexion via API")
-            except Exception: pass
+            except Exception:
+                logger.exception("Échec de l'écriture d'audit")
             
 
             # instanciation des sous-contrôleurs
@@ -147,7 +151,8 @@ class AuthController:
         except Exception as e:
             try:
                 self.audit_repo.log_access(None, "LOGIN_FAILURE", details=f"User: {username}. Erreur: {str(e)}")
-            except Exception: pass
+            except Exception:
+                logger.exception("Échec de l'écriture d'audit")
 
             print(f"Erreur d'authentification pour {username}: {e}")
             import traceback; traceback.print_exc()
