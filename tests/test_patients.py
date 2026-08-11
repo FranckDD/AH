@@ -85,3 +85,46 @@ def test_get_patient_not_found(db_session, api_client):
     resp = client.get("/patients/999999999", headers=headers)
 
     assert resp.status_code == 404
+
+
+def test_update_patient_success(db_session, api_client):
+    user = create_test_user(db_session, "test_patients_admin_update", "admin", password="Correct123!")
+    patient_id, _ = create_test_patient(db_session, user, first_name="Avant")
+    client = api_client(auth_endpoints, patients_endpoints)
+    headers = _auth_headers(client, "test_patients_admin_update", "Correct123!")
+
+    resp = client.put(f"/patients/{patient_id}", json={"first_name": "Apres"}, headers=headers)
+
+    assert resp.status_code == 200
+    assert resp.json()["first_name"] == "Apres"
+
+
+def test_update_patient_flag_protection_prevents_any_change(db_session, api_client):
+    """
+    Documente un bug present sur HEAD : la condition
+    "if 'admin' not in user_app_role" est toujours vraie (user_app_role
+    vaut toujours '', voir Task 2), donc is_toxicology est systematiquement
+    reecrit avec son ancienne valeur pour TOUT appelant, y compris un
+    admin. Personne ne peut changer ce drapeau via PUT aujourd'hui (voir
+    SUIVI-AVANCEMENT.md registre B6).
+    """
+    user = create_test_user(db_session, "test_patients_admin_flagprotect", "admin", password="Correct123!")
+    patient_id, _ = create_test_patient(db_session, user, is_toxicology=False)
+    client = api_client(auth_endpoints, patients_endpoints)
+    headers = _auth_headers(client, "test_patients_admin_flagprotect", "Correct123!")
+
+    resp = client.put(f"/patients/{patient_id}", json={"is_toxicology": True}, headers=headers)
+
+    assert resp.status_code == 200
+    assert resp.json()["is_toxicology"] is False
+
+
+def test_update_patient_not_found(db_session, api_client):
+    create_test_user(db_session, "test_patients_admin_update404", "admin", password="Correct123!")
+    client = api_client(auth_endpoints, patients_endpoints)
+    headers = _auth_headers(client, "test_patients_admin_update404", "Correct123!")
+
+    resp = client.put("/patients/999999999", json={"first_name": "X"}, headers=headers)
+
+    assert resp.status_code == 404
+    assert resp.json()["detail"] == "Patient introuvable"
