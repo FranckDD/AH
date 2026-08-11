@@ -8,6 +8,24 @@ class AuthManager:
         self.settings = QSettings("Glostone-kare", "Auth")
         self.current_user: Optional[Dict[str, Any]] = None
 
+    @staticmethod
+    def _extract_error_message(res: Dict[str, Any]) -> str:
+        """Extrait un message d'erreur lisible quel que soit le format renvoye :
+        'detail' (FastAPI, ex: 401/429), liste de 'detail' (422 validation),
+        ou 'error'/'details' (erreurs internes de la passerelle : reseau, JSON invalide)."""
+        detail = res.get("detail")
+        if isinstance(detail, str):
+            return detail
+        if isinstance(detail, list) and detail:
+            msgs = [d.get("msg", str(d)) for d in detail if isinstance(d, dict)]
+            if msgs:
+                return "; ".join(msgs)
+        if res.get("details"):
+            return str(res["details"])
+        if res.get("error"):
+            return str(res["error"])
+        return "Erreur inconnue du serveur"
+
     def login(self, username: str, password: str) -> Tuple[bool, Dict[str, Any]]:
         res = self.gateway.login(username, password)
         if not isinstance(res, dict):
@@ -16,10 +34,8 @@ class AuthManager:
         # Extraire le token (plusieurs formats possibles gérés)
         token = res.get("access_token") or (res.get("data") or {}).get("access_token") or res.get("token")
         if not token:
-            # retourner l'erreur brute si présente
-            if res.get("error") or res.get("details"):
-                return False, res
-            return False, {"error": "no_token", "details": "Token not returned by server"}
+            message = self._extract_error_message(res)
+            return False, {"error": "login_failed", "details": message}
 
         # stocker token et l'injecter
         try:
