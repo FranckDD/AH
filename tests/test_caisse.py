@@ -253,3 +253,40 @@ def test_list_for_patient(db_session, api_client):
     assert resp.status_code == 200
     ids = [t["transaction_id"] for t in resp.json()]
     assert tx.transaction_id in ids
+
+
+def test_update_transaction_success(db_session, api_client):
+    user = create_test_user(db_session, "test_caisse_secretaire_update", "secretaire", password=TEST_PASSWORD)
+    tx = create_test_transaction(db_session, user)
+    client = api_client(auth_endpoints, caisse_endpoints)
+    headers = auth_headers(client, "test_caisse_secretaire_update", TEST_PASSWORD)
+
+    resp = client.put(f"/caisse/{tx.transaction_id}", json={"note": "Note mise a jour"}, headers=headers)
+
+    assert resp.status_code == 200
+    assert resp.json()["note"] == "Note mise a jour"
+
+
+def test_update_transaction_refused_after_cancel(db_session, api_client):
+    user = create_test_user(db_session, "test_caisse_secretaire_updatecancelled", "secretaire", password=TEST_PASSWORD)
+    tx = create_test_transaction(db_session, user)
+    client = api_client(auth_endpoints, caisse_endpoints)
+    headers = auth_headers(client, "test_caisse_secretaire_updatecancelled", TEST_PASSWORD)
+
+    cancel_resp = client.post(f"/caisse/{tx.transaction_id}/cancel", headers=headers)
+    assert cancel_resp.status_code == 200
+
+    resp = client.put(f"/caisse/{tx.transaction_id}", json={"note": "Ne devrait pas marcher"}, headers=headers)
+
+    assert resp.status_code == 400
+    assert "annulée" in resp.json()["detail"]
+
+
+def test_update_transaction_not_found(db_session, api_client):
+    create_test_user(db_session, "test_caisse_secretaire_update404", "secretaire", password=TEST_PASSWORD)
+    client = api_client(auth_endpoints, caisse_endpoints)
+    headers = auth_headers(client, "test_caisse_secretaire_update404", TEST_PASSWORD)
+
+    resp = client.put("/caisse/999999999", json={"note": "x"}, headers=headers)
+
+    assert resp.status_code == 400
