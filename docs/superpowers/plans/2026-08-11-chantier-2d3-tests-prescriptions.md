@@ -274,6 +274,13 @@ def test_create_prescription_allowed_for_nurse(db_session, api_client):
     voir test_create_prescription_success pour le bug du corps de reponse
     (registre E5, valable pour tout role autorise, pas specifique a
     nurse).
+
+    "duration" est obligatoire dans ce payload malgre son statut Optional
+    dans le schema Pydantic PrescriptionCreate : la colonne DB
+    prescriptions.duration est NOT NULL, et rien ne comble cet ecart
+    cote schema (registre E6 - omettre "duration" fait echouer TOUTE
+    creation avec 409, quel que soit le role, decouvert empiriquement
+    par l'implementeur de Task 2 puis verifie independamment).
     """
     user = create_test_user(db_session, "test_presc_nurse_create", "nurse", password=TEST_PASSWORD)
     patient_id, _ = create_test_patient(db_session, user)
@@ -285,6 +292,7 @@ def test_create_prescription_allowed_for_nurse(db_session, api_client):
         "medication": "Ibuprofene",
         "dosage": "200mg",
         "frequency": "1x/jour",
+        "duration": "3 jours",
         "start_date": "2026-08-11",
     }
     resp = client.post("/prescriptions/", json=payload, headers=headers)
@@ -938,6 +946,7 @@ qu'un chantier dédié leur est consacré.
 | E3 | `PUT /prescriptions/{id}` sur un id inexistant renvoie 500 (`"Erreur serveur lors de la mise à jour de la prescription"`), pas 404 : la procédure stockée `public.update_prescription` lève sa propre exception PL/pgSQL sur un id absent, remontée comme `SQLAlchemyError` générique. | `repositories/prescription_repo.py`, procédure stockée `public.update_prescription` (non tracée — item `D2`) | Moyenne |
 | E4 | `public.update_prescription` réécrit toutes les colonnes inconditionnellement (pas de `COALESCE`). Un `PUT` avec un payload partiel remet à `NULL` les champs omis — plante en 409 si un champ `NOT NULL` est omis, sinon efface silencieusement les champs nullable (`notes`, `end_date`, `medical_record_id`). `PUT` n'est utilisable qu'avec un payload complet, jamais partiel. | procédure stockée `public.update_prescription` (non tracée — item `D2`) | Élevée — perte de données silencieuse possible sur les champs nullable |
 | E5 | `POST /prescriptions/` ne renvoie **jamais** la prescription créée, même en cas de succès complet. `repo.create()` renvoie `True` ; comme `bool` est une sous-classe d'`int` en Python, `isinstance(True, int)` vaut `True` — la branche `if isinstance(created, int):` intercepte systématiquement avant la branche `elif created is True or created is None:` écrite pour ce cas précis. Le code tente alors `get_prescription(True)`, qui plante contre PostgreSQL (`operator does not exist: integer = boolean`), silencieusement avalé, et retombe sur le repli générique `{"detail": "Prescription créée (lecture non disponible)"}` — jamais le corps `PrescriptionResponse` déclaré par la route. Un vrai client (le frontend Vue) ne reçoit donc jamais la prescription qu'il vient de créer. | `api_backend/backend_app/routes/prescription/prescriptions_endpoints.py:183-207` | **La plus élevée du registre E** — la route de création la plus utilisée de ce module ne remplit jamais son contrat documenté |
+| E6 | La colonne `prescriptions.duration` est `NOT NULL` en base (`models/prescription.py`), mais `PrescriptionBase.duration` est `Optional[str] = None` côté Pydantic et `PrescriptionCreate` ne le rend pas requis (contrairement à `medication`/`dosage`/`frequency`/`start_date`, explicitement surchargés en requis). Toute création qui omet `duration` échoue en 409 `IntegrityError`, quel que soit le rôle — découvert par l'implémenteur de Task 2 sur un payload de test, vérifié indépendamment (`nullable=False` confirmé sur le modèle). | `api_backend/backend_app/routes/prescription/prescriptions_schemas.py:12`, `models/prescription.py:16` | Moyenne — écart schéma/base cohérent avec E4 (mêmes colonnes `NOT NULL` que la procédure de mise à jour) |
 
 **Note (pas un bug, une limite de couverture)** : aucun rôle `manager` n'est seedé dans `application_roles` (`api_backend/backend_app/security/role_map.py` le documente comme "réservé, en développement"). La couverture RBAC positive de ce chantier se limite à `medecin`/`nurse` parmi les 4 rôles autorisés par le routeur.
 ```
@@ -950,21 +959,22 @@ git commit -m "docs: cloture du chantier 2d-3 dans le suivi d'avancement
 
 25 tests sur tout le routeur /prescriptions (CRUD + renewals + KPI +
 historique patient + RBAC propre a ce routeur). Nouvelle categorie de
-registre E (5 items) - contrairement a B, ces defauts sont dans du code
-deja committe (main.py, procedures stockees), pas bloques par le
-travail en cours de l'utilisateur : E1 (plantage transversal du
-gestionnaire de validation sur tout model_validator qui leve
-ValueError, pas specifique aux prescriptions), E2 (suppression
+registre E (6 items) - contrairement a B, ces defauts sont dans du code
+deja committe (main.py, procedures stockees, schemas Pydantic), pas
+bloques par le travail en cours de l'utilisateur : E1 (plantage
+transversal du gestionnaire de validation sur tout model_validator qui
+leve ValueError, pas specifique aux prescriptions), E2 (suppression
 idempotente silencieuse), E3 (500 au lieu de 404 sur update d'un id
 inexistant), E4 (mise a jour partielle destructive - la procedure
 stockee reecrit toutes les colonnes sans COALESCE), E5 (POST ne renvoie
 jamais la prescription creee - bool/int aliasing en Python fait
 court-circuiter la branche prevue pour ce cas, le plus grave item du
-registre E).
+registre E), E6 (colonne duration NOT NULL en base mais Optional cote
+Pydantic - toute creation omettant ce champ echoue en 409).
 
 Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 ```
 
 - [ ] **Step 6: Récapitulatif**
 
-Chantier 2d-3 terminé : 25 tests neufs (`tests/test_prescriptions.py`), aucune régression, 5 nouveaux items de registre (E1-E5) dont deux (E1 transversal, E5 le plus grave du registre) prioritaires pour un futur chantier de correctifs. Prêt pour `superpowers:finishing-a-development-branch`.
+Chantier 2d-3 terminé : 25 tests neufs (`tests/test_prescriptions.py`), aucune régression, 6 nouveaux items de registre (E1-E6) dont deux (E1 transversal, E5 le plus grave du registre) prioritaires pour un futur chantier de correctifs. Prêt pour `superpowers:finishing-a-development-branch`.
