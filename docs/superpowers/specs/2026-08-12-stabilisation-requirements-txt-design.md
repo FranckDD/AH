@@ -16,11 +16,12 @@
 
 Conséquence directe : le freeze brut ne peut pas servir de base de confiance telle quelle. La liste finale est construite à partir d'un scan AST des imports réels sur l'ensemble du code Python du dépôt (`api_backend/`, `controller/`, `repositories/`, `models/`, `utils/`, `tasks/`, `tests/`, `alembic/`, `managers/`, `view_pyqt6/`, `view/`) — le freeze sert uniquement à récupérer la version installée de chaque paquet dont l'usage a été confirmé par le scan, vérifiée individuellement via `pip show` (source la plus à jour : le freeze lui-même s'est révélé légèrement périmé par rapport à l'environnement réellement installé sur plusieurs paquets, ex. `pydantic` 2.11.7 dans le freeze contre 2.13.4 réellement installé).
 
-**Deux stacks UI desktop coexistent dans le code** : `view/` (customtkinter + tkcalendar, 45 + 11 fichiers) et `view_pyqt6/` (PyQt6, 41 fichiers). Confirmé par l'utilisateur : `view/` est obsolète, à ignorer pour ce fichier (le dossier lui-même n'est pas supprimé, hors périmètre de cette tâche).
+**Deux stacks UI desktop coexistent dans le code** : `view_pyqt6/` (PyQt6, 41 fichiers, actif) et du code mort isolé qui importe encore `customtkinter` directement — `hopital_sih.py` et `models/App.py` (ce dernier est littéralement le tutoriel de démonstration upstream de customtkinter, copié tel quel). Le dossier `view/` évoqué dans une version antérieure de ce constat n'existe pas dans ce dépôt (`git ls-files "view/"` ne retourne rien) ; c'est `hopital_sih.py` et `models/App.py`, tous deux trackés et référencés par aucun autre fichier du dépôt, qui sont la stack obsolète à exclure de `requirements.txt`.
 
 **Paquets présents sur `HEAD` ou dans le freeze mais jamais réellement importés nulle part dans le code actuel** (recherché explicitement, zéro occurrence) :
 - `pydantic-settings`, `sqlite-utils`, `loguru` — présents sur `HEAD` aujourd'hui, plus utilisés par le code actuel.
-- `bandit`, `locust`, `pytest-cov`/`coverage` — outils CLI (scan de sécurité, tests de charge, couverture), jamais importés par le code applicatif ou les tests, et aucune configuration du dépôt (`pytest.ini`, `.github/workflows/ci.yml`) ne les invoque.
+- `bandit`, `pytest-cov`/`coverage` — outils CLI (scan de sécurité, couverture), jamais importés par le code applicatif ou les tests, et aucune configuration du dépôt (`pytest.ini`, `.github/workflows/ci.yml`) ne les invoque.
+- `locust` — contrairement aux trois précédents, `locust` EST importé (`locustfile.py:1`, `from locust import HttpUser, TaskSet, task, between`) ; il est exclu non pas parce qu'il n'est jamais importé, mais parce que c'est un outil de test de charge dev-only, invoqué manuellement en CLI, non nécessaire à l'exécution de l'application ou de sa suite de tests.
 
 ## Portée
 
@@ -86,6 +87,6 @@ Les dépendances transitives profondes (`idna`, `certifi`, `click`, `h11`, `anyi
 ## Hors périmètre
 
 - Le split effectif en `requirements-api.txt`/`requirements-desktop.txt` — c'est le chantier 2c lui-même, qui devient faisable une fois ce fichier stabilisé, mais reste un chantier séparé.
-- La suppression du dossier `view/` (stack UI confirmée obsolète) — signalé pour information, pas traité ici.
+- La suppression de `hopital_sih.py` et `models/App.py` (code mort confirmé, stack customtkinter obsolète) — signalé pour information, pas traité ici.
 - Un futur `requirements-dev.txt` pour `bandit`/`locust`/`pytest-cov` si l'utilisateur souhaite les garder disponibles pour un usage manuel — non demandé, non ajouté.
 - Toute modification du code applicatif — ce chantier ne touche que `requirements.txt`.
