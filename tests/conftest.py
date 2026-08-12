@@ -16,6 +16,7 @@ from models.user import User, pwd_context
 from models.application_role import ApplicationRole
 from api_backend.backend_app.rate_limit import limiter
 from repositories.patient_repo import PatientRepository
+from repositories.prescription_repo import PrescriptionRepository
 
 
 @pytest.fixture
@@ -148,3 +149,37 @@ def reset_rate_limiter():
     """
     limiter.reset()
     yield
+
+
+def create_test_prescription(session, patient_id, current_user, **overrides):
+    """
+    Cree une prescription ephemere en appelant directement le repository
+    (procedure stockee Postgres reelle create_prescription()), dans la
+    transaction de test. Contrairement a create_test_patient(), le repo
+    fait un session.commit() interne (voir son propre code) - sans
+    risque, la fixture db_session relance la SAVEPOINT automatiquement.
+
+    Necessite un patient existant (create_test_patient, chantier 2d-2) -
+    patient_id est une cle etrangere obligatoire.
+
+    Retourne le dict des donnees envoyees (create() ne renvoie que True -
+    pour obtenir l'id reel, retrouver la prescription via
+    GET /prescriptions/?patient_id=... apres coup).
+    """
+    data = {
+        "patient_id": patient_id,
+        "medical_record_id": None,
+        "medication": "Paracetamol",
+        "dosage": "500mg",
+        "frequency": "3x/jour",
+        "duration": "5 jours",
+        "start_date": date.today(),
+        "end_date": None,
+        "notes": None,
+        "prescribed_by": getattr(current_user, "user_id", None),
+        "prescribed_by_name": getattr(current_user, "username", None),
+        **overrides,
+    }
+    repo = PrescriptionRepository(session)
+    repo.create(data)
+    return data
