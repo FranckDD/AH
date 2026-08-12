@@ -252,3 +252,137 @@ def test_list_prescriptions_search_finds_by_medication(db_session, api_client):
     assert resp.status_code == 200
     medications = [p["medication"] for p in resp.json()["data"]]
     assert "Zzuniquemedicationsearch2d3" in medications
+
+
+def test_update_prescription_success(db_session, api_client):
+    """
+    Le payload doit contenir TOUS les champs de PrescriptionBase : la
+    procedure stockee public.update_prescription fait une reecriture
+    complete et inconditionnelle de toutes les colonnes (pas de
+    COALESCE avec les valeurs existantes) - voir
+    test_update_prescription_partial_payload_returns_409 ci-dessous et
+    SUIVI-AVANCEMENT.md registre E4.
+    """
+    from datetime import date as date_cls, timedelta
+
+    user = create_test_user(db_session, "test_presc_medecin_update", "medecin", password=TEST_PASSWORD)
+    patient_id, _ = create_test_patient(db_session, user)
+    create_test_prescription(
+        db_session, patient_id, user,
+        medication="Doliprane", dosage="500mg",
+        start_date=date_cls.today(), end_date=date_cls.today() + timedelta(days=5),
+    )
+    client = api_client(auth_endpoints, prescriptions_endpoints)
+    headers = auth_headers(client, "test_presc_medecin_update", TEST_PASSWORD)
+
+    list_resp = client.get(f"/prescriptions/?patient_id={patient_id}", headers=headers)
+    prescription_id = list_resp.json()["data"][0]["prescription_id"]
+
+    full_payload = {
+        "patient_id": patient_id,
+        "medication": "Doliprane",
+        "dosage": "1000mg",
+        "frequency": "3x/jour",
+        "duration": "5 jours",
+        "start_date": str(date_cls.today()),
+        "end_date": str(date_cls.today() + timedelta(days=5)),
+        "notes": None,
+    }
+    resp = client.put(f"/prescriptions/{prescription_id}", json=full_payload, headers=headers)
+
+    assert resp.status_code == 200
+    assert resp.json()["dosage"] == "1000mg"
+
+
+def test_update_prescription_partial_payload_returns_409(db_session, api_client):
+    """
+    Documente un bug reel sur HEAD (constate par execution reelle,
+    SUIVI-AVANCEMENT.md registre E4) : public.update_prescription
+    reecrit TOUTES les colonnes inconditionnellement, y compris celles
+    omises du payload (mises a NULL). Comme medication/frequency/
+    duration/start_date sont NOT NULL en base, un PUT partiel (ici :
+    seulement patient_id + dosage) declenche une violation de contrainte
+    -> IntegrityError -> 409. PUT /prescriptions/{id} n'est donc
+    utilisable en pratique qu'avec un payload complet (voir le test
+    precedent), jamais partiel comme un client REST l'attendrait
+    normalement d'un verbe PUT.
+    """
+    user = create_test_user(db_session, "test_presc_medecin_updatepartial", "medecin", password=TEST_PASSWORD)
+    patient_id, _ = create_test_patient(db_session, user)
+    create_test_prescription(db_session, patient_id, user)
+    client = api_client(auth_endpoints, prescriptions_endpoints)
+    headers = auth_headers(client, "test_presc_medecin_updatepartial", TEST_PASSWORD)
+
+    list_resp = client.get(f"/prescriptions/?patient_id={patient_id}", headers=headers)
+    prescription_id = list_resp.json()["data"][0]["prescription_id"]
+
+    resp = client.put(
+        f"/prescriptions/{prescription_id}",
+        json={"patient_id": patient_id, "dosage": "750mg"},
+        headers=headers,
+    )
+
+    assert resp.status_code == 409
+    assert resp.json()["detail"] == "Conflit en base de données"
+
+
+def test_update_prescription_not_found_returns_500(db_session, api_client):
+    """
+    Documente un bug reel sur HEAD (constate par execution reelle,
+    SUIVI-AVANCEMENT.md registre E3 - corrige l'hypothese initiale de
+    la spec, qui supposait un message anglais 404) : la procedure
+    stockee public.update_prescription fait elle-meme sa verification
+    d'existence et leve une exception PL/pgSQL francaise
+    ("Aucune prescription avec l'ID {id} n'existe."). Cote Python, cette
+    exception remonte comme SQLAlchemyError generique (pas ValueError -
+    la branche qui le leverait dans repositories/prescription_repo.py::
+    update() ne se declenche jamais via l'API, patient_id etant toujours
+    present dans le payload). L'endpoint capture SQLAlchemyError et
+    repond 500, pas 404.
+    """
+    user = create_test_user(db_session, "test_presc_medecin_update404", "medecin", password=TEST_PASSWORD)
+    patient_id, _ = create_test_patient(db_session, user)
+    client = api_client(auth_endpoints, prescriptions_endpoints)
+    headers = auth_headers(client, "test_presc_medecin_update404", TEST_PASSWORD)
+
+    resp = client.put("/prescriptions/999999999", json={"patient_id": patient_id}, headers=headers)
+
+    assert resp.status_code == 500
+    assert resp.json()["detail"] == "Erreur serveur lors de la mise à jour de la prescription"
+
+
+def test_update_prescription_invalid_dates_crashes_validation_handler(db_session, api_client):
+    """
+    Meme mecanisme que test_create_prescription_invalid_dates_crashes_
+    validation_handler (Task 2) : PrescriptionUpdate herite du meme
+    model_validator que PrescriptionCreate sur PrescriptionBase, et
+    passe par le meme gestionnaire d'erreurs global. Confirme par
+    execution reelle sur PUT specifiquement (pas seulement deduit par
+    analogie) pendant le cadrage de ce plan.
+    """
+    from datetime import date as date_cls, timedelta
+
+    user = create_test_user(db_session, "test_presc_medecin_updatedates", "medecin", password=TEST_PASSWORD)
+    patient_id, _ = create_test_patient(db_session, user)
+    create_test_prescription(
+        db_session, patient_id, user,
+        start_date=date_cls.today(), end_date=date_cls.today() + timedelta(days=5),
+    )
+    client = api_client(auth_endpoints, prescriptions_endpoints)
+    headers = auth_headers(client, "test_presc_medecin_updatedates", TEST_PASSWORD)
+
+    list_resp = client.get(f"/prescriptions/?patient_id={patient_id}", headers=headers)
+    prescription_id = list_resp.json()["data"][0]["prescription_id"]
+
+    full_payload = {
+        "patient_id": patient_id,
+        "medication": "Paracetamol",
+        "dosage": "500mg",
+        "frequency": "3x/jour",
+        "duration": "5 jours",
+        "start_date": "2026-08-20",
+        "end_date": "2026-08-10",
+        "notes": None,
+    }
+    with pytest.raises(TypeError, match="not JSON serializable"):
+        client.put(f"/prescriptions/{prescription_id}", json=full_payload, headers=headers)
