@@ -321,3 +321,94 @@ def test_delete_transaction_nonexistent_returns_204_not_404(db_session, api_clie
     resp = client.delete("/caisse/999999999", headers=headers)
 
     assert resp.status_code == 204
+
+
+def test_add_installment_payment_success(db_session, api_client):
+    """
+    POST /caisse/{id}/payment ne declare pas de response_model - le
+    controller/repository renvoient un objet ORM PaiementEchelonne brut
+    que FastAPI ne sait pas serialiser utilement sans schema. Constate
+    par execution reelle : 201 avec un corps vide {}. Documente tel
+    quel, pas corrige.
+    """
+    user = create_test_user(db_session, "test_caisse_secretaire_payment", "secretaire", password=TEST_PASSWORD)
+    tx = create_test_transaction(db_session, user, amount=100.0, advance_amount=30.0)
+    client = api_client(auth_endpoints, caisse_endpoints)
+    headers = auth_headers(client, "test_caisse_secretaire_payment", TEST_PASSWORD)
+
+    resp = client.post(
+        f"/caisse/{tx.transaction_id}/payment",
+        json={"paid_amount": 20.0, "payment_method": "Especes"},
+        headers=headers,
+    )
+
+    assert resp.status_code == 201
+    assert resp.json() == {}
+
+    get_resp = client.get(f"/caisse/{tx.transaction_id}", headers=headers)
+    assert get_resp.json()["advance_amount"] == "50.00"
+
+
+def test_add_installment_payment_exceeds_remaining_returns_400(db_session, api_client):
+    user = create_test_user(db_session, "test_caisse_secretaire_paymentexceed", "secretaire", password=TEST_PASSWORD)
+    tx = create_test_transaction(db_session, user, amount=100.0, advance_amount=30.0)
+    client = api_client(auth_endpoints, caisse_endpoints)
+    headers = auth_headers(client, "test_caisse_secretaire_paymentexceed", TEST_PASSWORD)
+
+    resp = client.post(
+        f"/caisse/{tx.transaction_id}/payment",
+        json={"paid_amount": 100.0, "payment_method": "Especes"},
+        headers=headers,
+    )
+
+    assert resp.status_code == 400
+    assert "Montant trop élevé" in resp.json()["detail"]
+
+
+def test_settle_transaction_success(db_session, api_client):
+    user = create_test_user(db_session, "test_caisse_secretaire_settle", "secretaire", password=TEST_PASSWORD)
+    tx = create_test_transaction(db_session, user, amount=100.0, advance_amount=30.0)
+    client = api_client(auth_endpoints, caisse_endpoints)
+    headers = auth_headers(client, "test_caisse_secretaire_settle", TEST_PASSWORD)
+
+    resp = client.post(f"/caisse/{tx.transaction_id}/settle", headers=headers)
+
+    assert resp.status_code == 200
+    assert resp.json()["advance_amount"] == "100.00"
+
+
+def test_cancel_transaction_success(db_session, api_client):
+    user = create_test_user(db_session, "test_caisse_secretaire_cancel", "secretaire", password=TEST_PASSWORD)
+    tx = create_test_transaction(db_session, user)
+    client = api_client(auth_endpoints, caisse_endpoints)
+    headers = auth_headers(client, "test_caisse_secretaire_cancel", TEST_PASSWORD)
+
+    resp = client.post(f"/caisse/{tx.transaction_id}/cancel", headers=headers)
+
+    assert resp.status_code == 200
+    assert resp.json()["detail"] == "Annulé"
+
+    get_resp = client.get(f"/caisse/{tx.transaction_id}", headers=headers)
+    assert get_resp.json()["status"] == "cancelled"
+
+
+def test_cancel_transaction_already_cancelled_is_idempotent(db_session, api_client):
+    """
+    Documente une incoherence entre caisse et retrait : annuler une
+    transaction caisse deja annulee reussit silencieusement (200,
+    repositories/caisse_repo.py::cancel_transaction fait
+    "if tx.status == 'cancelled': return tx" sans lever d'exception),
+    alors qu'annuler un retrait deja annule est refuse explicitement
+    (400, voir test_cancel_retrait_already_cancelled_returns_400 dans
+    tests/test_retrait.py).
+    """
+    user = create_test_user(db_session, "test_caisse_secretaire_doublecancel", "secretaire", password=TEST_PASSWORD)
+    tx = create_test_transaction(db_session, user)
+    client = api_client(auth_endpoints, caisse_endpoints)
+    headers = auth_headers(client, "test_caisse_secretaire_doublecancel", TEST_PASSWORD)
+
+    first = client.post(f"/caisse/{tx.transaction_id}/cancel", headers=headers)
+    assert first.status_code == 200
+
+    second = client.post(f"/caisse/{tx.transaction_id}/cancel", headers=headers)
+    assert second.status_code == 200
