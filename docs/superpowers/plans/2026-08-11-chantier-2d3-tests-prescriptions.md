@@ -18,6 +18,8 @@ La spec formulait trois hypothèses ("Bug 1/2/3") en partie confirmées, en part
 
 **Découverte supplémentaire, hors spec initiale — mise à jour partielle destructive (nouveau, plus grave que le Bug 2 initialement documenté).** `public.update_prescription` fait une réécriture complète et inconditionnelle de toutes les colonnes (`SET medication = p_medication, dosage = p_dosage, ...`), sans `COALESCE` avec les valeurs existantes. Comme `PrescriptionUpdate` a tous ses champs optionnels sauf `patient_id`, un `PUT` qui n'envoie que certains champs (ex. `{"patient_id": X, "dosage": "750mg"}`) envoie `None` pour tous les champs omis — et comme `medication`/`frequency`/`duration`/`start_date` sont `NOT NULL` en base, la procédure échoue avec `NotNullViolation`, remontée comme `IntegrityError` → **409 `"Conflit en base de données"`**. Un `PUT` qui omettrait seulement des colonnes nullable (`notes`, `end_date`, `medical_record_id`) ne planterait pas mais **effacerait silencieusement ces valeurs** — un comportement destructif qui ne casse rien visiblement. `PUT /prescriptions/{id}` n'est donc utilisable en pratique qu'avec un payload complet, jamais partiel — contrairement à ce qu'un client REST attendrait normalement d'un verbe `PUT`/`PATCH`-like.
 
+**Découverte supplémentaire, remontée par l'implémenteur de Task 2 (pas par le cadrage initial de ce plan), vérifiée indépendamment avant correction du plan — le pire défaut trouvé sur ce module.** `POST /prescriptions/` ne renvoie **jamais** la prescription créée, même en cas de succès complet. `repo.create()` renvoie le booléen `True` ; en Python, `bool` est une sous-classe d'`int`, donc `isinstance(True, int)` vaut `True` — la branche `if isinstance(created, int):` (`prescriptions_endpoints.py:183`) intercepte systématiquement avant la branche `elif created is True or created is None:` (ligne 191) qui avait pourtant été écrite spécifiquement pour ce cas. Le code exécute donc `get_prescription(True)` → `session.get(Prescription, True)`, qui échoue contre PostgreSQL (`operator does not exist: integer = boolean`, confirmé par exécution directe). L'exception est avalée silencieusement, et l'endpoint retourne systématiquement son repli générique : 201 avec `{"detail": "Prescription créée (lecture non disponible)"}` — jamais le corps `PrescriptionResponse` pourtant déclaré par `response_model=PrescriptionResponse` (le repli utilise `JSONResponse` directement, qui contourne la validation de `response_model`). Un vrai client (le frontend Vue) ne reçoit donc jamais la prescription qu'il vient de créer. Les tests 1 et 6 de Task 2 (`test_create_prescription_success`, `test_create_prescription_allowed_for_nurse`) ont été corrigés en conséquence.
+
 ## Global Constraints
 
 - RBAC re-testé sur ce routeur (contrairement à 2d-2) : `role_required("medecin", "nurse", "admin", "manager")`, différent de `/users/`. `secretaire` en est exclu.
@@ -142,6 +144,29 @@ TEST_PASSWORD = "Correct123!"
 
 
 def test_create_prescription_success(db_session, api_client):
+    """
+    Documente un bug reel sur HEAD, plus grave que prevu par la spec
+    (SUIVI-AVANCEMENT.md registre E5) : prescriptions_endpoints.py::
+    create_prescription() ne renvoie JAMAIS la prescription creee, meme
+    en cas de succes complet. repo.create() renvoie le booleen True ;
+    en Python, bool est une sous-classe de int, donc
+    `isinstance(True, int)` vaut True (ligne 183) - la branche
+    `elif created is True or created is None:` (ligne 191), ecrite pour
+    gerer exactement ce cas, n'est JAMAIS atteinte : elle est
+    court-circuitee par la branche int au-dessus. Le code prend donc le
+    chemin `prescription_ctrl.get_prescription(True)` ->
+    `repo.get(True)` -> `session.get(Prescription, True)`, qui plante
+    contre PostgreSQL (`operator does not exist: integer = boolean` -
+    confirme par execution directe pendant le cadrage de ce plan). Cette
+    exception est avalee silencieusement (`except Exception: obj = None`),
+    et l'endpoint retourne son repli generique : 201 avec
+    {"detail": "Prescription creee (lecture non disponible)"} - jamais
+    le corps PrescriptionResponse pourtant declare par
+    response_model=PrescriptionResponse sur la route (le repli utilise
+    JSONResponse directement, qui contourne la validation de response_model).
+    Un vrai client (le frontend Vue) ne recoit donc jamais la prescription
+    qu'il vient de creer.
+    """
     user = create_test_user(db_session, "test_presc_medecin_create", "medecin", password=TEST_PASSWORD)
     patient_id, _ = create_test_patient(db_session, user)
     client = api_client(auth_endpoints, prescriptions_endpoints)
@@ -158,10 +183,7 @@ def test_create_prescription_success(db_session, api_client):
     resp = client.post("/prescriptions/", json=payload, headers=headers)
 
     assert resp.status_code == 201
-    body = resp.json()
-    assert body["medication"] == "Amoxicilline"
-    assert body["patient_id"] == patient_id
-    assert body["prescription_id"]
+    assert resp.json() == {"detail": "Prescription créée (lecture non disponible)"}
 
 
 def test_create_prescription_missing_required_field_returns_422(db_session, api_client):
@@ -246,6 +268,13 @@ def test_create_prescription_unauthenticated_returns_401(db_session, api_client)
 
 
 def test_create_prescription_allowed_for_nurse(db_session, api_client):
+    """
+    Confirme que le role nurse est bien autorise (pas de 403) - le corps
+    de reponse n'est pas verifie ici pour le contenu de la prescription,
+    voir test_create_prescription_success pour le bug du corps de reponse
+    (registre E5, valable pour tout role autorise, pas specifique a
+    nurse).
+    """
     user = create_test_user(db_session, "test_presc_nurse_create", "nurse", password=TEST_PASSWORD)
     patient_id, _ = create_test_patient(db_session, user)
     client = api_client(auth_endpoints, prescriptions_endpoints)
@@ -908,6 +937,7 @@ qu'un chantier dédié leur est consacré.
 | E2 | `repositories/prescription_repo.py::delete()` exécute un `DELETE FROM` brut sans vérifier le rowcount, retourne toujours `True`. Pas de suppression logique sur `Prescription` (à la différence de `Patient`) — suppression physique sans garde-fou : `DELETE /prescriptions/{id}` sur un id inexistant renvoie 204 au lieu de 404. | `repositories/prescription_repo.py` | Faible — comportement silencieux, pas de perte de données |
 | E3 | `PUT /prescriptions/{id}` sur un id inexistant renvoie 500 (`"Erreur serveur lors de la mise à jour de la prescription"`), pas 404 : la procédure stockée `public.update_prescription` lève sa propre exception PL/pgSQL sur un id absent, remontée comme `SQLAlchemyError` générique. | `repositories/prescription_repo.py`, procédure stockée `public.update_prescription` (non tracée — item `D2`) | Moyenne |
 | E4 | `public.update_prescription` réécrit toutes les colonnes inconditionnellement (pas de `COALESCE`). Un `PUT` avec un payload partiel remet à `NULL` les champs omis — plante en 409 si un champ `NOT NULL` est omis, sinon efface silencieusement les champs nullable (`notes`, `end_date`, `medical_record_id`). `PUT` n'est utilisable qu'avec un payload complet, jamais partiel. | procédure stockée `public.update_prescription` (non tracée — item `D2`) | Élevée — perte de données silencieuse possible sur les champs nullable |
+| E5 | `POST /prescriptions/` ne renvoie **jamais** la prescription créée, même en cas de succès complet. `repo.create()` renvoie `True` ; comme `bool` est une sous-classe d'`int` en Python, `isinstance(True, int)` vaut `True` — la branche `if isinstance(created, int):` intercepte systématiquement avant la branche `elif created is True or created is None:` écrite pour ce cas précis. Le code tente alors `get_prescription(True)`, qui plante contre PostgreSQL (`operator does not exist: integer = boolean`), silencieusement avalé, et retombe sur le repli générique `{"detail": "Prescription créée (lecture non disponible)"}` — jamais le corps `PrescriptionResponse` déclaré par la route. Un vrai client (le frontend Vue) ne reçoit donc jamais la prescription qu'il vient de créer. | `api_backend/backend_app/routes/prescription/prescriptions_endpoints.py:183-207` | **La plus élevée du registre E** — la route de création la plus utilisée de ce module ne remplit jamais son contrat documenté |
 
 **Note (pas un bug, une limite de couverture)** : aucun rôle `manager` n'est seedé dans `application_roles` (`api_backend/backend_app/security/role_map.py` le documente comme "réservé, en développement"). La couverture RBAC positive de ce chantier se limite à `medecin`/`nurse` parmi les 4 rôles autorisés par le routeur.
 ```
@@ -920,18 +950,21 @@ git commit -m "docs: cloture du chantier 2d-3 dans le suivi d'avancement
 
 25 tests sur tout le routeur /prescriptions (CRUD + renewals + KPI +
 historique patient + RBAC propre a ce routeur). Nouvelle categorie de
-registre E (4 items) - contrairement a B, ces defauts sont dans du code
+registre E (5 items) - contrairement a B, ces defauts sont dans du code
 deja committe (main.py, procedures stockees), pas bloques par le
 travail en cours de l'utilisateur : E1 (plantage transversal du
 gestionnaire de validation sur tout model_validator qui leve
 ValueError, pas specifique aux prescriptions), E2 (suppression
 idempotente silencieuse), E3 (500 au lieu de 404 sur update d'un id
 inexistant), E4 (mise a jour partielle destructive - la procedure
-stockee reecrit toutes les colonnes sans COALESCE).
+stockee reecrit toutes les colonnes sans COALESCE), E5 (POST ne renvoie
+jamais la prescription creee - bool/int aliasing en Python fait
+court-circuiter la branche prevue pour ce cas, le plus grave item du
+registre E).
 
 Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 ```
 
 - [ ] **Step 6: Récapitulatif**
 
-Chantier 2d-3 terminé : 25 tests neufs (`tests/test_prescriptions.py`), aucune régression, 4 nouveaux items de registre (E1-E4) dont un (E1) transversal et prioritaire pour un futur chantier de correctifs. Prêt pour `superpowers:finishing-a-development-branch`.
+Chantier 2d-3 terminé : 25 tests neufs (`tests/test_prescriptions.py`), aucune régression, 5 nouveaux items de registre (E1-E5) dont deux (E1 transversal, E5 le plus grave du registre) prioritaires pour un futur chantier de correctifs. Prêt pour `superpowers:finishing-a-development-branch`.
