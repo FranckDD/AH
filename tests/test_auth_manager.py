@@ -4,6 +4,10 @@ import os
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
+import pytest
+
+pytest.importorskip("PyQt6")
+
 from unittest.mock import MagicMock
 from managers.auth_manager import AuthManager
 
