@@ -1,6 +1,6 @@
 # Suivi d'avancement — AH2 / Glostone-Kare
 
-**Dernière mise à jour :** 2026-08-11 (chantier 2d-2)
+**Dernière mise à jour :** 2026-08-12 (chantier 2d-3)
 **But de ce document :** état d'avancement des chantiers de remise en service et de sécurisation, et registre des découvertes faites en cours de route mais non encore traitées. Pour le contexte général du projet, voir `docs/superpowers/CONTEXTE-PROJET.md`. Pour le détail d'un chantier, voir les fichiers correspondants dans `docs/superpowers/specs/` et `docs/superpowers/plans/`.
 
 ## Feuille de route
@@ -19,7 +19,7 @@ Issue de l'audit initial du projet (2026-08-10), découpée en chantiers indépe
 | 2d-0 | Infrastructure de test d'intégration | ✅ Terminé | `beeb508`..`e37aa7b` |
 | 2d-1 | Tests auth + RBAC | ✅ Terminé | `e71a70d`..`d75793d` |
 | 2d-2 | Tests patients | ✅ Terminé | `6e7b11d`..`c6aa6b8` (+ `9baa02a` correctif procédure stockée) |
-| 2d-3 | Tests prescriptions | ⬜ À faire | — |
+| 2d-3 | Tests prescriptions | ✅ Terminé | `d998b51`..`4974068` |
 | 2d-4 | Tests caisse | ⬜ À faire | — |
 | 2b | CI (GitHub Actions) | ⬜ À faire | — |
 | 2c | Split des dépendances (`requirements-api.txt`/`requirements-desktop.txt`) | ⛔ Bloqué — `requirements.txt` en plein travail en cours, sans base commune avec `HEAD` | — |
@@ -169,10 +169,10 @@ qu'un chantier dédié leur est consacré.
 | E2 | `repositories/prescription_repo.py::delete()` exécute un `DELETE FROM` brut sans vérifier le rowcount, retourne toujours `True`. Pas de suppression logique sur `Prescription` (à la différence de `Patient`) — suppression physique sans garde-fou : `DELETE /prescriptions/{id}` sur un id inexistant renvoie 204 au lieu de 404. | `repositories/prescription_repo.py` | Faible — comportement silencieux, pas de perte de données |
 | E3 | `PUT /prescriptions/{id}` sur un id inexistant renvoie 500 (`"Erreur serveur lors de la mise à jour de la prescription"`), pas 404 : la procédure stockée `public.update_prescription` lève sa propre exception PL/pgSQL sur un id absent, remontée comme `SQLAlchemyError` générique. | `repositories/prescription_repo.py`, procédure stockée `public.update_prescription` (non tracée — item `D2`) | Moyenne |
 | E4 | `public.update_prescription` réécrit toutes les colonnes inconditionnellement (pas de `COALESCE`). Un `PUT` avec un payload partiel remet à `NULL` les champs omis — plante en 409 si un champ `NOT NULL` est omis, sinon efface silencieusement les champs nullable (`notes`, `end_date`, `medical_record_id`). `PUT` n'est utilisable qu'avec un payload complet, jamais partiel. | procédure stockée `public.update_prescription` (non tracée — item `D2`) | Élevée — perte de données silencieuse possible sur les champs nullable |
-| E5 | `POST /prescriptions/` ne renvoie **jamais** la prescription créée, même en cas de succès complet. `repo.create()` renvoie `True` ; comme `bool` est une sous-classe d'`int` en Python, `isinstance(True, int)` vaut `True` — la branche `if isinstance(created, int):` intercepte systématiquement avant la branche `elif created is True or created is None:` écrite pour ce cas précis. Le code tente alors `get_prescription(True)`, qui plante contre PostgreSQL (`operator does not exist: integer = boolean`), silencieusement avalé, et retombe sur le repli générique `{"detail": "Prescription créée (lecture non disponible)"}` — jamais le corps `PrescriptionResponse` déclaré par la route. Un vrai client (le frontend Vue) ne reçoit donc jamais la prescription qu'il vient de créer. | `api_backend/backend_app/routes/prescription/prescriptions_endpoints.py:183-207` | **La plus élevée du registre E** — la route de création la plus utilisée de ce module ne remplit jamais son contrat documenté |
+| E5 | `POST /prescriptions/` ne renvoie **jamais** la prescription créée, même en cas de succès complet. `repo.create()` renvoie `True` ; comme `bool` est une sous-classe d'`int` en Python, `isinstance(True, int)` vaut `True` — la branche `if isinstance(created, int):` intercepte systématiquement avant la branche `elif created is True or created is None:` écrite pour ce cas précis. Le code tente alors `get_prescription(True)`, qui plante contre PostgreSQL (`operator does not exist: integer = boolean`), silencieusement avalé, et retombe sur le repli générique `{"detail": "Prescription créée (lecture non disponible)"}` — jamais le corps `PrescriptionResponse` déclaré par la route. Un vrai client (le frontend Vue) ne reçoit donc jamais la prescription qu'il vient de créer. **Même après correction de l'ordre isinstance, cette branche resterait cassée** : `list_prescriptions()` renvoie `{"data": [...], "total": N}` (dict), pas une liste — `recent[0]` lèverait `KeyError: 0`, avalé par le même `except Exception`, avec le même repli générique en résultat. Il faudrait `recent["data"][0]`. Les deux défauts doivent être corrigés ensemble pour que l'endpoint fonctionne réellement. | `api_backend/backend_app/routes/prescription/prescriptions_endpoints.py:183-207`, `controller/prescription_controller.py:37-63` | **La plus élevée du registre E** — la route de création la plus utilisée de ce module ne remplit jamais son contrat documenté |
 | E6 | La colonne `prescriptions.duration` est `NOT NULL` en base (`models/prescription.py`), mais `PrescriptionBase.duration` est `Optional[str] = None` côté Pydantic et `PrescriptionCreate` ne le rend pas requis (contrairement à `medication`/`dosage`/`frequency`/`start_date`, explicitement surchargés en requis). Toute création qui omet `duration` échoue en 409 `IntegrityError`, quel que soit le rôle — découvert par l'implémenteur de Task 2 sur un payload de test, vérifié indépendamment (`nullable=False` confirmé sur le modèle). | `api_backend/backend_app/routes/prescription/prescriptions_schemas.py:12`, `models/prescription.py:16` | Moyenne — écart schéma/base cohérent avec E4 (mêmes colonnes `NOT NULL` que la procédure de mise à jour) |
 
-**Note (pas un bug, une limite de couverture)** : aucun rôle `manager` n'est seedé dans `application_roles` (`api_backend/backend_app/security/role_map.py` le documente comme "réservé, en développement"). La couverture RBAC positive de ce chantier se limite à `medecin`/`nurse` parmi les 4 rôles autorisés par le routeur.
+**Note (pas un bug, une limite de couverture)** : seul `manager` n'est pas seedé dans `application_roles` (`api_backend/backend_app/security/role_map.py` le documente comme "réservé, en développement") ; `admin` l'est (comme `medecin`/`nurse`) mais n'est pas exercé par un test RBAC-positif dans ce chantier — une lacune de couverture, pas une limite de rôles seedés.
 
 ### Autres points ouverts, hors registre A/B/C
 
@@ -182,4 +182,4 @@ qu'un chantier dédié leur est consacré.
 
 ## Prochaine étape
 
-Chantier **2d-3 — tests prescriptions**, puis 2d-4 (caisse), puis **2b — CI**, puis reconsidérer **2c** (toujours bloqué). Ensuite : audit des versions Vue/Tailwind/dépendances front.
+Chantier **2d-4 — tests caisse**, puis **2b — CI**, puis reconsidérer **2c** (toujours bloqué). Ensuite : audit des versions Vue/Tailwind/dépendances front.

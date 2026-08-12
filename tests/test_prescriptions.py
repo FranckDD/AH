@@ -36,6 +36,11 @@ def test_create_prescription_success(db_session, api_client):
     JSONResponse directement, qui contourne la validation de response_model).
     Un vrai client (le frontend Vue) ne recoit donc jamais la prescription
     qu'il vient de creer.
+
+    Un second bug, independant, vit dans la meme branche de repli (le
+    `recent[0]` sur un dict) : voir l'entree E5 (etendue) de
+    SUIVI-AVANCEMENT.md pour le detail. Les deux doivent etre corriges
+    ensemble avant que l'assertion de ce test n'ait besoin de changer.
     """
     user = create_test_user(db_session, "test_presc_medecin_create", "medecin", password=TEST_PASSWORD)
     patient_id, _ = create_test_patient(db_session, user)
