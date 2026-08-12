@@ -21,7 +21,7 @@ Issue de l'audit initial du projet (2026-08-10), découpée en chantiers indépe
 | 2d-2 | Tests patients | ✅ Terminé | `6e7b11d`..`c6aa6b8` (+ `9baa02a` correctif procédure stockée) |
 | 2d-3 | Tests prescriptions | ✅ Terminé | `d998b51`..`4974068` |
 | 2d-4 | Tests caisse | ✅ Terminé | `d030693`..`d663640` |
-| 2b | CI (GitHub Actions) | ✅ Terminé | `032d554`..`f16c599` |
+| 2b | CI (GitHub Actions) | ✅ Terminé | `032d554`..`6ffe5a8` |
 | 2c | Split des dépendances (`requirements-api.txt`/`requirements-desktop.txt`) | ⛔ Bloqué — `requirements.txt` en plein travail en cours, sans base commune avec `HEAD` | — |
 | 3 | Portage web (caisse/secrétariat, RDV, prescriptions, dossiers médicaux) | ⬜ Pas commencé | — |
 | 4 | PowerSync + PWA (remplace le mode hors ligne maison) | ⬜ Pas commencé | — |
