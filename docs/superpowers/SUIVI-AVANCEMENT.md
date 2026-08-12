@@ -126,6 +126,22 @@ Troisième sous-chantier métier, construit sur 2d-0/2d-1/2d-2. Exécuté via su
 
 **Action requise au moment où les fichiers du module prescriptions seront commités** : convertir `test_create_prescription_success` et `test_delete_prescription_nonexistent_returns_204_not_404` pour affirmer le comportement corrigé (fermer `E2`/`E5`) ; revoir `test_update_prescription_partial_payload_returns_409`/`test_update_prescription_not_found_returns_500` à la lumière du nouveau validateur métier (le 409/500 attendu ne sera peut-être plus jamais atteignable si `E1` reste présent) ; garder `E1`, `E3`, `E4`, `E6` ouverts sauf preuve du contraire.
 
+### Chantier 2d-4 — Tests d'intégration caisse et retrait
+Spec : `2026-08-12-chantier-2d4-tests-caisse-design.md` · Plan : `2026-08-12-chantier-2d4-tests-caisse.md`
+Quatrième sous-chantier métier, construit sur 2d-0/2d-1/2d-2/2d-3. Exécuté via subagent-driven-development, worktree isolé (`.claude/worktrees/chantier-2d4-tests-caisse`). 43 tests neufs : 32 dans `tests/test_caisse.py` (routeur `/caisse`, 17 endpoints), 11 dans `tests/test_retrait.py` (routeur `/retrait`, 6 endpoints). RBAC identique sur les deux routeurs (`secretaire`/`admin`, différent de prescriptions) :
+- Caisse — création : succès + documentation du bug `F1` (calcul erroné de `amount_due`/`amount_paid` dans `mapping.py`) + validations métier (champ requis, incohérence montant/lignes, référence de consultation invalide) + RBAC.
+- Caisse — lecture : succès + 404, liste/recherche filtrée (terme, statut, plage de dates), liste par patient.
+- Caisse — mise à jour : succès, refus après annulation, 400 (pas 404) sur id inexistant.
+- Caisse — suppression : succès + documentation du bug `F2` (204 au lieu de 404 sur un id inexistant, même motif que `E2` sur prescriptions).
+- Caisse — paiement/solde/annulation : succès + documentation du corps de réponse vide sur le paiement échelonné + documentation de l'idempotence silencieuse sur double annulation.
+- Caisse — KPIs : `daily_total`/`total`/`total_payments` (comparaison avant/après, données réelles préexistantes) + documentation de l'incohérence de filtre implicite sur `total_remaining_due` + KPIs de tableau de bord bornés par date (valeurs exactes fiables, calcul correct — contrairement au bug `F1`).
+- Caisse — facture PDF : téléchargement réel (10+ Ko constatés), Content-Type correct, 404 sur id inexistant.
+- Retrait — couverture complète : création (succès + 422 montant négatif), lecture, liste, recherche, total, annulation (refus explicite sur double annulation — contraste documenté avec l'idempotence de `/caisse/{id}/cancel`), RBAC.
+
+**Correction empirique par rapport à la spec** : le "Bug 1" anticipé (notification Celery avec `tx.id` au lieu de `tx.transaction_id`) ne se manifeste pas sur `HEAD` — `tasks/finance_tasks.py` n'existe que dans le travail en cours non commité de l'utilisateur, l'import échoue silencieusement sur `HEAD` et tout le bloc de notification est court-circuité. Aucun test ne le documente ; il redeviendra pertinent si ce fichier est un jour commité.
+
+**Fichiers en travail non commité** (jamais touchés par ce chantier) : `api_backend/backend_app/routes/caisse/mapping.py`, `controller/caisse_controller.py`, `repositories/caisse_repo.py`. Le module `retrait` n'est pas touché par le travail en cours.
+
 ## Registre des découvertes non traitées
 
 Compilé le 2026-08-10, mis à jour au fil des chantiers. Catégorisé par ce qui bloque la correction.
@@ -180,6 +196,22 @@ qu'un chantier dédié leur est consacré.
 | E6 | La colonne `prescriptions.duration` est `NOT NULL` en base (`models/prescription.py`), mais `PrescriptionBase.duration` est `Optional[str] = None` côté Pydantic et `PrescriptionCreate` ne le rend pas requis (contrairement à `medication`/`dosage`/`frequency`/`start_date`, explicitement surchargés en requis). Toute création qui omet `duration` échoue en 409 `IntegrityError`, quel que soit le rôle — découvert par l'implémenteur de Task 2 sur un payload de test, vérifié indépendamment (`nullable=False` confirmé sur le modèle). | `api_backend/backend_app/routes/prescription/prescriptions_schemas.py:12`, `models/prescription.py:16` | Moyenne — écart schéma/base cohérent avec E4 (mêmes colonnes `NOT NULL` que la procédure de mise à jour) |
 
 **Note (pas un bug, une limite de couverture)** : seul `manager` n'est pas seedé dans `application_roles` (`api_backend/backend_app/security/role_map.py` le documente comme "réservé, en développement") ; `admin` l'est (comme `medecin`/`nurse`) mais n'est pas exercé par un test RBAC-positif dans ce chantier — une lacune de couverture, pas une limite de rôles seedés.
+
+### F — Découvertes du chantier 2d-4 (caisse, retrait), non bloquées par le travail en cours
+
+Comme la catégorie E, ces défauts sont dans du code déjà committé et ne
+dépendent d'aucun fichier en travail en cours côté utilisateur —
+corrigeables dès qu'un chantier dédié leur est consacré.
+
+| # | Découverte | Fichier | Gravité |
+|---|---|---|---|
+| F1 | `normalize_caisse_data()` calcule `amount_due = amount + advance_amount` (devrait être `amount - advance_amount`) et `amount_paid = amount` (devrait être `advance_amount`). Confirmé avec `amount=100, advance_amount=30` : `amount_due=130` (attendu 70), `amount_paid=100` (attendu 30). Indépendant des KPIs de tableau de bord (`get_caisse_kpis`), qui calculent correctement. Tout client (frontend) affichant ces deux champs par transaction affiche des montants faux. | `api_backend/backend_app/routes/caisse/mapping.py` | Élevée — chiffres financiers visibles par transaction, faux dans les deux sens |
+| F2 | `DELETE /caisse/{id}` sur un id inexistant renvoie 204 au lieu de 404 — l'endpoint ne vérifie jamais la valeur de retour de `delete_transaction()`, qui échoue silencieusement (`None`, pas d'exception) sur un id absent. Même motif que `E2` sur prescriptions. | `api_backend/backend_app/routes/caisse/caisse_endpoints.py` | Faible — comportement silencieux, pas de perte de données |
+| F3 | `POST /caisse/{id}/payment` ne déclare pas de `response_model` — renvoie 201 avec un corps vide `{}` (l'objet ORM `PaiementEchelonne` retourné n'est pas sérialisable sans schéma). Le client doit refaire un `GET` pour voir l'état à jour. | `api_backend/backend_app/routes/caisse/caisse_endpoints.py` | Faible — pas de perte de données, juste un round-trip supplémentaire nécessaire côté client |
+| F4 | `get_total_remaining_due()` filtre implicitement `status='active'` même sans paramètre `status` explicite, contrairement à `get_total_transactions()`/`get_total_payments()` qui ne filtrent par statut que si demandé. Incohérence d'API entre trois endpoints de la même famille (`/caisse/total`, `/caisse/total_payments`, `/caisse/total_remaining_due`). | `repositories/caisse_repo.py` | Moyenne — surprend un appelant qui s'attend à un comportement uniforme entre les trois endpoints |
+| F5 | Annuler une transaction caisse déjà annulée réussit silencieusement (200, `cancel_transaction()` fait `if tx.status == 'cancelled': return tx` sans erreur), alors qu'annuler un retrait déjà annulé est explicitement refusé (400 `"Ce retrait est déjà annulé."`). Incohérence de comportement entre deux modules très proches du même domaine (caisse). | `repositories/caisse_repo.py` vs `repositories/caisse_retrait_repo.py` | Faible — incohérence de contrat API, pas de perte de données |
+
+**Note (pas un bug)** : `tasks/finance_tasks.py` — référencé par `controller/caisse_controller.py` mais absent de `HEAD` (uniquement dans le travail en cours de l'utilisateur) — n'a jamais été exercé par ce chantier. Si ce fichier est un jour commité, revérifier `create_transaction` : l'appel `task_process_payment_notification.delay(transaction_id=tx.id, ...)` utilise `tx.id`, qui n'existe pas sur le modèle `Caisse` (seul `transaction_id` existe) — probable `AttributeError` avalée silencieusement, à re-tester à ce moment-là.
 
 ### Autres points ouverts, hors registre A/B/C
 
