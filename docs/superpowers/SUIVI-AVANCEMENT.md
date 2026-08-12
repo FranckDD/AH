@@ -146,6 +146,14 @@ Quatrième sous-chantier métier, construit sur 2d-0/2d-1/2d-2/2d-3. Exécuté v
 
 **Action requise au moment où `controller/caisse_controller.py` sera commité** : mettre à jour l'assertion de `test_create_transaction_amount_mismatch_returns_400` pour refléter le nouveau texte du message (à constater précisément à ce moment-là, pas à deviner maintenant).
 
+### Chantier 2b — CI (GitHub Actions)
+Spec : `2026-08-12-chantier-2b-ci-github-actions-design.md` · Plan : `2026-08-12-chantier-2b-ci-github-actions.md`
+Exécuté via subagent-driven-development, worktree isolé (`.claude/worktrees/chantier-2b-ci-github-actions`). Voir le registre `G` ci-dessous pour le détail des corrections empiriques par rapport à la spec (dump périmé, baseline Alembic inexploitable contre une base neuve, rôle `app_medical` et données de référence manquantes) et des découvertes de la revue finale de branche (`AH2_API_BASE` manquant, `Pillow`/`python-multipart` absents de `requirements.txt`).
+
+**Couplage avec le travail en cours non commité (constaté à la fusion dans `AH2_V3-1`)** : sur 130 tests, 10 échouent dans le répertoire de travail principal (mais passent dans le worktree isolé, 128 passed/2 xfailed) — tous déjà attribués et documentés ailleurs dans ce fichier, aucun n'est nouveau ni causé par ce chantier : `test_create_transaction_amount_mismatch_returns_400` (couplage caisse, voir note 2d-4 ci-dessus), `test_update_patient_flag_protection_prevents_any_change` (couplage patients, voir `B6`), et 8 tests `test_prescription_repo.py`/`test_prescriptions.py` (couplage prescriptions, voir chantier 2d-3 et le registre `E`). Les 2 tests `test_patient_repo.py` marqués `xfail` par ce chantier se comportent correctement dans le résultat fusionné (`XFAIL`, pas `FAILED`). Aucun fichier applicatif touché par ce chantier — seuls `requirements.txt`, `alembic/versions/`, `ci/`, `.github/workflows/`, `tests/test_patient_repo.py`, `tests/test_auth_manager.py` et ce document.
+
+**Réconciliation `requirements.txt`** : le travail en cours de l'utilisateur (item `B4`/`C2`, réécriture complète du fichier en liste `pip freeze`) a été préservé tel quel après la fusion — il contenait déjà tous les paquets ajoutés par ce chantier (`slowapi`, `limits`, `deprecated`, `fpdf2`, `pillow`, `python-multipart`), avec des versions réelles plus à jour que celles committées par ce chantier sur certains paquets (`python-multipart==0.0.20` réellement installé, contre `0.0.9` estimé par ce chantier faute de source plus fiable au moment de l'écrire). Le fichier committé sur `HEAD` (liste courte et ciblée, utilisée par la CI) reste distinct et inchangé par cette réconciliation.
+
 ## Registre des découvertes non traitées
 
 Compilé le 2026-08-10, mis à jour au fil des chantiers. Catégorisé par ce qui bloque la correction.
