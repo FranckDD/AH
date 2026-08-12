@@ -1,6 +1,6 @@
 # Suivi d'avancement — AH2 / Glostone-Kare
 
-**Dernière mise à jour :** 2026-08-12 (chantier 2d-3)
+**Dernière mise à jour :** 2026-08-12 (chantier 2d-4)
 **But de ce document :** état d'avancement des chantiers de remise en service et de sécurisation, et registre des découvertes faites en cours de route mais non encore traitées. Pour le contexte général du projet, voir `docs/superpowers/CONTEXTE-PROJET.md`. Pour le détail d'un chantier, voir les fichiers correspondants dans `docs/superpowers/specs/` et `docs/superpowers/plans/`.
 
 ## Feuille de route
@@ -20,7 +20,7 @@ Issue de l'audit initial du projet (2026-08-10), découpée en chantiers indépe
 | 2d-1 | Tests auth + RBAC | ✅ Terminé | `e71a70d`..`d75793d` |
 | 2d-2 | Tests patients | ✅ Terminé | `6e7b11d`..`c6aa6b8` (+ `9baa02a` correctif procédure stockée) |
 | 2d-3 | Tests prescriptions | ✅ Terminé | `d998b51`..`4974068` |
-| 2d-4 | Tests caisse | ⬜ À faire | — |
+| 2d-4 | Tests caisse | ✅ Terminé | `d030693`..`7c20a27` |
 | 2b | CI (GitHub Actions) | ⬜ À faire | — |
 | 2c | Split des dépendances (`requirements-api.txt`/`requirements-desktop.txt`) | ⛔ Bloqué — `requirements.txt` en plein travail en cours, sans base commune avec `HEAD` | — |
 | 3 | Portage web (caisse/secrétariat, RDV, prescriptions, dossiers médicaux) | ⬜ Pas commencé | — |
@@ -210,6 +210,7 @@ corrigeables dès qu'un chantier dédié leur est consacré.
 | F3 | `POST /caisse/{id}/payment` ne déclare pas de `response_model` — renvoie 201 avec un corps vide `{}` (l'objet ORM `PaiementEchelonne` retourné n'est pas sérialisable sans schéma). Le client doit refaire un `GET` pour voir l'état à jour. | `api_backend/backend_app/routes/caisse/caisse_endpoints.py` | Faible — pas de perte de données, juste un round-trip supplémentaire nécessaire côté client |
 | F4 | `get_total_remaining_due()` filtre implicitement `status='active'` même sans paramètre `status` explicite, contrairement à `get_total_transactions()`/`get_total_payments()` qui ne filtrent par statut que si demandé. Incohérence d'API entre trois endpoints de la même famille (`/caisse/total`, `/caisse/total_payments`, `/caisse/total_remaining_due`). | `repositories/caisse_repo.py` | Moyenne — surprend un appelant qui s'attend à un comportement uniforme entre les trois endpoints |
 | F5 | Annuler une transaction caisse déjà annulée réussit silencieusement (200, `cancel_transaction()` fait `if tx.status == 'cancelled': return tx` sans erreur), alors qu'annuler un retrait déjà annulé est explicitement refusé (400 `"Ce retrait est déjà annulé."`). Incohérence de comportement entre deux modules très proches du même domaine (caisse). | `repositories/caisse_repo.py` vs `repositories/caisse_retrait_repo.py` | Faible — incohérence de contrat API, pas de perte de données |
+| F6 | `update_transaction()` supprime inconditionnellement toutes les `CaisseItem` existantes avant de vérifier si le payload contient `items`, puis ne réinsère que `data.get("items", [])`. Un `PUT` partiel qui omet `items` supprime donc définitivement toutes les lignes de facture (le total `amount` reste inchangé, sans plus aucune ligne pour le justifier), et pour les lignes `médicament`/`carnet`, restaure le stock sans jamais le redéduire — inflation de stock fantôme permanente. Le finding le plus grave de ce registre : perte de données de facturation et corruption de stock, silencieuses, en un seul appel `PUT`. | `repositories/caisse_repo.py` | **La plus élevée du registre F** — perte de données financières et corruption de stock, pas seulement un champ mal affiché |
 
 **Note (pas un bug)** : `tasks/finance_tasks.py` — référencé par `controller/caisse_controller.py` mais absent de `HEAD` (uniquement dans le travail en cours de l'utilisateur) — n'a jamais été exercé par ce chantier. Si ce fichier est un jour commité, revérifier `create_transaction` : l'appel `task_process_payment_notification.delay(transaction_id=tx.id, ...)` utilise `tx.id`, qui n'existe pas sur le modèle `Caisse` (seul `transaction_id` existe) — probable `AttributeError` avalée silencieusement, à re-tester à ce moment-là.
 
@@ -221,4 +222,4 @@ corrigeables dès qu'un chantier dédié leur est consacré.
 
 ## Prochaine étape
 
-Chantier **2d-4 — tests caisse**, puis **2b — CI**, puis reconsidérer **2c** (toujours bloqué). Ensuite : audit des versions Vue/Tailwind/dépendances front.
+Chantier **2b — CI (GitHub Actions)**, puis reconsidérer **2c** (toujours bloqué). Ensuite : audit des versions Vue/Tailwind/dépendances front.

@@ -40,8 +40,8 @@ def test_create_transaction_success(db_session, api_client):
 
 def test_create_transaction_partial_payment_amount_due_bug(db_session, api_client):
     """
-    Documente un bug reel sur HEAD (SUIVI-AVANCEMENT.md registre a
-    creer) : api_backend/backend_app/routes/caisse/mapping.py::
+    Documente un bug reel sur HEAD (SUIVI-AVANCEMENT.md registre F1) :
+    api_backend/backend_app/routes/caisse/mapping.py::
     normalize_caisse_data calcule amount_due = amount + advance_amount
     (au lieu de amount - advance_amount) et amount_paid = amount seul
     (au lieu de advance_amount). Constate par execution reelle : avec
@@ -267,6 +267,40 @@ def test_update_transaction_success(db_session, api_client):
     assert resp.json()["note"] == "Note mise a jour"
 
 
+def test_update_transaction_partial_payload_drops_all_items(db_session, api_client):
+    """
+    Documente un bug reel sur HEAD (SUIVI-AVANCEMENT.md registre F6, le
+    plus grave du registre F) : repositories/caisse_repo.py::
+    update_transaction() supprime INCONDITIONNELLEMENT toutes les
+    CaisseItem existantes de la transaction avant meme de verifier si
+    le payload contient une cle "items", puis ne reinsere que
+    data.get("items", []). Un PUT partiel qui omet "items" (ex. juste
+    {"note": "..."}) supprime donc definitivement toutes les lignes de
+    facture - la transaction garde son montant total (tx.amount
+    inchange) mais n'a plus aucune ligne pour le justifier. Pour les
+    lignes de type medicament/carnet, le stock Pharmacy est restaure
+    au passage mais jamais rededuit (inflation de stock fantome
+    permanente). Constate par execution reelle : une transaction creee
+    avec 1 ligne, mise a jour avec seulement {"note": "..."}, renvoie
+    200 avec items=[] - immediatement et sur un GET ulterieur.
+    """
+    user = create_test_user(db_session, "test_caisse_secretaire_dropitems", "secretaire", password=TEST_PASSWORD)
+    tx = create_test_transaction(db_session, user, amount=100.0, advance_amount=0.0, items=[
+        {"item_type": "Service", "item_ref_id": 1, "unit_price": 100.0, "quantity": 1, "line_total": 100.0}
+    ])
+    client = api_client(auth_endpoints, caisse_endpoints)
+    headers = auth_headers(client, "test_caisse_secretaire_dropitems", TEST_PASSWORD)
+
+    resp = client.put(f"/caisse/{tx.transaction_id}", json={"note": "Partial update"}, headers=headers)
+
+    assert resp.status_code == 200
+    assert resp.json()["items"] == []
+    assert resp.json()["amount"] == "100.00"
+
+    get_resp = client.get(f"/caisse/{tx.transaction_id}", headers=headers)
+    assert get_resp.json()["items"] == []
+
+
 def test_update_transaction_refused_after_cancel(db_session, api_client):
     user = create_test_user(db_session, "test_caisse_secretaire_updatecancelled", "secretaire", password=TEST_PASSWORD)
     tx = create_test_transaction(db_session, user)
@@ -312,7 +346,8 @@ def test_delete_transaction_nonexistent_returns_204_not_404(db_session, api_clie
     la valeur de retour de caisse_ctrl.delete_transaction() -
     repositories/caisse_repo.py::delete_transaction() renvoie
     silencieusement None (pas d'exception) si l'id n'existe pas.
-    Meme motif que le bug E2 de prescriptions (chantier 2d-3).
+    SUIVI-AVANCEMENT.md registre F2. Meme motif que le bug E2 de
+    prescriptions (chantier 2d-3).
     """
     create_test_user(db_session, "test_caisse_secretaire_delete404", "secretaire", password=TEST_PASSWORD)
     client = api_client(auth_endpoints, caisse_endpoints)
@@ -329,7 +364,7 @@ def test_add_installment_payment_success(db_session, api_client):
     controller/repository renvoient un objet ORM PaiementEchelonne brut
     que FastAPI ne sait pas serialiser utilement sans schema. Constate
     par execution reelle : 201 avec un corps vide {}. Documente tel
-    quel, pas corrige.
+    quel, pas corrige. (SUIVI-AVANCEMENT.md registre F3)
     """
     user = create_test_user(db_session, "test_caisse_secretaire_payment", "secretaire", password=TEST_PASSWORD)
     tx = create_test_transaction(db_session, user, amount=100.0, advance_amount=30.0)
@@ -400,7 +435,7 @@ def test_cancel_transaction_already_cancelled_is_idempotent(db_session, api_clie
     "if tx.status == 'cancelled': return tx" sans lever d'exception),
     alors qu'annuler un retrait deja annule est refuse explicitement
     (400, voir test_cancel_retrait_already_cancelled_returns_400 dans
-    tests/test_retrait.py).
+    tests/test_retrait.py). (SUIVI-AVANCEMENT.md registre F5)
     """
     user = create_test_user(db_session, "test_caisse_secretaire_doublecancel", "secretaire", password=TEST_PASSWORD)
     tx = create_test_transaction(db_session, user)
@@ -466,7 +501,7 @@ def test_total_remaining_due_default_filters_active_status(db_session, api_clien
     total/total_payments ne filtrent par statut que si explicitement
     demande. Une transaction annulee avec un solde restant du n'est
     donc jamais comptee ici, sans que l'appelant sans filtre explicite
-    ne s'y attende forcement.
+    ne s'y attende forcement. (SUIVI-AVANCEMENT.md registre F4)
     """
     user = create_test_user(db_session, "test_caisse_secretaire_remaining", "secretaire", password=TEST_PASSWORD)
     client = api_client(auth_endpoints, caisse_endpoints)
@@ -487,21 +522,24 @@ def test_dashboard_kpis_date_scoped_exact_values(db_session, api_client):
     from datetime import date as date_cls
 
     user = create_test_user(db_session, "test_caisse_secretaire_dashkpis", "secretaire", password=TEST_PASSWORD)
-    create_test_transaction(db_session, user, amount=100.0, advance_amount=40.0, items=[
-        {"item_type": "Service", "item_ref_id": 1, "unit_price": 100.0, "quantity": 1, "line_total": 100.0}
-    ])
     client = api_client(auth_endpoints, caisse_endpoints)
     headers = auth_headers(client, "test_caisse_secretaire_dashkpis", TEST_PASSWORD)
     today = date_cls.today().isoformat()
 
+    before = client.get(f"/caisse/dashboard/caisse/kpis?date_from={today}&date_to={today}", headers=headers).json()
+
+    create_test_transaction(db_session, user, amount=100.0, advance_amount=40.0, items=[
+        {"item_type": "Service", "item_ref_id": 1, "unit_price": 100.0, "quantity": 1, "line_total": 100.0}
+    ])
+
     resp = client.get(f"/caisse/dashboard/caisse/kpis?date_from={today}&date_to={today}", headers=headers)
 
     assert resp.status_code == 200
-    body = resp.json()
-    assert body["total_paid"] == 40.0
-    assert body["total_factured"] == 100.0
-    assert body["remaining_due"] == 60.0
-    assert body["total_transactions"] == 1
+    after = resp.json()
+    assert after["total_paid"] == before["total_paid"] + 40.0
+    assert after["total_factured"] == before["total_factured"] + 100.0
+    assert after["remaining_due"] == before["remaining_due"] + 60.0
+    assert after["total_transactions"] == before["total_transactions"] + 1
 
 
 def test_dashboard_unpaid_list(db_session, api_client):
