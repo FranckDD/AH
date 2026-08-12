@@ -20,6 +20,7 @@
 - **Les KPIs de tableau de bord (`dashboard/caisse/kpis`, `dashboard/caisse/unpaid`, `dashboard/caisse/payment_distribution`) sont bornés par date et donnent des valeurs exactes fiables** quand `date_from=date_to=aujourd'hui` — confirmé par exécution réelle, pas de pollution par les données préexistantes en dehors de la plage.
 - **Un `item_type` neutre (ex. `"Service"`), ne correspondant à aucun des mots-clés `médicament`/`medication`/`carnet`/`booklet`/`consultation`, évite toute dépendance à de vraies données `Pharmacy`/`ConsultationSpirituel`** — confirmé fonctionnel par exécution réelle. C'est le type utilisé par défaut dans la factory `create_test_transaction`.
 - **`repositories/caisse_repo.py::create_transaction()` retourne directement l'objet `Caisse` complet** (contrairement à `PrescriptionRepository.create()` en 2d-3, qui ne retournait que `True`) — pas besoin de requête de relecture séparée pour obtenir l'id réel dans la factory ou les tests.
+- **Correction d'auteur (repérée par l'implémenteur de Task 2, pas par le cadrage empirique) — message d'erreur mélangé entre `create_transaction` et `update_transaction`.** Le plan original faisait dire au test `test_create_transaction_amount_mismatch_returns_400` d'attendre `"Incohérence"` dans le message — c'est en réalité le message d'`update_transaction` (`raise ValueError(f"Incohérence montant.")`, `controller/caisse_controller.py:261`). `create_transaction` lève un message différent : `f"Le montant total des lignes ({total_calc}) ne correspond pas à data['amount'] ({data['amount']})."` (`controller/caisse_controller.py:135`). Corrigé pour attendre `"ne correspond pas"`. Ce n'est ni un bug applicatif ni un artefact du travail en cours — une confusion entre deux messages similaires en rédigeant le plan.
 
 ## Global Constraints
 
@@ -250,7 +251,7 @@ def test_create_transaction_amount_mismatch_returns_400(db_session, api_client):
     resp = client.post("/caisse/", json=payload, headers=headers)
 
     assert resp.status_code == 400
-    assert "Incohérence" in resp.json()["detail"]
+    assert "ne correspond pas" in resp.json()["detail"]
 
 
 def test_create_transaction_invalid_consultation_reference_returns_400(db_session, api_client):
