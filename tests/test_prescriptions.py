@@ -386,3 +386,38 @@ def test_update_prescription_invalid_dates_crashes_validation_handler(db_session
     }
     with pytest.raises(TypeError, match="not JSON serializable"):
         client.put(f"/prescriptions/{prescription_id}", json=full_payload, headers=headers)
+
+
+def test_delete_prescription_success(db_session, api_client):
+    user = create_test_user(db_session, "test_presc_medecin_delete", "medecin", password=TEST_PASSWORD)
+    patient_id, _ = create_test_patient(db_session, user)
+    create_test_prescription(db_session, patient_id, user)
+    client = api_client(auth_endpoints, prescriptions_endpoints)
+    headers = auth_headers(client, "test_presc_medecin_delete", TEST_PASSWORD)
+
+    list_resp = client.get(f"/prescriptions/?patient_id={patient_id}", headers=headers)
+    prescription_id = list_resp.json()["data"][0]["prescription_id"]
+
+    delete_resp = client.delete(f"/prescriptions/{prescription_id}", headers=headers)
+    assert delete_resp.status_code == 204
+
+    get_resp = client.get(f"/prescriptions/{prescription_id}", headers=headers)
+    assert get_resp.status_code == 404
+
+
+def test_delete_prescription_nonexistent_returns_204_not_404(db_session, api_client):
+    """
+    Documente un bug reel sur HEAD (SUIVI-AVANCEMENT.md registre E2) :
+    repositories/prescription_repo.py::delete() execute un DELETE FROM
+    brut sans verifier le rowcount, et retourne toujours True. Le
+    modele Prescription n'a pas de suppression logique (contrairement a
+    Patient) - c'est une suppression physique, mais sans garde-fou :
+    supprimer un id inexistant renvoie 204 au lieu du 404 attendu.
+    """
+    create_test_user(db_session, "test_presc_medecin_delete404", "medecin", password=TEST_PASSWORD)
+    client = api_client(auth_endpoints, prescriptions_endpoints)
+    headers = auth_headers(client, "test_presc_medecin_delete404", TEST_PASSWORD)
+
+    resp = client.delete("/prescriptions/999999999", headers=headers)
+
+    assert resp.status_code == 204
