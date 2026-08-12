@@ -412,3 +412,130 @@ def test_cancel_transaction_already_cancelled_is_idempotent(db_session, api_clie
 
     second = client.post(f"/caisse/{tx.transaction_id}/cancel", headers=headers)
     assert second.status_code == 200
+
+
+def test_daily_total_reflects_created_transaction(db_session, api_client):
+    from datetime import date as date_cls
+
+    user = create_test_user(db_session, "test_caisse_secretaire_dailytotal", "secretaire", password=TEST_PASSWORD)
+    client = api_client(auth_endpoints, caisse_endpoints)
+    headers = auth_headers(client, "test_caisse_secretaire_dailytotal", TEST_PASSWORD)
+    today = date_cls.today().isoformat()
+
+    before = client.get(f"/caisse/daily_total?for_date={today}", headers=headers).json()
+    create_test_transaction(db_session, user, amount=77.0, advance_amount=0.0, items=[
+        {"item_type": "Service", "item_ref_id": 1, "unit_price": 77.0, "quantity": 1, "line_total": 77.0}
+    ])
+    after = client.get(f"/caisse/daily_total?for_date={today}", headers=headers).json()
+
+    assert after == before + 77.0
+
+
+def test_total_transactions_reflects_created_transaction(db_session, api_client):
+    user = create_test_user(db_session, "test_caisse_secretaire_total", "secretaire", password=TEST_PASSWORD)
+    client = api_client(auth_endpoints, caisse_endpoints)
+    headers = auth_headers(client, "test_caisse_secretaire_total", TEST_PASSWORD)
+
+    before = client.get("/caisse/total", headers=headers).json()
+    create_test_transaction(db_session, user, amount=88.0, advance_amount=0.0, items=[
+        {"item_type": "Service", "item_ref_id": 1, "unit_price": 88.0, "quantity": 1, "line_total": 88.0}
+    ])
+    after = client.get("/caisse/total", headers=headers).json()
+
+    assert after == before + 88.0
+
+
+def test_total_payments_reflects_advance_amount(db_session, api_client):
+    user = create_test_user(db_session, "test_caisse_secretaire_totalpay", "secretaire", password=TEST_PASSWORD)
+    client = api_client(auth_endpoints, caisse_endpoints)
+    headers = auth_headers(client, "test_caisse_secretaire_totalpay", TEST_PASSWORD)
+
+    before = client.get("/caisse/total_payments", headers=headers).json()
+    create_test_transaction(db_session, user, amount=100.0, advance_amount=25.0)
+    after = client.get("/caisse/total_payments", headers=headers).json()
+
+    assert after == before + 25.0
+
+
+def test_total_remaining_due_default_filters_active_status(db_session, api_client):
+    """
+    Documente une incoherence sur HEAD : total_remaining_due filtre
+    implicitement status='active' meme sans parametre status
+    (repositories/caisse_repo.py::get_total_remaining_due fait
+    "query.filter(Caisse.status == (status or 'active'))"), alors que
+    total/total_payments ne filtrent par statut que si explicitement
+    demande. Une transaction annulee avec un solde restant du n'est
+    donc jamais comptee ici, sans que l'appelant sans filtre explicite
+    ne s'y attende forcement.
+    """
+    user = create_test_user(db_session, "test_caisse_secretaire_remaining", "secretaire", password=TEST_PASSWORD)
+    client = api_client(auth_endpoints, caisse_endpoints)
+    headers = auth_headers(client, "test_caisse_secretaire_remaining", TEST_PASSWORD)
+
+    before = client.get("/caisse/total_remaining_due", headers=headers).json()
+    tx = create_test_transaction(db_session, user, amount=100.0, advance_amount=40.0)
+    after_active = client.get("/caisse/total_remaining_due", headers=headers).json()
+    assert after_active == before + 60.0
+
+    cancel_resp = client.post(f"/caisse/{tx.transaction_id}/cancel", headers=headers)
+    assert cancel_resp.status_code == 200
+    after_cancel = client.get("/caisse/total_remaining_due", headers=headers).json()
+    assert after_cancel == before
+
+
+def test_dashboard_kpis_date_scoped_exact_values(db_session, api_client):
+    from datetime import date as date_cls
+
+    user = create_test_user(db_session, "test_caisse_secretaire_dashkpis", "secretaire", password=TEST_PASSWORD)
+    create_test_transaction(db_session, user, amount=100.0, advance_amount=40.0, items=[
+        {"item_type": "Service", "item_ref_id": 1, "unit_price": 100.0, "quantity": 1, "line_total": 100.0}
+    ])
+    client = api_client(auth_endpoints, caisse_endpoints)
+    headers = auth_headers(client, "test_caisse_secretaire_dashkpis", TEST_PASSWORD)
+    today = date_cls.today().isoformat()
+
+    resp = client.get(f"/caisse/dashboard/caisse/kpis?date_from={today}&date_to={today}", headers=headers)
+
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["total_paid"] == 40.0
+    assert body["total_factured"] == 100.0
+    assert body["remaining_due"] == 60.0
+    assert body["total_transactions"] == 1
+
+
+def test_dashboard_unpaid_list(db_session, api_client):
+    from datetime import date as date_cls
+
+    user = create_test_user(db_session, "test_caisse_secretaire_dashunpaid", "secretaire", password=TEST_PASSWORD)
+    tx = create_test_transaction(db_session, user, amount=100.0, advance_amount=40.0, items=[
+        {"item_type": "Service", "item_ref_id": 1, "unit_price": 100.0, "quantity": 1, "line_total": 100.0}
+    ])
+    client = api_client(auth_endpoints, caisse_endpoints)
+    headers = auth_headers(client, "test_caisse_secretaire_dashunpaid", TEST_PASSWORD)
+    today = date_cls.today().isoformat()
+
+    resp = client.get(f"/caisse/dashboard/caisse/unpaid?date_from={today}&date_to={today}", headers=headers)
+
+    assert resp.status_code == 200
+    ids = [t["transaction_id"] for t in resp.json()]
+    assert tx.transaction_id in ids
+
+
+def test_dashboard_payment_distribution(db_session, api_client):
+    from datetime import date as date_cls
+
+    user = create_test_user(db_session, "test_caisse_secretaire_dashdistrib", "secretaire", password=TEST_PASSWORD)
+    create_test_transaction(
+        db_session, user, amount=100.0, advance_amount=40.0, payment_method="Zzuniquepaymentmethod2d4",
+        items=[{"item_type": "Service", "item_ref_id": 1, "unit_price": 100.0, "quantity": 1, "line_total": 100.0}],
+    )
+    client = api_client(auth_endpoints, caisse_endpoints)
+    headers = auth_headers(client, "test_caisse_secretaire_dashdistrib", TEST_PASSWORD)
+    today = date_cls.today().isoformat()
+
+    resp = client.get(f"/caisse/dashboard/caisse/payment_distribution?date_from={today}&date_to={today}", headers=headers)
+
+    assert resp.status_code == 200
+    distribution = {item["method"]: item["total"] for item in resp.json()["distribution"]}
+    assert distribution.get("Zzuniquepaymentmethod2d4") == 40.0
