@@ -929,7 +929,26 @@ Attendu : `0` — tous les tests s'exécutent dans la transaction annulée de `d
 
 - [ ] **Step 4: Mettre à jour `docs/superpowers/SUIVI-AVANCEMENT.md`**
 
-Ajouter une section de détail pour le chantier 2d-3 dans "Détail des chantiers terminés" (même format que 2d-1/2d-2), et une nouvelle catégorie de registre **E** après la catégorie D existante :
+Ajouter la section de détail suivante pour le chantier 2d-3 dans "Détail des chantiers terminés", juste après la section "### Chantier 2d-2 — Tests d'intégration patients" existante :
+
+```markdown
+### Chantier 2d-3 — Tests d'intégration prescriptions
+Spec : `2026-08-11-chantier-2d3-tests-prescriptions-design.md` · Plan : `2026-08-11-chantier-2d3-tests-prescriptions.md`
+Troisième sous-chantier métier, construit sur 2d-0/2d-1/2d-2. Exécuté via subagent-driven-development, worktree isolé (`.claude/worktrees/chantier-2d3-tests-prescriptions`). 25 tests neufs dans `tests/test_prescriptions.py`, tout le routeur `/prescriptions` : CRUD, `/renewals`, `/kpi/count`, `/patient/{id}`, RBAC propre à ce routeur (`medecin`, `nurse`, `admin`, `manager` — différent de `/users/`) :
+- Création : succès (documente le bug `E5`, le corps de réponse réel est le repli générique) + 422 (champ requis manquant) + plantage `TypeError` du gestionnaire de validation global sur dates invalides (`E1`, transversal) + 403 secrétaire + 401 non-authentifié + 201 pour le rôle `nurse`.
+- Lecture : succès + 404 + liste filtrée par `patient_id`/plage de dates/recherche (valeur hautement unique pour éviter toute collision avec des données réelles préexistantes).
+- Mise à jour : succès avec payload complet + 409 sur payload partiel (`E4`, réécriture destructive de la procédure stockée) + 500 sur id inexistant (`E3`, corrige une hypothèse initiale erronée de la spec) + même plantage `TypeError` que la création.
+- Suppression : suppression physique confirmée via `GET` 404 après coup + documentation du bug `E2` (204 au lieu de 404 sur un id inexistant).
+- Renouvellements et KPI : fenêtre `within_days` (dans/hors fenêtre) et compteurs jour/semaine (comparaison avant/après pour ne pas dépendre du volume réel de la table).
+- Historique patient : prescription créée retrouvée + filtre par `status`.
+- RBAC transversal : confirme que `role_required` s'applique à tout le routeur, pas seulement à `POST /`.
+
+**Périmètre élargi par rapport à 2d-1/2d-2** (demandé explicitement par l'utilisateur, malgré cinq fichiers du module en travail non commité) : couverture complète du routeur plutôt que le seul CRUD critique, RBAC re-testé (routeur avec ses propres rôles autorisés), et un cadrage du plan appuyé sur exécution réelle contre un worktree jetable basé sur `HEAD` (créé et supprimé pendant le cadrage) plutôt que sur la seule lecture de code — ce qui a permis d'infirmer deux hypothèses de la spec initiale et de découvrir deux bugs supplémentaires (`E5`, `E6`) non anticipés, remontés par les implémenteurs de Task 2 puis vérifiés indépendamment avant correction du plan.
+
+**Nouvelle catégorie de registre E** (6 items, détaillée ci-dessous) : contrairement à la catégorie B, ces défauts sont dans du code déjà committé (`main.py`, procédures stockées, schémas Pydantic) et ne dépendent d'aucun fichier en travail en cours côté utilisateur — corrigeables dès qu'un chantier dédié leur est consacré. `E1` et `E5` sont les plus prioritaires : `E1` est transversal (touche potentiellement toute route utilisant un validateur Pydantic qui lève `ValueError`), et `E5` signifie que la route de création la plus utilisée du module ne renvoie jamais son contrat documenté à un vrai client.
+```
+
+Puis, une nouvelle catégorie de registre **E** après la catégorie D existante :
 
 ```markdown
 ### E — Découvertes du chantier 2d-3 (prescriptions), non bloquées par le travail en cours
