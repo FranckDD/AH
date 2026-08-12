@@ -17,6 +17,8 @@ from models.application_role import ApplicationRole
 from api_backend.backend_app.rate_limit import limiter
 from repositories.patient_repo import PatientRepository
 from repositories.prescription_repo import PrescriptionRepository
+from repositories.caisse_repo import CaisseRepository
+from repositories.caisse_retrait_repo import CaisseRetraitRepository
 
 
 @pytest.fixture
@@ -183,3 +185,52 @@ def create_test_prescription(session, patient_id, current_user, **overrides):
     repo = PrescriptionRepository(session)
     repo.create(data)
     return data
+
+
+def create_test_transaction(session, current_user, **overrides):
+    """
+    Cree une transaction caisse ephemere en appelant directement
+    CaisseRepository.create_transaction() (ORM reel, pas de procedure
+    stockee pour ce module). Contrairement a create_test_prescription,
+    retourne directement l'objet Caisse complet (avec transaction_id
+    reel) - le repository ne renvoie pas juste un booleen.
+
+    item_type="Service" par defaut : ne correspond a aucun mot-cle
+    special (medicament/carnet/consultation), evite toute dependance
+    a de vraies donnees Pharmacy/ConsultationSpirituel.
+    """
+    data = {
+        "amount": 100.0,
+        "advance_amount": 0.0,
+        "payment_method": "Especes",
+        "transaction_type": "Consultation",
+        "items": [
+            {
+                "item_type": "Service",
+                "item_ref_id": 1,
+                "unit_price": 100.0,
+                "quantity": 1,
+                "line_total": 100.0,
+            }
+        ],
+        **overrides,
+    }
+    repo = CaisseRepository(session)
+    return repo.create_transaction(data, current_user)
+
+
+def create_test_retrait(session, current_user, **overrides):
+    """
+    Cree un retrait de caisse ephemere en appelant directement
+    CaisseRetraitRepository.create().
+    """
+    data = {
+        "amount": 50.0,
+        "justification": "Retrait de test",
+        "handled_by": current_user.user_id,
+        "category": None,
+        "payment_method": None,
+        **overrides,
+    }
+    repo = CaisseRetraitRepository(session)
+    return repo.create(**data)
