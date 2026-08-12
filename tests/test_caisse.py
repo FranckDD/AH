@@ -110,7 +110,7 @@ def test_create_transaction_amount_mismatch_returns_400(db_session, api_client):
     resp = client.post("/caisse/", json=payload, headers=headers)
 
     assert resp.status_code == 400
-    assert "Incohérence" in resp.json()["detail"]
+    assert "ne correspond pas" in resp.json()["detail"]
 
 
 def test_create_transaction_invalid_consultation_reference_returns_400(db_session, api_client):
