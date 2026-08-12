@@ -166,3 +166,90 @@ def test_create_transaction_unauthenticated_returns_401(db_session, api_client):
     resp = client.post("/caisse/", json=payload)
 
     assert resp.status_code == 401
+
+
+def test_get_transaction_success(db_session, api_client):
+    user = create_test_user(db_session, "test_caisse_secretaire_get", "secretaire", password=TEST_PASSWORD)
+    tx = create_test_transaction(db_session, user, amount=150.0, advance_amount=0.0, items=[
+        {"item_type": "Service", "item_ref_id": 1, "unit_price": 150.0, "quantity": 1, "line_total": 150.0}
+    ])
+    client = api_client(auth_endpoints, caisse_endpoints)
+    headers = auth_headers(client, "test_caisse_secretaire_get", TEST_PASSWORD)
+
+    resp = client.get(f"/caisse/{tx.transaction_id}", headers=headers)
+
+    assert resp.status_code == 200
+    assert resp.json()["transaction_id"] == tx.transaction_id
+    assert resp.json()["amount"] == "150.00"
+
+
+def test_get_transaction_not_found(db_session, api_client):
+    create_test_user(db_session, "test_caisse_secretaire_get404", "secretaire", password=TEST_PASSWORD)
+    client = api_client(auth_endpoints, caisse_endpoints)
+    headers = auth_headers(client, "test_caisse_secretaire_get404", TEST_PASSWORD)
+
+    resp = client.get("/caisse/999999999", headers=headers)
+
+    assert resp.status_code == 404
+
+
+def test_list_transactions_search_by_term(db_session, api_client):
+    user = create_test_user(db_session, "test_caisse_secretaire_search", "secretaire", password=TEST_PASSWORD)
+    create_test_transaction(db_session, user, transaction_type="Zzuniquetransactiontype2d4")
+    client = api_client(auth_endpoints, caisse_endpoints)
+    headers = auth_headers(client, "test_caisse_secretaire_search", TEST_PASSWORD)
+
+    resp = client.get("/caisse/?term=Zzuniquetransactiontype2d4", headers=headers)
+
+    assert resp.status_code == 200
+    types = [tx["transaction_type"] for tx in resp.json()["data"]]
+    assert "Zzuniquetransactiontype2d4" in types
+
+
+def test_list_transactions_filter_by_status(db_session, api_client):
+    user = create_test_user(db_session, "test_caisse_secretaire_statusfilter", "secretaire", password=TEST_PASSWORD)
+    tx = create_test_transaction(db_session, user, transaction_type="Zzstatusfilter2d4")
+    client = api_client(auth_endpoints, caisse_endpoints)
+    headers = auth_headers(client, "test_caisse_secretaire_statusfilter", TEST_PASSWORD)
+
+    resp_active = client.get("/caisse/?term=Zzstatusfilter2d4&status=active", headers=headers)
+    assert resp_active.status_code == 200
+    assert any(t["transaction_id"] == tx.transaction_id for t in resp_active.json()["data"])
+
+    resp_cancelled = client.get("/caisse/?term=Zzstatusfilter2d4&status=cancelled", headers=headers)
+    assert resp_cancelled.status_code == 200
+    assert not any(t["transaction_id"] == tx.transaction_id for t in resp_cancelled.json()["data"])
+
+
+def test_list_transactions_filter_by_date_range(db_session, api_client):
+    from datetime import date as date_cls, timedelta
+
+    user = create_test_user(db_session, "test_caisse_secretaire_daterange", "secretaire", password=TEST_PASSWORD)
+    tx = create_test_transaction(
+        db_session, user, transaction_type="Zzdaterange2d4",
+        paid_at=date_cls(2030, 1, 15),
+    )
+    client = api_client(auth_endpoints, caisse_endpoints)
+    headers = auth_headers(client, "test_caisse_secretaire_daterange", TEST_PASSWORD)
+
+    resp = client.get("/caisse/?date_from=2030-01-01&date_to=2030-01-31", headers=headers)
+    assert resp.status_code == 200
+    assert any(t["transaction_id"] == tx.transaction_id for t in resp.json()["data"])
+
+    resp_excl = client.get("/caisse/?date_from=2030-02-01&date_to=2030-02-28", headers=headers)
+    assert resp_excl.status_code == 200
+    assert not any(t["transaction_id"] == tx.transaction_id for t in resp_excl.json()["data"])
+
+
+def test_list_for_patient(db_session, api_client):
+    user = create_test_user(db_session, "test_caisse_secretaire_forpatient", "secretaire", password=TEST_PASSWORD)
+    patient_id, _ = create_test_patient(db_session, user, last_name="CaissePatient2d4")
+    tx = create_test_transaction(db_session, user, patient_id=patient_id)
+    client = api_client(auth_endpoints, caisse_endpoints)
+    headers = auth_headers(client, "test_caisse_secretaire_forpatient", TEST_PASSWORD)
+
+    resp = client.get(f"/caisse/patient/{patient_id}", headers=headers)
+
+    assert resp.status_code == 200
+    ids = [t["transaction_id"] for t in resp.json()]
+    assert tx.transaction_id in ids
