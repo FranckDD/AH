@@ -539,3 +539,26 @@ def test_dashboard_payment_distribution(db_session, api_client):
     assert resp.status_code == 200
     distribution = {item["method"]: item["total"] for item in resp.json()["distribution"]}
     assert distribution.get("Zzuniquepaymentmethod2d4") == 40.0
+
+
+def test_download_invoice_pdf_success(db_session, api_client):
+    user = create_test_user(db_session, "test_caisse_secretaire_pdf", "secretaire", password=TEST_PASSWORD)
+    tx = create_test_transaction(db_session, user)
+    client = api_client(auth_endpoints, caisse_endpoints)
+    headers = auth_headers(client, "test_caisse_secretaire_pdf", TEST_PASSWORD)
+
+    resp = client.get(f"/caisse/{tx.transaction_id}/invoice/download", headers=headers)
+
+    assert resp.status_code == 200
+    assert resp.headers["content-type"] == "application/pdf"
+    assert len(resp.content) > 1000
+
+
+def test_download_invoice_pdf_not_found(db_session, api_client):
+    create_test_user(db_session, "test_caisse_secretaire_pdf404", "secretaire", password=TEST_PASSWORD)
+    client = api_client(auth_endpoints, caisse_endpoints)
+    headers = auth_headers(client, "test_caisse_secretaire_pdf404", TEST_PASSWORD)
+
+    resp = client.get("/caisse/999999999/invoice/download", headers=headers)
+
+    assert resp.status_code == 404
