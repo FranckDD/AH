@@ -492,3 +492,37 @@ def test_kpi_count_week(db_session, api_client):
 
     assert resp.status_code == 200
     assert isinstance(resp.json()["count"], int)
+
+
+def test_patient_prescription_history_returns_created_prescription(db_session, api_client):
+    """
+    GET /prescriptions/patient/{id} renvoie aussi une LISTE JSON NUE,
+    comme /renewals - confirme par execution reelle.
+    """
+    user = create_test_user(db_session, "test_presc_medecin_history", "medecin", password=TEST_PASSWORD)
+    patient_id, _ = create_test_patient(db_session, user)
+    create_test_prescription(db_session, patient_id, user, medication="MedicamentHistory2d3")
+    client = api_client(auth_endpoints, prescriptions_endpoints)
+    headers = auth_headers(client, "test_presc_medecin_history", TEST_PASSWORD)
+
+    resp = client.get(f"/prescriptions/patient/{patient_id}", headers=headers)
+
+    assert resp.status_code == 200
+    medications = [p["medication"] for p in resp.json()]
+    assert "MedicamentHistory2d3" in medications
+
+
+def test_patient_prescription_history_filters_by_status(db_session, api_client):
+    user = create_test_user(db_session, "test_presc_medecin_historystatus", "medecin", password=TEST_PASSWORD)
+    patient_id, _ = create_test_patient(db_session, user)
+    create_test_prescription(db_session, patient_id, user, medication="MedicamentActive2d3")
+    client = api_client(auth_endpoints, prescriptions_endpoints)
+    headers = auth_headers(client, "test_presc_medecin_historystatus", TEST_PASSWORD)
+
+    resp_active = client.get(f"/prescriptions/patient/{patient_id}?status=active", headers=headers)
+    assert resp_active.status_code == 200
+    assert any(p["medication"] == "MedicamentActive2d3" for p in resp_active.json())
+
+    resp_completed = client.get(f"/prescriptions/patient/{patient_id}?status=completed", headers=headers)
+    assert resp_completed.status_code == 200
+    assert not any(p["medication"] == "MedicamentActive2d3" for p in resp_completed.json())
