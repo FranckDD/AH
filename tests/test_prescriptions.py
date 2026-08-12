@@ -421,3 +421,74 @@ def test_delete_prescription_nonexistent_returns_204_not_404(db_session, api_cli
     resp = client.delete("/prescriptions/999999999", headers=headers)
 
     assert resp.status_code == 204
+
+
+def test_renewals_returns_prescription_within_window(db_session, api_client):
+    """
+    GET /prescriptions/renewals renvoie une LISTE JSON NUE (pas de cle
+    "data") - confirme par execution reelle, different du format de
+    GET /prescriptions/ (liste paginee avec data/total/page/per_page).
+    """
+    from datetime import date as date_cls, timedelta
+
+    user = create_test_user(db_session, "test_presc_medecin_renewals", "medecin", password=TEST_PASSWORD)
+    patient_id, _ = create_test_patient(db_session, user)
+    create_test_prescription(
+        db_session, patient_id, user,
+        medication="MedicamentRenewal2d3",
+        end_date=date_cls.today() + timedelta(days=5),
+    )
+    client = api_client(auth_endpoints, prescriptions_endpoints)
+    headers = auth_headers(client, "test_presc_medecin_renewals", TEST_PASSWORD)
+
+    resp = client.get("/prescriptions/renewals", headers=headers)
+
+    assert resp.status_code == 200
+    medications = [p["medication"] for p in resp.json()]
+    assert "MedicamentRenewal2d3" in medications
+
+
+def test_renewals_excludes_prescription_outside_window(db_session, api_client):
+    from datetime import date as date_cls, timedelta
+
+    user = create_test_user(db_session, "test_presc_medecin_renewalsout", "medecin", password=TEST_PASSWORD)
+    patient_id, _ = create_test_patient(db_session, user)
+    create_test_prescription(
+        db_session, patient_id, user,
+        medication="MedicamentRenewalOut2d3",
+        end_date=date_cls.today() + timedelta(days=30),
+    )
+    client = api_client(auth_endpoints, prescriptions_endpoints)
+    headers = auth_headers(client, "test_presc_medecin_renewalsout", TEST_PASSWORD)
+
+    resp = client.get("/prescriptions/renewals?within_days=14", headers=headers)
+
+    assert resp.status_code == 200
+    medications = [p["medication"] for p in resp.json()]
+    assert "MedicamentRenewalOut2d3" not in medications
+
+
+def test_kpi_count_day_includes_todays_prescription(db_session, api_client):
+    from datetime import date as date_cls
+
+    user = create_test_user(db_session, "test_presc_medecin_kpiday", "medecin", password=TEST_PASSWORD)
+    patient_id, _ = create_test_patient(db_session, user)
+    client = api_client(auth_endpoints, prescriptions_endpoints)
+    headers = auth_headers(client, "test_presc_medecin_kpiday", TEST_PASSWORD)
+
+    before = client.get("/prescriptions/kpi/count?period=day", headers=headers).json()["count"]
+    create_test_prescription(db_session, patient_id, user, start_date=date_cls.today())
+    after = client.get("/prescriptions/kpi/count?period=day", headers=headers).json()["count"]
+
+    assert after == before + 1
+
+
+def test_kpi_count_week(db_session, api_client):
+    create_test_user(db_session, "test_presc_medecin_kpiweek", "medecin", password=TEST_PASSWORD)
+    client = api_client(auth_endpoints, prescriptions_endpoints)
+    headers = auth_headers(client, "test_presc_medecin_kpiweek", TEST_PASSWORD)
+
+    resp = client.get("/prescriptions/kpi/count?period=week", headers=headers)
+
+    assert resp.status_code == 200
+    assert isinstance(resp.json()["count"], int)
