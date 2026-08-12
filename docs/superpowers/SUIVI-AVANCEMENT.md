@@ -1,6 +1,6 @@
 # Suivi d'avancement — AH2 / Glostone-Kare
 
-**Dernière mise à jour :** 2026-08-12 (chantier 2b)
+**Dernière mise à jour :** 2026-08-12 (stabilisation requirements.txt)
 **But de ce document :** état d'avancement des chantiers de remise en service et de sécurisation, et registre des découvertes faites en cours de route mais non encore traitées. Pour le contexte général du projet, voir `docs/superpowers/CONTEXTE-PROJET.md`. Pour le détail d'un chantier, voir les fichiers correspondants dans `docs/superpowers/specs/` et `docs/superpowers/plans/`.
 
 ## Feuille de route
@@ -22,7 +22,8 @@ Issue de l'audit initial du projet (2026-08-10), découpée en chantiers indépe
 | 2d-3 | Tests prescriptions | ✅ Terminé | `d998b51`..`4974068` |
 | 2d-4 | Tests caisse | ✅ Terminé | `d030693`..`d663640` |
 | 2b | CI (GitHub Actions) | ✅ Terminé | `032d554`..`6ffe5a8` |
-| 2c | Split des dépendances (`requirements-api.txt`/`requirements-desktop.txt`) | ⛔ Bloqué — `requirements.txt` en plein travail en cours, sans base commune avec `HEAD` | — |
+| — | Stabilisation `requirements.txt` (imports vérifiés, débloque 2c) | ✅ Terminé | `23147b9`..`b4b0622` |
+| 2c | Split des dépendances (`requirements-api.txt`/`requirements-desktop.txt`) | ⬜ Pas commencé — débloqué | — |
 | 3 | Portage web (caisse/secrétariat, RDV, prescriptions, dossiers médicaux) | ⬜ Pas commencé | — |
 | 4 | PowerSync + PWA (remplace le mode hors ligne maison) | ⬜ Pas commencé | — |
 | 5 | Hébergement & exploitation (remplace Railway/Supabase, TLS, stockage objet) | ⬜ Pas commencé — peut démarrer en parallèle | — |
@@ -169,7 +170,7 @@ Compilé le 2026-08-10, mis à jour au fil des chantiers. Catégorisé par ce qu
 | B1 | `get_current_user()` contient encore le repli permissif (`SEC-06`) dans la copie de travail | `auth_endpoints.py` | Si ce fichier est commité sans revoir ce point précis, la faille revient |
 | B2 | Révocation au changement de mot de passe (`/auth/password`) jamais ajoutée | `auth_controller.py`, `auth_endpoints.py`, `schemas.py` | La route n'existe pas sur `HEAD` |
 | B3 | Correctif d'import (`api_backend.backend_app.utils.pdf_generator`) reste en local, jamais commité | `lab_endpoints.py` | Le fichier porte un module PDF en cours de développement |
-| B4 | `alembic`, `slowapi`, `limits`, `deprecated` ajoutés à `requirements.txt` en local uniquement | `requirements.txt` | Fichier entièrement divergent de `HEAD` (pip freeze complet vs liste courte), aucune base commune |
+| B4 | ~~`alembic`, `slowapi`, `limits`, `deprecated` ajoutés à `requirements.txt` en local uniquement.~~ **Résolu** : `requirements.txt` a été entièrement réécrit à partir d'un scan AST des imports réels (voir plan de stabilisation), avec l'accord explicite de l'utilisateur pour écraser l'ancien freeze brut en travail non commité. Débloque le chantier `2c`. | `requirements.txt` | Résolu — plus de divergence, base commune restaurée |
 | B5 | Module labo (`router/index.js`, vues, gateway) fonctionnel en local mais jamais commité | `ah2-admin-web/src/` | Développement en cours de l'utilisateur |
 | B6 | `getattr(self.user, 'role_name', '')` sur `HEAD` — attribut inexistant sur `User`, toujours `''`. Conséquence : `create_patient` n'injecte jamais les drapeaux par rôle, et `update_patient` réécrit systématiquement les 3 drapeaux (`is_toxicology`/`is_clinical`/`is_spiritual`) avec leur ancienne valeur pour **tout** appelant, y compris un admin — personne ne peut les changer via `PUT /patients/{id}` aujourd'hui. Découvert et documenté (tests) au chantier 2d-2. | `controller/patient_controller.py` | Le fichier est en plein travail en cours (nouvelle méthode `_get_user_roles_set()` qui combine déjà `roles`/`postgres_role`/`role_name` — la correction semble déjà en chantier côté utilisateur, intégration Redis/Celery en parallèle) |
 
@@ -245,4 +246,4 @@ corrigeables dès qu'un chantier dédié leur est consacré.
 
 ## Prochaine étape
 
-Chantier **2b — CI (GitHub Actions)** terminé (voir registre `G` pour les découvertes). Reconsidérer **2c** (toujours bloqué). Ensuite : audit des versions Vue/Tailwind/dépendances front.
+Chantier **2b — CI (GitHub Actions)** terminé (voir registre `G` pour les découvertes). `requirements.txt` stabilisé (item `B4` résolu) : chantier **2c** (split `requirements-api.txt`/`requirements-desktop.txt`) débloqué, prêt à démarrer. Ensuite : audit des versions Vue/Tailwind/dépendances front.
