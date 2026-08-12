@@ -168,3 +168,87 @@ def test_create_prescription_allowed_for_nurse(db_session, api_client):
     resp = client.post("/prescriptions/", json=payload, headers=headers)
 
     assert resp.status_code == 201
+
+
+def test_get_prescription_success(db_session, api_client):
+    user = create_test_user(db_session, "test_presc_medecin_get", "medecin", password=TEST_PASSWORD)
+    patient_id, _ = create_test_patient(db_session, user)
+    create_test_prescription(db_session, patient_id, user, medication="Doliprane")
+    client = api_client(auth_endpoints, prescriptions_endpoints)
+    headers = auth_headers(client, "test_presc_medecin_get", TEST_PASSWORD)
+
+    list_resp = client.get(f"/prescriptions/?patient_id={patient_id}", headers=headers)
+    prescription_id = list_resp.json()["data"][0]["prescription_id"]
+
+    resp = client.get(f"/prescriptions/{prescription_id}", headers=headers)
+
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["prescription_id"] == prescription_id
+    assert body["medication"] == "Doliprane"
+
+
+def test_get_prescription_not_found(db_session, api_client):
+    create_test_user(db_session, "test_presc_medecin_get404", "medecin", password=TEST_PASSWORD)
+    client = api_client(auth_endpoints, prescriptions_endpoints)
+    headers = auth_headers(client, "test_presc_medecin_get404", TEST_PASSWORD)
+
+    resp = client.get("/prescriptions/999999999", headers=headers)
+
+    assert resp.status_code == 404
+    assert resp.json()["detail"] == "Prescription non trouvée"
+
+
+def test_list_prescriptions_filters_by_patient_id(db_session, api_client):
+    user = create_test_user(db_session, "test_presc_medecin_listpid", "medecin", password=TEST_PASSWORD)
+    patient_a, _ = create_test_patient(db_session, user, last_name="PatientA2d3")
+    patient_b, _ = create_test_patient(db_session, user, last_name="PatientB2d3")
+    create_test_prescription(db_session, patient_a, user, medication="MedicamentA2d3")
+    create_test_prescription(db_session, patient_b, user, medication="MedicamentB2d3")
+    client = api_client(auth_endpoints, prescriptions_endpoints)
+    headers = auth_headers(client, "test_presc_medecin_listpid", TEST_PASSWORD)
+
+    resp = client.get(f"/prescriptions/?patient_id={patient_a}", headers=headers)
+
+    assert resp.status_code == 200
+    items = resp.json()["data"]
+    assert all(p["patient_id"] == patient_a for p in items)
+    assert any(p["medication"] == "MedicamentA2d3" for p in items)
+
+
+def test_list_prescriptions_filters_by_date_range(db_session, api_client):
+    from datetime import date as date_cls
+
+    user = create_test_user(db_session, "test_presc_medecin_listdate", "medecin", password=TEST_PASSWORD)
+    patient_id, _ = create_test_patient(db_session, user)
+    create_test_prescription(
+        db_session, patient_id, user,
+        medication="MedicamentDateRange2d3",
+        start_date=date_cls(2030, 1, 15),
+    )
+    client = api_client(auth_endpoints, prescriptions_endpoints)
+    headers = auth_headers(client, "test_presc_medecin_listdate", TEST_PASSWORD)
+
+    resp = client.get("/prescriptions/?date_from=2030-01-01&date_to=2030-01-31", headers=headers)
+    assert resp.status_code == 200
+    medications = [p["medication"] for p in resp.json()["data"]]
+    assert "MedicamentDateRange2d3" in medications
+
+    resp_excl = client.get("/prescriptions/?date_from=2030-02-01&date_to=2030-02-28", headers=headers)
+    assert resp_excl.status_code == 200
+    medications_excl = [p["medication"] for p in resp_excl.json()["data"]]
+    assert "MedicamentDateRange2d3" not in medications_excl
+
+
+def test_list_prescriptions_search_finds_by_medication(db_session, api_client):
+    user = create_test_user(db_session, "test_presc_medecin_search", "medecin", password=TEST_PASSWORD)
+    patient_id, _ = create_test_patient(db_session, user)
+    create_test_prescription(db_session, patient_id, user, medication="Zzuniquemedicationsearch2d3")
+    client = api_client(auth_endpoints, prescriptions_endpoints)
+    headers = auth_headers(client, "test_presc_medecin_search", TEST_PASSWORD)
+
+    resp = client.get("/prescriptions/?search=Zzuniquemedicationsearch2d3", headers=headers)
+
+    assert resp.status_code == 200
+    medications = [p["medication"] for p in resp.json()["data"]]
+    assert "Zzuniquemedicationsearch2d3" in medications
