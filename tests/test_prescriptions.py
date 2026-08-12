@@ -526,3 +526,27 @@ def test_patient_prescription_history_filters_by_status(db_session, api_client):
     resp_completed = client.get(f"/prescriptions/patient/{patient_id}?status=completed", headers=headers)
     assert resp_completed.status_code == 200
     assert not any(p["medication"] == "MedicamentActive2d3" for p in resp_completed.json())
+
+
+def test_prescriptions_list_forbidden_for_secretaire(db_session, api_client):
+    """
+    Confirme que role_required s'applique a tout le routeur (declare au
+    niveau du router, pas seulement sur POST /) - deja verifie sur
+    POST / (Task 2), verifie ici sur GET / pour eliminer tout doute.
+    """
+    create_test_user(db_session, "test_presc_secretaire_list", "secretaire", password=TEST_PASSWORD)
+    client = api_client(auth_endpoints, prescriptions_endpoints)
+    headers = auth_headers(client, "test_presc_secretaire_list", TEST_PASSWORD)
+
+    resp = client.get("/prescriptions/", headers=headers)
+
+    assert resp.status_code == 403
+    assert resp.json()["detail"] == "Accès refusé : rôle utilisateur insuffisant"
+
+
+def test_prescriptions_list_unauthenticated_returns_401(db_session, api_client):
+    client = api_client(auth_endpoints, prescriptions_endpoints)
+
+    resp = client.get("/prescriptions/")
+
+    assert resp.status_code == 401
