@@ -142,6 +142,10 @@ Quatrième sous-chantier métier, construit sur 2d-0/2d-1/2d-2/2d-3. Exécuté v
 
 **Fichiers en travail non commité** (jamais touchés par ce chantier) : `api_backend/backend_app/routes/caisse/mapping.py`, `controller/caisse_controller.py`, `repositories/caisse_repo.py`. Le module `retrait` n'est pas touché par le travail en cours.
 
+**Couplage avec le travail en cours non commité (constaté à la fusion dans `AH2_V3-1`)** : sur les 43 tests, 1 échoue dans le répertoire de travail principal (mais passe dans le worktree isolé) : `test_create_transaction_amount_mismatch_returns_400` échoue avec `AssertionError: assert 'ne correspond pas' in 'Incohérence montant: Lignes(100.0) != Total(999.0).'` — le travail en cours sur `controller/caisse_controller.py` a changé le texte du message d'erreur de `create_transaction` sur une incohérence montant/lignes, qui ressemble désormais à celui d'`update_transaction` (`"Incohérence montant."`) plutôt qu'au message distinct de `HEAD` (`"Le montant total des lignes (...) ne correspond pas à data['amount'] (...)."`). Aucun autre test de ce chantier n'est affecté par le travail en cours — les 11 autres échecs du run fusionné (`test_patient_repo.py`, `test_patients.py`, `test_prescription_repo.py`, `test_prescriptions.py`) sont déjà attribués et documentés ailleurs dans ce fichier, aucun n'est nouveau.
+
+**Action requise au moment où `controller/caisse_controller.py` sera commité** : mettre à jour l'assertion de `test_create_transaction_amount_mismatch_returns_400` pour refléter le nouveau texte du message (à constater précisément à ce moment-là, pas à deviner maintenant).
+
 ## Registre des découvertes non traitées
 
 Compilé le 2026-08-10, mis à jour au fil des chantiers. Catégorisé par ce qui bloque la correction.
