@@ -290,3 +290,34 @@ def test_update_transaction_not_found(db_session, api_client):
     resp = client.put("/caisse/999999999", json={"note": "x"}, headers=headers)
 
     assert resp.status_code == 400
+
+
+def test_delete_transaction_success(db_session, api_client):
+    user = create_test_user(db_session, "test_caisse_secretaire_delete", "secretaire", password=TEST_PASSWORD)
+    tx = create_test_transaction(db_session, user)
+    client = api_client(auth_endpoints, caisse_endpoints)
+    headers = auth_headers(client, "test_caisse_secretaire_delete", TEST_PASSWORD)
+
+    delete_resp = client.delete(f"/caisse/{tx.transaction_id}", headers=headers)
+    assert delete_resp.status_code == 204
+
+    get_resp = client.get(f"/caisse/{tx.transaction_id}", headers=headers)
+    assert get_resp.status_code == 404
+
+
+def test_delete_transaction_nonexistent_returns_204_not_404(db_session, api_client):
+    """
+    Documente un bug reel sur HEAD : api_backend/backend_app/routes/
+    caisse/caisse_endpoints.py::delete_transaction ne verifie jamais
+    la valeur de retour de caisse_ctrl.delete_transaction() -
+    repositories/caisse_repo.py::delete_transaction() renvoie
+    silencieusement None (pas d'exception) si l'id n'existe pas.
+    Meme motif que le bug E2 de prescriptions (chantier 2d-3).
+    """
+    create_test_user(db_session, "test_caisse_secretaire_delete404", "secretaire", password=TEST_PASSWORD)
+    client = api_client(auth_endpoints, caisse_endpoints)
+    headers = auth_headers(client, "test_caisse_secretaire_delete404", TEST_PASSWORD)
+
+    resp = client.delete("/caisse/999999999", headers=headers)
+
+    assert resp.status_code == 204
