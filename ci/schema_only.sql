@@ -1020,13 +1020,24 @@ $$;
 CREATE PROCEDURE public.update_prescription(IN p_prescription_id integer, IN p_patient_id integer, IN p_medication character varying, IN p_dosage character varying, IN p_frequency character varying, IN p_duration character varying, IN p_medical_record_id integer DEFAULT NULL::integer, IN p_start_date date DEFAULT CURRENT_DATE, IN p_end_date date DEFAULT NULL::date, IN p_notes text DEFAULT NULL::text, IN p_prescribed_by integer DEFAULT NULL::integer, IN p_prescribed_by_name character varying DEFAULT NULL::character varying)
     LANGUAGE plpgsql
     AS $$
+        DECLARE
+            v_patient_id  integer;
+            v_start_date  date;
+            v_end_date    date;
         BEGIN
             IF NOT EXISTS (SELECT 1 FROM prescriptions WHERE prescription_id = p_prescription_id) THEN
                 RAISE EXCEPTION 'Aucune prescription avec l''ID % n''existe.', p_prescription_id;
             END IF;
 
-            IF NOT EXISTS (SELECT 1 FROM patients WHERE patient_id = p_patient_id) THEN
-                RAISE EXCEPTION 'Aucun patient avec l''ID % n''existe.', p_patient_id;
+            SELECT COALESCE(p_patient_id, patient_id),
+                   COALESCE(p_start_date, start_date),
+                   COALESCE(p_end_date, end_date)
+              INTO v_patient_id, v_start_date, v_end_date
+              FROM prescriptions
+             WHERE prescription_id = p_prescription_id;
+
+            IF NOT EXISTS (SELECT 1 FROM patients WHERE patient_id = v_patient_id) THEN
+                RAISE EXCEPTION 'Aucun patient avec l''ID % n''existe.', v_patient_id;
             END IF;
 
             IF p_medical_record_id IS NOT NULL THEN
@@ -1035,22 +1046,22 @@ CREATE PROCEDURE public.update_prescription(IN p_prescription_id integer, IN p_p
                 END IF;
             END IF;
 
-            IF p_end_date IS NOT NULL AND p_end_date < p_start_date THEN
+            IF v_end_date IS NOT NULL AND v_end_date < v_start_date THEN
                 RAISE EXCEPTION 'La date de fin ne peut pas etre anterieure a la date de debut';
             END IF;
 
             UPDATE public.prescriptions
-               SET patient_id         = p_patient_id,
-                   medical_record_id  = p_medical_record_id,
-                   medication         = p_medication,
-                   dosage             = p_dosage,
-                   frequency          = p_frequency,
-                   duration           = p_duration,
-                   start_date         = p_start_date,
-                   end_date           = p_end_date,
-                   notes              = p_notes,
-                   prescribed_by      = p_prescribed_by,
-                   prescribed_by_name = p_prescribed_by_name
+               SET patient_id         = v_patient_id,
+                   medical_record_id  = COALESCE(p_medical_record_id, medical_record_id),
+                   medication         = COALESCE(p_medication, medication),
+                   dosage             = COALESCE(p_dosage, dosage),
+                   frequency          = COALESCE(p_frequency, frequency),
+                   duration           = COALESCE(p_duration, duration),
+                   start_date         = v_start_date,
+                   end_date           = v_end_date,
+                   notes              = COALESCE(p_notes, notes),
+                   prescribed_by      = COALESCE(p_prescribed_by, prescribed_by),
+                   prescribed_by_name = COALESCE(p_prescribed_by_name, prescribed_by_name)
              WHERE prescription_id = p_prescription_id;
         END;
         $$;
