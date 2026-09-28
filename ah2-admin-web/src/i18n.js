@@ -190,6 +190,45 @@ const messages = {
         day_panel_title: "Rendez-vous du"
       }
     },
+    hospitalization: {
+      title: "Patients hospitalisés",
+      subtitle: "Séjours en cours",
+      card_title: "Hospitalisation",
+      not_hospitalized: "Ce patient n'est pas actuellement hospitalisé.",
+      admit_button: "Admettre",
+      update_status_button: "Mettre à jour l'état",
+      discharge_button: "Sortir",
+      admission_reason: "Motif d'admission",
+      admitted_since: "Hospitalisé depuis",
+      days_count: "jour(s)",
+      current_status: "Dernière évolution",
+      no_status_yet: "Aucune mise à jour depuis l'admission.",
+      history_title: "Historique",
+      status: {
+        AMELIORATION: "Amélioration",
+        STABLE: "Stable",
+        AGGRAVATION: "Aggravation"
+      },
+      disposition: {
+        GUERI: "Guéri",
+        TRANSFERE: "Transféré",
+        SORTIE_CONTRE_AVIS_MEDICAL: "Sortie contre avis médical",
+        DECES: "Décès"
+      },
+      status_note: "Note",
+      discharge_note: "Note de sortie",
+      discharge_disposition_label: "Type de sortie",
+      confirm: "Confirmer",
+      cancel: "Annuler",
+      empty_list: "Aucun patient actuellement hospitalisé.",
+      table: {
+        patient: "Patient",
+        admitted_since: "Hospitalisé depuis",
+        days: "Jours",
+        current_status: "État actuel",
+        admitted_by: "Admis par"
+      }
+    },
     prescriptions: {
       title: "Prescriptions",
       subtitle: "Ordonnances et bons d'examen",
@@ -1136,6 +1175,45 @@ const messages = {
         more: "more",
         day_panel_empty: "No appointments this day.",
         day_panel_title: "Appointments for"
+      }
+    },
+    hospitalization: {
+      title: "Hospitalized Patients",
+      subtitle: "Current stays",
+      card_title: "Hospitalization",
+      not_hospitalized: "This patient is not currently hospitalized.",
+      admit_button: "Admit",
+      update_status_button: "Update status",
+      discharge_button: "Discharge",
+      admission_reason: "Admission reason",
+      admitted_since: "Hospitalized since",
+      days_count: "day(s)",
+      current_status: "Latest update",
+      no_status_yet: "No update since admission.",
+      history_title: "History",
+      status: {
+        AMELIORATION: "Improving",
+        STABLE: "Stable",
+        AGGRAVATION: "Worsening"
+      },
+      disposition: {
+        GUERI: "Recovered",
+        TRANSFERE: "Transferred",
+        SORTIE_CONTRE_AVIS_MEDICAL: "Left against medical advice",
+        DECES: "Deceased"
+      },
+      status_note: "Note",
+      discharge_note: "Discharge note",
+      discharge_disposition_label: "Discharge type",
+      confirm: "Confirm",
+      cancel: "Cancel",
+      empty_list: "No patient currently hospitalized.",
+      table: {
+        patient: "Patient",
+        admitted_since: "Hospitalized since",
+        days: "Days",
+        current_status: "Current status",
+        admitted_by: "Admitted by"
       }
     },
     prescriptions: {
