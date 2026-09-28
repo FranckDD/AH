@@ -467,6 +467,7 @@ const messages = {
         settle: "Solder",
         cancel: "Annuler",
         download: "Télécharger la facture",
+        reprint_ticket: "Réimprimer le ticket",
       },
       cancel_modal: {
         title: "Annuler la transaction",
@@ -1405,6 +1406,7 @@ const messages = {
         settle: "Settle",
         cancel: "Cancel",
         download: "Download Invoice",
+        reprint_ticket: "Reprint ticket",
       },
       cancel_modal: {
         title: "Cancel Transaction",

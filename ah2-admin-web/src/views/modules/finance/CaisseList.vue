@@ -152,6 +152,12 @@
                           :title="tx.transaction_id ? t('caisse.actions.download') : 'En attente de synchronisation'">
                     <ArrowDownTrayIcon class="h-4 w-4" />
                   </button>
+                  <button v-if="tx.status === 'active'" @click="printTicketForTransaction(tx.transaction_id)"
+                          :disabled="!tx.transaction_id"
+                          class="p-2 bg-white border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-100 transition shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
+                          :title="tx.transaction_id ? t('caisse.actions.reprint_ticket') : 'En attente de synchronisation'">
+                    <PrinterIcon class="h-4 w-4" />
+                  </button>
                 </div>
               </td>
             </tr>
@@ -177,6 +183,10 @@
 
     <div v-if="actionError" class="bg-red-50 border-l-4 border-red-500 p-4 rounded-xl">
       <p class="text-sm text-red-700">{{ actionError }}</p>
+    </div>
+
+    <div v-if="printError" class="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-xl">
+      <p class="text-sm text-amber-700">{{ printError }}</p>
     </div>
 
     <CaisseInvoiceModal v-if="showInvoiceModal" :isSaving="isSavingInvoice" :errorMessage="invoiceError"
@@ -245,9 +255,10 @@ import CaisseCancelModal from '@/components/caisse/CaisseCancelModal.vue';
 import {
   PlusCircleIcon, ArrowTrendingUpIcon, ClockIcon, BanknotesIcon,
   ChevronLeftIcon, ChevronRightIcon, CurrencyDollarIcon, CheckBadgeIcon,
-  XCircleIcon, ArrowDownTrayIcon, EyeIcon,
+  XCircleIcon, ArrowDownTrayIcon, EyeIcon, PrinterIcon,
 } from '@heroicons/vue/24/outline';
 import { CaisseGateway } from '@/services/CaisseGateway';
+import { PrinterBridgeGateway } from '@/services/PrinterBridgeGateway';
 
 const { t } = useI18n();
 const caisseStore = useCaisseStore();
@@ -307,6 +318,27 @@ const mapErrorToMessage = (err) => {
   return err.message || "Une erreur inattendue est survenue.";
 };
 
+// --- Impression ticket ---
+// Impression automatique et best-effort : ne doit jamais bloquer ni
+// interferer avec le flux de creation/reimpression de facture, qui a
+// deja reussi cote donnees au moment ou on imprime. Declenchee pour
+// TOUTE facture qui atteint le statut 'active', qu'une reduction ait
+// ete demandee ou non (voir Tache 12) - jamais conditionnee par autre
+// chose, pour ne pas rouvrir la faille anti-fraude (facture encaissee
+// sans ticket physique puis annulee discretement).
+const printError = ref('');
+
+const printTicketForTransaction = async (transactionId) => {
+  printError.value = '';
+  try {
+    const resp = await CaisseGateway.getTicket(transactionId);
+    await PrinterBridgeGateway.printTicket(resp.data);
+  } catch (err) {
+    printError.value = "Ticket non imprimé — imprimante indisponible. Utilisez le bouton Réimprimer pour réessayer.";
+    console.error('Erreur impression ticket:', err);
+  }
+};
+
 // --- Creation facture ---
 const showInvoiceModal = ref(false);
 const isSavingInvoice = ref(false);
@@ -316,8 +348,11 @@ const handleCreateInvoice = async (payload) => {
   isSavingInvoice.value = true;
   invoiceError.value = '';
   try {
-    await caisseStore.createInvoice(payload);
+    const result = await caisseStore.createInvoice(payload);
     showInvoiceModal.value = false;
+    if (result && result.status !== 'pending_approval' && result.transaction_id) {
+      printTicketForTransaction(result.transaction_id);
+    }
   } catch (err) {
     invoiceError.value = mapErrorToMessage(err);
   } finally {
