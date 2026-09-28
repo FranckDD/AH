@@ -350,7 +350,17 @@ const handleCreateInvoice = async (payload) => {
   try {
     const result = await caisseStore.createInvoice(payload);
     showInvoiceModal.value = false;
-    if (result && result.status !== 'pending_approval' && result.transaction_id) {
+    // caisseStore.createInvoice() a deux formes de retour : le chemin
+    // secretaire/PowerSync (ecriture locale, voir caisseStore.js) renvoie
+    // { transaction_id: <uuid local> } sans champ status, alors que le
+    // chemin en ligne renvoie la reponse serveur reelle ou transaction_id
+    // est un entier (voir caisse_schemas.py TransactionResponse). Un uuid
+    // local n'est pas reconnu par le backend (GET /caisse/{id}/ticket
+    // echouerait) tant que la transaction n'a pas synchronise : on ne
+    // tente donc l'impression automatique que pour un id serveur reel,
+    // silencieusement ignore sinon (pas de tentative, pas de bandeau
+    // d'erreur trompeur "imprimante indisponible").
+    if (result && result.status !== 'pending_approval' && Number.isInteger(result.transaction_id)) {
       printTicketForTransaction(result.transaction_id);
     }
   } catch (err) {
