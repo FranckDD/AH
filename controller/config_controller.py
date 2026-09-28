@@ -1,5 +1,6 @@
 import io
 import os
+import secrets
 import shutil
 import uuid
 from fastapi import UploadFile
@@ -8,7 +9,9 @@ from repositories.config_repo import ConfigRepository
 from models.organization_config import OrganizationConfig
 
 UPLOAD_DIR = "static/uploads/logos"
+TICKET_LOGO_UPLOAD_DIR = "static/uploads/ticket_logos"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
+os.makedirs(TICKET_LOGO_UPLOAD_DIR, exist_ok=True)
 
 ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "webp"}
 MAX_UPLOAD_SIZE_BYTES = 5 * 1024 * 1024  # 5 Mo
@@ -48,31 +51,51 @@ class ConfigController:
             return OrganizationConfig()
         return config
 
+    def _save_uploaded_image(self, image_file: UploadFile, upload_dir: str) -> str:
+        """Valide et sauvegarde une image uploadee, retourne son chemin
+        relatif servi par /static. Factorise entre le logo couleur (factures
+        PDF) et le logo monochrome (ticket thermique) - meme validation,
+        seul le repertoire de destination change."""
+        raw_bytes = image_file.file.read()
+        if len(raw_bytes) > MAX_UPLOAD_SIZE_BYTES:
+            raise ValueError("Le fichier depasse la taille maximale autorisee (5 Mo)")
+
+        buffer = io.BytesIO(raw_bytes)
+        _validate_image_content(buffer)
+
+        filename = _generate_safe_filename(image_file.filename or "")
+        os.makedirs(upload_dir, exist_ok=True)
+        file_path = os.path.join(upload_dir, filename)
+
+        buffer.seek(0)
+        with open(file_path, "wb") as out:
+            shutil.copyfileobj(buffer, out)
+
+        return f"/{upload_dir}/{filename}"
+
     def update_structure_info(
         self,
         data_dict: dict,
         logo_file: UploadFile = None,  # type: ignore
+        ticket_logo_file: UploadFile = None,  # type: ignore
     ) -> OrganizationConfig:
-
         if logo_file:
-            raw_bytes = logo_file.file.read()
-            if len(raw_bytes) > MAX_UPLOAD_SIZE_BYTES:
-                raise ValueError("Le fichier depasse la taille maximale autorisee (5 Mo)")
-
-            buffer = io.BytesIO(raw_bytes)
-            _validate_image_content(buffer)
-
-            filename = _generate_safe_filename(logo_file.filename or "")
-            file_path = os.path.join(UPLOAD_DIR, filename)
-
-            buffer.seek(0)
-            with open(file_path, "wb") as out:
-                shutil.copyfileobj(buffer, out)
-
-            # Chemin relatif (pas d'URL absolue) : reste valable quel que
-            # soit l'hote/port du backend a l'affichage (dev sur un port
-            # non-standard, prod) - c'est au frontend de prefixer avec sa
-            # propre config d'API (voir resolveAssetUrl cote client).
-            data_dict["logo_url"] = f"/static/uploads/logos/{filename}"
-
+            data_dict["logo_url"] = self._save_uploaded_image(logo_file, UPLOAD_DIR)
+        if ticket_logo_file:
+            data_dict["ticket_logo_url"] = self._save_uploaded_image(ticket_logo_file, TICKET_LOGO_UPLOAD_DIR)
         return self.repo.save_config(data_dict)
+
+    def get_ticket_print_token(self) -> str | None:
+        config = self.get_structure_info()
+        return getattr(config, "ticket_print_token", None)
+
+    def generate_ticket_print_token(self) -> str:
+        """Genere un nouveau jeton partage (32 octets urlsafe -> 43
+        caracteres) requis par le service pont local pour accepter une
+        demande d'impression - empeche un site tiers ouvert dans un autre
+        onglet du meme navigateur d'imprimer silencieusement sur
+        http://localhost:PORT."""
+        token = secrets.token_urlsafe(32)
+        if self.repo:
+            self.repo.save_config({"ticket_print_token": token})
+        return token

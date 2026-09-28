@@ -43,7 +43,8 @@ def normalize_config_data(config: OrganizationConfig):
         "website": config.website,
         "niu": config.niu,
         "rccm": config.rccm,
-        "legal_info": config.legal_info
+        "legal_info": config.legal_info,
+        "ticket_logo_url": config.ticket_logo_url,
     }
 
 # --- ROUTES ---
@@ -76,7 +77,8 @@ async def update_structure_info(
     
     # Le fichier est optionnel (on peut update juste le texte)
     logo: Optional[UploadFile] = File(None),
-    
+    ticket_logo: Optional[UploadFile] = File(None),
+
     ctrl: ConfigController = Depends(get_config_controller)
 ):
     """
@@ -97,13 +99,27 @@ async def update_structure_info(
         "rccm": rccm,
         "legal_info": legal_info
     }
-    
+
     try:
         updated_config = ctrl.update_structure_info(
             data_dict=data,
             logo_file=logo,  # type: ignore
+            ticket_logo_file=ticket_logo,  # type: ignore
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
     return normalize_config_data(updated_config)
+
+
+@router.get("/ticket-print-token", dependencies=[Depends(role_required("secretaire", "admin", "promoteur"))])
+def get_ticket_print_token(ctrl: ConfigController = Depends(get_config_controller)):
+    """Endpoint dedie, distinct de GET /structure (public) - c'est ici et
+    UNIQUEMENT ici que le jeton d'impression est expose, aux seuls roles qui
+    declenchent une impression."""
+    return {"token": ctrl.get_ticket_print_token()}
+
+
+@router.post("/generate-ticket-token", dependencies=[Depends(role_required("admin"))])
+def generate_ticket_print_token(ctrl: ConfigController = Depends(get_config_controller)):
+    return {"token": ctrl.generate_ticket_print_token()}

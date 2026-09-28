@@ -38,3 +38,29 @@ def test_validate_image_content_rejects_non_image_bytes():
     buf = io.BytesIO(b"ceci n'est pas une image")
     with pytest.raises(ValueError):
         _validate_image_content(buf)
+
+
+def test_save_uploaded_image_rejects_oversized_file(tmp_path, monkeypatch):
+    from controller.config_controller import ConfigController, MAX_UPLOAD_SIZE_BYTES
+    import io
+
+    class FakeUploadFile:
+        filename = "big.png"
+        def __init__(self, data):
+            self.file = io.BytesIO(data)
+
+    monkeypatch.chdir(tmp_path)
+    ctrl = ConfigController(repo=None)
+    oversized = FakeUploadFile(b"0" * (MAX_UPLOAD_SIZE_BYTES + 1))
+    with pytest.raises(ValueError, match="taille maximale"):
+        ctrl._save_uploaded_image(oversized, "static/uploads/ticket_logos")
+
+
+def test_generate_ticket_print_token_returns_url_safe_random_string():
+    from controller.config_controller import ConfigController
+    ctrl = ConfigController(repo=None)
+    token = ctrl.generate_ticket_print_token()
+    assert isinstance(token, str)
+    assert len(token) >= 32
+    # genere deux fois -> jamais le meme jeton (evite un token constant par accident)
+    assert token != ctrl.generate_ticket_print_token()
