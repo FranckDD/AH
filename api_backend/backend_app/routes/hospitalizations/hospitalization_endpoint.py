@@ -1,4 +1,5 @@
 import logging
+from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
@@ -43,20 +44,42 @@ def get_hospitalization_controller(
     return HospitalizationController(repo=repo, current_user=current_user, audit_repo=audit_repo)
 
 
+def _user_name(user) -> Optional[str]:
+    if not user:
+        return None
+    return getattr(user, "full_name", None) or getattr(user, "username", None)
+
+
+def _status_update_to_out(update) -> HospitalizationStatusUpdateOut:
+    return HospitalizationStatusUpdateOut(
+        id=update.id,
+        status=update.status,
+        note=update.note,
+        created_by=update.created_by,
+        created_by_name=_user_name(getattr(update, "created_by_user", None)),
+        created_at=update.created_at,
+    )
+
+
 def _to_out(hosp) -> HospitalizationOut:
     return HospitalizationOut(
         id=hosp.id,
         patient_id=hosp.patient_id,
         admitted_at=hosp.admitted_at,
         admitted_by=hosp.admitted_by,
+        admitted_by_name=_user_name(getattr(hosp, "admitted_by_user", None)),
         admission_reason=hosp.admission_reason,
         discharged_at=hosp.discharged_at,
         discharge_disposition=hosp.discharge_disposition,
         discharge_note=hosp.discharge_note,
         discharged_by=hosp.discharged_by,
+        discharged_by_name=_user_name(getattr(hosp, "discharged_by_user", None)),
         patient_first_name=getattr(hosp.patient, "first_name", None) if hosp.patient else None,
         patient_last_name=getattr(hosp.patient, "last_name", None) if hosp.patient else None,
-        status_updates=[HospitalizationStatusUpdateOut.model_validate(u) for u in (hosp.status_updates or [])],
+        # Deja trie newest-first (Hospitalization.status_updates,
+        # order_by=desc(created_at), voir models/hospitalization.py) - le
+        # frontend affiche cette liste telle quelle, jamais juste [0].
+        status_updates=[_status_update_to_out(u) for u in (hosp.status_updates or [])],
     )
 
 
@@ -94,7 +117,7 @@ def add_status_update(
         raise HTTPException(status_code=422, detail="Statut clinique invalide.")
     try:
         update = ctrl.add_status_update(hospitalization_id, data.status, data.note)
-        return HospitalizationStatusUpdateOut.model_validate(update)
+        return _status_update_to_out(update)
     except ValueError as ve:
         if "Aucune hospitalisation trouvée" in str(ve):
             raise HTTPException(status_code=404, detail=str(ve))

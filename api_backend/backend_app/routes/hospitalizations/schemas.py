@@ -25,6 +25,7 @@ class HospitalizationStatusUpdateOut(BaseModel):
     status: str
     note: Optional[str] = None
     created_by: int
+    created_by_name: Optional[str] = None
     created_at: datetime
 
     model_config = {"from_attributes": True}
@@ -35,11 +36,13 @@ class HospitalizationOut(BaseModel):
     patient_id: int
     admitted_at: datetime
     admitted_by: int
+    admitted_by_name: Optional[str] = None
     admission_reason: Optional[str] = None
     discharged_at: Optional[datetime] = None
     discharge_disposition: Optional[str] = None
     discharge_note: Optional[str] = None
     discharged_by: Optional[int] = None
+    discharged_by_name: Optional[str] = None
     patient_first_name: Optional[str] = None
     patient_last_name: Optional[str] = None
     status_updates: List[HospitalizationStatusUpdateOut] = []

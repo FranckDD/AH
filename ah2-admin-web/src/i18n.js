@@ -204,6 +204,11 @@ const messages = {
       current_status: "Dernière évolution",
       no_status_yet: "Aucune mise à jour depuis l'admission.",
       history_title: "Historique",
+      evolution_title: "Évolution du séjour en cours",
+      admitted_by: "Admis par",
+      discharged_by: "Sortie prononcée par",
+      recorded_by: "par",
+      unknown_user: "Utilisateur inconnu",
       status: {
         AMELIORATION: "Amélioration",
         STABLE: "Stable",
@@ -1191,6 +1196,11 @@ const messages = {
       current_status: "Latest update",
       no_status_yet: "No update since admission.",
       history_title: "History",
+      evolution_title: "Current stay's clinical updates",
+      admitted_by: "Admitted by",
+      discharged_by: "Discharge recorded by",
+      recorded_by: "by",
+      unknown_user: "Unknown user",
       status: {
         AMELIORATION: "Improving",
         STABLE: "Stable",

@@ -99,7 +99,12 @@ class HospitalizationRepository:
     def list_current(self) -> List[Hospitalization]:
         return (
             self.session.query(Hospitalization)
-            .options(joinedload(Hospitalization.patient), joinedload(Hospitalization.status_updates))
+            .options(
+                joinedload(Hospitalization.patient),
+                joinedload(Hospitalization.admitted_by_user),
+                joinedload(Hospitalization.discharged_by_user),
+                joinedload(Hospitalization.status_updates).joinedload(HospitalizationStatusUpdate.created_by_user),
+            )
             .filter(Hospitalization.discharged_at.is_(None))
             .order_by(Hospitalization.admitted_at.desc())
             .all()
@@ -108,7 +113,11 @@ class HospitalizationRepository:
     def get_history_for_patient(self, patient_id: int) -> List[Hospitalization]:
         return (
             self.session.query(Hospitalization)
-            .options(joinedload(Hospitalization.status_updates))
+            .options(
+                joinedload(Hospitalization.admitted_by_user),
+                joinedload(Hospitalization.discharged_by_user),
+                joinedload(Hospitalization.status_updates).joinedload(HospitalizationStatusUpdate.created_by_user),
+            )
             .filter(Hospitalization.patient_id == patient_id)
             .order_by(Hospitalization.admitted_at.desc())
             .all()

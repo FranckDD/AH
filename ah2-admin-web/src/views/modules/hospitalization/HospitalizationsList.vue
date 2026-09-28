@@ -19,6 +19,7 @@
               <th class="px-6 py-4 font-semibold">{{ t('hospitalization.table.admitted_since') }}</th>
               <th class="px-6 py-4 font-semibold">{{ t('hospitalization.table.days') }}</th>
               <th class="px-6 py-4 font-semibold">{{ t('hospitalization.table.current_status') }}</th>
+              <th class="px-6 py-4 font-semibold">{{ t('hospitalization.table.admitted_by') }}</th>
               <th class="px-6 py-4 font-semibold text-right">{{ t('appointments.table.actions') }}</th>
             </tr>
           </thead>
@@ -34,6 +35,7 @@
               <td class="px-6 py-4 text-sm" :class="statusColorClass(latestStatusOf(stay))">
                 {{ latestStatusOf(stay) ? t(`hospitalization.status.${latestStatusOf(stay)}`) : t('hospitalization.no_status_yet') }}
               </td>
+              <td class="px-6 py-4 text-sm text-gray-600">{{ stay.admitted_by_name || t('hospitalization.unknown_user') }}</td>
               <td class="px-6 py-4 text-right">
                 <button @click="goToDossier(stay.patient_id)" class="px-3 py-1.5 text-xs font-medium rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition">
                   {{ t('appointments.actions.view_dossier') }}
@@ -41,7 +43,7 @@
               </td>
             </tr>
             <tr v-if="hospitalizationStore.current.length === 0">
-              <td colspan="5" class="px-6 py-8 text-center text-gray-500 italic">
+              <td colspan="6" class="px-6 py-8 text-center text-gray-500 italic">
                 {{ t('hospitalization.empty_list') }}
               </td>
             </tr>

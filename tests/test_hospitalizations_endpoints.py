@@ -263,3 +263,23 @@ def test_admit_patient_with_stale_is_clinical_column_but_real_medical_record(db_
     resp = client.post("/hospitalizations/", json={"patient_id": patient_id}, headers=headers)
 
     assert resp.status_code == 201, resp.text
+
+
+def test_status_updates_include_author_name_not_just_id(db_session, api_client):
+    """Retour terrain 2026-09-28 : le personnel doit pouvoir retrouver QUI a
+    enregistre chaque evolution clinique, pas seulement un id opaque."""
+    medecin = create_test_user(db_session, "hosp_ep_medecin_authorname", "medecin", password=TEST_PASSWORD)
+    patient_id, _ = create_test_patient(db_session, medecin, first_name="EpAuthorName", is_clinical=True)
+    client = _client(api_client)
+    headers = auth_headers(client, "hosp_ep_medecin_authorname", TEST_PASSWORD)
+
+    hosp_id = client.post("/hospitalizations/", json={"patient_id": patient_id}, headers=headers).json()["id"]
+    resp = client.post(f"/hospitalizations/{hosp_id}/status", json={"status": "AMELIORATION"}, headers=headers)
+    assert resp.status_code == 201
+    assert resp.json()["created_by_name"] == medecin.full_name
+
+    history = client.get(f"/hospitalizations/patient/{patient_id}", headers=headers).json()
+    stay = next(h for h in history if h["id"] == hosp_id)
+    assert stay["admitted_by_name"] == medecin.full_name
+    assert len(stay["status_updates"]) == 1
+    assert stay["status_updates"][0]["created_by_name"] == medecin.full_name

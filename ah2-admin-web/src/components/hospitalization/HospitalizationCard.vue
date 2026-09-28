@@ -35,11 +35,28 @@
         <div>
           <div class="text-xs text-gray-500">{{ t('hospitalization.admitted_since') }}</div>
           <div class="text-sm font-semibold text-gray-900">{{ formatDate(openStay.admitted_at) }} ({{ daysSince(openStay.admitted_at) }} {{ t('hospitalization.days_count') }})</div>
+          <div class="text-xs text-gray-400">{{ t('hospitalization.admitted_by') }} {{ openStay.admitted_by_name || t('hospitalization.unknown_user') }}</div>
         </div>
         <div class="text-right">
           <div class="text-xs text-gray-500">{{ t('hospitalization.current_status') }}</div>
           <div class="text-sm font-semibold" :class="statusColorClass(latestStatus)">
             {{ latestStatus ? t(`hospitalization.status.${latestStatus}`) : t('hospitalization.no_status_yet') }}
+          </div>
+        </div>
+      </div>
+
+      <!-- Retour terrain : la seule "derniere evolution" ci-dessus ne
+           permet pas de retrouver les etats precedents pendant le sejour -
+           chaque entree est deja horodatee et attribuee cote backend, elle
+           manquait juste d'un affichage complet. -->
+      <div v-if="openStay.status_updates?.length" class="pt-2 border-t border-gray-100">
+        <h4 class="text-xs font-bold text-gray-500 uppercase mb-2">{{ t('hospitalization.evolution_title') }}</h4>
+        <div class="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+          <div v-for="u in openStay.status_updates" :key="u.id" class="text-xs flex items-start gap-2">
+            <span class="font-semibold flex-shrink-0" :class="statusColorClass(u.status)">{{ t(`hospitalization.status.${u.status}`) }}</span>
+            <span class="text-gray-400 flex-shrink-0">{{ formatDate(u.created_at) }}</span>
+            <span class="text-gray-400 flex-shrink-0">{{ t('hospitalization.recorded_by') }} {{ u.created_by_name || t('hospitalization.unknown_user') }}</span>
+            <span v-if="u.note" class="text-gray-600 italic truncate">— {{ u.note }}</span>
           </div>
         </div>
       </div>
@@ -81,10 +98,22 @@
 
     <div v-if="hospitalizationStore.patientHistory.length > 0" class="mt-6 pt-4 border-t border-gray-100">
       <h4 class="text-xs font-bold text-gray-500 uppercase mb-2">{{ t('hospitalization.history_title') }}</h4>
-      <div class="space-y-2">
-        <div v-for="stay in hospitalizationStore.patientHistory" :key="stay.id" class="text-xs text-gray-600 flex justify-between">
-          <span>{{ formatDate(stay.admitted_at) }} → {{ stay.discharged_at ? formatDate(stay.discharged_at) : '…' }}</span>
-          <span v-if="stay.discharge_disposition">{{ t(`hospitalization.disposition.${stay.discharge_disposition}`) }}</span>
+      <div class="space-y-3">
+        <div v-for="stay in hospitalizationStore.patientHistory" :key="stay.id" class="text-xs">
+          <div class="flex justify-between text-gray-600">
+            <span>{{ formatDate(stay.admitted_at) }} → {{ stay.discharged_at ? formatDate(stay.discharged_at) : '…' }}</span>
+            <span v-if="stay.discharge_disposition" class="font-medium">{{ t(`hospitalization.disposition.${stay.discharge_disposition}`) }}</span>
+          </div>
+          <div v-if="stay.discharge_disposition" class="text-gray-400">
+            {{ t('hospitalization.discharged_by') }} {{ stay.discharged_by_name || t('hospitalization.unknown_user') }}
+          </div>
+          <div v-if="stay.status_updates?.length" class="mt-1 pl-3 border-l-2 border-gray-100 space-y-1">
+            <div v-for="u in stay.status_updates" :key="u.id" class="flex items-start gap-2">
+              <span class="font-medium flex-shrink-0" :class="statusColorClass(u.status)">{{ t(`hospitalization.status.${u.status}`) }}</span>
+              <span class="text-gray-400 flex-shrink-0">{{ formatDate(u.created_at) }}</span>
+              <span v-if="u.note" class="text-gray-500 italic truncate">— {{ u.note }}</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
