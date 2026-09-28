@@ -46,12 +46,34 @@
 import { ref, onMounted, onUnmounted } from 'vue';
 import { BellIcon } from '@heroicons/vue/24/outline';
 import { useNotificationStore } from '@/stores/notificationStore';
+import { useAuthStore } from '@/stores/auth';
+import { CaisseGateway } from '@/services/CaisseGateway';
+import { PrinterBridgeGateway } from '@/services/PrinterBridgeGateway';
 import router from '@/router';
 
 const notificationStore = useNotificationStore();
+const authStore = useAuthStore();
 const open = ref(false);
 const activePopup = ref(null);
 let popupCheckTimer = null;
+const printedDecisionIds = new Set(); // evite une double impression si la meme notification est relue
+
+const maybePrintApprovedDiscountTicket = async (n) => {
+  if (!authStore.hasRole(['secretaire'])) return;
+  if (n.type !== 'discount_decided') return;
+  if (n.payload?.status !== 'approved') return;
+  if (printedDecisionIds.has(n.id)) return;
+  printedDecisionIds.add(n.id);
+
+  try {
+    const resp = await CaisseGateway.getTicket(n.payload.transaction_id);
+    await PrinterBridgeGateway.printTicket(resp.data);
+  } catch (err) {
+    console.error('Impression automatique post-décision échouée:', err);
+    // Pas de bandeau ici (composant global monté partout) - l'utilisateur
+    // peut toujours reimprimer manuellement depuis CaisseList.vue (Task 11).
+  }
+};
 
 const toggleOpen = () => { open.value = !open.value; };
 
@@ -90,6 +112,10 @@ onMounted(() => {
       const next = notificationStore.popNextPopup();
       if (next) activePopup.value = next;
     }
+    // Verifie aussi les decisions de reduction fraichement recues,
+    // independamment du popup (qui ne se declenche que pour discount_request,
+    // jamais discount_decided - voir labelFor)
+    notificationStore.notifications.forEach(maybePrintApprovedDiscountTicket);
   }, 1000);
 });
 
