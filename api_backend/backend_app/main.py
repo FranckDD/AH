@@ -12,6 +12,7 @@ sys.path.append(root_path)
 from .routes.auth import auth_endpoints
 from .routes.patients import patients_endpoints
 from .routes.medical_records import medical_records_endpoint
+from .routes.hospitalizations import hospitalization_endpoint
 from .routes.prescription import prescriptions_endpoints
 from .routes.appointment import appointment_endpoints
 from .routes.cs import cs_endpoint
@@ -137,6 +138,7 @@ app.add_middleware(
 app.include_router(auth_endpoints.router, prefix="", tags=["Auth"])
 app.include_router(patients_endpoints.router)  # sans prefix et sans tags
 app.include_router(medical_records_endpoint.router)
+app.include_router(hospitalization_endpoint.router)
 app.include_router(prescriptions_endpoints.router)
 app.include_router(appointment_endpoints.router)
 app.include_router(cs_endpoint.router)
