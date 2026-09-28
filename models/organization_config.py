@@ -10,7 +10,9 @@ class OrganizationConfig(Base):
     name = Column(String, nullable=False, default="AH2 CLINIC")
     slogan = Column(String, nullable=True)
     logo_url = Column(String, nullable=True) # Chemin relatif ou URL complète
-    
+    ticket_logo_url = Column(String, nullable=True)  # Logo monochrome dedie au ticket thermique, distinct du logo couleur
+    ticket_print_token = Column(String, nullable=True)  # Jeton partage requis par le service pont local (jamais expose via GET /config/structure)
+
     # Coordonnées
     address = Column(String, nullable=True)
     city = Column(String, nullable=True)
