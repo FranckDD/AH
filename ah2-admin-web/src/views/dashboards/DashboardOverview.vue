@@ -69,11 +69,11 @@
 
       <StatCard
         :title="$t('dashboard.stats.patients')"
-        :value="valeurAffichee('toxico', dashboardStore.stats.activePatients)"
+        :value="valeurAffichee('toxico', dashboardStore.stats.toxicoAdmissionsThisMonth)"
         :icon="UserGroupIcon"
         colorClass="bg-indigo-50"
         iconColor="text-indigo-600"
-        trend="Admissions (Mois)"
+        trend="Module Toxico"
         :trendIsPositive="true"
       />
     </div>

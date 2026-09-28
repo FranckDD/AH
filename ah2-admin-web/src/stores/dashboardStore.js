@@ -20,7 +20,14 @@ export const useDashboardStore = defineStore('dashboard', () => {
         income: 0,
         withdrawals: 0,
         debt: 0,
-        activePatients: 0,
+        // Retour terrain 2026-09-28 : ce champ s'appelait "activePatients"
+        // mais ne contient (et n'a jamais contenu) que le compte
+        // d'admissions toxico du mois - aucun vrai calcul de "patients
+        // actifs" cliniques n'existe encore dans ce projet. Renomme pour
+        // ne plus induire en erreur au prochain developpeur qui lira ce
+        // fichier ; le KPI clinique reel reste a construire (depend du
+        // suivi des hospitalisations, backlog).
+        toxicoAdmissionsThisMonth: 0,
         onlineUsers: 0,
         alertsCount: 0
     });
@@ -89,8 +96,10 @@ export const useDashboardStore = defineStore('dashboard', () => {
             // Dettes (Reste à payer)
             stats.value.debt = valeurOuEchec(debtRes, 'debt', (r) => Number(r.data) || 0);
 
-            // Toxico
-            stats.value.activePatients = valeurOuEchec(
+            // Toxico - admissions du mois (module toxico uniquement,
+            // jamais un compte "patients actifs" clinique - voir le
+            // commentaire sur stats.toxicoAdmissionsThisMonth ci-dessus)
+            stats.value.toxicoAdmissionsThisMonth = valeurOuEchec(
                 toxicoRes, 'toxico', (r) => r.data?.currentMonthAdmissions || 0
             );
 

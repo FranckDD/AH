@@ -44,7 +44,7 @@ const messages = {
         income: "Recettes Totales",
         withdrawals: "Total Retraits",
         debt: "Reste à Payer",
-        patients: "Patients Actifs",
+        patients: "Admissions Toxico (Mois)",
         users_online: "Utilisateurs en ligne",
         alerts: "Alertes Système",
         bed_occupancy: "Occupation Lits"
@@ -983,7 +983,7 @@ const messages = {
         income: "Total Revenue",
         withdrawals: "Total Withdrawals",
         debt: "Outstanding Debt",
-        patients: "Active Patients",
+        patients: "Toxicology Admissions (Month)",
         users_online: "Users Online",
         alerts: "System Alerts",
         bed_occupancy: "Bed Occupancy"
