@@ -34,8 +34,8 @@ export const useDoctorKpiStore = defineStore('doctorKpi', () => {
                 DoctorKpiGateway.fetchAppointmentsTotal(dateParams),
                 DoctorKpiGateway.fetchAppointmentsByStatus(dateParams),
                 DoctorKpiGateway.fetchDistinctPatients(dateParams),
-                DoctorKpiGateway.fetchMedicalRecordsCount(),
-                DoctorKpiGateway.fetchConsultationDistribution(),
+                DoctorKpiGateway.fetchMedicalRecordsCount(dateParams),
+                DoctorKpiGateway.fetchConsultationDistribution(dateParams),
             ]);
 
             stats.value.totalAppointments = totalRes.data?.total || 0;

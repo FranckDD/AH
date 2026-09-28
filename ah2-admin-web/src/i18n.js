@@ -302,8 +302,8 @@ const messages = {
       period_to: "Au",
       total_appointments: "Rendez-vous (période)",
       distinct_patients: "Patients distincts (période)",
-      medical_records_total: "Dossiers médicaux (cumul)",
-      medical_records_note: "Cumul global, non filtré par période — la date de consultation n'est pas encore fiable côté backend.",
+      medical_records_total: "Consultations réalisées (période)",
+      medical_records_note: "Détail par motif ci-dessous.",
       by_status: "Rendez-vous par statut",
       by_motif: "Dossiers médicaux par motif",
       no_data: "Aucune donnée pour cette période."
@@ -1241,8 +1241,8 @@ const messages = {
       period_to: "To",
       total_appointments: "Appointments (period)",
       distinct_patients: "Distinct patients (period)",
-      medical_records_total: "Medical records (total)",
-      medical_records_note: "Global total, not filtered by period — the consultation date is not yet reliable on the backend.",
+      medical_records_total: "Consultations performed (period)",
+      medical_records_note: "Breakdown by reason below.",
       by_status: "Appointments by status",
       by_motif: "Medical records by reason",
       no_data: "No data for this period."

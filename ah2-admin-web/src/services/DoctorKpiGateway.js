@@ -17,15 +17,19 @@ export const DoctorKpiGateway = {
         return api.get('/appointments/kpi/distinct_patients', { params });
     },
 
-    // Pas de start/end ici : repositories/medical_repo.py filtre sur
-    // consultation_date, qui n'est jamais reellement persistee cote
-    // backend (registre H1, SUIVI-AVANCEMENT.md) - un filtre de date
-    // renverrait systematiquement 0. On affiche donc un cumul global.
-    async fetchMedicalRecordsCount() {
-        return api.get('/medical_records/kpi/count_records');
+    // Correction 2026-09-28 : consultation_date EST bien persistee a la
+    // creation (LOCALTIMESTAMP cote procedure stockee - seule une
+    // modification ulterieure est un no-op, registre H1 dans
+    // SUIVI-AVANCEMENT.md, sans rapport avec ce filtre), donc un filtre de
+    // periode fonctionne. Le vrai bug qui faisait renvoyer 0 dans tous les
+    // cas etait ailleurs : created_by n'etait jamais renseigne du tout a la
+    // creation (voir controller/medical_controller.py::create_record) -
+    // corrige separement le meme jour.
+    async fetchMedicalRecordsCount(params) {
+        return api.get('/medical_records/kpi/count_records', { params });
     },
 
-    async fetchConsultationDistribution() {
-        return api.get('/medical_records/kpi/consultation_distribution');
+    async fetchConsultationDistribution(params) {
+        return api.get('/medical_records/kpi/consultation_distribution', { params });
     },
 };

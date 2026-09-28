@@ -117,6 +117,27 @@ class MedicalRecordController:
     # --- ÉCRITURE (Avec Audit Python Uniquement) ---
 
     def create_record(self, data: dict):
+        # Bug reel trouve le 2026-09-28 en construisant le KPI "consultations
+        # realisees" (medecin/nurse) : created_by/created_by_name n'etaient
+        # JAMAIS renseignes a la creation, alors que
+        # MedicalRecordRepository.create() les accepte deja (procedure
+        # stockee create_medical_record, aucune migration necessaire) -
+        # personne ne les mettait jamais dans `data` avant cet appel.
+        # Ecrasement inconditionnel plutot que setdefault : le schema d'entree
+        # (MedicalRecordCreate) ne declare meme pas ces deux champs
+        # aujourd'hui (bonne chose), mais l'auteur d'un dossier medical ne
+        # doit de toute facon jamais pouvoir venir du client, meme si le
+        # schema evolue un jour - le serveur reste la seule source pour
+        # cette identite.
+        # Consequence du bug avant ce correctif : count_records_for_doctor()
+        # /breakdown_by_motif_for_doctor() (filtres WHERE created_by =
+        # doctor_id) renvoyaient toujours 0 pour tout le monde - le KPI
+        # "Dossiers medicaux (cumul)" de DoctorKpiView.vue etait casse en
+        # silence depuis le debut.
+        if self.user:
+            data['created_by'] = getattr(self.user, 'user_id', None)
+            data['created_by_name'] = getattr(self.user, 'full_name', None) or getattr(self.user, 'username', None)
+
         # 1. Création via Repo (qui appelle la Procédure SQL corrigée)
         record = self.repo.create(data)
         
