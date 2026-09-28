@@ -67,3 +67,15 @@ def test_print_endpoint_returns_503_when_printer_unreachable(client):
             headers={"X-Print-Token": "test-token-123"},
         )
         assert r.status_code == 503
+
+
+def test_print_endpoint_returns_500_when_render_fails(client):
+    with patch("server.get_active_printer") as mock_get_printer, \
+         patch("server.render_ticket", side_effect=Exception("render error")):
+        mock_get_printer.return_value = MagicMock()
+        r = client.post(
+            "/print",
+            json={"transaction_id": 1, "header": {}, "items": []},
+            headers={"X-Print-Token": "test-token-123"},
+        )
+        assert r.status_code == 500
