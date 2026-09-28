@@ -1,0 +1,23 @@
+{
+    "transaction_id": 42,
+    "patient_name": "Jean Dupont",
+    "user_name": "secretaire1",
+    "paid_at": "2026-09-28T10:30:00",
+    "amount": 10000.0,
+    "advance_amount": 10000.0,
+    "remaining": 0.0,
+    "payment_method": "Espèces",
+    "items": [
+        {"item_name": "Consultation générale", "quantity": 1, "unit_price": 10000.0, "line_total": 10000.0}
+    ],
+    "discount": null,
+    "header": {
+        "structure_name": "Clinique AH2",
+        "address": "Douala",
+        "phone": "699000000",
+        "niu": "M012345678",
+        "rccm": "RC/DLA/2020/B/1234",
+        "legal_info": null,
+        "ticket_logo_path": null
+    }
+}
