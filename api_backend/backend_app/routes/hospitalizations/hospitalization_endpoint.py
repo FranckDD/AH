@@ -22,7 +22,6 @@ logger = logging.getLogger(__name__)
 router = APIRouter(
     prefix="/hospitalizations",
     tags=["Hospitalisations"],
-    dependencies=[Depends(role_required("medecin", "nurse"))],
 )
 
 
@@ -60,7 +59,12 @@ def _to_out(hosp) -> HospitalizationOut:
     )
 
 
-@router.post("/", response_model=HospitalizationOut, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/",
+    response_model=HospitalizationOut,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(role_required("medecin", "nurse"))],
+)
 def admit(data: HospitalizationAdmit, ctrl: HospitalizationController = Depends(get_hospitalization_controller)):
     try:
         hosp = ctrl.admit(data.patient_id, data.admission_reason)
@@ -72,7 +76,12 @@ def admit(data: HospitalizationAdmit, ctrl: HospitalizationController = Depends(
         raise HTTPException(status_code=409, detail="Ce patient est déjà hospitalisé (séjour en cours).")
 
 
-@router.post("/{hospitalization_id}/status", response_model=HospitalizationStatusUpdateOut, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/{hospitalization_id}/status",
+    response_model=HospitalizationStatusUpdateOut,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(role_required("medecin", "nurse"))],
+)
 def add_status_update(
     hospitalization_id: int,
     data: HospitalizationStatusCreate,
@@ -87,7 +96,11 @@ def add_status_update(
         raise HTTPException(status_code=400, detail=str(ve))
 
 
-@router.post("/{hospitalization_id}/discharge", response_model=HospitalizationOut)
+@router.post(
+    "/{hospitalization_id}/discharge",
+    response_model=HospitalizationOut,
+    dependencies=[Depends(role_required("medecin", "nurse"))],
+)
 def discharge(
     hospitalization_id: int,
     data: HospitalizationDischarge,
@@ -102,12 +115,20 @@ def discharge(
         raise HTTPException(status_code=400, detail=str(ve))
 
 
-@router.get("/current", response_model=list[HospitalizationOut])
+@router.get(
+    "/current",
+    response_model=list[HospitalizationOut],
+    dependencies=[Depends(role_required("medecin", "nurse"))],
+)
 def list_current(ctrl: HospitalizationController = Depends(get_hospitalization_controller)):
     return [_to_out(h) for h in ctrl.list_current()]
 
 
-@router.get("/patient/{patient_id}", response_model=list[HospitalizationOut])
+@router.get(
+    "/patient/{patient_id}",
+    response_model=list[HospitalizationOut],
+    dependencies=[Depends(role_required("medecin", "nurse"))],
+)
 def get_history_for_patient(patient_id: int, ctrl: HospitalizationController = Depends(get_hospitalization_controller)):
     return [_to_out(h) for h in ctrl.get_history_for_patient(patient_id)]
 
