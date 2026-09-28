@@ -225,6 +225,12 @@ const isActive = (path) => {
 
 onMounted(() => {
   configStore.fetchStructureInfo();
+  // La secretaire est le seul role qui declenche vraiment une impression
+  // (facture caisse, reimpression) - sans ce chargement, le jeton
+  // n'existe jamais pour elle (SystemConfig.vue n'est accessible qu'a
+  // admin/promoteur) et toute impression echoue avec "Jeton d'impression
+  // non configure".
+  configStore.fetchTicketPrintToken();
 });
 </script>
 

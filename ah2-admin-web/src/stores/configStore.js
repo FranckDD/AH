@@ -40,12 +40,42 @@ export const useConfigStore = defineStore('config', () => {
     // distinction, un endpoint casse et une base vide sont indiscernables.
     const structureError = ref(null);
 
-    const ticketPrintToken = ref(null);
+    const TICKET_PRINT_TOKEN_STORAGE_KEY = 'ticketPrintToken';
+
+    // Valeur de secours lue depuis localStorage des la creation du store -
+    // permet a une page qui monte hors ligne (secretaire sans reseau au
+    // demarrage) d'avoir immediatement le dernier jeton connu, avant meme
+    // que fetchTicketPrintToken() ait pu tenter (et echouer) son appel
+    // reseau. Lecture protegee (try/catch) : le stockage navigateur peut
+    // lever en contexte prive/restreint, jamais bloquant.
+    function readCachedTicketPrintToken() {
+        try {
+            return localStorage.getItem(TICKET_PRINT_TOKEN_STORAGE_KEY) || null;
+        } catch (err) {
+            console.warn('Lecture localStorage du jeton d\'impression impossible:', err);
+            return null;
+        }
+    }
+
+    function writeCachedTicketPrintToken(token) {
+        try {
+            if (token) {
+                localStorage.setItem(TICKET_PRINT_TOKEN_STORAGE_KEY, token);
+            } else {
+                localStorage.removeItem(TICKET_PRINT_TOKEN_STORAGE_KEY);
+            }
+        } catch (err) {
+            console.warn('Ecriture localStorage du jeton d\'impression impossible:', err);
+        }
+    }
+
+    const ticketPrintToken = ref(readCachedTicketPrintToken());
 
     async function fetchTicketPrintToken() {
         try {
             const response = await api.get('/config/ticket-print-token');
             ticketPrintToken.value = response.data?.token || null;
+            writeCachedTicketPrintToken(ticketPrintToken.value);
         } catch (err) {
             console.error('Echec du chargement du jeton d\'impression:', err);
         }
@@ -54,6 +84,7 @@ export const useConfigStore = defineStore('config', () => {
     async function regenerateTicketPrintToken() {
         const response = await api.post('/config/generate-ticket-token');
         ticketPrintToken.value = response.data.token;
+        writeCachedTicketPrintToken(ticketPrintToken.value);
         return ticketPrintToken.value;
     }
 

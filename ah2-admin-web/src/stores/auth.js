@@ -138,6 +138,10 @@ export const useAuthStore = defineStore('auth', {
       // 2. Nettoyer le LocalStorage
       localStorage.removeItem('token');
       localStorage.removeItem('user');
+      // Jeton d'impression ticket (cache par configStore pour survivre a un
+      // reload hors ligne) - ne doit jamais rester accessible apres logout,
+      // meme sur un poste partage.
+      localStorage.removeItem('ticketPrintToken');
 
       // 3. 🟢 Redirection forcée via le router Vue
       router.push('/login');

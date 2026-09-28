@@ -270,6 +270,13 @@ const isActive = (path) => {
 
 onMounted(() => {
     configStore.fetchStructureInfo();
+    // Seuls admin/promoteur peuvent atteindre un ecran caisse/finance
+    // depuis ce shell (voir router/index.js) - on evite un appel/403
+    // inutile en console pour les autres roles (medecin, nurse,
+    // laborantin, ...) qui ne declenchent jamais d'impression.
+    if (authStore.hasRole([ROLES.ADMIN, ROLES.PROMOTEUR])) {
+        configStore.fetchTicketPrintToken();
+    }
 });
 </script>
 
