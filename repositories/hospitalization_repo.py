@@ -1,5 +1,5 @@
 from typing import Optional, List
-from datetime import datetime, timezone
+from datetime import datetime
 from sqlalchemy.orm import Session, joinedload
 
 from models.hospitalization import (
@@ -76,7 +76,7 @@ class HospitalizationRepository:
         if hosp.discharged_at is not None:
             raise ValueError("Ce séjour est déjà clos.")
 
-        hosp.discharged_at = datetime.now(timezone.utc)
+        hosp.discharged_at = datetime.utcnow()
         hosp.discharge_disposition = discharge_disposition
         hosp.discharge_note = discharge_note
         hosp.discharged_by = discharged_by_id
