@@ -531,3 +531,31 @@ def test_history_endpoint_scoping_via_real_http(api_client, db_session):
     r = client.get("/discount-requests/kpi", headers=sec1_headers)
     assert r.status_code == 200
     assert r.json()["pending_count"] == 1
+
+
+def test_get_approved_for_transaction_returns_none_when_no_decision(db_session, secretaire_user, manager_user, caisse_repo_factory):
+    req, ctrl = _make_pending_request(db_session, secretaire_user, manager_user, caisse_repo_factory)
+    repo = DiscountRequestRepository(db_session)
+    assert repo.get_approved_for_transaction(req.transaction_id) is None
+
+
+def test_get_approved_for_transaction_returns_none_when_refused(db_session, secretaire_user, manager_user, caisse_repo_factory):
+    req, ctrl = _make_pending_request(db_session, secretaire_user, manager_user, caisse_repo_factory)
+    ctrl.user = manager_user
+    ctrl.decide_request(req.id, password=manager_user.PLAIN_PASSWORD, refuse=True)
+
+    repo = DiscountRequestRepository(db_session)
+    assert repo.get_approved_for_transaction(req.transaction_id) is None
+
+
+def test_get_approved_for_transaction_returns_decision_with_decider_name(db_session, secretaire_user, manager_user, caisse_repo_factory):
+    req, ctrl = _make_pending_request(db_session, secretaire_user, manager_user, caisse_repo_factory)
+    ctrl.user = manager_user
+    ctrl.decide_request(req.id, password=manager_user.PLAIN_PASSWORD, refuse=False, decision_percent=20)
+
+    repo = DiscountRequestRepository(db_session)
+    approved = repo.get_approved_for_transaction(req.transaction_id)
+    assert approved is not None
+    assert approved.decision_percent == 20
+    assert approved.decider is not None
+    assert approved.decider.user_id == manager_user.user_id

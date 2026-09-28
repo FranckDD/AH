@@ -19,6 +19,19 @@ class DiscountRequestRepository:
             .first()
         )
 
+    def get_approved_for_transaction(self, transaction_id: int) -> Optional[DiscountRequest]:
+        """Au plus une demande approuvee par transaction en pratique (le
+        workflow ne permet pas de re-demander sur une facture deja active),
+        mais order_by+first() reste defensif si ce jour cette hypothese
+        change un jour."""
+        return (
+            self.session.query(DiscountRequest)
+            .options(joinedload(DiscountRequest.decider))
+            .filter(DiscountRequest.transaction_id == transaction_id, DiscountRequest.status == "approved")
+            .order_by(DiscountRequest.decided_at.desc())
+            .first()
+        )
+
     def create(self, transaction_id: int, requested_by: int, requested_to: int, original_amount: Decimal) -> DiscountRequest:
         req = DiscountRequest(
             transaction_id=transaction_id,
