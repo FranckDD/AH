@@ -132,7 +132,8 @@ import {
   Bars3Icon,
   Bars3CenterLeftIcon,
   UserCircleIcon,
-  ExclamationTriangleIcon
+  ExclamationTriangleIcon,
+  BuildingOffice2Icon
 } from '@heroicons/vue/24/outline';
 
 const authStore = useAuthStore();
@@ -174,6 +175,11 @@ const menuItems = [
     path: '/medical/doctors',
     labelKey: 'doctorKpi.title',
     icon: ChartBarIcon,
+  },
+  {
+    path: '/medical/hospitalizations',
+    labelKey: 'hospitalization.title',
+    icon: BuildingOffice2Icon,
   },
   {
     path: '/medical/lab-results',

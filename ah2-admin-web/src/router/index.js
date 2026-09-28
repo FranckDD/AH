@@ -317,6 +317,15 @@ const routes = [
         }
       },
       {
+        path: 'hospitalizations',
+        name: 'medical-hospitalizations',
+        component: () => import('@/views/modules/hospitalization/HospitalizationsList.vue'),
+        meta: {
+          requiresAuth: true,
+          roles: [ROLES.MEDECIN, ROLES.NURSE]
+        }
+      },
+      {
         path: 'lab-results',
         name: 'medical-lab-results',
         component: () => import('@/views/modules/labo/MedicalLabResults.vue'),
