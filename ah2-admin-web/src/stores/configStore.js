@@ -40,6 +40,23 @@ export const useConfigStore = defineStore('config', () => {
     // distinction, un endpoint casse et une base vide sont indiscernables.
     const structureError = ref(null);
 
+    const ticketPrintToken = ref(null);
+
+    async function fetchTicketPrintToken() {
+        try {
+            const response = await api.get('/config/ticket-print-token');
+            ticketPrintToken.value = response.data?.token || null;
+        } catch (err) {
+            console.error('Echec du chargement du jeton d\'impression:', err);
+        }
+    }
+
+    async function regenerateTicketPrintToken() {
+        const response = await api.post('/config/generate-ticket-token');
+        ticketPrintToken.value = response.data.token;
+        return ticketPrintToken.value;
+    }
+
     // --- ACTIONS STRUCTURE ---
 
     // 1. Récupérer les infos structure
@@ -163,13 +180,16 @@ export const useConfigStore = defineStore('config', () => {
         isLoading,
         error,
         structureError,
+        ticketPrintToken,
 
         // Actions
-        fetchExamens, 
+        fetchExamens,
         saveExamen,
-        deleteExamen, 
+        deleteExamen,
         fetchPrayerBooks,
-        fetchStructureInfo, 
-        saveStructureInfo
+        fetchStructureInfo,
+        saveStructureInfo,
+        fetchTicketPrintToken,
+        regenerateTicketPrintToken
     };
 });

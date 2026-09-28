@@ -52,6 +52,34 @@
                     <p class="text-xs text-gray-500 text-center">Cliquez pour changer.<br>Format recommandé : PNG transparent.</p>
                 </div>
 
+                <div class="md:col-span-4 flex flex-col items-center justify-start p-4 border-2 border-dashed border-gray-200 rounded-xl bg-gray-50 hover:bg-gray-100 transition">
+                    <label class="block text-sm font-medium text-gray-700 mb-4">Logo Ticket (monochrome)</label>
+
+                    <div class="relative group cursor-pointer w-40 h-40 mb-4">
+                        <img
+                            :src="previewTicketLogo || resolveAssetUrl(configStore.structureInfo.ticket_logo_url) || '/placeholder-logo.png'"
+                            class="w-full h-full object-contain rounded-lg bg-white shadow-sm border p-2"
+                            alt="Aperçu Logo Ticket"
+                        />
+                        <div class="absolute inset-0 bg-black/50 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                            <PhotoIcon class="h-8 w-8 text-white" />
+                        </div>
+                        <input type="file" accept="image/*" @change="handleTicketLogoUpload" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+                    </div>
+
+                    <p class="text-xs text-gray-500 text-center">Fichier déjà converti en monochrome, dédié à l'impression thermique.</p>
+                </div>
+
+                <div class="md:col-span-12 bg-gray-50 border border-gray-200 rounded-xl p-4 flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-700">Jeton d'impression ticket</p>
+                        <p class="text-xs text-gray-500 font-mono mt-1">{{ configStore.ticketPrintToken || 'Non généré' }}</p>
+                    </div>
+                    <button type="button" @click="handleRegenerateToken" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm font-medium">
+                        Régénérer
+                    </button>
+                </div>
+
                 <div class="md:col-span-8 grid grid-cols-1 md:grid-cols-2 gap-5">
                     
                     <div class="md:col-span-2">
@@ -385,6 +413,8 @@ const formStructure = ref({
 const logoFile = ref(null);
 const previewLogo = ref(null);
 const isSaving = ref(false);
+const ticketLogoFile = ref(null);
+const previewTicketLogo = ref(null);
 
 // --- ETATS CONFIGURATION GENERALE ---
 const showExamModal = ref(false);
@@ -397,6 +427,7 @@ const isBackupRunning = ref(false);
 // --- CYCLE DE VIE ---
 onMounted(async () => {
     await configStore.fetchStructureInfo();
+    await configStore.fetchTicketPrintToken();
     configStore.fetchExamens();
     configStore.fetchPrayerBooks();
 });
@@ -415,6 +446,19 @@ const handleLogoUpload = (event) => {
     }
 };
 
+const handleTicketLogoUpload = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+        ticketLogoFile.value = file;
+        previewTicketLogo.value = URL.createObjectURL(file);
+    }
+};
+
+const handleRegenerateToken = async () => {
+    if (!confirm("Régénérer le jeton invalidera l'ancien pour tous les services pont locaux déjà configurés. Continuer ?")) return;
+    await configStore.regenerateTicketPrintToken();
+};
+
 const saveStructureConfig = async () => {
     isSaving.value = true;
     try {
@@ -424,6 +468,9 @@ const saveStructureConfig = async () => {
         });
         if (logoFile.value) {
             formData.append('logo', logoFile.value);
+        }
+        if (ticketLogoFile.value) {
+            formData.append('ticket_logo', ticketLogoFile.value);
         }
         await configStore.saveStructureInfo(formData);
         alert("Configuration de la structure enregistrée avec succès !");
