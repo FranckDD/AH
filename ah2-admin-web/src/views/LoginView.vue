@@ -51,9 +51,26 @@
       </form>
       
       <div class="mt-6 text-center">
-        <a href="#" class="text-sm font-medium text-gray-500 hover:text-green-600 transition duration-150">
+        <a href="#" @click.prevent="showForgotPasswordModal = true" class="text-sm font-medium text-gray-500 hover:text-green-600 transition duration-150">
           Mot de passe oublié ?
         </a>
+      </div>
+    </div>
+
+    <!-- Simple modale d'information (pas de flux de reinitialisation -
+         demande explicite de l'utilisateur, texte exact impose) -->
+    <div v-if="showForgotPasswordModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" @click.self="showForgotPasswordModal = false">
+      <div class="w-full max-w-sm bg-white p-6 rounded-2xl shadow-xl border border-gray-100">
+        <p class="text-sm text-gray-700 text-center">
+          Veuillez vous rapprocher de l'administration.
+        </p>
+        <button
+          type="button"
+          @click="showForgotPasswordModal = false"
+          class="mt-6 w-full py-2.5 px-4 rounded-xl text-sm font-semibold text-white bg-green-600 hover:bg-green-700 transition duration-150"
+        >
+          Fermer
+        </button>
       </div>
     </div>
   </div>
@@ -71,6 +88,7 @@ const username = ref('');
 const password = ref('');
 const error = ref(null);
 const isLoading = ref(false);
+const showForgotPasswordModal = ref(false);
 
 // 🟢 FONCTION INTELLIGENTE DE REDIRECTION
 // C'est ici que tu définis la "Home Page" de chaque rôle
