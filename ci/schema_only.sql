@@ -1736,6 +1736,81 @@ ALTER SEQUENCE public.examens_id_seq OWNED BY public.examens.id;
 
 
 --
+-- Name: hospitalization_status_updates; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.hospitalization_status_updates (
+    id integer NOT NULL,
+    hospitalization_id integer NOT NULL,
+    status character varying(20) NOT NULL,
+    note text,
+    created_by integer NOT NULL,
+    created_at timestamp without time zone DEFAULT now() NOT NULL,
+    CONSTRAINT hospitalization_status_updates_status_check CHECK (((status)::text = ANY ((ARRAY['AMELIORATION'::character varying, 'STABLE'::character varying, 'AGGRAVATION'::character varying])::text[])))
+);
+
+
+--
+-- Name: hospitalization_status_updates_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.hospitalization_status_updates_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: hospitalization_status_updates_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.hospitalization_status_updates_id_seq OWNED BY public.hospitalization_status_updates.id;
+
+
+--
+-- Name: hospitalizations; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.hospitalizations (
+    id integer NOT NULL,
+    patient_id integer NOT NULL,
+    admitted_at timestamp without time zone DEFAULT now() NOT NULL,
+    admitted_by integer NOT NULL,
+    admission_reason text,
+    discharged_at timestamp without time zone,
+    discharge_disposition character varying(30),
+    discharge_note text,
+    discharged_by integer,
+    created_at timestamp without time zone DEFAULT now() NOT NULL,
+    updated_at timestamp without time zone DEFAULT now() NOT NULL,
+    CONSTRAINT hospitalizations_discharge_disposition_check CHECK (((discharge_disposition)::text = ANY ((ARRAY['GUERI'::character varying, 'TRANSFERE'::character varying, 'SORTIE_CONTRE_AVIS_MEDICAL'::character varying, 'DECES'::character varying])::text[])))
+);
+
+
+--
+-- Name: hospitalizations_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.hospitalizations_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: hospitalizations_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.hospitalizations_id_seq OWNED BY public.hospitalizations.id;
+
+
+--
 -- Name: lab_result_details; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -3048,6 +3123,20 @@ ALTER TABLE ONLY public.examens ALTER COLUMN id SET DEFAULT nextval('public.exam
 
 
 --
+-- Name: hospitalization_status_updates id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.hospitalization_status_updates ALTER COLUMN id SET DEFAULT nextval('public.hospitalization_status_updates_id_seq'::regclass);
+
+
+--
+-- Name: hospitalizations id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.hospitalizations ALTER COLUMN id SET DEFAULT nextval('public.hospitalizations_id_seq'::regclass);
+
+
+--
 -- Name: lab_result_details detail_id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -3330,6 +3419,22 @@ ALTER TABLE ONLY public.examens
 
 ALTER TABLE ONLY public.examens
     ADD CONSTRAINT examens_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: hospitalization_status_updates hospitalization_status_updates_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.hospitalization_status_updates
+    ADD CONSTRAINT hospitalization_status_updates_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: hospitalizations hospitalizations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.hospitalizations
+    ADD CONSTRAINT hospitalizations_pkey PRIMARY KEY (id);
 
 
 --
@@ -3844,6 +3949,20 @@ CREATE INDEX ix_discount_requests_transaction ON public.discount_requests USING 
 
 
 --
+-- Name: ix_hospitalization_status_updates_hospitalization; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_hospitalization_status_updates_hospitalization ON public.hospitalization_status_updates USING btree (hospitalization_id);
+
+
+--
+-- Name: ix_hospitalizations_patient; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_hospitalizations_patient ON public.hospitalizations USING btree (patient_id);
+
+
+--
 -- Name: ix_lab_results_batch_uuid; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -3883,6 +4002,13 @@ CREATE UNIQUE INDEX paiement_echelonne_uuid_key ON public.paiement_echelonne USI
 --
 
 CREATE UNIQUE INDEX patients_uuid_key ON public.patients USING btree (uuid);
+
+
+--
+-- Name: ux_hospitalizations_one_open_per_patient; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX ux_hospitalizations_one_open_per_patient ON public.hospitalizations USING btree (patient_id) WHERE (discharged_at IS NULL);
 
 
 --
@@ -4233,6 +4359,46 @@ ALTER TABLE ONLY public.users
 
 ALTER TABLE ONLY public.users
     ADD CONSTRAINT fk_users_role_id FOREIGN KEY (role_id) REFERENCES public.application_roles(role_id) ON DELETE SET NULL;
+
+
+--
+-- Name: hospitalization_status_updates hospitalization_status_updates_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.hospitalization_status_updates
+    ADD CONSTRAINT hospitalization_status_updates_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(user_id);
+
+
+--
+-- Name: hospitalization_status_updates hospitalization_status_updates_hospitalization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.hospitalization_status_updates
+    ADD CONSTRAINT hospitalization_status_updates_hospitalization_id_fkey FOREIGN KEY (hospitalization_id) REFERENCES public.hospitalizations(id);
+
+
+--
+-- Name: hospitalizations hospitalizations_admitted_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.hospitalizations
+    ADD CONSTRAINT hospitalizations_admitted_by_fkey FOREIGN KEY (admitted_by) REFERENCES public.users(user_id);
+
+
+--
+-- Name: hospitalizations hospitalizations_discharged_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.hospitalizations
+    ADD CONSTRAINT hospitalizations_discharged_by_fkey FOREIGN KEY (discharged_by) REFERENCES public.users(user_id);
+
+
+--
+-- Name: hospitalizations hospitalizations_patient_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.hospitalizations
+    ADD CONSTRAINT hospitalizations_patient_id_fkey FOREIGN KEY (patient_id) REFERENCES public.patients(patient_id);
 
 
 --
