@@ -11,6 +11,8 @@
       </button>
     </div>
 
+    <p v-if="error" class="text-sm text-red-600 mb-4">{{ error }}</p>
+
     <div v-if="!openStay && !showAdmitForm" class="text-sm text-gray-500 italic">
       {{ t('hospitalization.not_hospitalized') }}
     </div>
@@ -19,10 +21,10 @@
       <label class="text-xs font-bold text-gray-500 uppercase block">{{ t('hospitalization.admission_reason') }}</label>
       <textarea v-model="admissionReason" rows="2" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"></textarea>
       <div class="flex gap-2">
-        <button @click="submitAdmit" class="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 transition">
+        <button @click="submitAdmit" :disabled="isSubmitting" class="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 transition disabled:opacity-40 disabled:cursor-not-allowed">
           {{ t('hospitalization.confirm') }}
         </button>
-        <button @click="showAdmitForm = false" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition">
+        <button @click="showAdmitForm = false" :disabled="isSubmitting" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition disabled:opacity-40 disabled:cursor-not-allowed">
           {{ t('hospitalization.cancel') }}
         </button>
       </div>
@@ -52,24 +54,24 @@
       </div>
 
       <div v-if="showStatusForm" class="space-y-2 p-3 bg-gray-50 rounded-xl">
-        <select v-model="newStatus" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+        <select v-model="newStatus" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" :disabled="isSubmitting">
           <option v-for="s in CLINICAL_STATUSES" :key="s" :value="s">{{ t(`hospitalization.status.${s}`) }}</option>
         </select>
-        <textarea v-model="statusNote" :placeholder="t('hospitalization.status_note')" rows="2" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"></textarea>
-        <button @click="submitStatusUpdate" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition">
+        <textarea v-model="statusNote" :placeholder="t('hospitalization.status_note')" rows="2" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" :disabled="isSubmitting"></textarea>
+        <button @click="submitStatusUpdate" :disabled="isSubmitting" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition disabled:opacity-40 disabled:cursor-not-allowed">
           {{ t('hospitalization.confirm') }}
         </button>
       </div>
 
       <div v-if="showDischargeForm" class="space-y-2 p-3 bg-gray-50 rounded-xl">
-        <select v-model="dischargeDisposition" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+        <select v-model="dischargeDisposition" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" :disabled="isSubmitting">
           <option value="" disabled>{{ t('hospitalization.discharge_disposition_label') }}</option>
           <option v-for="d in DISCHARGE_DISPOSITIONS" :key="d" :value="d">{{ t(`hospitalization.disposition.${d}`) }}</option>
         </select>
-        <textarea v-model="dischargeNote" :placeholder="t('hospitalization.discharge_note')" rows="2" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"></textarea>
+        <textarea v-model="dischargeNote" :placeholder="t('hospitalization.discharge_note')" rows="2" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" :disabled="isSubmitting"></textarea>
         <button
           @click="submitDischarge"
-          :disabled="!dischargeDisposition"
+          :disabled="isSubmitting || !dischargeDisposition"
           class="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 transition disabled:opacity-40 disabled:cursor-not-allowed"
         >
           {{ t('hospitalization.confirm') }}
@@ -113,6 +115,8 @@ const statusNote = ref('');
 const showDischargeForm = ref(false);
 const dischargeDisposition = ref('');
 const dischargeNote = ref('');
+const error = ref(null);
+const isSubmitting = ref(false);
 
 const openStay = computed(() => hospitalizationStore.patientHistory.find((s) => !s.discharged_at) || null);
 const latestStatus = computed(() => {
@@ -133,27 +137,60 @@ function statusColorClass(status) {
 }
 
 async function submitAdmit() {
-  await hospitalizationStore.admit(props.patientId, admissionReason.value);
-  showAdmitForm.value = false;
-  admissionReason.value = '';
+  error.value = null;
+  isSubmitting.value = true;
+  try {
+    await hospitalizationStore.admit(props.patientId, admissionReason.value);
+    showAdmitForm.value = false;
+    admissionReason.value = '';
+  } catch (err) {
+    console.error('Erreur lors de l\'admission:', err);
+    error.value = "Erreur lors de l'admission du patient.";
+  } finally {
+    isSubmitting.value = false;
+  }
 }
 
 async function submitStatusUpdate() {
   if (!openStay.value) return;
-  await hospitalizationStore.addStatusUpdate(openStay.value.id, newStatus.value, statusNote.value, props.patientId);
-  showStatusForm.value = false;
-  statusNote.value = '';
+  error.value = null;
+  isSubmitting.value = true;
+  try {
+    await hospitalizationStore.addStatusUpdate(openStay.value.id, newStatus.value, statusNote.value, props.patientId);
+    showStatusForm.value = false;
+    statusNote.value = '';
+  } catch (err) {
+    console.error('Erreur lors de la mise à jour du statut:', err);
+    error.value = "Erreur lors de la mise à jour du statut.";
+  } finally {
+    isSubmitting.value = false;
+  }
 }
 
 async function submitDischarge() {
   if (!openStay.value || !dischargeDisposition.value) return;
-  await hospitalizationStore.discharge(openStay.value.id, dischargeDisposition.value, dischargeNote.value, props.patientId);
-  showDischargeForm.value = false;
-  dischargeDisposition.value = '';
-  dischargeNote.value = '';
+  error.value = null;
+  isSubmitting.value = true;
+  try {
+    await hospitalizationStore.discharge(openStay.value.id, dischargeDisposition.value, dischargeNote.value, props.patientId);
+    showDischargeForm.value = false;
+    dischargeDisposition.value = '';
+    dischargeNote.value = '';
+  } catch (err) {
+    console.error('Erreur lors de la sortie:', err);
+    error.value = "Erreur lors de la sortie du patient.";
+  } finally {
+    isSubmitting.value = false;
+  }
 }
 
-onMounted(() => {
-  hospitalizationStore.fetchPatientHistory(props.patientId);
+onMounted(async () => {
+  error.value = null;
+  try {
+    await hospitalizationStore.fetchPatientHistory(props.patientId);
+  } catch (err) {
+    console.error('Erreur chargement historique hospitalisation:', err);
+    error.value = "Impossible de charger l'historique d'hospitalisation.";
+  }
 });
 </script>
