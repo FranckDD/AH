@@ -321,6 +321,9 @@ def get_invoice_ticket_data(
         return ticket
     except ValueError as ve:
         raise HTTPException(status_code=404, detail=str(ve))
+    except Exception as e:
+        logger.exception(f"Erreur lors de la génération du ticket pour TX {transaction_id}")
+        raise HTTPException(status_code=500, detail="Erreur interne lors de la génération du ticket")
 
 # ==========================================
 # 5. ROUTES DYNAMIQUES GÉNÉRIQUES (GET/PUT/DELETE {id})
