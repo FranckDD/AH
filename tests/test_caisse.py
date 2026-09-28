@@ -626,3 +626,11 @@ def test_total_remaining_due_without_status_includes_all_statuses(db_session, ap
 
     after = client.get("/caisse/total_remaining_due", headers=headers).json()
     assert after == before + 60.0
+
+
+def test_ticket_endpoint_returns_404_for_unknown_transaction(api_client, db_session):
+    client = api_client(auth_endpoints, caisse_endpoints)
+    create_test_user(db_session, "tk_sec1", "secretaire", password=TEST_PASSWORD)
+    headers = auth_headers(client, "tk_sec1", TEST_PASSWORD)
+    r = client.get("/caisse/999999/ticket", headers=headers)
+    assert r.status_code == 404

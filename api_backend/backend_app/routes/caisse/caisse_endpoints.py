@@ -15,6 +15,10 @@ from controller.patient_controller import PatientController
 from controller.caisse_controller import CaisseController
 from repositories.caisse_repo import CaisseRepository
 from repositories.audit_repo import AuditRepository
+from repositories.discount_request_repo import DiscountRequestRepository
+from api_backend.backend_app.utils.pdf_header import get_ticket_header_context
+from controller.config_controller import ConfigController
+from repositories.config_repo import ConfigRepository
 from api_backend.backend_app.routes.auth.auth_endpoints import get_current_user, role_required
 from api_backend.backend_app.exceptions import translate_integrity_error
 from .mapping import normalize_caisse_data
@@ -52,9 +56,10 @@ def get_caisse_controller(
     
     # 2. Créer le controller avec injection
     return CaisseController(
-        repo=caisse_repo, 
+        repo=caisse_repo,
         current_user=current_user,
-        audit_repo=audit_repo
+        audit_repo=audit_repo,
+        discount_repo=DiscountRequestRepository(db),
     )
 
 # =================================================================
@@ -292,6 +297,30 @@ def download_invoice_pdf(
     except Exception as e:
         logger.exception(f"Erreur lors de la génération du PDF pour TX {transaction_id}")
         raise HTTPException(status_code=500, detail="Erreur interne lors de la génération du PDF")
+
+@router.get("/{transaction_id}/ticket", tags=["Caisse"])
+def get_invoice_ticket_data(
+    transaction_id: int,
+    db: Session = Depends(get_db),
+    caisse_ctrl: CaisseController = Depends(get_caisse_controller),
+):
+    try:
+        ticket = caisse_ctrl.build_ticket_data(transaction_id)
+        config_ctrl = ConfigController(repo=ConfigRepository(db))
+        header_ctx = get_ticket_header_context(config_ctrl)
+        structure = header_ctx["structure"]
+        ticket["header"] = {
+            "structure_name": getattr(structure, "name", None),
+            "address": getattr(structure, "address", None),
+            "phone": getattr(structure, "phone", None),
+            "niu": getattr(structure, "niu", None),
+            "rccm": getattr(structure, "rccm", None),
+            "legal_info": getattr(structure, "legal_info", None),
+            "ticket_logo_path": header_ctx["ticket_logo_path"],
+        }
+        return ticket
+    except ValueError as ve:
+        raise HTTPException(status_code=404, detail=str(ve))
 
 # ==========================================
 # 5. ROUTES DYNAMIQUES GÉNÉRIQUES (GET/PUT/DELETE {id})

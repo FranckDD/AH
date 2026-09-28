@@ -34,14 +34,20 @@ logger = logging.getLogger(__name__)
 
 
 class CaisseController:
-    def __init__(self, repo: CaisseRepository, current_user, audit_repo: Optional[AuditRepository] = None):
+    def __init__(self, repo: CaisseRepository, current_user, audit_repo: Optional[AuditRepository] = None,
+                 discount_repo=None):
         """
         - repo         : instance de CaisseRepository
         - current_user : instance de User (doit avoir l’attribut 'user_id' et 'username')
+        - discount_repo : instance de DiscountRequestRepository, optionnel -
+          seule build_ticket_data() en a besoin (recherche d'une reduction
+          approuvee). None -> aucun bloc reduction n'est jamais recherche
+          (comportement degrade, jamais une exception).
         """
         self.repo = repo
         self.user = current_user
         self.audit_repo = audit_repo
+        self.discount_repo = discount_repo
 
     # --- LECTURE AVEC CACHE REDIS ---
 
@@ -328,5 +334,33 @@ class CaisseController:
         tx = self.repo.get_by_id(transaction_id)
         if tx and tx.status == "pending_approval":
             raise ValueError("Facture en attente de validation d'une réduction - action impossible.")
-        pdf_content = self.repo.generate_invoice_pdf_content(transaction_id) 
+        pdf_content = self.repo.generate_invoice_pdf_content(transaction_id)
         return pdf_content
+
+    def build_ticket_data(self, transaction_id: int) -> dict:
+        """Contenu structure du ticket thermique - reutilise integralement
+        get_transaction_details_for_invoice() (meme source que la facture
+        PDF, memes noms d'articles deja resolus via item.note). Le rendu
+        ESC/POS lui-meme est la responsabilite du service pont local, pas
+        de ce controller."""
+        tx = self.repo.get_by_id(transaction_id)
+        if tx and tx.status == "pending_approval":
+            raise ValueError("Facture en attente de validation d'une réduction - action impossible.")
+
+        data = self.repo.get_transaction_details_for_invoice(transaction_id)
+        if not data:
+            raise ValueError(f"Transaction ID {transaction_id} non trouvée.")
+
+        data["remaining"] = data["amount"] - data["advance_amount"]
+        data["payment_method"] = getattr(tx, "payment_method", None)
+
+        data["discount"] = None
+        if self.discount_repo:
+            approved = self.discount_repo.get_approved_for_transaction(transaction_id)
+            if approved:
+                data["discount"] = {
+                    "decision_percent": approved.decision_percent,
+                    "decided_by_name": (approved.decider.full_name or approved.decider.username) if approved.decider else None,
+                }
+
+        return data

@@ -559,3 +559,45 @@ def test_get_approved_for_transaction_returns_decision_with_decider_name(db_sess
     assert approved.decision_percent == 20
     assert approved.decider is not None
     assert approved.decider.user_id == manager_user.user_id
+
+
+# --- Task 5: CaisseController.build_ticket_data ---
+
+def test_build_ticket_data_blocked_when_pending_approval():
+    ctrl, repo = _make_controller_with_pending_tx()
+    ctrl.discount_repo = MagicMock()
+    with pytest.raises(ValueError, match="en attente de validation"):
+        ctrl.build_ticket_data(1)
+
+
+def test_build_ticket_data_includes_discount_block_when_approved(db_session, secretaire_user, manager_user, caisse_repo_factory):
+    from controller.caisse_controller import CaisseController
+    from repositories.audit_repo import AuditRepository
+
+    req, discount_ctrl = _make_pending_request(db_session, secretaire_user, manager_user, caisse_repo_factory)
+    discount_ctrl.user = manager_user
+    discount_ctrl.decide_request(req.id, password=manager_user.PLAIN_PASSWORD, refuse=False, decision_percent=20)
+
+    caisse_repo = caisse_repo_factory()
+    caisse_ctrl = CaisseController(repo=caisse_repo, current_user=manager_user, discount_repo=DiscountRequestRepository(db_session))
+    ticket = caisse_ctrl.build_ticket_data(req.transaction_id)
+
+    assert ticket["discount"] is not None
+    assert ticket["discount"]["decision_percent"] == 20
+    assert ticket["discount"]["decided_by_name"]
+
+
+def test_build_ticket_data_no_discount_block_for_plain_transaction(db_session, secretaire_user, caisse_repo_factory):
+    """Une transaction active qui n'a JAMAIS eu de demande de reduction
+    (le cas normal, immensement majoritaire) ne doit jamais chercher ni
+    afficher de bloc reduction."""
+    from controller.caisse_controller import CaisseController
+    from tests.conftest import create_test_transaction
+
+    caisse_repo = caisse_repo_factory()
+    tx = create_test_transaction(db_session, secretaire_user)
+    assert tx.status == "active"
+
+    caisse_ctrl = CaisseController(repo=caisse_repo, current_user=secretaire_user, discount_repo=DiscountRequestRepository(db_session))
+    ticket = caisse_ctrl.build_ticket_data(tx.transaction_id)
+    assert ticket["discount"] is None
