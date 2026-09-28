@@ -51,6 +51,13 @@ export default defineConfig({
   build: {
     target: 'esnext',
   },
+  // Production : console.log/console.debug retires du bundle (retour
+  // terrain 2026-09-28 - identite de l'utilisateur connecte et donnees
+  // patient visibles dans la console du navigateur). console.warn/error
+  // conserves, utiles au diagnostic et sans donnees sensibles par convention.
+  esbuild: process.env.NODE_ENV === 'production' || process.argv.includes('build')
+    ? { pure: ['console.log', 'console.debug'] }
+    : {},
   // @powersync/web embarque des web workers + fichiers WASM (wa-sqlite) -
   // doit etre exclu de l'optimisation de dependances Vite, sinon le build
   // echoue ou le worker ne charge pas correctement au runtime.

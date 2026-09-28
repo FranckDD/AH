@@ -359,7 +359,6 @@ const handleSearch = (event) => {
 };
 
 const openDossier = (patient) => {
-    console.log("🟢 Ouverture dossier pour patient:", patient);
     selectedPatientId.value = patient.patient_id;
     showDossierModal.value = true;
 };

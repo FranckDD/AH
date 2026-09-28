@@ -68,8 +68,6 @@ export const useAuthStore = defineStore('auth', {
 
         this.user = meResponse.data; 
         
-        console.log("Utilisateur stocké :", this.user);
-        console.log("Rôle détecté :", this.user.application_role?.role_name);
 
         localStorage.setItem('user', JSON.stringify(this.user));
 

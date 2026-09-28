@@ -160,7 +160,6 @@ onMounted(async () => {
         // Le store appelle l'API get_patient_detail qui renvoie { firstName, lastName, phaseHistory... }
         const data = await toxicoStore.getPatientDetails(props.patientId);
         patient.value = data;
-        console.log("✅ Données patient chargées dans Modal:", data);
     } catch (e) {
         console.error("❌ Erreur chargement dossier:", e);
     } finally {

@@ -272,7 +272,6 @@ const handleSubmit = async () => {
     };
 
     // Log détaillé
-    console.log("📋 Patient info:", props.patient);
     console.log("📋 Payload préparé:", JSON.stringify(payload, null, 2));
     console.log("🔍 Types:", {
         dossier_id: typeof payload.dossier_id,
