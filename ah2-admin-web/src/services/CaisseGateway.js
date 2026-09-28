@@ -83,6 +83,10 @@ export const CaisseGateway = {
         return api.get('/caisse/dashboard/caisse/kpis', { params: cleanParams(query) });
     },
 
+    async getTicket(transactionId) {
+        return api.get(`/caisse/${transactionId}/ticket`);
+    },
+
     async getTransaction(transactionId) {
         return api.get(`/caisse/${transactionId}`);
     },
