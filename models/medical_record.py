@@ -25,6 +25,7 @@ class MedicalRecord(Base):
     severity           = Column(String(20))
     notes              = Column(Text)
     motif_code         = Column(String(20), nullable=False)
+    appointment_id     = Column(Integer, ForeignKey('appointments.id', ondelete='SET NULL'), nullable=True)
 
     # Champs d'audit si besoin
     created_by         = Column(Integer, ForeignKey('users.user_id'))
@@ -35,4 +36,5 @@ class MedicalRecord(Base):
 
     # Relation vers Patient
     patient            = relationship("Patient", back_populates="medical_records")
+    appointment        = relationship("Appointment")
     prescriptions = relationship("Prescription", back_populates="medical_record", cascade="all, delete-orphan")

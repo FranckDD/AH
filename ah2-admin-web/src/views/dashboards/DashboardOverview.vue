@@ -37,40 +37,40 @@
     
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
       
-      <StatCard 
-        :title="$t('dashboard.stats.income')" 
-        :value="formatCurrency(dashboardStore.stats.income)" 
-        :icon="BanknotesIcon" 
+      <StatCard
+        :title="$t('dashboard.stats.income')"
+        :value="valeurAffichee('income', formatCurrency(dashboardStore.stats.income))"
+        :icon="BanknotesIcon"
         colorClass="bg-green-50"
         iconColor="text-green-600"
         trend="Recettes"
         :trendIsPositive="true"
       />
-      
-      <StatCard 
-        :title="$t('dashboard.stats.withdrawals')" 
-        :value="formatCurrency(dashboardStore.stats.withdrawals)" 
-        :icon="ArrowTrendingDownIcon" 
+
+      <StatCard
+        :title="$t('dashboard.stats.withdrawals')"
+        :value="valeurAffichee('expense', formatCurrency(dashboardStore.stats.withdrawals))"
+        :icon="ArrowTrendingDownIcon"
         colorClass="bg-red-50"
         iconColor="text-red-600"
         trend="Dépenses"
-        :trendIsPositive="false" 
+        :trendIsPositive="false"
       />
 
-      <StatCard 
-        :title="$t('finance.balance')" 
-        :value="formatCurrency(dashboardStore.stats.income - dashboardStore.stats.withdrawals)" 
-        :icon="dashboardStore.stats.income >= dashboardStore.stats.withdrawals ? ArrowTrendingUpIcon : ArrowTrendingDownIcon" 
+      <StatCard
+        :title="$t('finance.balance')"
+        :value="soldeAffiche"
+        :icon="dashboardStore.stats.income >= dashboardStore.stats.withdrawals ? ArrowTrendingUpIcon : ArrowTrendingDownIcon"
         :colorClass="dashboardStore.stats.income >= dashboardStore.stats.withdrawals ? 'bg-blue-50' : 'bg-orange-50'"
         :iconColor="dashboardStore.stats.income >= dashboardStore.stats.withdrawals ? 'text-blue-600' : 'text-orange-600'"
         trend="Solde Période"
         :trendIsPositive="dashboardStore.stats.income >= dashboardStore.stats.withdrawals"
       />
 
-      <StatCard 
-        :title="$t('dashboard.stats.patients')" 
-        :value="dashboardStore.stats.activePatients" 
-        :icon="UserGroupIcon" 
+      <StatCard
+        :title="$t('dashboard.stats.patients')"
+        :value="valeurAffichee('toxico', dashboardStore.stats.activePatients)"
+        :icon="UserGroupIcon"
         colorClass="bg-indigo-50"
         iconColor="text-indigo-600"
         trend="Admissions (Mois)"
@@ -86,8 +86,8 @@
              <SignalIcon class="h-6 w-6 text-indigo-600" />
           </div>
           <div>
-            <p class="text-sm text-gray-500 font-medium">{{ $t('dashboard.stats.users_online') }}</p> 
-            <p class="text-xl font-bold text-gray-900">{{ dashboardStore.stats.onlineUsers }} inscrits</p>
+            <p class="text-sm text-gray-500 font-medium">{{ $t('dashboard.stats.users_online') }}</p>
+            <p class="text-xl font-bold text-gray-900">{{ valeurAffichee('users', `${dashboardStore.stats.onlineUsers} inscrits`) }}</p>
           </div>
         </div>
       </div>
@@ -160,7 +160,10 @@
                 </td>
               </tr>
               <tr v-if="dashboardStore.recentActivities.length === 0">
-                  <td colspan="5" class="px-6 py-4 text-center text-gray-500 italic">Aucune activité récente.</td>
+                  <td colspan="5" class="px-6 py-4 text-center text-gray-500 italic">
+                      <span v-if="dashboardStore.indisponibles.includes('activites')" class="text-red-600 not-italic font-medium">Activités indisponibles (erreur de chargement).</span>
+                      <span v-else>Aucune activité récente.</span>
+                  </td>
               </tr>
             </tbody>
           </table>
@@ -191,7 +194,7 @@
         </div>
         
         <div class="mt-8 pt-6 border-t border-white/20 text-center text-xs text-green-200">
-          Support technique : 699 99 99 99
+          Support technique : 674 69 79 08
         </div>
       </div>
 
@@ -205,7 +208,6 @@
 
     <FinanceModal
         v-if="showFinanceModal"
-        type="INCOME" 
         @close="showFinanceModal = false"
         @save="handleFinanceSaved"
     />
@@ -224,6 +226,7 @@ import StatCard from '@/components/dashboard/StatCard.vue';
 import ToxicoAdmissionModal from '@/components/toxico/ToxicoAdmissionModal.vue';
 import FinanceModal from '@/components/finance/FinanceModal.vue'; 
 import { useConfigStore } from '@/stores/configStore';
+import { useFinancialStore } from '@/stores/financialStore';
 
 import { 
   BanknotesIcon, UserGroupIcon, HomeModernIcon, 
@@ -233,6 +236,7 @@ import {
 
 const { t } = useI18n();
 const dashboardStore = useDashboardStore();
+const financialStore = useFinancialStore();
 
 // --- ÉTATS LOCAUX ---
 const showAdmissionModal = ref(false);
@@ -262,7 +266,21 @@ const handleAdmissionSaved = () => {
     dashboardStore.fetchDashboardData();
 };
 
-const handleFinanceSaved = () => {
+// FinanceModal n'enregistre RIEN par elle-meme : elle emet 'save' avec les
+// donnees du formulaire et laisse le parent les persister (c'est ce que fait
+// FinancialList.vue::handleSaveTransaction). Ce gestionnaire se contentait
+// d'afficher "Transaction enregistree !" puis de rafraichir - la saisie etait
+// donc perdue en silence, l'utilisateur croyant l'avoir enregistree.
+// On passe par le store (et non par le gateway directement) car c'est lui qui
+// aiguille entre recette et depense selon data.type : la modale laisse
+// l'utilisateur changer de type, y compris depuis ce raccourci.
+const handleFinanceSaved = async (transactionData) => {
+    try {
+        await financialStore.addTransaction(transactionData);
+    } catch (err) {
+        alert("Échec de l'enregistrement : la transaction n'a pas été enregistrée.");
+        return;
+    }
     showFinanceModal.value = false;
     alert("Transaction enregistrée !");
     // On met à jour le dashboard pour voir les revenus augmenter
@@ -283,6 +301,22 @@ const currentDate = computed(() => {
 const formatCurrency = (value) => {
     return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XAF' }).format(value);
 };
+
+// Un bloc en echec doit afficher son indisponibilite, jamais 0 : un zero
+// est un chiffre, et un chiffre faux est pire qu'une absence de chiffre.
+const valeurAffichee = (nomBloc, valeur) =>
+    dashboardStore.indisponibles.includes(nomBloc) ? 'Indisponible' : valeur;
+
+// Le solde derive de income ET withdrawals : si l'un des deux est
+// indisponible, le solde calcule a partir d'un 0 par defaut serait un
+// chiffre faux affiche comme s'il etait reel. Indisponible si l'un OU
+// l'autre a echoue.
+const soldeAffiche = computed(() => {
+    if (dashboardStore.indisponibles.includes('income') || dashboardStore.indisponibles.includes('expense')) {
+        return 'Indisponible';
+    }
+    return formatCurrency(dashboardStore.stats.income - dashboardStore.stats.withdrawals);
+});
 
 const formatDate = (dateStr) => {
     if(!dateStr) return '-';

@@ -5,6 +5,18 @@ import router from '@/router';
 // URL de base de votre API FastAPI
 export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
+// Resout un chemin de fichier servi par le backend (ex. logo_url) en URL
+// absolue utilisable dans un <img src>. Le backend stocke desormais un
+// chemin relatif ("/static/uploads/...") pour rester valable quel que soit
+// l'environnement (port local different, prod) - voir registre. Le
+// startsWith('http') gere les anciennes valeurs deja absolues stockees
+// avant ce correctif (redeviennent correctes au prochain upload).
+export function resolveAssetUrl(path) {
+    if (!path) return null;
+    if (path.startsWith('http')) return path;
+    return path.startsWith('/') ? `${API_URL}${path}` : `${API_URL}/${path}`;
+}
+
 const api = axios.create({
     baseURL: API_URL,
     headers: {

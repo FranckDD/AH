@@ -27,6 +27,10 @@ export const useDashboardStore = defineStore('dashboard', () => {
 
     const recentActivities = ref([]);
 
+    // Blocs dont le chargement a echoue : l'interface doit afficher
+    // "indisponible" et surtout PAS 0, qui serait un chiffre faux.
+    const indisponibles = ref([]);
+
     async function fetchDashboardData() {
         isLoading.value = true;
         try {
@@ -44,58 +48,68 @@ export const useDashboardStore = defineStore('dashboard', () => {
                 per_page: 5
             };
 
-            // 🟢 3. Appels API
-            const [
-                incomeRes,
-                expenseRes,
-                debtRes,
-                recentIncomes, 
-                recentExpenses, 
-                toxicoRes,
-                usersRes
-            ] = await Promise.all([
+            // 🟢 3. Appels API (tolerant aux pannes : un bloc en echec ne doit
+            // pas faire echouer tout le tableau de bord - cf. registre L1g)
+            const resultats = await Promise.allSettled([
                 // KPIs Financiers
                 FinanceGateway.getIncomeTotal(dateParams),
                 FinanceGateway.getExpenseTotal(dateParams),
                 FinanceGateway.getDebtTotal(dateParams),
-                
+
                 // Listes pour l'activité (5 derniers de chaque)
-                FinanceGateway.fetchIncomes(listParams), 
+                FinanceGateway.fetchIncomes(listParams),
                 FinanceGateway.fetchExpenses(listParams),
-                
+
                 // Autres stats
                 ToxicoGateway.getDashboardStats(),
-                api.get('/users/', { params: { page: 1, per_page: 1 } }) 
+                api.get('/users/', { params: { page: 1, per_page: 1 } }),
             ]);
 
+            const [incomeRes, expenseRes, debtRes, recentIncomes, recentExpenses, toxicoRes, usersRes] = resultats;
+            const echecs = [];
+
+            const valeurOuEchec = (resultat, nomBloc, lecture, defaut = 0) => {
+                if (resultat.status === 'fulfilled') {
+                    return lecture(resultat.value);
+                }
+                echecs.push(nomBloc);
+                console.error(`Bloc "${nomBloc}" indisponible :`, resultat.reason);
+                return defaut;
+            };
+
             // 🟢 4. Mise à jour des Stats (KPIs)
-            
+
             // Recettes : On prend la valeur calculée par le backend (total_payments)
             // qui somme les 'advance_amount' (ce qui est réellement payé)
-            stats.value.income = Number(incomeRes.data) || 0;
-            
+            stats.value.income = valeurOuEchec(incomeRes, 'income', (r) => Number(r.data) || 0);
+
             // Dépenses
-            stats.value.withdrawals = Number(expenseRes.data) || 0;
-            
+            stats.value.withdrawals = valeurOuEchec(expenseRes, 'expense', (r) => Number(r.data) || 0);
+
             // Dettes (Reste à payer)
-            stats.value.debt = Number(debtRes.data) || 0;
-            
+            stats.value.debt = valeurOuEchec(debtRes, 'debt', (r) => Number(r.data) || 0);
+
             // Toxico
-            if (toxicoRes.data) {
-                stats.value.activePatients = toxicoRes.data.currentMonthAdmissions || 0;
-            }
-            
-            // Users
-            if (usersRes.data) {
-                stats.value.onlineUsers = usersRes.data.total || usersRes.data.count || 0;
-            }
+            stats.value.activePatients = valeurOuEchec(
+                toxicoRes, 'toxico', (r) => r.data?.currentMonthAdmissions || 0
+            );
+
+            // Users : /users/ renvoie desormais une enveloppe paginee (tache 2) :
+            // total est le nombre reel de comptes, pas la taille de la page.
+            stats.value.onlineUsers = valeurOuEchec(usersRes, 'users', (r) => r.data?.total ?? 0);
 
             // 🟢 5. Activités Récentes (Fusion & Correction Logique)
-            
+
+            const listeIncomes = recentIncomes.status === 'fulfilled' ? (recentIncomes.value.data.data || []) : [];
+            const listeExpenses = recentExpenses.status === 'fulfilled' ? (recentExpenses.value.data.data || []) : [];
+            if (recentIncomes.status === 'rejected' || recentExpenses.status === 'rejected') {
+                echecs.push('activites');
+            }
+
             // A. Traitement des ENTRÉES (Venant de /caisse/)
             // FORCE TYPE = INCOME (Vert)
             // MONTANT = advance_amount (Ce qui a été payé)
-            const formattedIncomes = (recentIncomes.data.data || []).map(t => ({
+            const formattedIncomes = listeIncomes.map(t => ({
                 id: `inc-${t.transaction_id}`,
                 label: t.transaction_type === 'PAYMENT' ? 'Paiement / Avance' : (t.transaction_type || 'Recette'),
                 description: t.note || `Transaction #${t.transaction_id}`,
@@ -109,7 +123,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
 
             // B. Traitement des SORTIES (Venant de /retrait/)
             // FORCE TYPE = EXPENSE (Rouge)
-            const formattedExpenses = (recentExpenses.data.data || []).map(t => ({
+            const formattedExpenses = listeExpenses.map(t => ({
                 id: `exp-${t.retrait_id}`,
                 label: t.category || 'Dépense / Retrait',
                 description: t.justification,
@@ -127,6 +141,8 @@ export const useDashboardStore = defineStore('dashboard', () => {
             // D. Garder les 5 plus récents
             recentActivities.value = combined.slice(0, 5);
 
+            indisponibles.value = echecs;
+
         } catch (error) {
             console.error("Erreur chargement Dashboard:", error);
         } finally {
@@ -140,5 +156,5 @@ export const useDashboardStore = defineStore('dashboard', () => {
         fetchDashboardData();
     }
 
-    return { isLoading, filters, stats, recentActivities, fetchDashboardData, setDates };
+    return { isLoading, filters, stats, recentActivities, indisponibles, fetchDashboardData, setDates };
 });

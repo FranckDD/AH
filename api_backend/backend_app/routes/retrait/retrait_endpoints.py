@@ -130,15 +130,17 @@ def create_retrait(
     # 🟢 Récupération des nouveaux champs (Optionnels)
     category: Optional[str] = Body(None),
     payment_method: Optional[str] = Body(None),
+    uuid: Optional[str] = Body(None),
     retrait_ctrl: CaisseRetraitController = Depends(get_retrait_controller),
 ):
     try:
         # On passe tout au contrôleur
         retrait = retrait_ctrl.effectuer_retrait(
-            amount=amount, 
+            amount=amount,
             justification=justification,
             category=category,
-            payment_method=payment_method
+            payment_method=payment_method,
+            uuid=uuid,
         )
         return normalize_retrait_data(retrait)
     except ValueError as ve:

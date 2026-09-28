@@ -30,6 +30,7 @@ from controller.audit_controller import AuditController
 from models.database import DatabaseManager
 from api_backend.backend_app.config import DATABASE_URL
 from typing import Optional
+from fastapi import HTTPException, status
 
 logger = logging.getLogger(__name__)
 
@@ -203,3 +204,62 @@ class AuthController:
             return self.patient_controller.get_patient(int(query))
         # sinon on cherche par code_patient
         return self.patient_controller.find_by_code(query)
+    
+    def change_user_password(self, user_id: int, old_pass: str, new_pass: str):
+        """
+        Change le mot de passe de l'utilisateur après vérification de l'ancien.
+        """
+        # 1. Récupérer l'utilisateur via son ID (depuis le token)
+        user = self.user_repo.get_user_by_id(user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="Utilisateur introuvable")
+
+        # 2. VÉRIFICATION CRITIQUE : L'ancien mot de passe est-il correct ?
+        # On utilise la méthode check_password de ton modèle User
+        if not user.check_password(old_pass):
+            # Log de sécurité via ton AuditRepo
+            try:
+                self.audit_repo.log_access(user, "PASSWORD_CHANGE_FAILED", details="Ancien mot de passe incorrect")
+            except: pass
+            
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, 
+                detail="L'ancien mot de passe est incorrect"
+            )
+
+        # 3. Vérifier que le nouveau n'est pas identique à l'ancien (Bonne pratique)
+        if user.check_password(new_pass):
+             raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, 
+                detail="Le nouveau mot de passe doit être différent de l'ancien"
+            )
+
+        # 4. Hasher et définir le nouveau mot de passe
+        # On utilise la méthode set_password de ton modèle User
+        user.set_password(new_pass)
+
+        # 4bis. Révoquer tous les tokens déjà émis (même motif que POST
+        # /auth/logout) - sans ça, un token volé/partagé restait valide
+        # jusqu'à son expiration naturelle même après un changement de mot
+        # de passe volontaire (décision utilisateur, chantier 7d, tranchée
+        # le 2026-09-22 : incrémenter comme au logout). Inclut la session en
+        # cours : l'appelant devra se reconnecter, comportement voulu.
+        user.token_version = (getattr(user, "token_version", 0) or 0) + 1
+
+        # 5. Sauvegarder en base de données
+        try:
+            self.session.add(user) # Marque l'objet comme modifié
+            self.session.commit()
+            self.session.refresh(user)
+            
+            # Log de succès
+            try:
+                self.audit_repo.log_access(user, "PASSWORD_CHANGE_SUCCESS", details="Mot de passe modifié par l'utilisateur")
+            except: pass
+            
+            return True
+        except Exception as e:
+            self.session.rollback()
+            raise HTTPException(status_code=500, detail=f"Erreur lors de la mise à jour: {str(e)}")
+    
+    

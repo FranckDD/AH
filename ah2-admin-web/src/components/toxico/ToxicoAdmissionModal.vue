@@ -20,8 +20,66 @@
                 <h4 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 border-b border-gray-200 pb-2">
                     {{ t('toxico.admission.section_patient') }}
                 </h4>
-                
-                <div class="space-y-4">
+
+                <div v-if="!showNewPatientForm && !selectedExistingPatient" class="space-y-2">
+                    <input v-model="searchQuery" @input="onSearchInput" type="text"
+                           placeholder="Rechercher un patient existant (nom, code)..."
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500" />
+                    <ul v-if="searchResults.length" class="border border-gray-200 rounded-lg divide-y divide-gray-100 max-h-48 overflow-y-auto">
+                        <li v-for="p in searchResults" :key="p.patient_id" @click="selectExistingPatient(p)"
+                            class="px-3 py-2 hover:bg-indigo-50 cursor-pointer text-sm">
+                            <span class="font-medium">{{ p.first_name }} {{ p.last_name }}</span>
+                            <span class="text-gray-500 ml-2">{{ p.code_patient }} — {{ p.birth_date }}</span>
+                        </li>
+                    </ul>
+                    <p v-if="isSearching" class="text-xs text-gray-400">Recherche...</p>
+                    <button type="button" @click="startNewPatient" class="text-sm text-indigo-600 font-medium hover:underline">
+                        + Nouveau patient
+                    </button>
+                </div>
+
+                <div v-if="selectedExistingPatient" class="flex items-center justify-between bg-indigo-50 border border-indigo-200 rounded-lg px-3 py-2">
+                    <span class="text-sm font-medium text-indigo-900">
+                        {{ selectedExistingPatient.first_name }} {{ selectedExistingPatient.last_name }} ({{ selectedExistingPatient.code_patient }})
+                    </span>
+                    <button type="button" @click="selectedExistingPatient = null" class="text-xs text-indigo-600 hover:underline">Changer</button>
+                </div>
+
+                <div v-if="selectedExistingPatient || showNewPatientForm" class="space-y-4 mt-3">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('toxico.admission.date') }} <span class="text-red-500">*</span></label>
+                        <input v-model="form.admissionDate" type="date" required
+                               :max="today"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500" />
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('toxico.admission.substance') }} <span class="text-red-500">*</span></label>
+                            <select v-model="form.substance" required
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
+                                <option value="Alcool">{{ t('toxico.substances.alcohol') }}</option>
+                                <option value="Cannabis">{{ t('toxico.substances.cannabis') }}</option>
+                                <option value="Opioïdes">{{ t('toxico.substances.opioids') }}</option>
+                                <option value="Cocaïne">{{ t('toxico.substances.cocaine') }}</option>
+                                <option value="Polytoxicomanie">{{ t('toxico.substances.poly') }}</option>
+                                <option value="Autre">Autre</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('toxico.admission.psychologist') }} <span class="text-red-500">*</span></label>
+                            <select v-model="form.psychologist" required
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
+                                <option :value="null" disabled selected>-- Sélectionner --</option>
+                                <option v-for="psy in psychologistsList" :key="psy.id" :value="psy.id">
+                                    {{ psy.name }}
+                                </option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div v-if="showNewPatientForm" class="space-y-4 mt-3">
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('toxico.admission.firstname') }} <span class="text-red-500">*</span></label>
@@ -36,63 +94,30 @@
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('toxico.admission.dob') }} <span class="text-red-500">*</span></label>
-                            <input v-model="form.dob" type="date" required 
+                            <input v-model="form.dob" type="date" required
                                    :max="maxDate"
                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500" />
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('toxico.admission.mothers_name') }} <span class="text-red-500">*</span></label>
-                            <input v-model="form.mothersName" type="text" required 
-                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500" 
+                            <input v-model="form.mothersName" type="text" required
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
                                    placeholder="Nom de jeune fille..." />
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('toxico.admission.address') }}</label>
-                            <div class="relative">
-                                <MapPinIcon class="h-5 w-5 text-gray-400 absolute top-2.5 left-3" />
-                                <input v-model="form.address" type="text" 
-                                       class="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500" />
-                            </div>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('toxico.admission.date') }} <span class="text-red-500">*</span></label>
-                            <input v-model="form.admissionDate" type="date" required 
-                                   :max="today"
-                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500" />
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('toxico.admission.address') }}</label>
+                        <div class="relative">
+                            <MapPinIcon class="h-5 w-5 text-gray-400 absolute top-2.5 left-3" />
+                            <input v-model="form.address" type="text"
+                                   class="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500" />
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('toxico.admission.substance') }} <span class="text-red-500">*</span></label>
-                            <select v-model="form.substance" required 
-                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
-                                <option value="Alcool">{{ t('toxico.substances.alcohol') }}</option>
-                                <option value="Cannabis">{{ t('toxico.substances.cannabis') }}</option>
-                                <option value="Opioïdes">{{ t('toxico.substances.opioids') }}</option>
-                                <option value="Cocaïne">{{ t('toxico.substances.cocaine') }}</option>
-                                <option value="Polytoxicomanie">{{ t('toxico.substances.poly') }}</option>
-                                <option value="Autre">Autre</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('toxico.admission.psychologist') }} <span class="text-red-500">*</span></label>
-                            <select v-model="form.psychologist" required 
-                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
-                                <option :value="null" disabled selected>-- Sélectionner --</option>
-                                <option v-for="psy in psychologistsList" :key="psy.id" :value="psy.id">
-                                    {{ psy.name }}
-                                </option>
-                            </select>
-                        </div>
-                    </div>
-                    
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('toxico.admission.contact') }}</label>
-                        <input v-model="form.contact" type="tel" 
+                        <input v-model="form.contact" type="tel"
                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
                                placeholder="Numéro de téléphone..." />
                     </div>
@@ -231,12 +256,44 @@ const form = reactive({
     notes: ''
 });
 
+// Recherche d'un patient existant (chantier 6, tache 4)
+const searchQuery = ref('');
+const searchResults = ref([]);
+const isSearching = ref(false);
+const selectedExistingPatient = ref(null);
+const showNewPatientForm = ref(false);
+
+let searchTimeout = null;
+const onSearchInput = () => {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(async () => {
+        if (searchQuery.value.trim().length < 2) {
+            searchResults.value = [];
+            return;
+        }
+        isSearching.value = true;
+        searchResults.value = await toxicoStore.searchExistingPatients(searchQuery.value);
+        isSearching.value = false;
+    }, 300);
+};
+
+const selectExistingPatient = (patient) => {
+    selectedExistingPatient.value = patient;
+    showNewPatientForm.value = false;
+    searchResults.value = [];
+};
+
+const startNewPatient = () => {
+    selectedExistingPatient.value = null;
+    showNewPatientForm.value = true;
+};
+
 // Validation du formulaire
 const isFormValid = computed(() => {
-    return form.firstName.trim() &&
-           form.lastName.trim() &&
-           form.dob &&
-           form.mothersName.trim() &&
+    const patientOk = selectedExistingPatient.value || (
+        form.firstName.trim() && form.lastName.trim() && form.dob && form.mothersName.trim()
+    );
+    return patientOk &&
            form.admissionDate &&
            form.substance &&
            form.psychologist &&
@@ -273,39 +330,36 @@ const handleSubmit = async () => {
         return;
     }
 
-    // Validation des dates
-    const dobDate = new Date(form.dob);
+    // Validation des dates (uniquement pertinent pour un nouveau patient)
     const admissionDate = new Date(form.admissionDate);
     const todayDate = new Date();
-    
-    if (dobDate > todayDate) {
-        errorMessage.value = "La date de naissance ne peut pas être dans le futur";
-        return;
-    }
-    
+
     if (admissionDate > todayDate) {
         errorMessage.value = "La date d'admission ne peut pas être dans le futur";
         return;
     }
-    
-    if (dobDate > admissionDate) {
-        errorMessage.value = "La date de naissance ne peut pas être après la date d'admission";
-        return;
+
+    if (!selectedExistingPatient.value) {
+        const dobDate = new Date(form.dob);
+
+        if (dobDate > todayDate) {
+            errorMessage.value = "La date de naissance ne peut pas être dans le futur";
+            return;
+        }
+
+        if (dobDate > admissionDate) {
+            errorMessage.value = "La date de naissance ne peut pas être après la date d'admission";
+            return;
+        }
     }
 
     if (isLoading.value) return;
-    
+
     isLoading.value = true;
     errorMessage.value = '';
 
     // 🟢 Préparation du payload avec validation
     const payload = {
-        firstName: form.firstName.trim(),
-        lastName: form.lastName.trim(),
-        dob: form.dob,
-        mothersName: form.mothersName.trim(),
-        address: form.address?.trim() || "",
-        contact: form.contact?.trim() || "",
         admissionDate: form.admissionDate,
         substance: form.substance,
         psychologist: parseInt(form.psychologist, 10),
@@ -314,6 +368,17 @@ const handleSubmit = async () => {
         consentFile: form.consentFile || "",
         notes: form.notes?.trim() || ""
     };
+
+    if (selectedExistingPatient.value) {
+        payload.patientId = selectedExistingPatient.value.patient_id;
+    } else {
+        payload.firstName = form.firstName.trim();
+        payload.lastName = form.lastName.trim();
+        payload.dob = form.dob;
+        payload.mothersName = form.mothersName.trim();
+        payload.address = form.address?.trim() || "";
+        payload.contact = form.contact?.trim() || "";
+    }
 
     // Log détaillé
     //console.log("📋 Payload préparé:", JSON.stringify(payload, null, 2));

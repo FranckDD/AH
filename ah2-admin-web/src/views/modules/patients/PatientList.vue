@@ -10,7 +10,21 @@
           Total : {{ activeTabCount }} patients
         </p>
       </div>
-      
+
+      <div class="flex items-center gap-3">
+        <button @click="showExportModal = true" class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition">
+          {{ t('export.confirm') }}
+        </button>
+        <button
+            v-if="canManagePatients"
+            @click="openCreateModal"
+            class="flex items-center gap-2 bg-green-600 text-white px-4 py-2.5 rounded-xl hover:bg-green-700 font-medium shadow-sm transition"
+        >
+            <PlusIcon class="h-5 w-5" />
+            Ajouter un patient
+        </button>
+      </div>
+
       <div class="relative w-full md:w-80">
         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
           <MagnifyingGlassIcon class="h-5 w-5 text-gray-400" />
@@ -85,15 +99,28 @@
                 {{ patient.phone || 'N/A' }}
               </td>
               <td class="px-6 py-4 text-right">
-                <button 
-                    @click="viewPatientDossier(patient.id)" 
-                    class="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center justify-end w-full"
-                >
-                    Voir Dossier 
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                    </svg>
-                </button>
+                <div class="flex items-center justify-end gap-2">
+                    <button v-if="canManagePatients" @click="openEditModal(patient)" :disabled="patient.pending"
+                            class="p-2 bg-white border border-gray-200 rounded-lg text-indigo-600 hover:bg-indigo-50 hover:border-indigo-200 transition shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
+                            :title="patient.pending ? 'En attente de synchronisation' : 'Modifier'">
+                        <PencilSquareIcon class="h-4 w-4" />
+                    </button>
+                    <button v-if="canManagePatients" @click="confirmDelete(patient)" :disabled="patient.pending"
+                            class="p-2 bg-white border border-gray-200 rounded-lg text-red-500 hover:bg-red-50 hover:border-red-200 transition shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
+                            :title="patient.pending ? 'En attente de synchronisation' : 'Supprimer'">
+                        <TrashIcon class="h-4 w-4" />
+                    </button>
+                    <button
+                        v-if="!disableDetailLink"
+                        @click="viewPatientDossier(patient.id)"
+                        class="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center"
+                    >
+                        Voir Dossier
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                        </svg>
+                    </button>
+                </div>
               </td>
             </tr>
           </tbody>
@@ -127,22 +154,171 @@
       </div>
 
     </div>
+
+    <div v-if="deleteError" class="bg-red-50 border-l-4 border-red-500 p-4 rounded-xl">
+        <p class="text-sm text-red-700">{{ deleteError }}</p>
+    </div>
+
+    <PatientModal
+        v-if="showModal"
+        :patientToEdit="patientBeingEdited"
+        :errorMessage="modalError"
+        :isSaving="isSavingPatient"
+        @close="closeModal"
+        @save="handleSave"
+    />
+
+    <ExportModal
+      v-if="showExportModal"
+      :title="t('export.confirm') + ' — ' + t('patients.title')"
+      :formats="[{ value: 'pdf', label: 'PDF' }, { value: 'csv', label: 'CSV' }]"
+      :onExport="exportPatients"
+      @close="showExportModal = false"
+    />
   </div>
 </template>
 
 <script setup>
-import { computed, onMounted } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { usePatientStore } from '@/stores/patientStore';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 import { useI18n } from 'vue-i18n';
-import { 
-    MagnifyingGlassIcon, UsersIcon, SparklesIcon, 
-    BeakerIcon, HeartIcon, ChevronLeftIcon, ChevronRightIcon 
+import {
+    MagnifyingGlassIcon, UsersIcon, SparklesIcon,
+    BeakerIcon, HeartIcon, ChevronLeftIcon, ChevronRightIcon,
+    PlusIcon, PencilSquareIcon, TrashIcon
 } from '@heroicons/vue/24/outline';
+import PatientModal from '@/components/patients/PatientModal.vue';
+import ExportModal from '@/components/common/ExportModal.vue';
+import { useAuthStore } from '@/stores/auth';
+import api from '@/services/api';
+
+const props = defineProps({ disableDetailLink: { type: Boolean, default: false } });
 
 const { t } = useI18n();
 const patientStore = usePatientStore();
 const router = useRouter();
+const route = useRoute();
+const authStore = useAuthStore();
+
+// Roles avec droit d'ECRITURE (POST/PUT/DELETE) sur /patients - depuis le
+// chantier L4b-e, distinct des roles avec droit de LECTURE au niveau du
+// routeur (qui inclut aussi assistant et ToxicoManager pour la recherche,
+// voir patients_endpoints.py). Assistant est volontairement absent ici :
+// il garde /patients en lecture/recherche seule (dette parquee au
+// chantier 6, refermee au chantier L4b-e).
+const canManagePatients = computed(() =>
+    authStore.hasRole(['medecin', 'nurse', 'secretaire', 'admin', 'manager'])
+);
+
+const showModal = ref(false);
+const patientBeingEdited = ref(null);
+const modalError = ref('');
+const isSavingPatient = ref(false);
+const deleteError = ref('');
+const showExportModal = ref(false);
+
+const exportPatients = async ({ format, dateFrom, dateTo }) => {
+    const params = {
+        format,
+        type: patientStore.filters.type,
+        search: patientStore.filters.search || undefined,
+        date_from: dateFrom || undefined,
+        date_to: dateTo || undefined,
+    };
+    const response = await api.get('/patients/export', {
+        params,
+        responseType: format === 'pdf' ? 'blob' : 'text',
+    });
+    const blob = format === 'pdf'
+        ? new Blob([response.data], { type: 'application/pdf' })
+        : new Blob([response.data], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `patients_export.${format}`;
+    link.click();
+    window.URL.revokeObjectURL(url);
+};
+
+const openCreateModal = () => {
+    patientBeingEdited.value = null;
+    modalError.value = '';
+    showModal.value = true;
+};
+
+const openEditModal = async (patient) => {
+    modalError.value = '';
+    try {
+        patientBeingEdited.value = await patientStore.getPatientById(patient.id);
+        showModal.value = true;
+    } catch (err) {
+        deleteError.value = "Impossible de charger les détails du patient pour modification.";
+    }
+};
+
+const closeModal = () => {
+    showModal.value = false;
+    patientBeingEdited.value = null;
+    modalError.value = '';
+};
+
+const mapErrorToMessage = (err) => {
+    if (err.response) {
+        const status = err.response.status;
+        const detail = err.response.data?.detail;
+        if (status === 422) {
+            const errors = Array.isArray(detail) ? detail : [];
+            if (errors.length) {
+                return `Erreurs de validation : ${errors.map(e => e.msg).join(', ')}`;
+            }
+            return "Données invalides.";
+        }
+        if (status === 400) return detail || "Requête invalide.";
+        if (status === 401) return "Session expirée. Veuillez vous reconnecter.";
+        if (status === 409) return detail || "Ce patient existe peut-être déjà (identifiant en conflit).";
+        return `Erreur serveur (${status}) : ${detail || 'veuillez réessayer'}`;
+    }
+    if (err.request) return "Erreur réseau. Veuillez vérifier votre connexion.";
+    return err.message || "Une erreur inattendue est survenue.";
+};
+
+const handleSave = async (payload) => {
+    isSavingPatient.value = true;
+    modalError.value = '';
+    try {
+        if (patientBeingEdited.value) {
+            await patientStore.updatePatient(patientBeingEdited.value.patient_id, payload);
+        } else {
+            const created = await patientStore.addPatient(payload);
+            closeModal();
+            // medecin/nurse : on enchaine directement sur la fiche du patient
+            // cree (consultation/prescription possibles hors ligne, identifie
+            // par son uuid tant qu'il n'a pas de code). Secretaire : pas de
+            // fiche (disableDetailLink), il reste visible dans la liste.
+            if (created?.localUuid && !props.disableDetailLink) {
+                router.push(`${route.path}/${created.localUuid}`);
+            }
+            return;
+        }
+        closeModal();
+    } catch (err) {
+        modalError.value = mapErrorToMessage(err);
+    } finally {
+        isSavingPatient.value = false;
+    }
+};
+
+const confirmDelete = async (patient) => {
+    deleteError.value = '';
+    if (confirm(`Voulez-vous vraiment supprimer ${patient.firstName} ${patient.lastName} ?`)) {
+        try {
+            await patientStore.deletePatient(patient.id);
+        } catch (err) {
+            deleteError.value = mapErrorToMessage(err);
+        }
+    }
+};
 
 // 🟢 Chargement initial
 onMounted(() => {
@@ -152,32 +328,43 @@ onMounted(() => {
 });
 
 // 🟢 Configuration des Onglets (MAINTENANT COMPUTED)
-const tabs = computed(() => [
-    { 
-        value: 'ALL', 
-        labelKey: 'patients.tabs.all', 
-        icon: UsersIcon,
-        count: patientStore.counts.ALL 
-    },
-    { 
-        value: 'CLINIQUE', 
-        labelKey: 'patients.tabs.clinical', 
-        icon: HeartIcon,
-        count: patientStore.counts.CLINIQUE 
-    },
-    { 
-        value: 'TOXICO', 
-        labelKey: 'patients.tabs.toxico', 
-        icon: BeakerIcon,
-        count: patientStore.counts.TOXICO 
-    },
-    { 
-        value: 'SPIRITUEL', 
-        labelKey: 'patients.tabs.spiritual', 
-        icon: SparklesIcon,
-        count: patientStore.counts.SPIRITUEL 
-    },
-]);
+const tabs = computed(() => {
+    const tousLesOnglets = [
+        {
+            value: 'ALL',
+            labelKey: 'patients.tabs.all',
+            icon: UsersIcon,
+            count: patientStore.counts.ALL
+        },
+        {
+            value: 'CLINIQUE',
+            labelKey: 'patients.tabs.clinical',
+            icon: HeartIcon,
+            count: patientStore.counts.CLINIQUE
+        },
+        {
+            value: 'TOXICO',
+            labelKey: 'patients.tabs.toxico',
+            icon: BeakerIcon,
+            count: patientStore.counts.TOXICO
+        },
+        {
+            value: 'SPIRITUEL',
+            labelKey: 'patients.tabs.spiritual',
+            icon: SparklesIcon,
+            count: patientStore.counts.SPIRITUEL
+        },
+    ];
+    // medecin/nurse : le backend refuse desormais /patients/toxicology et
+    // /patients/spiritual/list (403) - sans ce filtre, ces deux onglets
+    // restaient cliquables et menaient a un cul-de-sac affiche comme
+    // "Erreur de connexion au serveur", masquant un refus de permission
+    // volontaire derriere un message d'erreur technique trompeur.
+    if (authStore.hasRole(['medecin', 'nurse'])) {
+        return tousLesOnglets.filter((t) => t.value !== 'TOXICO' && t.value !== 'SPIRITUEL');
+    }
+    return tousLesOnglets;
+});
 
 // Helper pour afficher le total de l'onglet actif sous le titre
 const activeTabCount = computed(() => {
@@ -186,11 +373,12 @@ const activeTabCount = computed(() => {
 });
 
 // 3. Créer la fonction de navigation
+// Relatif a route.path (pas de nom de route en dur) : ce composant est
+// monte a la fois sous /dashboard/patients (admin/ToxicoManager) et
+// /medical/patients (medecin/nurse) - un nom fige pointerait toujours
+// vers /dashboard/patients/:id, hors de portee des roles medicaux.
 const viewPatientDossier = (patientId) => {
-    router.push({ 
-        name: 'PatientDetail', 
-        params: { id: patientId } 
-    });
+    router.push(`${route.path}/${patientId}`);
 };
 
 // Getter/Setter pour la recherche

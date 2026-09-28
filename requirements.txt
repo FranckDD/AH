@@ -1,41 +1,5 @@
-# === Backend API ===
-fastapi==0.116.1
-uvicorn[standard]==0.35.0
-SQLAlchemy==2.0.41
-psycopg2-binary==2.9.10
-alembic==1.18.5
-passlib[bcrypt]==1.7.4
-python-jose==3.5.0
-email-validator==2.3.0
-requests==2.32.5
-pydantic==2.13.4
-python-dotenv==1.1.1
-starlette==0.47.3
-slowapi==0.1.9
-limits==5.8.0  # requis par slowapi, pin explicite (securite, SEC-05)
-Deprecated==1.3.1  # requis par slowapi, pin explicite (securite, SEC-05)
-fpdf2==2.8.3
-Pillow==12.2.0
-python-multipart==0.0.20
-bcrypt==4.3.0
-celery==5.6.0
-redis==6.4.0
-supabase==2.25.0
-
-# === Desktop (PyQt6) ===
-PyQt6==6.9.1
-PyQt6-Qt6==6.9.1  # verrouille en lockstep avec PyQt6 (compatibilite ABI)
-PyQt6_sip==13.10.2  # verrouille en lockstep avec PyQt6 (compatibilite ABI)
-matplotlib==3.10.3
-reportlab==4.4.2
-openpyxl==3.1.5
-PyInstaller==6.16.0  # build de l'executable desktop (Glostone-Kare.spec)
-
-# === Tests ===
-pytest==8.4.2
-httpx==0.28.1
-
-# === Async / travail en cours (non committé sur HEAD) ===
-Flask-Login==0.6.3  # controller/lab_controller.py (WIP, non commite)
-Jinja2==3.1.6  # api_backend/backend_app/utils/pdf_generator.py (WIP, non commite)
-weasyprint==68.1  # api_backend/backend_app/utils/pdf_generator.py (WIP, non commite)
+# Superset historique, pour qui installe sans preciser de cible - meme
+# comportement qu'avant le split (chantier 2c). Preferer directement
+# requirements-api.txt (CI, deploiement API) ou requirements-desktop.txt
+# (build/dev desktop PyQt6) selon le besoin reel.
+-r requirements-desktop.txt

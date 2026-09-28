@@ -74,3 +74,34 @@ def test_logout_revokes_current_token(db_session, api_client):
 
     assert reuse_resp.status_code == 401
     assert reuse_resp.json()["detail"] == "Session invalidée, veuillez vous reconnecter"
+
+
+def test_password_change_revokes_current_token(db_session, api_client):
+    # Decision utilisateur, chantier 7d, tranchee le 2026-09-22 : un
+    # changement de mot de passe self-service doit revoquer tous les tokens
+    # deja emis, meme motif que /auth/logout - sans ca, un token vole/partage
+    # restait valide jusqu'a expiration naturelle malgre le changement.
+    create_test_user(db_session, "test_token_pwd_change", "admin", password="Correct123!")
+    client = api_client(auth_endpoints)
+    token = login(client, "test_token_pwd_change", "Correct123!").json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    change_resp = client.put(
+        "/auth/password",
+        json={
+            "old_password": "Correct123!",
+            "new_password": "NewCorrect456!",
+            "confirm_password": "NewCorrect456!",
+        },
+        headers=headers,
+    )
+    assert change_resp.status_code == 200
+
+    reuse_resp = client.get("/auth/me", headers=headers)
+
+    assert reuse_resp.status_code == 401
+    assert reuse_resp.json()["detail"] == "Session invalidée, veuillez vous reconnecter"
+
+    # Le nouveau mot de passe doit permettre une reconnexion normale.
+    relogin_resp = login(client, "test_token_pwd_change", "NewCorrect456!")
+    assert relogin_resp.status_code == 200

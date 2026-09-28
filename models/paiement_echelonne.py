@@ -1,5 +1,7 @@
 # Dans models/paiement_echelonne.py (À créer)
+import uuid
 from sqlalchemy import Column, Integer, Numeric, String, Text, DateTime, ForeignKey, func
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from .database import Base # Assurez-vous d'importer votre Base
 
@@ -14,6 +16,7 @@ class PaiementEchelonne(Base):
     payment_type = Column(String(50), nullable=False) # Ex: 'AVANCE', 'SOLDE', 'VERSEMENT_ECHEANCE'
     handled_by = Column(Integer, ForeignKey('users.user_id'), nullable=False)
     note = Column(Text)
+    uuid = Column(UUID(as_uuid=True), unique=True, nullable=False, default=uuid.uuid4)
 
     # Relation vers Caisse (utile pour le patient)
     transaction = relationship("Caisse", backref="payments")

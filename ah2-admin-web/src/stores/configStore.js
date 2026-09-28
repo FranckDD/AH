@@ -35,18 +35,24 @@ export const useConfigStore = defineStore('config', () => {
     const isLoading = ref(false);
     const error = ref(null);
 
+    // null = tout va bien. Une chaine = l'appel a echoue, ce qui n'est PAS
+    // la meme chose qu'un etablissement non configure : sans cette
+    // distinction, un endpoint casse et une base vide sont indiscernables.
+    const structureError = ref(null);
+
     // --- ACTIONS STRUCTURE ---
 
     // 1. Récupérer les infos structure
     async function fetchStructureInfo() {
         try {
             const response = await api.get('/config/structure');
+            structureError.value = null;
             if (response.data) {
-                // On fusionne avec les valeurs par défaut pour éviter les null sur les nouveaux champs
                 structureInfo.value = { ...structureInfo.value, ...response.data };
             }
         } catch (err) {
-            console.warn("Info structure non chargées, utilisation défaut.");
+            structureError.value = "Impossible de charger les informations de l'établissement.";
+            console.error('Echec du chargement des infos structure:', err);
         }
     }
 
@@ -77,16 +83,16 @@ export const useConfigStore = defineStore('config', () => {
         isLoading.value = true;
         error.value = null;
         try {
-            const response = await api.get('/labo/');
+            // 🟢 CORRECTION : Ajout de "exams" à l'URL pour correspondre au backend
+            const response = await api.get('/labo/exams'); 
             
-            // Conversion prix string -> float
             examens.value = response.data.map(ex => ({
                 ...ex,
                 prix: parseFloat(ex.prix)
             }));
         } catch (err) {
             console.error("Erreur fetchExamens:", err);
-            error.value = "Impossible de charger la configuration des examens.";
+            error.value = "Impossible de charger les examens.";
         } finally {
             isLoading.value = false;
         }
@@ -154,9 +160,10 @@ export const useConfigStore = defineStore('config', () => {
         examens, 
         prayerBookTypes, 
         structureInfo,
-        isLoading, 
+        isLoading,
         error,
-        
+        structureError,
+
         // Actions
         fetchExamens, 
         saveExamen,

@@ -1,0 +1,92 @@
+<style>
+    /* Style autonome de l'en-tete PDF partage - source unique de verite
+       pour les 5 exports qui l'incluent (chantier exports 2026-09-23,
+       demande utilisateur d'une mise en forme professionnelle 2026-09-23).
+       Volontairement ici (dans le partiel) plutot que duplique dans
+       chaque template consommateur - WeasyPrint accepte <style> hors du
+       <head>, comme deja verifie par le reste de ce pipeline PDF. */
+    .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 24px;
+        border-bottom: 2px solid #2c3e50;
+        padding-bottom: 12px;
+        margin-bottom: 6px;
+    }
+    .hospital-info { flex: 1; }
+    .hospital-info h1 {
+        margin: 0 0 2px 0;
+        color: #2c3e50;
+        font-size: 19pt;
+        font-weight: 700;
+        letter-spacing: 0.2px;
+    }
+    .hospital-info .slogan {
+        margin: 0 0 8px 0;
+        font-style: italic;
+        color: #5a6b7a;
+        font-size: 10pt;
+    }
+    .hospital-info p {
+        margin: 1px 0;
+        font-size: 9.5pt;
+        color: #444;
+    }
+    .logo-container {
+        flex-shrink: 0;
+        text-align: right;
+    }
+    .logo-container .logo {
+        max-width: 140px;
+        max-height: 80px;
+        object-fit: contain;
+    }
+    .footer-legal {
+        font-size: 7.5pt;
+        color: #8a94a0;
+        text-align: center;
+        border-top: 1px solid #dfe3e7;
+        padding-top: 6px;
+        margin-bottom: 18px;
+        letter-spacing: 0.2px;
+    }
+</style>
+<div class="header">
+    <div class="hospital-info">
+        <h1>{{ structure.name }}</h1>
+        {% if structure.slogan %}
+            <p class="slogan">{{ structure.slogan }}</p>
+        {% endif %}
+
+        {% if structure.address or structure.city or structure.po_box %}
+        <p>
+            {% if structure.address %}{{ structure.address }}{% endif %}
+            {% if structure.city %} - {{ structure.city }}{% endif %}
+            {% if structure.po_box %} | BP: {{ structure.po_box }}{% endif %}
+        </p>
+        {% endif %}
+
+        {% if structure.phone or structure.phone2 or structure.email %}
+        <p>
+            {% if structure.phone %}Tel: {{ structure.phone }}{% endif %}
+            {% if structure.phone2 %} / {{ structure.phone2 }}{% endif %}
+            {% if structure.email %} &middot; {{ structure.email }}{% endif %}
+        </p>
+        {% endif %}
+
+        {% if structure.website %}<p>{{ structure.website }}</p>{% endif %}
+    </div>
+    <div class="logo-container">
+        {% if logo_path %}
+            <img src="{{ logo_path }}" class="logo" alt="Logo">
+        {% endif %}
+    </div>
+</div>
+{% if structure.niu or structure.rccm or structure.legal_info %}
+<div class="footer-legal">
+    {%- if structure.niu %}NIU: {{ structure.niu }}{% endif -%}
+    {%- if structure.rccm %}{% if structure.niu %} | {% endif %}RCCM: {{ structure.rccm }}{% endif -%}
+    {%- if structure.legal_info %}{% if structure.niu or structure.rccm %} | {% endif %}{{ structure.legal_info }}{% endif -%}
+</div>
+{% endif %}

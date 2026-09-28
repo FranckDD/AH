@@ -66,6 +66,13 @@ class UserOut(BaseModel):
         }
     })
 
+class UserListResponse(BaseModel):
+    data: List[UserOut]
+    total: int
+    page: int
+    per_page: int
+    total_pages: int
+
 class RoleOut(BaseModel):
     id: int = Field(..., serialization_alias="id", validation_alias="role_id")
     role_name: str

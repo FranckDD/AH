@@ -115,4 +115,18 @@ def normalize_consultation_data(raw: Any) -> Dict[str, Any]:
     # Alias INTERVENANT
     data["intervenant"] = data["created_by_name"]
 
+    # Nom/code patient (registre J1) - depuis la relation .patient, chargee
+    # via joinedload cote repo (repositories/cs_repo.py::list_all). None si
+    # la relation n'a pas ete chargee par l'appelant (ex. find_by_patient,
+    # qui n'a pas besoin d'afficher le nom du patient qu'il sert deja).
+    patient = _get_field(raw, "patient")
+    if patient is not None:
+        prenom = _get_field(patient, "first_name") or ""
+        nom = _get_field(patient, "last_name") or ""
+        data["patient_name"] = f"{prenom} {nom}".strip() or None
+        data["patient_code"] = _get_field(patient, "code_patient")
+    else:
+        data["patient_name"] = None
+        data["patient_code"] = None
+
     return data

@@ -32,8 +32,8 @@ class CaisseRetraitRepository:
         """
         return self.session.get(CaisseRetrait, retrait_id)
 
-    def create(self, amount: float, justification: str, handled_by: int, 
-               category: str = None, payment_method: str = None) -> CaisseRetrait:
+    def create(self, amount: float, justification: str, handled_by: int,
+               category: str = None, payment_method: str = None, uuid: str = None) -> CaisseRetrait:
         """
         Insère un nouveau retrait actif avec les détails optionnels.
         """
@@ -45,6 +45,13 @@ class CaisseRetraitRepository:
             category=category,
             payment_method=payment_method
         )
+        if uuid:
+            # Alias necessaire ici : le parametre de cette methode s'appelle
+            # deja "uuid", un `import uuid` nu ecraserait sa valeur avant
+            # qu'on l'utilise (contrairement a caisse_repo.py, ou la cle
+            # "uuid" vient d'un dict et ne collisionne avec rien).
+            import uuid as uuid_lib
+            new_retrait.uuid = uuid_lib.UUID(str(uuid))
         self.session.add(new_retrait)
         self.session.commit()
         return new_retrait
@@ -69,11 +76,16 @@ class CaisseRetraitRepository:
         if status is not None:
             query = query.filter(CaisseRetrait.status == status)
 
+        # func.date() sur la COLONNE (pas sur le parametre) : les endpoints
+        # declarent date_from/date_to en datetime, donc "2026-09-15" arrive
+        # a 00:00:00 et un <= brut excluait toute la journee. Comparer la
+        # partie date inclut la journee entiere, que l'appelant envoie une
+        # date seule ou un horodatage. Meme regle que caisse_repo.py:127.
         if date_from is not None:
-            query = query.filter(CaisseRetrait.retrait_at >= date_from)
+            query = query.filter(func.date(CaisseRetrait.retrait_at) >= date_from)
 
         if date_to is not None:
-            query = query.filter(CaisseRetrait.retrait_at <= date_to)
+            query = query.filter(func.date(CaisseRetrait.retrait_at) <= date_to)
 
         return query.order_by(CaisseRetrait.retrait_at.desc()).all()
 
@@ -97,10 +109,10 @@ class CaisseRetraitRepository:
             query = query.filter(CaisseRetrait.status == status)
 
         if date_from is not None:
-            query = query.filter(CaisseRetrait.retrait_at >= date_from)
+            query = query.filter(func.date(CaisseRetrait.retrait_at) >= date_from)
 
         if date_to is not None:
-            query = query.filter(CaisseRetrait.retrait_at <= date_to)
+            query = query.filter(func.date(CaisseRetrait.retrait_at) <= date_to)
 
         total = query.scalar()
         return float(total)
@@ -177,10 +189,10 @@ class CaisseRetraitRepository:
             query = query.filter(CaisseRetrait.status == status)
         
         if date_from:
-            query = query.filter(CaisseRetrait.retrait_at >= date_from)
+            query = query.filter(func.date(CaisseRetrait.retrait_at) >= date_from)
             
         if date_to:
-            query = query.filter(CaisseRetrait.retrait_at <= date_to)
+            query = query.filter(func.date(CaisseRetrait.retrait_at) <= date_to)
 
         # Filtre texte (recherche dans justification ou catégorie)
         if term:

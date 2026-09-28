@@ -4,6 +4,7 @@ from .medical_record import MedicalRecord
 from .prescription import Prescription
 from .application_role import ApplicationRole
 from .appointment import Appointment
+from .discount_request import DiscountRequest
 from .audit import AuditAccess, AuditUserAction
 from .caisse import Caisse
 from .caisse_item import CaisseItem
@@ -12,6 +13,7 @@ from .lab import Examen, Parametre, ReferenceRange, LabResult, LabResultDetail
 from .medical_speciality import MedicalSpecialty
 from .organization_config import OrganizationConfig
 from .paiement_echelonne import PaiementEchelonne
+from .notification import Notification
 from .pharmacy import Pharmacy
 from .prayer_book_type import PrayerBookType
 from .retrait import CaisseRetrait

@@ -499,6 +499,32 @@ def test_kpi_count_week(db_session, api_client):
     assert isinstance(resp.json()["count"], int)
 
 
+def test_kpi_count_day_scoped_to_doctor_id(db_session, api_client):
+    """Registre I1 : un doctor_id explicite scope le compte a ce medecin
+    uniquement, sans affecter le total etablissement (doctor_id omis)."""
+    from datetime import date as date_cls
+
+    medecin_a = create_test_user(db_session, "test_presc_kpi_doctor_a", "medecin", password=TEST_PASSWORD)
+    medecin_b = create_test_user(db_session, "test_presc_kpi_doctor_b", "medecin", password=TEST_PASSWORD)
+    patient_id, _ = create_test_patient(db_session, medecin_a)
+    client = api_client(auth_endpoints, prescriptions_endpoints)
+    headers = auth_headers(client, "test_presc_kpi_doctor_a", TEST_PASSWORD)
+
+    before_a = client.get(f"/prescriptions/kpi/count?period=day&doctor_id={medecin_a.user_id}", headers=headers).json()["count"]
+    before_b = client.get(f"/prescriptions/kpi/count?period=day&doctor_id={medecin_b.user_id}", headers=headers).json()["count"]
+    before_total = client.get("/prescriptions/kpi/count?period=day", headers=headers).json()["count"]
+
+    create_test_prescription(db_session, patient_id, medecin_a, start_date=date_cls.today())
+
+    after_a = client.get(f"/prescriptions/kpi/count?period=day&doctor_id={medecin_a.user_id}", headers=headers).json()["count"]
+    after_b = client.get(f"/prescriptions/kpi/count?period=day&doctor_id={medecin_b.user_id}", headers=headers).json()["count"]
+    after_total = client.get("/prescriptions/kpi/count?period=day", headers=headers).json()["count"]
+
+    assert after_a == before_a + 1
+    assert after_b == before_b
+    assert after_total == before_total + 1
+
+
 def test_patient_prescription_history_returns_created_prescription(db_session, api_client):
     """
     GET /prescriptions/patient/{id} renvoie aussi une LISTE JSON NUE,
@@ -555,3 +581,42 @@ def test_prescriptions_list_unauthenticated_returns_401(db_session, api_client):
     resp = client.get("/prescriptions/")
 
     assert resp.status_code == 401
+
+
+def test_list_prescriptions_tolerates_old_lab_order_without_exams_list(db_session, api_client):
+    """Bug reel trouve en test navigateur (2026-09-23) : d'anciennes
+    prescriptions (is_lab_order=True, lab_exams_list vide/absent,
+    anterieures a l'ajout de la regle "liste d'examens requise")
+    faisaient planter GET /prescriptions/ - PrescriptionResponse
+    reutilisait la regle de coherence metier de PrescriptionCreate
+    (check_content), qui n'a de sens qu'a la creation/modification,
+    jamais a la lecture de donnees deja persistees. La ligne doit
+    apparaitre normalement dans la liste, pas etre exclue/logguee en
+    erreur."""
+    from datetime import date as date_cls
+    from models.prescription import Prescription
+
+    medecin = create_test_user(db_session, "test_presc_old_lab_order", "medecin", password=TEST_PASSWORD)
+    patient_id, _ = create_test_patient(db_session, medecin)
+    # Insertion ORM directe (pas create_test_prescription/le repository,
+    # qui appliquent tous deux la meme regle de coherence metier a la
+    # creation - refuseraient donc cette ligne) : on simule ici une ligne
+    # DEJA en base, incoherente avec les regles actuelles, comme les 3
+    # prescriptions reelles trouvees en test navigateur (anterieures a
+    # l'ajout de cette regle).
+    db_session.add(Prescription(
+        patient_id=patient_id, medication="BON D'EXAMEN", dosage="N/A",
+        frequency="N/A", duration="N/A", start_date=date_cls.today(),
+        is_lab_order=True, lab_exams_list=None,
+        prescribed_by=medecin.user_id, prescribed_by_name=medecin.username,
+    ))
+    db_session.flush()
+
+    client = api_client(auth_endpoints, prescriptions_endpoints)
+    headers = auth_headers(client, "test_presc_old_lab_order", TEST_PASSWORD)
+
+    resp = client.get("/prescriptions/", headers=headers)
+
+    assert resp.status_code == 200, resp.text
+    medications = [p["medication"] for p in resp.json()["data"]]
+    assert "BON D'EXAMEN" in medications

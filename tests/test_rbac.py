@@ -16,7 +16,7 @@ def test_admin_role_can_list_users(db_session, api_client):
     resp = client.get("/users/?search=test_rbac_admin", headers={"Authorization": f"Bearer {token}"})
 
     assert resp.status_code == 200
-    usernames = [u["username"] for u in resp.json()]
+    usernames = [u["username"] for u in resp.json()["data"]]
     assert "test_rbac_admin" in usernames
 
 

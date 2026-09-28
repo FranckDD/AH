@@ -22,4 +22,4 @@ view_pyqt6/
 view/
 htmlcov/
 build/
-dist/
+dist/*.log

@@ -39,7 +39,7 @@
                     
                     <div class="relative group cursor-pointer w-40 h-40 mb-4">
                         <img 
-                            :src="previewLogo || configStore.structureInfo.logo_url || '/placeholder-logo.png'" 
+                            :src="previewLogo || resolveAssetUrl(configStore.structureInfo.logo_url) || '/placeholder-logo.png'"
                             class="w-full h-full object-contain rounded-lg bg-white shadow-sm border p-2"
                             alt="Aperçu Logo"
                         />
@@ -347,6 +347,7 @@
 <script setup>
 import { ref, computed, onMounted, watch, reactive } from 'vue';
 import { useConfigStore } from '@/stores/configStore';
+import { resolveAssetUrl } from '@/services/api';
 import { useI18n } from 'vue-i18n';
 import { 
   PlusCircleIcon, 

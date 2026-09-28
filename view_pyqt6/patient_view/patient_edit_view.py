@@ -4,7 +4,7 @@ from typing import Optional, Any
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QComboBox,
     QDateEdit, QPushButton, QMessageBox, QScrollArea, QFormLayout,
-    QApplication, QSizePolicy, QDialog
+    QApplication, QSizePolicy, QDialog, QCheckBox, QGroupBox # 🟢 Ajout QCheckBox, QGroupBox
 )
 from PyQt6.QtCore import Qt, QDate
 from PyQt6.QtGui import QFont
@@ -19,6 +19,11 @@ class PatientsEditView(QWidget):
         self.resolver = ControllerResolver(controllers)
         self.controller = self.resolver.patient_controller()
         self.patient_id = patient_id
+
+        # Initialisation des widgets Checkbox
+        self.chk_clinical = None
+        self.chk_spiritual = None
+        self.chk_toxico = None
 
         self._setup_ui()
         self._load_patient()
@@ -47,6 +52,29 @@ class PatientsEditView(QWidget):
         form_layout.setContentsMargins(10, 10, 10, 10)
         form_layout.setSpacing(10)
         scroll_area.setWidget(form_container)
+
+        # 🟢 AJOUT : Section Type de Patient (Checkboxes)
+        type_group = QGroupBox("Type de Prise en charge")
+        type_layout = QHBoxLayout(type_group)
+        
+        self.chk_clinical = QCheckBox("Clinique")
+        self.chk_spiritual = QCheckBox("Spirituel")
+        self.chk_toxico = QCheckBox("Toxicologie")
+        
+        # Style pour rendre plus visible
+        chk_style = "font-weight: bold; font-size: 13px;"
+        self.chk_clinical.setStyleSheet(chk_style)
+        self.chk_spiritual.setStyleSheet(chk_style)
+        self.chk_toxico.setStyleSheet(chk_style)
+
+        type_layout.addWidget(self.chk_clinical)
+        type_layout.addWidget(self.chk_spiritual)
+        type_layout.addWidget(self.chk_toxico)
+        type_layout.addStretch() # Pousser vers la gauche
+
+        # On ajoute le groupe en haut du formulaire
+        form_layout.addRow(type_group)
+        # ----------------------------------------------------
 
         # Form fields
         self.fields = {}
@@ -153,9 +181,15 @@ class PatientsEditView(QWidget):
             if isinstance(patient_data, dict):
                 data = patient_data
             else:
+                # Si c'est un objet, on le convertit en dict ou on utilise getattr
+                # On récupère d'abord les champs standards
                 data = {key: getattr(patient_data, key, None) for key in self.fields.keys()}
+                # 🟢 On récupère aussi les drapeaux booléens
+                data['is_clinical'] = getattr(patient_data, 'is_clinical', False)
+                data['is_spiritual'] = getattr(patient_data, 'is_spiritual', False)
+                data['is_toxicology'] = getattr(patient_data, 'is_toxicology', False)
             
-            # Populate form fields
+            # Populate form fields (Standard)
             for key, widget in self.fields.items():
                 value = data.get(key)
                 if value is None:
@@ -176,12 +210,19 @@ class PatientsEditView(QWidget):
                         widget.setDate(date)
                     except Exception:
                         pass
+
+            # 🟢 Populate Checkboxes (Types)
+            if self.chk_clinical: self.chk_clinical.setChecked(bool(data.get('is_clinical')))
+            if self.chk_spiritual: self.chk_spiritual.setChecked(bool(data.get('is_spiritual')))
+            if self.chk_toxico: self.chk_toxico.setChecked(bool(data.get('is_toxicology')))
                         
         except Exception as e:
             QMessageBox.warning(self, "Erreur", f"Erreur lors du chargement: {str(e)}")
 
     def _collect_data(self):
         data = {}
+        
+        # 1. Collecte Champs Texte/Date
         for key, widget in self.fields.items():
             if isinstance(widget, QLineEdit):
                 value = widget.text().strip()
@@ -192,6 +233,11 @@ class PatientsEditView(QWidget):
                 qdate = widget.date()
                 data[key] = f"{qdate.year():04d}-{qdate.month():02d}-{qdate.day():02d}"
         
+        # 🟢 2. Collecte Checkboxes
+        data['is_clinical'] = self.chk_clinical.isChecked()
+        data['is_spiritual'] = self.chk_spiritual.isChecked()
+        data['is_toxicology'] = self.chk_toxico.isChecked()
+
         # Set empty strings to None
         optional_fields = ['national_id', 'contact_phone', 'assurance', 'residence', 'father_name', 'mother_name']
         for field in optional_fields:
@@ -211,6 +257,7 @@ class PatientsEditView(QWidget):
             return
         
         try:
+            # Grâce au Gateway, on appelle les méthodes standards
             if self.patient_id:
                 result = self.controller.update_patient(self.patient_id, data)
                 

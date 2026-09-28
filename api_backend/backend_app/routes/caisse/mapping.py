@@ -25,17 +25,19 @@ def normalize_caisse_data(raw):
         # Identifiants
         "transaction_id": lambda r: get_field(r, "transaction_id"), # Clé explicite
         "caisse_id": lambda r: get_field(r, "transaction_id"),      # Alias pour compatibilité
-        
+        "uuid": lambda r: str(get_field(r, "uuid")) if get_field(r, "uuid") else None,
+
         # Patient
         "patient_id": "patient_id",
         "patient_label": "patient_label",
         "patient_name": lambda r: get_field(getattr(r, "patient_by_id", None), "full_name") or get_field(r, "patient_label"),
+        "patient_contact": lambda r: get_field(getattr(r, "patient_by_id", None), "contact_phone"),
         
-        # Montants (Correction critique ici)
-        "amount": lambda r: parse_decimal(get_field(r, "amount")), # <--- C'est ce que le frontend attend
+        # Montants
+        "amount": lambda r: parse_decimal(get_field(r, "amount")),
         "advance_amount": lambda r: parse_decimal(get_field(r, "advance_amount")),
-        "amount_due": lambda r: parse_decimal(get_field(r, "amount") + get_field(r, "advance_amount")),
-        "amount_paid": lambda r: parse_decimal(get_field(r, "amount")),
+        "amount_due": lambda r: parse_decimal(get_field(r, "amount") - get_field(r, "advance_amount")),
+        "amount_paid": lambda r: parse_decimal(get_field(r, "advance_amount")),
         
         # Dates
         "paid_at": lambda r: parse_datetime(get_field(r, "paid_at")),
@@ -46,6 +48,9 @@ def normalize_caisse_data(raw):
         "transaction_type": "transaction_type", # <--- Manquait, maintenant ajouté
         "note": "note",
         "status": "status",
+        "cancelled_by": "cancelled_by",
+        "cancelled_at": lambda r: parse_datetime(get_field(r, "cancelled_at")),
+        "cancel_justification": "cancel_justification",
         "created_by_name": "created_by_name",
         "handled_by": "handled_by",
         

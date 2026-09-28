@@ -51,6 +51,10 @@ class ConsultationResponse(ConsultationBase):
     consultation_id: int = Field(..., description="PK")
     created_by: Optional[int] = Field(None)
     created_by_name: Optional[str] = Field(None)
+    # Registre J1 : la liste n'affichait que patient_id brut faute de nom
+    # expose ici - remplis depuis la relation .patient chargee au repo.
+    patient_name: Optional[str] = Field(None, description="Prenom + nom du patient")
+    patient_code: Optional[str] = Field(None, description="Code patient")
 
     model_config = ConfigDict(from_attributes=True, json_schema_extra={
         "example": {
@@ -71,6 +75,14 @@ class ConsultationResponse(ConsultationBase):
             "created_by_name": "dr.john"
         }
     })
+
+class ConsultationListResponse(BaseModel):
+    data: List[ConsultationResponse]
+    total: int
+    page: int
+    per_page: int
+    total_pages: int
+
 
 class PrayerBookTypeResponse(BaseModel):
     id: int

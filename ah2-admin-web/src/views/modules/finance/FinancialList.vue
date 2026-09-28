@@ -67,7 +67,7 @@
             </div>
             <div>
                 <p class="text-sm text-gray-500 font-medium uppercase">{{ t('finance.income') }}</p>
-                <p class="text-2xl font-bold text-gray-900">{{ formatCurrency(financialStore.totalIncome) }}</p>
+                <p class="text-2xl font-bold text-gray-900">{{ kpiAffiche(formatCurrency(financialStore.totalIncome)) }}</p>
             </div>
         </div>
 
@@ -77,14 +77,14 @@
             </div>
             <div>
                 <p class="text-sm text-gray-500 font-medium uppercase">{{ t('finance.expense') }}</p>
-                <p class="text-2xl font-bold text-gray-900">{{ formatCurrency(financialStore.totalExpenses) }}</p>
+                <p class="text-2xl font-bold text-gray-900">{{ kpiAffiche(formatCurrency(financialStore.totalExpenses)) }}</p>
             </div>
         </div>
 
         <div class="bg-gradient-to-r from-gray-800 to-gray-900 p-6 rounded-2xl shadow-lg text-white flex items-center justify-between">
             <div>
                 <p class="text-sm text-gray-400 font-medium uppercase">{{ t('finance.balance') }}</p>
-                <p class="text-3xl font-bold text-white">{{ formatCurrency(financialStore.currentBalance) }}</p>
+                <p class="text-3xl font-bold text-white">{{ kpiAffiche(formatCurrency(financialStore.currentBalance)) }}</p>
             </div>
             <BanknotesIcon class="h-10 w-10 text-gray-500 opacity-50" />
         </div>
@@ -99,7 +99,8 @@
                 <button @click="typeFilter = 'EXPENSE'" :class="typeFilter === 'EXPENSE' ? 'bg-red-600 text-white' : 'bg-red-50 text-red-700'" class="px-3 py-1 text-sm rounded-lg font-medium transition">Sorties</button>
             </div>
             <div class="text-sm text-gray-500">
-                {{ financialStore.pagination.total }} transactions trouvées
+                <span v-if="financialStore.loadError" class="text-red-600 font-medium">Erreur de chargement</span>
+                <span v-else>{{ financialStore.pagination.total }} transactions trouvées</span>
             </div>
         </div>
 
@@ -182,6 +183,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useFinancialStore } from '@/stores/financialStore';
+import { FinanceGateway } from '@/services/FinanceGateway';
 import { useI18n } from 'vue-i18n';
 import FinanceModal from '@/components/finance/FinanceModal.vue';
 import { 
@@ -202,13 +204,21 @@ const financialStore = useFinancialStore();
 // --- ETATS ---
 const showModal = ref(false);
 
-const availableCategories = [
-    'Consultation', 'Pharmacie', 'Hospitalisation','Examens' ,'Laboratoire', 
-    'Salaires', 'Matériel', 'Factures','Detox', 'Autre'
-];
+// Alimentee par les valeurs reellement presentes en base : la saisie
+// enregistre des codes anglais ('CONSULTATION') tandis que cette liste
+// contenait des libelles francais ('Consultation'), donc le filtre ne
+// pouvait jamais correspondre.
+const availableCategories = ref([]);
 
-onMounted(() => {
+onMounted(async () => {
     financialStore.fetchTransactions();
+    try {
+        const reponse = await FinanceGateway.fetchCategories();
+        availableCategories.value = reponse.data || [];
+    } catch (err) {
+        console.error('Categories financieres indisponibles:', err);
+        availableCategories.value = [];
+    }
 });
 
 // 🟢 COMPUTED PROPERTIES POUR LES FILTRES (GET/SET vers le Store)
@@ -250,6 +260,11 @@ const resetFilters = () => {
 const formatCurrency = (value) => {
     return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XAF' }).format(value).replace('XOF', 'FCFA');
 };
+
+// Meme regle que le tableau de bord (DashboardOverview.vue::valeurAffichee) :
+// un KPI en echec ne doit jamais s'afficher comme "0 FCFA", indistinguable
+// d'un vrai zero.
+const kpiAffiche = (valeurFormatee) => financialStore.kpiError ? 'Indisponible' : valeurFormatee;
 
 const handleSaveTransaction = async (transactionData) => {
     await financialStore.addTransaction(transactionData);

@@ -183,7 +183,7 @@ class PrescriptionListView(QWidget):
             QMessageBox.information(self, "Succès", "Supprimé")
             self.refresh()
         except Exception as e:
-            logger.exception("Erreur delete_prescription: %s", e)
+            #logger.exception("Erreur delete_prescription: %s", e)
             QMessageBox.warning(self, "Erreur", "Impossible de supprimer la prescription.")
 
     # Refresh logic: call controller with page/per_page/search/date range
@@ -222,13 +222,10 @@ class PrescriptionListView(QWidget):
                             except Exception:
                                 preview = "<unprintable object>"
                         invalid_preview.append(preview)
-                    logger.warning(
-                        "Prescriptions invalides retournées par API: %s",
-                        invalid_preview
-                    )
+                    #logger.warning("Prescriptions invalides retournées par API: %s",invalid_preview)
 
             except Exception as e:
-                logger.exception("Erreur appel list_prescriptions: %s", e)
+                #logger.exception("Erreur appel list_prescriptions: %s", e)
                 QMessageBox.warning(self, "Erreur réseau", f"Impossible de récupérer les prescriptions: {e}")
                 raw = {"data": [], "total": 0}
 
@@ -343,7 +340,7 @@ class PrescriptionListView(QWidget):
             self._set_selection_enabled(False)
 
         except Exception as e:
-            logger.exception("Erreur refresh prescriptions: %s", e)
+            #logger.exception("Erreur refresh prescriptions: %s", e)
             QMessageBox.warning(self, "Erreur", "Impossible de charger les prescriptions.")
 
     def _set_selection_enabled(self, enabled: bool):

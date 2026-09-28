@@ -54,7 +54,7 @@ class ApiControllerProxy:
         # ...
         preserve_prefixes = (
             'get_', 'create_', 'update_', 'delete_', 'count_', 'kpi_', 'post_',
-            'add_', 'settle_'  # <--- AJOUTER 'add_' et 'settle_' ICI
+            'add_', 'settle_','change_','renew_'  # <--- AJOUTER 'add_' et 'settle_' ICI
         )
         return any(method_name.startswith(p) for p in preserve_prefixes)
 

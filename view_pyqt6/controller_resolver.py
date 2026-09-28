@@ -278,6 +278,23 @@ class ControllerResolver:
             return ctrl.list_critical_or_empty()
         return []
     
+    def change_user_password(self, user_id: int, old_pass: str, new_pass: str):
+        """
+        Méthode utilitaire pour changer le mot de passe.
+        Route intelligemment vers le Gateway (Online) ou le Controller Local (Offline).
+        """
+        # 1. Priorité au mode connecté via Gateway
+        if self.gateway and self.gateway.is_online():
+            return self.gateway.change_user_password(user_id, old_pass, new_pass)
+        
+        # 2. Fallback sur le contrôleur local (auth_controller)
+        # Cela gérera le cas Offline via AuthControllerOffline
+        ctrl = self.auth_controller()
+        if ctrl and hasattr(ctrl, "change_user_password"):
+            return ctrl.change_user_password(user_id, old_pass, new_pass)
+            
+        raise RuntimeError("Impossible de changer le mot de passe : aucun service disponible.")
+    
     
     
     

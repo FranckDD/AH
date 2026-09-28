@@ -18,7 +18,7 @@ export const DashboardGateway = {
     },
 
     async getFinanceDebt(startDate, endDate) {
-        const params = { date_from: startDate, date_to: endDate };
+        const params = { date_from: startDate, date_to: endDate, status: 'active' };
         return api.get('/caisse/total_remaining_due', { params });
     },
 

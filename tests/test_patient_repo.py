@@ -10,6 +10,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 # Adapte l'import selon ton projet
 from repositories.patient_repo import PatientRepository
+from tests.conftest import create_test_user, create_test_patient
 
 def make_repo_with_mock_session():
     mock_session = MagicMock()
@@ -57,3 +58,40 @@ def test_update_patient_not_found():
     res = repo.update_patient(patient_id=999, data={"first_name": "X"}, current_user={"id": 1})
     assert res is None
     mock_session.commit.assert_not_called()
+
+
+def test_compute_domain_flags_reflete_les_dossiers_reels(db_session):
+    """Bug corrige par le chantier 6 : patients.is_clinical/is_toxicology/
+    is_spiritual sont poses une seule fois a la creation et jamais remis a
+    jour. compute_domain_flags() doit calculer a partir de l'existence
+    reelle d'un dossier, sans lecture de ces colonnes."""
+    from repositories.patient_repo import PatientRepository
+    from models.medical_record import MedicalRecord
+    from models.toxico import ToxicoDossier
+    from datetime import date
+
+    admin = create_test_user(db_session, "flags_admin", "admin")
+    db_session.flush()
+    patient_id, _ = create_test_patient(
+        db_session, admin,
+        is_clinical=False, is_toxicology=False, is_spiritual=False,
+    )
+    db_session.flush()
+
+    repo = PatientRepository(db_session)
+
+    # Aucun dossier dans aucun domaine : tout doit etre faux, meme si
+    # is_clinical/is_toxicology valaient True en base.
+    flags = repo.compute_domain_flags(patient_id)
+    assert flags == {"is_clinical": False, "is_toxicology": False, "is_spiritual": False}
+
+    # On ajoute un dossier medical sans jamais toucher aux colonnes
+    # is_clinical/is_toxicology/is_spiritual du patient.
+    db_session.add(MedicalRecord(patient_id=patient_id, motif_code="consultation"))
+    db_session.add(ToxicoDossier(
+        patient_id=patient_id, admission_date=date.today(), substance="Alcool",
+    ))
+    db_session.flush()
+
+    flags = repo.compute_domain_flags(patient_id)
+    assert flags == {"is_clinical": True, "is_toxicology": True, "is_spiritual": False}

@@ -1,3 +1,4 @@
+import uuid
 from datetime import datetime
 from sqlalchemy import (
     Column,
@@ -8,6 +9,7 @@ from sqlalchemy import (
     ForeignKey,
     String
 )
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from models.database import Base  # ou l’équivalent de votre Base SQLAlchemy
 
@@ -28,6 +30,7 @@ class CaisseRetrait(Base):
     # 🟢 AJOUTS
     category = Column(String(50), nullable=True)       # Peut être null
     payment_method = Column(String(50), nullable=True) # Peut être null
+    uuid = Column(UUID(as_uuid=True), unique=True, nullable=False, default=uuid.uuid4)
 
     # Relation SQLAlchemy vers l’utilisateur
     user                  = relationship(

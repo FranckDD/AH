@@ -1,5 +1,6 @@
 # models/caisse.py
 
+import uuid
 from datetime import datetime
 from sqlalchemy import (
     Column,
@@ -10,8 +11,9 @@ from sqlalchemy import (
     DateTime,
     ForeignKey,
 )
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
-from .database import Base  
+from .database import Base
 
 
 class Caisse(Base):
@@ -29,10 +31,15 @@ class Caisse(Base):
     patient_label     = Column(String(100), nullable=True)
     note = Column(Text, nullable=True)
     status          = Column(String, nullable=False, default='active')
+    cancelled_by         = Column(Integer, ForeignKey("users.user_id"), nullable=True)
+    cancelled_at         = Column(DateTime, nullable=True)
+    cancel_justification = Column(Text, nullable=True)
+    uuid = Column(UUID(as_uuid=True), unique=True, nullable=False, default=uuid.uuid4)
+    upload_error = Column(Text, nullable=True)
 
     # Relations
-     
-    handler = relationship('User')
+
+    handler = relationship('User', foreign_keys=[handled_by])
     patient_by_id = relationship(
         'Patient',
         back_populates='caisse_entries_by_id',

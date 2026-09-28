@@ -2,6 +2,7 @@
 import { defineStore } from 'pinia';
 import api from '@/services/api';
 import router from '@/router'; // 🟢 1. Importer le router pour la redirection
+import { connectPowerSync, disconnectPowerSync } from '@/powersync-client/client';
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
@@ -29,6 +30,19 @@ export const useAuthStore = defineStore('auth', {
     isToxicoTeam: (state) => {
         const role = state.user?.application_role?.role_name || 'Guest';
         return ['admin', 'ToxicoManager', 'Psychologist', 'Assistant'].includes(role);
+    },
+
+    // Comparaison de role insensible a la casse (registre L4e) - meme
+    // logique que router/index.js:386-389, qui normalise deja userRole et
+    // la liste autorisee avant de comparer. Les 7 endroits qui comparaient
+    // authStore.userRole directement (sans normalisation) sont fragiles au
+    // moindre ecart de casse en base ; ce getter est le point de verite
+    // unique a utiliser desormais pour toute nouvelle garde de role.
+    hasRole(state) {
+        return (allowedRoles) => {
+            const role = (this.userRole || '').toLowerCase();
+            return (allowedRoles || []).some((r) => (r || '').toLowerCase() === role);
+        };
     }
   },
 
@@ -59,13 +73,45 @@ export const useAuthStore = defineStore('auth', {
 
         localStorage.setItem('user', JSON.stringify(this.user));
 
-        return true; 
+        const role = this.user.application_role?.role_name;
+        if (role === 'medecin' || role === 'nurse' || role === 'secretaire' || role === 'laborantin') {
+          // Volontairement NON attendu. L'ouverture de la base locale OPFS +
+          // le premier sync prennent parfois plusieurs secondes (verrou de
+          // fichier dispute entre contextes navigateur), et tant que c'etait
+          // attendu ici, la fenetre medicale ne s'ouvrait qu'apres ce delai -
+          // alors que rien a l'ecran n'en depend a cet instant. La connexion
+          // se poursuit en arriere-plan ; les ecrans qui lisent vraiment les
+          // tables synchronisees attendent waitForInitialSync() eux-memes.
+          connectPowerSync(role).catch((error) => {
+            console.error('Connexion PowerSync echouee (l\'application reste utilisable) :', error);
+          });
+        }
+
+        return true;
 
       } catch (error) {
         console.error("Erreur Login:", error);
         this.logout(); 
         throw error;
       }
+    },
+
+    async updateProfile(payload) {
+      const response = await api.put('/auth/profile', payload);
+      this.user = { ...this.user, ...response.data };
+      localStorage.setItem('user', JSON.stringify(this.user));
+      return response.data;
+    },
+
+    async fetchMe() {
+      const response = await api.get('/auth/me');
+      this.user = { ...this.user, ...response.data };
+      localStorage.setItem('user', JSON.stringify(this.user));
+      return response.data;
+    },
+
+    async changePassword(payload) {
+      return api.put('/auth/password', payload);
     },
 
     async logout() {
@@ -75,6 +121,14 @@ export const useAuthStore = defineStore('auth', {
         await api.post('/auth/logout');
       } catch (error) {
         console.warn("Echec de la revocation serveur du token :", error);
+      }
+
+      // 0.5 Deconnecter PowerSync avant de nettoyer l'etat (best-effort,
+      //     comme la revocation serveur - ne doit jamais bloquer le logout)
+      try {
+        await disconnectPowerSync();
+      } catch (error) {
+        console.warn("Echec de la deconnexion PowerSync :", error);
       }
 
       // 1. Nettoyer l'état Pinia

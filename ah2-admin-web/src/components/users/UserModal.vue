@@ -149,7 +149,7 @@ const isEditing = computed(() => !!props.userToEdit)
 const showPassword = ref(false)
 
 const GROUP_MAPPING = {
-  app_admin: ['admin', 'Psychologist', 'SpiritualCounsellor', 'ToxicoManager', 'Assistant'],
+  app_admin: ['admin', 'promoteur', 'Psychologist', 'SpiritualCounsellor', 'ToxicoManager', 'Assistant'],
   app_medical: ['medecin', 'nurse'],
   app_secretaire: ['secretaire'],
   app_laborantin: ['laborantin']
@@ -216,6 +216,7 @@ const handleRoleChange = () => {
 const prettyRole = (name) => {
   const map = {
     admin: 'Administrateur',
+    promoteur: 'Promoteur',
     medecin: 'Médecin',
     nurse: 'Infirmier(e)',
     secretaire: 'Secrétaire',

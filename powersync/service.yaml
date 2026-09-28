@@ -1,0 +1,53 @@
+# yaml-language-server: $schema=https://unpkg.com/@powersync/service-schema@latest/json-schema/powersync-config.json
+#
+# Configuration du service PowerSync self-hoste pour AH2 (chantier 4).
+# `!env PS_XXX` substitue la variable d'environnement du meme nom (voir
+# docker-compose.yaml / .env) - seules les variables prefixees PS_ sont
+# substituables.
+
+_type: self-hosted
+
+telemetry:
+  disable_telemetry_sharing: false
+
+# Connexion au Postgres source (donnees reelles AH2, natif Windows,
+# atteint depuis le conteneur via host.docker.internal).
+replication:
+  connections:
+    - type: postgresql
+      uri: !env PS_DATA_SOURCE_URI
+      sslmode: disable # base locale, pas d'exposition reseau publique
+
+# Stockage interne PowerSync (buckets/etat de replication) - base separee,
+# aucune donnee applicative AH2 n'y est copiee.
+storage:
+  type: postgresql
+  uri: !env PS_STORAGE_SOURCE_URI
+  sslmode: disable
+
+port: !env PS_PORT
+
+sync_config:
+  path: sync-config.yaml
+
+# Authentification cote client - cle HS256 partagee avec le JWT_SECRET
+# applicatif reel (voir api_backend/backend_app/routes/auth/auth_endpoints.py
+# :: login()). audience/kid doivent correspondre exactement aux claims
+# aud/kid emis par ce backend ("ah2-web" / "ah2-hs256-1").
+client_auth:
+  audience: ["ah2-web"]
+  jwks:
+    keys:
+      - kty: oct
+        alg: HS256
+        kid: ah2-hs256-1
+        k: !env PS_APP_HS256_SECRET
+
+api:
+  tokens:
+    - !env PS_ADMIN_TOKEN
+
+system:
+  logging:
+    level: info
+    format: text

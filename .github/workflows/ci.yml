@@ -41,7 +41,10 @@ jobs:
           python-version: "3.12"
 
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        # requirements-api.txt (chantier 2c) : la CI teste l'API, pas le
+        # desktop PyQt6 - evite d'installer PyQt6/matplotlib/reportlab/
+        # openpyxl/PyInstaller inutilement, CI plus rapide.
+        run: pip install -r requirements-api.txt
 
       - name: Create app_medical role (RLS policy dependency)
         run: psql "$DATABASE_URL" -c "CREATE ROLE app_medical;"

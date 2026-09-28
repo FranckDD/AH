@@ -14,7 +14,7 @@ from repositories.repo_offline.appointment_repo_offline import AppointmentReposi
 # Controllers (même implémentation que pour online)
 from controller.patient_controller import PatientController
 from controller.medical_controller import MedicalRecordController
-from controller.prescription_controller import PrescriptionController
+from controller.prescription_controller import 
 from controller.appointment_controller import AppointmentController
 
 logger = logging.getLogger(__name__)

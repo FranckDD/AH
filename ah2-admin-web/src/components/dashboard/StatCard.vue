@@ -32,7 +32,7 @@
 <script setup>
 defineProps({
   title: { type: String, required: true },
-  value: { type: String, required: true },
+  value: { type: [String, Number], required: true },
   icon: { type: [Object, Function], required: true },
   colorClass: { type: String, default: 'bg-blue-500' }, // Fond de l'icône
   iconColor: { type: String, default: 'text-blue-600' }, // Couleur de l'icône elle-même

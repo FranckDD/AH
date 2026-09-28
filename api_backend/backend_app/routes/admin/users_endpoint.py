@@ -11,7 +11,7 @@ from repositories.user_repo import UserRepository
 from repositories.role_repo import RoleRepository
 from api_backend.backend_app.routes.auth.auth_endpoints import get_current_user, role_required
 from api_backend.backend_app.exceptions import translate_integrity_error
-from .users_schemas import RoleOut, SpecialtyOut, UserCreate, UserUpdate, UserOut
+from .users_schemas import RoleOut, SpecialtyOut, UserCreate, UserUpdate, UserOut, UserListResponse
 from .mapping import normalize_user_data
 
 logger = logging.getLogger(__name__)
@@ -68,26 +68,58 @@ def list_specialties(controller: UserController = Depends(get_user_controller)):
         raise HTTPException(status_code=500, detail="Erreur serveur lecture spécialités")
 
 
-@router.get("/", response_model=List[UserOut], dependencies=[Depends(role_required("admin", "manager"))])
+@router.get("/", response_model=UserListResponse, dependencies=[Depends(role_required("admin", "manager", "ToxicoManager"))])
 def list_users(
     page: int = Query(1, ge=1),
     per_page: int = Query(50, ge=1, le=500),
     search: Optional[str] = None,
     user_ctrl: UserController = Depends(get_user_controller),
 ):
-    """Liste tous les utilisateurs ou recherche par terme."""
+    """Liste tous les utilisateurs ou recherche par terme, toujours paginee."""
     if search:
-        raws = user_ctrl.search_users(search)
-        results = [_safe_validate_user(u) for u in raws]
+        raws, total = user_ctrl.search_users(search, page=page, per_page=per_page)
     else:
-        raws = user_ctrl.list_users(page=page, per_page=per_page) 
-        results = [_safe_validate_user(u) for u in raws]
-    return results
+        raws, total = user_ctrl.list_users(page=page, per_page=per_page)
+    return {
+        "data": [_safe_validate_user(u) for u in raws],
+        "total": total,
+        "page": page,
+        "per_page": per_page,
+        "total_pages": (total + per_page - 1) // per_page if per_page > 0 else 1,
+    }
+
+
+@router.get("/doctors", response_model=List[UserOut])
+def list_doctors(user_ctrl: UserController = Depends(get_user_controller)):
+    """Récupère la liste des médecins actifs pour les sélections (prescriptions)."""
+    try:
+        raws = user_ctrl.get_doctors()
+        return [_safe_validate_user(u) for u in raws]
+    except Exception as e:
+        logger.exception("Erreur lors de la récupération des médecins")
+        raise HTTPException(status_code=500, detail=str(e)) 
+
+
+@router.get("/managers", response_model=List[UserOut])
+def list_managers(user_ctrl: UserController = Depends(get_user_controller)):
+    """Récupère les comptes admin/promoteur actifs pour le sélecteur de
+    destinataire d'une demande de réduction (chantier notifications)."""
+    try:
+        raws = user_ctrl.user_repo.get_users_by_role_names(["admin", "promoteur"])
+        return [_safe_validate_user(u) for u in raws]
+    except Exception as e:
+        logger.exception("Erreur lors de la récupération des managers")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/search", response_model=List[UserOut], dependencies=[Depends(role_required("admin", "manager"))])
-def search_users(q: str = Query(..., min_length=1), user_ctrl: UserController = Depends(get_user_controller)):
-    results = user_ctrl.search_users(q)
+def search_users(
+    q: str = Query(..., min_length=1),
+    page: int = Query(1, ge=1),
+    per_page: int = Query(50, ge=1, le=500),
+    user_ctrl: UserController = Depends(get_user_controller),
+):
+    results, _total = user_ctrl.search_users(q, page=page, per_page=per_page)
     return [_safe_validate_user(u) for u in results]
 
 
@@ -98,6 +130,7 @@ def get_user(user_id: int, user_ctrl: UserController = Depends(get_user_controll
         return _safe_validate_user(u)
     except ValueError as ve:
         raise HTTPException(status_code=404, detail=str(ve))
+       
 
 
 # =========================================================================

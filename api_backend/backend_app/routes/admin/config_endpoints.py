@@ -1,5 +1,5 @@
 from typing import Optional, Any
-from fastapi import APIRouter, Depends, UploadFile, File, Form, Request, HTTPException
+from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException
 from sqlalchemy.orm import Session
 
 from api_backend.backend_app.database import SessionLocal
@@ -60,7 +60,6 @@ def get_structure_info(
 
 @router.post("/structure", response_model=Any, dependencies=[Depends(role_required("admin"))])
 async def update_structure_info(
-    request: Request,
     # On utilise Form() pour chaque champ car c'est du multipart/form-data
     name: str = Form(...),
     slogan: Optional[str] = Form(None),
@@ -99,14 +98,10 @@ async def update_structure_info(
         "legal_info": legal_info
     }
     
-    # Pour construire l'URL absolue du logo (ex: http://localhost:8000)
-    base_url = str(request.base_url).rstrip("/")
-
     try:
         updated_config = ctrl.update_structure_info(
             data_dict=data,
             logo_file=logo,  # type: ignore
-            base_url=base_url
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))

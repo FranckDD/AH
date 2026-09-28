@@ -116,29 +116,33 @@ class MedicalRecordRepository:
         data.setdefault('created_by_name', None)
         data.setdefault('last_updated_by', None)
         data.setdefault('last_updated_by_name', None)
+        data.setdefault('appointment_id', None)
+        data.setdefault('uuid', None)
 
-        # 2. Mise à jour de la chaîne SQL pour inclure les 4 derniers paramètres
+        # 2. Mise à jour de la chaîne SQL pour inclure les 5 derniers paramètres
         sql = text("""
             CALL public.create_medical_record(
-                :patient_id, 
-                LOCALTIMESTAMP, 
-                :marital_status, 
+                :patient_id,
+                LOCALTIMESTAMP,
+                :marital_status,
                 :bp,
-                :temperature, 
-                :weight, 
-                :height, 
-                :medical_history, 
+                :temperature,
+                :weight,
+                :height,
+                :medical_history,
                 :allergies,
-                :symptoms, 
-                :diagnosis, 
-                :treatment, 
-                :severity, 
-                :notes, 
+                :symptoms,
+                :diagnosis,
+                :treatment,
+                :severity,
+                :notes,
                 :motif_code,
-                :created_by,          -- AJOUTÉ
-                :created_by_name,     -- AJOUTÉ
-                :last_updated_by,     -- AJOUTÉ
-                :last_updated_by_name -- AJOUTÉ
+                :created_by,
+                :created_by_name,
+                :last_updated_by,
+                :last_updated_by_name,
+                :appointment_id,
+                :uuid
             )
         """)
         

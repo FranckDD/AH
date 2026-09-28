@@ -1,10 +1,11 @@
 # repositories/consultation_spirituel_repo.py
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import desc, or_, func
 from models.consultation_spirituelle import ConsultationSpirituel
 from models.prayer_book_type import PrayerBookType
+from models.patient import Patient
 from datetime import datetime
-from typing import List
-from sqlalchemy import desc
+from typing import List, Optional
 #from models.consultation_spirituelle import ConsultationSpirituel
 
 class ConsultationSpirituelRepository:
@@ -12,8 +13,49 @@ class ConsultationSpirituelRepository:
         self.session = session
         self.model = ConsultationSpirituel
 
-    def list_all(self):
-        return self.session.query(ConsultationSpirituel).all()
+    def list_all(self, search: Optional[str] = None):
+        # registre J1 : "search" etait deja declare cote endpoint mais
+        # jamais branche jusqu'ici (aucun filtre applique). joinedload
+        # systematique (pas seulement quand search est fourni) : le
+        # mapping de reponse a aussi besoin du nom/code patient pour
+        # remplacer l'affichage brut de patient_id cote frontend.
+        query = (
+            self.session.query(ConsultationSpirituel)
+            .options(joinedload(ConsultationSpirituel.patient))
+        )
+        if search:
+            term = f"%{search.strip()}%"
+            query = query.join(Patient, ConsultationSpirituel.patient_id == Patient.patient_id).filter(
+                or_(
+                    Patient.first_name.ilike(term),
+                    Patient.last_name.ilike(term),
+                    Patient.code_patient.ilike(term),
+                )
+            )
+        return query.all()
+
+    def list_all_for_export(self, search: Optional[str] = None, date_from=None, date_to=None):
+        """Meme filtre que list_all (recherche + jointure Patient), plus
+        periode sur consultation_date - destine a l'export, sans
+        pagination."""
+        query = (
+            self.session.query(ConsultationSpirituel)
+            .options(joinedload(ConsultationSpirituel.patient))
+        )
+        if search:
+            term = f"%{search.strip()}%"
+            query = query.join(Patient, ConsultationSpirituel.patient_id == Patient.patient_id).filter(
+                or_(
+                    Patient.first_name.ilike(term),
+                    Patient.last_name.ilike(term),
+                    Patient.code_patient.ilike(term),
+                )
+            )
+        if date_from:
+            query = query.filter(func.date(ConsultationSpirituel.consultation_date) >= date_from)
+        if date_to:
+            query = query.filter(func.date(ConsultationSpirituel.consultation_date) <= date_to)
+        return query.order_by(desc(ConsultationSpirituel.consultation_date)).all()
 
     def find_by_patient(self, patient_id: int):
         return (self.session.query(ConsultationSpirituel)
@@ -26,6 +68,7 @@ class ConsultationSpirituelRepository:
             presc_generic      = data.get('presc_generic'),
             presc_med_spirituel= data.get('presc_med_spirituel'),
             mp_type            = data.get('mp_type'),
+            psaume             = data.get('psaume'),
             fr_registered_at   = data.get('fr_registered_at'),
             fr_appointment_at  = data.get('fr_appointment_at'),
             fr_amount_paid     = data.get('fr_amount_paid'),

@@ -72,17 +72,76 @@ const password = ref('');
 const error = ref(null);
 const isLoading = ref(false);
 
+// 🟢 FONCTION INTELLIGENTE DE REDIRECTION
+// C'est ici que tu définis la "Home Page" de chaque rôle
+const getRedirectPath = (role) => {
+    // Normalisation reelle (registre L4e, chantier L4b-e) - le switch
+    // comparait avant la casse exacte de la BD malgre ce commentaire.
+    const userRole = (role || '').toLowerCase();
+
+    switch (userRole) {
+        case 'admin':
+            // L'admin va sur la vue d'ensemble globale
+            return '/dashboard/overview';
+
+        case 'promoteur':
+            // Meme vue d'ensemble que l'admin (regard global sur
+            // l'activite), sans les actions d'administration - route
+            // MainLayout.vue gardee separement par role sur chaque item
+            return '/dashboard/overview';
+
+        case 'psychologist':
+        case 'spiritualcounsellor':
+            // Eux n'ont accès qu'à la partie Toxico
+            return '/dashboard/toxico-dashboard';
+
+        // ✅ NOUVEAU : Rôle LABO
+        case 'laborantin':
+        case 'biologiste': // Si tu as ce rôle
+            // On le redirige vers SON tableau de bord spécifique
+            return '/dashboard/labo/overviewlab';
+
+        case 'toxicomanager':
+        case 'assistant':
+            // Le manager Toxico a aussi intérêt à voir le dashboard Toxico en premier
+            return '/dashboard/toxico-dashboard';
+
+        case 'medecin':
+        case 'nurse':
+            // Fenetre medicale independante (chantier 3) - jamais le dashboard toxico
+            return '/medical/appointments';
+
+        case 'secretaire':
+            // Fenetre secretariat independante (chantier 3, sous-projet 2)
+            return '/secretariat/';
+
+        default:
+            // Par sécurité, si le rôle est inconnu, on tente une page neutre ou on laisse le router gérer
+            return '/dashboard/toxico-dashboard'; 
+    }
+};
+
 const handleLogin = async () => {
   error.value = null; 
   isLoading.value = true;
 
   try {
+    // 1. Appel API pour login
     await authStore.login(username.value, password.value);
     
-    // Redirection après succès
-    router.push('/');
+    // 2. Récupération du rôle (maintenant disponible dans le store)
+    const role = authStore.userRole;
+
+    // 3. Calcul de la route de destination
+    const targetRoute = getRedirectPath(role);
+
+    //console.log(`Connexion réussie. Rôle: ${role} -> Redirection vers: ${targetRoute}`);
+
+    // 4. Redirection ciblée
+    router.push(targetRoute);
 
   } catch (err) {
+    console.error(err);
     if (err.response && err.response.status === 401) {
       error.value = 'Identifiants ou mot de passe incorrects. Veuillez vérifier.';
     } else {
@@ -95,5 +154,5 @@ const handleLogin = async () => {
 </script>
 
 <style scoped>
-/* Les styles spécifiques de ce composant sont gérés par Tailwind, cette section reste propre. */
+/* Tailwind gère tout */
 </style>

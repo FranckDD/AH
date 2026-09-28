@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(
     prefix="/pharmacy",
     tags=["pharmacy"],
-    dependencies=[Depends(role_required("secretaire","admin","manager"))]
+    dependencies=[Depends(role_required("secretaire","admin","Assistant","ToxicoManager"))]
 )
 
 def get_db():

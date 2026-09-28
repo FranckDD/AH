@@ -153,6 +153,40 @@ def reset_rate_limiter():
     yield
 
 
+def _flush_redis_cache():
+    """
+    Registre M1 (docs/superpowers/SUIVI-AVANCEMENT.md) : les helpers
+    create_test_prescription/create_test_transaction/create_test_retrait
+    ci-dessous appellent le repository directement, jamais le controller -
+    donc jamais l'invalidation de cache (redis_client.delete(...)) que le
+    controller effectue normalement a la creation reelle. Un test qui lit
+    un compteur/total AVANT puis APRES l'un de ces helpers retombait sur
+    la valeur mise en cache par la lecture "avant", des que Redis est
+    reellement joignable (ne se produisait jamais avant que Redis ne
+    tourne enfin dans cette session). Best-effort : un Redis injoignable
+    ne doit jamais faire echouer un test qui n'a rien a voir avec le
+    cache (meme motif defensif que le reste du code applicatif, ex.
+    patient_controller.get_global_counts).
+    """
+    try:
+        from controller.patient_controller import redis_client
+        redis_client.flushdb()
+    except Exception:
+        pass
+
+
+@pytest.fixture(autouse=True)
+def flush_redis_cache_between_tests():
+    """
+    Meme motif que reset_rate_limiter ci-dessus : isole aussi le cache
+    Redis d'un test au suivant (un test qui echoue/leve avant d'appeler
+    un des helpers ci-dessus pourrait sinon laisser une valeur en cache
+    lue par le test suivant).
+    """
+    _flush_redis_cache()
+    yield
+
+
 def create_test_prescription(session, patient_id, current_user, **overrides):
     """
     Cree une prescription ephemere en appelant directement le repository
@@ -184,6 +218,7 @@ def create_test_prescription(session, patient_id, current_user, **overrides):
     }
     repo = PrescriptionRepository(session)
     repo.create(data)
+    _flush_redis_cache()
     return data
 
 
@@ -216,7 +251,9 @@ def create_test_transaction(session, current_user, **overrides):
         **overrides,
     }
     repo = CaisseRepository(session)
-    return repo.create_transaction(data, current_user)
+    result = repo.create_transaction(data, current_user)
+    _flush_redis_cache()
+    return result
 
 
 def create_test_retrait(session, current_user, **overrides):
@@ -224,6 +261,7 @@ def create_test_retrait(session, current_user, **overrides):
     Cree un retrait de caisse ephemere en appelant directement
     CaisseRetraitRepository.create().
     """
+    retrait_at = overrides.pop("retrait_at", None)
     data = {
         "amount": 50.0,
         "justification": "Retrait de test",
@@ -233,4 +271,9 @@ def create_test_retrait(session, current_user, **overrides):
         **overrides,
     }
     repo = CaisseRetraitRepository(session)
-    return repo.create(**data)
+    retrait = repo.create(**data)
+    if retrait_at is not None:
+        retrait.retrait_at = retrait_at
+        session.flush()
+    _flush_redis_cache()
+    return retrait

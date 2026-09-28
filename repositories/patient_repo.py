@@ -1,6 +1,6 @@
 # repositories/patient_repository.py
 from datetime import date
-from sqlalchemy import text, or_
+from sqlalchemy import text, or_, exists
 from sqlalchemy.orm import Session
 from models.database import DatabaseManager
 from models.patient import Patient
@@ -9,6 +9,8 @@ from models.user import User
 from models.application_role import ApplicationRole
 from models.appointment import Appointment
 from models.medical_record import MedicalRecord
+from models.toxico import ToxicoDossier
+from models.consultation_spirituelle import ConsultationSpirituel
 from datetime import datetime, date, timedelta,time
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.engine import Result
@@ -128,9 +130,19 @@ class PatientRepository:
             raise Exception("La fonction stockée n'a retourné aucune donnée.")
         
         patient_id, patient_code = row[0], row[1]
-        
+
+        # La fonction stockee create_patient() ne prend pas d'uuid : l'uuid
+        # client (patient cree hors ligne) est ecrit juste apres l'insertion,
+        # dans la meme transaction (aucun commit ici, gere par l'appelant).
+        client_uuid = data.get("uuid")
+        if client_uuid:
+            self.session.execute(
+                text("UPDATE patients SET uuid = CAST(:u AS uuid) WHERE patient_id = :pid"),
+                {"u": str(client_uuid), "pid": int(patient_id)},
+            )
+
         # 🛑 self.session.commit() RETIRÉ
-        
+
         return int(patient_id), patient_code
 
     def update_patient(self, patient_id: int, data: dict, current_user) -> int:
@@ -209,6 +221,17 @@ class PatientRepository:
             self.session.rollback()
             raise
 
+    def get_id_by_uuid(self, client_uuid: str, only_active: bool = False) -> Optional[int]:
+        """patient_id correspondant a un uuid (index unique patients_uuid_key).
+        only_active=True exclut les patients supprimes (resolution d'un
+        rattachement consultation/prescription) ; False les inclut (rejeu
+        idempotent d'une creation)."""
+        sql = "SELECT patient_id FROM patients WHERE uuid = CAST(:u AS uuid)"
+        if only_active:
+            sql += " AND is_deleted = false"
+        row = self.session.execute(text(sql), {"u": str(client_uuid)}).fetchone()
+        return int(row[0]) if row else None
+
     def get_by_id(self, patient_id: int) -> Optional[Dict[str, Any]]:
         # On ajoute le filtre is_deleted == False
         p = self.session.query(Patient).filter(Patient.patient_id == patient_id, Patient.is_deleted == False).first()
@@ -232,19 +255,68 @@ class PatientRepository:
             'is_toxicology': p.is_toxicology,
             'is_spiritual': p.is_spiritual
         }
-    
+
+    def get_by_id_any_status(self, patient_id: int) -> Optional[Dict[str, Any]]:
+        """Identique a get_by_id, SANS le filtre is_deleted - reservee au
+        court-circuit idempotent de POST /patients (Task 2) : un patient
+        deja cree avec cet uuid doit etre reconnu comme "deja cree" meme
+        s'il a ete supprime depuis, jamais renvoyer une IntegrityError sur
+        patients_uuid_key (index unique sans clause WHERE, l'uuid reste
+        pris apres suppression) qui serait a tort traitee comme un doublon
+        cote client (quarantaine PowerSync, sous-projet 3)."""
+        p = self.session.query(Patient).filter(Patient.patient_id == patient_id).first()
+        if not p:
+            return None
+        return {
+            'patient_id': p.patient_id,
+            'code_patient': p.code_patient,
+            'first_name': p.first_name,
+            'last_name': p.last_name,
+            'birth_date': p.birth_date,
+            'gender': p.gender,
+            'national_id': p.national_id,
+            'contact_phone': p.contact_phone,
+            'assurance': p.assurance,
+            'residence': p.residence,
+            'father_name': p.father_name,
+            'mother_name': p.mother_name,
+            'is_clinical': p.is_clinical,
+            'is_toxicology': p.is_toxicology,
+            'is_spiritual': p.is_spiritual
+        }
+
+    def compute_domain_flags(self, patient_id: int) -> dict:
+        """Calcule les drapeaux de domaine a la lecture, a partir de
+        l'existence reelle de dossiers - jamais depuis une colonne stockee.
+        Remplace patients.is_clinical/is_toxicology/is_spiritual comme source
+        de verite pour toute decision d'affichage ou de filtrage (registre L2,
+        chantier 6)."""
+        return {
+            "is_clinical": self.session.query(
+                exists().where(MedicalRecord.patient_id == patient_id)
+            ).scalar(),
+            "is_toxicology": self.session.query(
+                exists().where(ToxicoDossier.patient_id == patient_id)
+            ).scalar(),
+            "is_spiritual": self.session.query(
+                exists().where(ConsultationSpirituel.patient_id == patient_id)
+            ).scalar(),
+        }
+
     def list_patients(self, page: int = 1, per_page: int = 10, search: Optional[str] = None, filters: Dict[str, bool] = None):
         # Filtre de base : Non supprimés
         query = self.session.query(Patient).filter(Patient.is_deleted == False)
 
-        # 1. Filtres de Service
+        # 1. Filtres de Service - EXISTS correle, jamais une colonne stockee
+        # (chantier 6 : is_clinical/is_toxicology/is_spiritual ne sont plus
+        # une source de verite, voir compute_domain_flags)
         if filters:
             if filters.get('is_clinical'):
-                query = query.filter(Patient.is_clinical == True)
+                query = query.filter(exists().where(MedicalRecord.patient_id == Patient.patient_id))
             if filters.get('is_toxicology'):
-                query = query.filter(Patient.is_toxicology == True)
+                query = query.filter(exists().where(ToxicoDossier.patient_id == Patient.patient_id))
             if filters.get('is_spiritual'):
-                query = query.filter(Patient.is_spiritual == True)
+                query = query.filter(exists().where(ConsultationSpirituel.patient_id == Patient.patient_id))
 
         # 2. Recherche
         if search:
@@ -258,10 +330,58 @@ class PatientRepository:
                     Patient.contact_phone.ilike(term)
                 )
             )
-        
-        query = query.order_by(Patient.last_updated_at.desc()) 
-        return query.offset((page - 1) * per_page).limit(per_page).all()
+
+        # Total calcule AVANT pagination - meme convention que _list_by_flag,
+        # dont depend deja la pagination des trois onglets typees.
+        total_count = query.count()
+
+        query = query.order_by(Patient.last_updated_at.desc())
+        items = query.offset((page - 1) * per_page).limit(per_page).all()
+
+        return {
+            "data": items,
+            "total": total_count,
+            "page": page,
+            "per_page": per_page,
+            "total_pages": (total_count + per_page - 1) // per_page if per_page > 0 else 1
+        }
     
+    def list_patients_for_export(self, search: Optional[str] = None, filters: Optional[Dict[str, bool]] = None,
+                                   date_from: Optional[date] = None, date_to: Optional[date] = None) -> List[Patient]:
+        """
+        Meme logique de filtrage que list_patients (recherche, drapeaux de
+        domaine), sans pagination - destine a l'export (PDF/CSV), jamais a
+        l'affichage ecran. Filtre de periode supplementaire sur created_at
+        (registre exports, 2026-09-23) - absent de list_patients.
+        """
+        query = self.session.query(Patient).filter(Patient.is_deleted == False)  # noqa: E712
+
+        if search:
+            term = f"%{search.strip()}%"
+            query = query.filter(
+                or_(
+                    Patient.first_name.ilike(term),
+                    Patient.last_name.ilike(term),
+                    Patient.code_patient.ilike(term),
+                    Patient.national_id.ilike(term),
+                    Patient.contact_phone.ilike(term),
+                )
+            )
+        if filters:
+            if filters.get('is_clinical'):
+                query = query.filter(exists().where(MedicalRecord.patient_id == Patient.patient_id))
+            if filters.get('is_toxicology'):
+                query = query.filter(exists().where(ToxicoDossier.patient_id == Patient.patient_id))
+            if filters.get('is_spiritual'):
+                query = query.filter(exists().where(ConsultationSpirituel.patient_id == Patient.patient_id))
+
+        if date_from:
+            query = query.filter(func.date(Patient.created_at) >= date_from)
+        if date_to:
+            query = query.filter(func.date(Patient.created_at) <= date_to)
+
+        return query.order_by(Patient.last_updated_at.desc()).all()
+
     def find_by_code(self, code: Optional[str]):
         if not code: return None
         raw = code.strip().upper()

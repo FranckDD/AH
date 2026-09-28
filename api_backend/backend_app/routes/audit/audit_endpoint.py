@@ -17,7 +17,7 @@ from .audit_schemas import AuditAccessListResponse, AuditUserActionListResponse
 router = APIRouter(
     prefix="/audit",
     tags=["Audit"],
-    dependencies=[Depends(role_required("admin", "manager"))]
+    dependencies=[Depends(role_required("admin", "manager", "ToxicoManager"))]
 )
 
 # Dépendance DB

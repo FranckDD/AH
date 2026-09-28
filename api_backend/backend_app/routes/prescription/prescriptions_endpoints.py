@@ -10,7 +10,7 @@ from fastapi.encoders import jsonable_encoder
 from pydantic import ValidationError
 
 from api_backend.backend_app.database import SessionLocal
-from repositories.prescription_repo import PrescriptionRepository
+from repositories.prescription_repo import PrescriptionRepository, PrescriptionDateOrderError, PrescriptionMissingDurationError, PrescriptionContentError
 from controller.prescription_controller import PrescriptionController
 from controller.patient_controller import PatientController
 from repositories.audit_repo import AuditRepository 
@@ -18,6 +18,7 @@ from repositories.patient_repo import PatientRepository
 from api_backend.backend_app.routes.auth.auth_endpoints import get_current_user, role_required
 from .mapping import normalize_prescription_data
 from .prescriptions_schemas import PrescriptionCreate, PrescriptionUpdate, PrescriptionResponse
+from api_backend.backend_app.utils.patient_resolution import resolve_patient_id, resolve_medical_record_id
 
 
 logger = logging.getLogger(__name__)
@@ -137,15 +138,14 @@ def list_prescriptions(
         # si tu préfères conserver le 500, tu peux lever HTTPException ici en incluant invalid[0]
     return response
 
-
-
-
 @router.post("/", response_model=PrescriptionResponse, status_code=status.HTTP_201_CREATED)
 def create_prescription(
     data: PrescriptionCreate,
     prescription_ctrl: PrescriptionController = Depends(get_prescription_controller)
 ):
-    payload = data.model_dump()
+    payload = data.model_dump(exclude={"patient_uuid", "medical_record_uuid"})
+    payload["patient_id"] = resolve_patient_id(prescription_ctrl.repo.session, data.patient_id, data.patient_uuid)
+    payload["medical_record_id"] = resolve_medical_record_id(prescription_ctrl.repo.session, data.medical_record_id, data.medical_record_uuid)
 
     # Vérification logique côté API avant envoi au repo
     if payload.get("end_date") and payload.get("start_date") and payload["start_date"] > payload["end_date"]:
@@ -171,6 +171,18 @@ def create_prescription(
             logger.exception("Rollback failed after SQLAlchemyError")
         logger.exception("SQLAlchemyError creating prescription: %s", e)
         raise HTTPException(status_code=500, detail="Erreur serveur lors de la création de la prescription")
+    except PrescriptionMissingDurationError as pe:
+        try:
+            prescription_ctrl.repo.session.rollback()
+        except Exception:
+            logger.exception("Rollback failed after PrescriptionMissingDurationError")
+        raise HTTPException(status_code=400, detail=str(pe))
+    except PrescriptionContentError as pce:
+        try:
+            prescription_ctrl.repo.session.rollback()
+        except Exception:
+            logger.exception("Rollback failed after PrescriptionContentError")
+        raise HTTPException(status_code=400, detail=str(pce))
     except Exception as e:
         # Erreur inattendue
         logger.exception("Unexpected error creating prescription: %s", e)
@@ -213,7 +225,10 @@ def create_prescription(
 
 @router.put("/{prescription_id}", response_model=PrescriptionResponse)
 def update_prescription(prescription_id: int, data: PrescriptionUpdate, prescription_ctrl: PrescriptionController = Depends(get_prescription_controller)):
-    payload = data.model_dump()
+    # exclude_unset=True : seuls les champs reellement envoyes par le client
+    # sont transmis a la mise a jour ORM - un payload partiel n'ecrase plus
+    # les colonnes NOT NULL omises avec None (registre E4).
+    payload = data.model_dump(exclude_unset=True)
     try:
         prescription_ctrl.update_prescription(prescription_id, payload)
         updated = prescription_ctrl.get_prescription(prescription_id)
@@ -234,6 +249,24 @@ def update_prescription(prescription_id: int, data: PrescriptionUpdate, prescrip
             logger.exception("Rollback failed after SQLAlchemyError")
         logger.exception("SQLAlchemyError updating prescription: %s", e)
         raise HTTPException(status_code=500, detail="Erreur serveur lors de la mise à jour de la prescription")
+    except PrescriptionDateOrderError as de:
+        try:
+            prescription_ctrl.repo.session.rollback()
+        except Exception:
+            logger.exception("Rollback failed after PrescriptionDateOrderError")
+        raise HTTPException(status_code=400, detail=str(de))
+    except PrescriptionMissingDurationError as pe:
+        try:
+            prescription_ctrl.repo.session.rollback()
+        except Exception:
+            logger.exception("Rollback failed after PrescriptionMissingDurationError")
+        raise HTTPException(status_code=400, detail=str(pe))
+    except PrescriptionContentError as pce:
+        try:
+            prescription_ctrl.repo.session.rollback()
+        except Exception:
+            logger.exception("Rollback failed after PrescriptionContentError")
+        raise HTTPException(status_code=400, detail=str(pce))
     except ValueError as ve:
         raise HTTPException(status_code=404, detail=str(ve))
 
@@ -267,9 +300,13 @@ def prescription_renewals(
 
     
 @router.get("/kpi/count")
-def kpi_count_prescriptions(period: str = Query("day", regex="^(day|week)$"), prescription_ctrl: PrescriptionController = Depends(get_prescription_controller)):
+def kpi_count_prescriptions(
+    period: str = Query("day", regex="^(day|week)$"),
+    doctor_id: Optional[int] = Query(None, description="Registre I1 : scope le compte a ce medecin. Omis = total etablissement (comportement d'origine, inchange)."),
+    prescription_ctrl: PrescriptionController = Depends(get_prescription_controller),
+):
     try:
-        cnt = prescription_ctrl.count_prescriptions(period=period)
+        cnt = prescription_ctrl.count_prescriptions(period=period, doctor_id=doctor_id)
         return {"count": cnt}
     except SQLAlchemyError:
         logger.exception("Erreur DB count_prescriptions")

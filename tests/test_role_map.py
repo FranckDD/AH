@@ -31,6 +31,12 @@ def test_normalizes_the_reserved_manager_role():
     assert normalize_role_name("Manager") == "manager"
 
 
+def test_normalizes_the_promoteur_role():
+    assert normalize_role_name("promoteur") == "promoteur"
+    assert normalize_role_name("Promoteur") == "promoteur"
+    assert normalize_role_name("owner") == "promoteur"
+
+
 def test_unknown_role_returns_none():
     assert normalize_role_name("biologiste") is None
     assert normalize_role_name("role_qui_nexiste_pas") is None

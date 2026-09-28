@@ -176,6 +176,7 @@ def list_appointments(
     date_to: Optional[str] = Query(None),
     doctor_id: Optional[int] = Query(None),
     patient_id: Optional[int] = Query(None),
+    search: Optional[str] = Query(None),
     appt_ctrl: AppointmentController = Depends(get_appointment_controller),
 ):
     """
@@ -189,7 +190,8 @@ def list_appointments(
 
         res = appt_ctrl.list_appointments(page=page, per_page=per_page,
                                           date_from=df, date_to=dt,
-                                          doctor_id=doctor_id, patient_id=patient_id)
+                                          doctor_id=doctor_id, patient_id=patient_id,
+                                          search=search)
 
         # Normaliser le payload retourné par le controller / gateway
         items = []

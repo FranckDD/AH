@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Response
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from pydantic import ValidationError
@@ -16,12 +16,26 @@ from controller.auth_controller import AuthController
 from controller.patient_controller import PatientController
 from ...routes.auth.auth_endpoints import get_current_user, role_required
 
+import csv
+import io
+from datetime import date as date_type, datetime
+from fastapi.responses import Response, StreamingResponse
+from api_backend.backend_app.utils.pdf_generator import render_pdf_from_template
+from api_backend.backend_app.utils.pdf_header import get_pdf_header_context
+from controller.config_controller import ConfigController
+from repositories.config_repo import ConfigRepository
+
 logger = logging.getLogger(__name__)
 
 router = APIRouter(
     prefix="/patients",
     tags=["Patients"],
-    dependencies=[Depends(role_required("medecin", "nurse","secretaire","admin","manager"))]
+    # 🟢 "assistant" ajoute (chantier 6, tache 3) : l'assistant qui admet un
+    # patient en toxico doit pouvoir verifier/rechercher un patient existant
+    # via /patients (necessaire aussi a la recherche frontend de la tache 4).
+    # "ToxicoManager" ajoute (chantier L4b-e, registre L4a) : MainLayout.vue
+    # lui donne deja une entree de menu vers /dashboard/patients.
+    dependencies=[Depends(role_required("medecin", "nurse","secretaire","admin","manager","assistant","ToxicoManager"))]
 )
 
 def get_db():
@@ -63,17 +77,26 @@ def _safe_validate_patient(raw: Any) -> PatientResponse:
 
 
 # --- existing CRUD endpoints (list/get/post/put/delete) ---
-@router.get("/", response_model=List[PatientResponse])
+@router.get("/", response_model=PatientListResponse)
 def list_patients(
     page: int = Query(1, ge=1),
     per_page: int = Query(10, ge=1, le=100),
     search: str = Query(None),
     patient_ctrl: PatientController = Depends(get_patient_controller)
 ):
-    patients_raw = patient_ctrl.list_patients(page=page, per_page=per_page, search=search)
-    return [_safe_validate_patient(p) for p in patients_raw]
+    resultat = patient_ctrl.list_patients(page=page, per_page=per_page, search=search)
+    return {
+        **resultat,
+        "data": [_safe_validate_patient(p) for p in resultat["data"]],
+    }
 
-@router.get("/toxicology", response_model=PatientListResponse)
+@router.get(
+    "/toxicology", response_model=PatientListResponse,
+    # Revirement de politique (2026-09-22) : medecin/nurse ne voient que
+    # le clinique - cette liste par role etait ouverte a tout le monde
+    # jusqu'ici (seul le routeur global protegeait), aucune garde propre.
+    dependencies=[Depends(role_required("secretaire", "admin", "manager", "assistant", "ToxicoManager"))],
+)
 def list_toxicology_patients(
     page: int = Query(1, ge=1),
     per_page: int = Query(10, ge=1, le=100),
@@ -113,7 +136,10 @@ def list_clinical_patients(
     }
 
 # 🟢 3. Endpoint SPIRITUEL (Paginé)
-@router.get("/spiritual/list", response_model=PatientListResponse)
+@router.get(
+    "/spiritual/list", response_model=PatientListResponse,
+    dependencies=[Depends(role_required("secretaire", "admin", "manager", "assistant", "ToxicoManager"))],
+)
 def list_spiritual_patients_paginated(
     page: int = Query(1, ge=1),
     per_page: int = Query(10, ge=1, le=100),
@@ -140,7 +166,15 @@ def get_patient_global_counts(
 
 
 
-@router.put("/{patient_id}", response_model=PatientResponse)
+@router.put(
+    "/{patient_id}",
+    response_model=PatientResponse,
+    # Restreint l'ecriture par rapport a la dependance de routeur (plus
+    # large, qui inclut "assistant" pour la recherche) : composition ET des
+    # dependances FastAPI, l'intersection exclut "assistant" ici sans
+    # toucher a son acces en lecture (registre L4, dette parquee chantier 6).
+    dependencies=[Depends(role_required("medecin", "nurse", "secretaire", "admin", "manager"))],
+)
 def update_patient(
     patient_id: int,
     data: PatientUpdate,
@@ -148,7 +182,7 @@ def update_patient(
 ):
     try:
         # 1. Le Controller gère l'atomicité (Update Patient + Audit Log + commit/rollback)
-        patient_ctrl.update_patient(patient_id, data.model_dump(exclude_unset=True))
+        patient_ctrl.sync_simple_patient_update(patient_id, data.model_dump(exclude_unset=True))
         
         # 2. Récupérer l'objet (lecture séparée après commit)
         patient = patient_ctrl.repo.get_by_id(patient_id)
@@ -175,7 +209,11 @@ def update_patient(
         logger.exception("SQLAlchemyError updating patient (after Controller rollback): %s", e)
         raise HTTPException(status_code=500, detail="Erreur serveur lors de la mise à jour")
 
-@router.delete("/{patient_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/{patient_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(role_required("medecin", "nurse", "secretaire", "admin", "manager"))],
+)
 def delete_patient(
     patient_id: int,
     patient_ctrl: PatientController = Depends(get_patient_controller)
@@ -187,7 +225,10 @@ def delete_patient(
 
 # --- Nouveaux endpoints exposant les méthodes KPI ---
 
-@router.get("/spiritual", response_model=List[PatientResponse])
+@router.get(
+    "/spiritual", response_model=List[PatientResponse],
+    dependencies=[Depends(role_required("secretaire", "admin", "manager", "assistant", "ToxicoManager"))],
+)
 def list_spiritual_patients(patient_ctrl: PatientController = Depends(get_patient_controller)):
     try:
         raws = patient_ctrl.list_spiritual_patients()
@@ -294,6 +335,62 @@ def find_for_appointment(code: str = Query(...), patient_ctrl: PatientController
     return _safe_validate_patient(p)
   
 
+@router.get("/export")
+def export_patients(
+    format: str = Query(..., regex="^(pdf|csv)$"),
+    type: str = Query("ALL", regex="^(ALL|CLINIQUE|TOXICO|SPIRITUEL)$"),
+    search: Optional[str] = Query(None),
+    date_from: Optional[date_type] = Query(None),
+    date_to: Optional[date_type] = Query(None),
+    patient_ctrl: PatientController = Depends(get_patient_controller),
+    db: Session = Depends(get_db),
+):
+    try:
+        patients = patient_ctrl.list_patients_for_export(tab_type=type, search=search, date_from=date_from, date_to=date_to)
+    except PermissionError as e:
+        raise HTTPException(status_code=403, detail=str(e))
+
+    if format == "csv":
+        buffer = io.StringIO()
+        writer = csv.writer(buffer)
+        writer.writerow(["Code", "Nom", "Prénom", "Téléphone", "Date de naissance", "Inscrit le"])
+        for p in patients:
+            writer.writerow([
+                p.code_patient, p.last_name, p.first_name,
+                p.contact_phone or "", p.birth_date or "", p.created_at or "",
+            ])
+        buffer.seek(0)
+        return StreamingResponse(
+            iter([buffer.getvalue()]),
+            media_type="text/csv",
+            headers={"Content-Disposition": "attachment; filename=patients_export.csv"},
+        )
+
+    config_ctrl = ConfigController(repo=ConfigRepository(db))
+    header_ctx = get_pdf_header_context(config_ctrl)
+
+    if date_from and date_to:
+        periode_label = f"Période du {date_from} au {date_to}"
+    elif date_from:
+        periode_label = f"Depuis le {date_from}"
+    elif date_to:
+        periode_label = f"Jusqu'au {date_to}"
+    else:
+        periode_label = "Toutes périodes"
+
+    pdf_bytes = render_pdf_from_template('patients_export_template.html', {
+        **header_ctx,
+        "patients": patients,
+        "periode_label": periode_label,
+        "date_impression": datetime.now().strftime("%d/%m/%Y à %H:%M"),
+    })
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": "attachment; filename=patients_export.pdf"},
+    )
+
+
 @router.get("/{patient_id}", response_model=PatientResponse)
 def get_patient(
     patient_id: int,
@@ -304,34 +401,55 @@ def get_patient(
         raise HTTPException(status_code=404, detail="Patient non trouvé")
     return _safe_validate_patient(p)
 
-@router.post("/", response_model=PatientResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/",
+    response_model=PatientResponse,
+    status_code=status.HTTP_201_CREATED,
+    # Meme restriction que PUT/DELETE (registre L4, dette chantier 6) :
+    # assistant garde la lecture/recherche mais pas l'ecriture. Trouve par
+    # la revue finale du chantier L4b-e - POST avait ete oublie du
+    # perimetre initial de la Task 2, qui ne couvrait que PUT/DELETE.
+    dependencies=[Depends(role_required("medecin", "nurse", "secretaire", "admin", "manager"))],
+)
 def create_patient(
     data: PatientCreate,
+    response: Response,
     patient_ctrl: PatientController = Depends(get_patient_controller)
 ):
     try:
-        # 1. Le Controller gère l'atomicité (Patient + Audit Log + commit/rollback)
-        pid, code = patient_ctrl.create_patient(data.model_dump()) 
+        # Rejeu idempotent (chantier 4 sous-projet 4) : un patient cree hors
+        # ligne peut etre renvoye si la reponse du premier envoi a ete perdue
+        # (coupure). Meme uuid deja present = succes deja acquis : 200 avec le
+        # patient existant, jamais un doublon.
+        if data.uuid:
+            existing_id = patient_ctrl.repo.get_id_by_uuid(data.uuid)
+            if existing_id is not None:
+                existing = patient_ctrl.repo.get_by_id_any_status(existing_id)
+                if existing:
+                    response.status_code = status.HTTP_200_OK
+                    return _safe_validate_patient(existing)
+
+        # 🟢 CHANGEMENT ICI : On appelle la méthode "Sync" qui fait le COMMIT
+        # Anciennement: pid, code = patient_ctrl.create_patient(...)
+        pid, code = patient_ctrl.sync_simple_patient_creation(data.model_dump()) 
         
-        # 2. Récupérer l'objet (lecture séparée après commit)
+        # 2. Récupérer l'objet (lecture séparée après commit pour être sûr)
         patient = patient_ctrl.repo.get_by_id(pid)
         if not patient:
-            # Très improbable si le commit a réussi
             raise HTTPException(status_code=500, detail="Patient créé mais impossible à lire (post-commit)")
             
         return _safe_validate_patient(patient)
         
     except ValueError as ve:
-        # Erreur métier/validation (ex: champs manquants) remontée par le Controller
+        # Erreur métier (ex: champs manquants)
         raise HTTPException(status_code=400, detail=str(ve))
     
-    # 🎯 Capture des erreurs de base de données remontées par le Controller après rollback
     except IntegrityError as ie:
-        # L'IntegrityError vient directement du DBAPI après une tentative de commit/rollback dans le Controller
+        # Doublons (ex: code patient déjà existant)
         raise translate_integrity_error(ie)
         
     except SQLAlchemyError as e:
-        logger.exception("SQLAlchemyError creating patient (after Controller rollback): %s", e)
+        logger.exception("SQLAlchemyError creating patient: %s", e)
         raise HTTPException(status_code=500, detail="Erreur serveur lors de la création")
     
 @router.get("/for_days", response_model=List[PatientResponse])

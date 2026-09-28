@@ -15,7 +15,30 @@ const cleanParams = (params) => {
 };
 
 export const FinanceGateway = {
-    
+
+    // --- JOURNAL FINANCIER UNIFIE ---
+
+    /**
+     * Journal financier unifie : recettes et depenses en un seul flux,
+     * trie et pagine cote serveur. Remplace la fusion client de
+     * fetchIncomes + fetchExpenses, qui produisait un tri faux.
+     */
+    async fetchMouvements(query) {
+        return api.get('/finance/mouvements', { params: cleanParams(query) });
+    },
+
+    async fetchCategories() {
+        return api.get('/finance/categories');
+    },
+
+    /**
+     * Totaux recettes/depenses filtres exactement comme fetchMouvements -
+     * permet aux cartes KPI de refleter les memes filtres que la liste.
+     */
+    async fetchTotaux(query) {
+        return api.get('/finance/totaux', { params: cleanParams(query) });
+    },
+
     // --- RECETTES (Caisse) ---
     
     async fetchIncomes(params) {
@@ -98,7 +121,8 @@ export const FinanceGateway = {
     async getDebtTotal(params) {
         const query = {
             date_from: params.startDate,
-            date_to: params.endDate
+            date_to: params.endDate,
+            status: 'active'
         };
         return api.get('/caisse/total_remaining_due', { params: cleanParams(query) });
     },

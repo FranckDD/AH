@@ -156,57 +156,50 @@ $$;
 
 
 --
--- Name: create_medical_record(integer, timestamp without time zone, character varying, character varying, numeric, numeric, numeric, text, text, text, text, text, character varying, text, character varying, integer, character varying, integer, character varying); Type: PROCEDURE; Schema: public; Owner: -
+-- Name: create_medical_record(integer, timestamp without time zone, character varying, character varying, numeric, numeric, numeric, text, text, text, text, text, character varying, text, character varying, integer, character varying, integer, character varying, integer); Type: PROCEDURE; Schema: public; Owner: -
 --
 
-CREATE PROCEDURE public.create_medical_record(IN p_patient_id integer, IN p_consultation_date timestamp without time zone, IN p_marital_status character varying, IN p_bp character varying, IN p_temperature numeric, IN p_weight numeric, IN p_height numeric, IN p_medical_history text, IN p_allergies text, IN p_symptoms text, IN p_diagnosis text, IN p_treatment text, IN p_severity character varying, IN p_notes text, IN p_motif_code character varying, IN p_created_by integer DEFAULT NULL::integer, IN p_created_by_name character varying DEFAULT NULL::character varying, IN p_last_updated_by integer DEFAULT NULL::integer, IN p_last_updated_by_name character varying DEFAULT NULL::character varying)
+CREATE PROCEDURE public.create_medical_record(IN p_patient_id integer, IN p_consultation_date timestamp without time zone, IN p_marital_status character varying, IN p_bp character varying, IN p_temperature numeric, IN p_weight numeric, IN p_height numeric, IN p_medical_history text, IN p_allergies text, IN p_symptoms text, IN p_diagnosis text, IN p_treatment text, IN p_severity character varying, IN p_notes text, IN p_motif_code character varying, IN p_created_by integer DEFAULT NULL::integer, IN p_created_by_name character varying DEFAULT NULL::character varying, IN p_last_updated_by integer DEFAULT NULL::integer, IN p_last_updated_by_name character varying DEFAULT NULL::character varying, IN p_appointment_id integer DEFAULT NULL::integer)
     LANGUAGE plpgsql
     AS $$
-BEGIN
-    INSERT INTO public.medical_records (
-        patient_id,
-        consultation_date,
-        marital_status,
-        bp,
-        temperature,
-        weight,
-        height,
-        medical_history,
-        allergies,
-        symptoms,
-        diagnosis,
-        treatment,
-        severity,
-        notes,
-        motif_code,
-        created_by,
-        created_by_name,
-        last_updated_by,
-        last_updated_by_name
-    ) VALUES (
-        p_patient_id,
-        p_consultation_date,
-        p_marital_status,
-        p_bp,
-        p_temperature,
-        p_weight,
-        p_height,
-        p_medical_history,
-        p_allergies,
-        p_symptoms,
-        p_diagnosis,
-        p_treatment,
-        p_severity,
-        p_notes,
-        p_motif_code,
-        p_created_by,
-        p_created_by_name,
-        p_last_updated_by,
-        p_last_updated_by_name
-    );
-    -- L'audit est désormais géré par l'application (Python)
-END;
-$$;
+        BEGIN
+            INSERT INTO public.medical_records (
+                patient_id, consultation_date, marital_status, bp, temperature,
+                weight, height, medical_history, allergies, symptoms, diagnosis,
+                treatment, severity, notes, motif_code, created_by, created_by_name,
+                last_updated_by, last_updated_by_name, appointment_id
+            ) VALUES (
+                p_patient_id, p_consultation_date, p_marital_status, p_bp, p_temperature,
+                p_weight, p_height, p_medical_history, p_allergies, p_symptoms, p_diagnosis,
+                p_treatment, p_severity, p_notes, p_motif_code, p_created_by, p_created_by_name,
+                p_last_updated_by, p_last_updated_by_name, p_appointment_id
+            );
+        END;
+        $$;
+
+
+--
+-- Name: create_medical_record(integer, timestamp without time zone, character varying, character varying, numeric, numeric, numeric, text, text, text, text, text, character varying, text, character varying, integer, character varying, integer, character varying, integer, uuid); Type: PROCEDURE; Schema: public; Owner: -
+--
+
+CREATE PROCEDURE public.create_medical_record(IN p_patient_id integer, IN p_consultation_date timestamp without time zone, IN p_marital_status character varying, IN p_bp character varying, IN p_temperature numeric, IN p_weight numeric, IN p_height numeric, IN p_medical_history text, IN p_allergies text, IN p_symptoms text, IN p_diagnosis text, IN p_treatment text, IN p_severity character varying, IN p_notes text, IN p_motif_code character varying, IN p_created_by integer DEFAULT NULL::integer, IN p_created_by_name character varying DEFAULT NULL::character varying, IN p_last_updated_by integer DEFAULT NULL::integer, IN p_last_updated_by_name character varying DEFAULT NULL::character varying, IN p_appointment_id integer DEFAULT NULL::integer, IN p_uuid uuid DEFAULT NULL::uuid)
+    LANGUAGE plpgsql
+    AS $$
+        BEGIN
+            INSERT INTO public.medical_records (
+                patient_id, consultation_date, marital_status, bp, temperature,
+                weight, height, medical_history, allergies, symptoms, diagnosis,
+                treatment, severity, notes, motif_code, created_by, created_by_name,
+                last_updated_by, last_updated_by_name, appointment_id, uuid
+            ) VALUES (
+                p_patient_id, p_consultation_date, p_marital_status, p_bp, p_temperature,
+                p_weight, p_height, p_medical_history, p_allergies, p_symptoms, p_diagnosis,
+                p_treatment, p_severity, p_notes, p_motif_code, p_created_by, p_created_by_name,
+                p_last_updated_by, p_last_updated_by_name, p_appointment_id,
+                COALESCE(p_uuid, gen_random_uuid())
+            );
+        END;
+        $$;
 
 
 --
@@ -1499,7 +1492,12 @@ CREATE TABLE public.caisse (
     status character varying(20) DEFAULT 'active'::character varying NOT NULL,
     advance_amount numeric(10,2) DEFAULT 0 NOT NULL,
     patient_label character varying(100),
-    CONSTRAINT ck_caisse_status CHECK (((status)::text = ANY (ARRAY[('active'::character varying)::text, ('cancelled'::character varying)::text, ('refunded'::character varying)::text])))
+    cancelled_by integer,
+    cancelled_at timestamp without time zone,
+    cancel_justification text,
+    uuid uuid DEFAULT gen_random_uuid() NOT NULL,
+    upload_error text,
+    CONSTRAINT ck_caisse_status CHECK (((status)::text = ANY ((ARRAY['active'::character varying, 'cancelled'::character varying, 'refunded'::character varying, 'pending_approval'::character varying])::text[])))
 );
 
 
@@ -1555,7 +1553,8 @@ CREATE TABLE public.caisse_retrait (
     cancelled_at timestamp without time zone,
     cancel_justification text,
     category character varying(50) DEFAULT NULL::character varying,
-    payment_method character varying(50) DEFAULT NULL::character varying
+    payment_method character varying(50) DEFAULT NULL::character varying,
+    uuid uuid DEFAULT gen_random_uuid() NOT NULL
 );
 
 
@@ -1644,6 +1643,45 @@ CREATE SEQUENCE public.consultation_spirituel_consultation_id_seq
 --
 
 ALTER SEQUENCE public.consultation_spirituel_consultation_id_seq OWNED BY public.consultation_spirituel.consultation_id;
+
+
+--
+-- Name: discount_requests; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.discount_requests (
+    id integer NOT NULL,
+    transaction_id integer NOT NULL,
+    requested_by integer NOT NULL,
+    requested_to integer NOT NULL,
+    original_amount numeric(10,2) NOT NULL,
+    status character varying(20) DEFAULT 'pending'::character varying NOT NULL,
+    decision_percent integer,
+    decision_echelonne_deadline date,
+    decided_by integer,
+    decided_at timestamp without time zone,
+    created_at timestamp without time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: discount_requests_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.discount_requests_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: discount_requests_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.discount_requests_id_seq OWNED BY public.discount_requests.id;
 
 
 --
@@ -1756,6 +1794,8 @@ CREATE TABLE public.lab_results (
     origin_prescription_id integer,
     batch_id uuid,
     prescribed_by_name character varying(100),
+    uuid uuid DEFAULT gen_random_uuid() NOT NULL,
+    batch_uuid character varying(36),
     CONSTRAINT chk_technician_role CHECK (public.check_technician_role(technician_id)),
     CONSTRAINT note_length_check CHECK ((length(note) <= 1000))
 );
@@ -1869,6 +1909,7 @@ CREATE TABLE public.medical_records (
     last_updated_by integer,
     last_updated_by_name character varying(100),
     uuid uuid DEFAULT gen_random_uuid() NOT NULL,
+    appointment_id integer,
     CONSTRAINT medical_records_motif_code_check CHECK (((motif_code)::text = ANY (ARRAY[('consultation'::character varying)::text, ('appointment'::character varying)::text, ('prenatal'::character varying)::text, ('hospitalization'::character varying)::text, ('emergency'::character varying)::text, ('free'::character varying)::text]))),
     CONSTRAINT medical_records_severity_check CHECK (((severity)::text = ANY (ARRAY[('low'::character varying)::text, ('medium'::character varying)::text, ('high'::character varying)::text])))
 );
@@ -1933,6 +1974,41 @@ CREATE TABLE public.motif_translations (
     label_fr character varying(50) NOT NULL,
     label_en character varying(50) NOT NULL
 );
+
+
+--
+-- Name: notifications; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.notifications (
+    id integer NOT NULL,
+    recipient_user_id integer NOT NULL,
+    type character varying(50) NOT NULL,
+    payload jsonb,
+    status character varying(20) DEFAULT 'unread'::character varying NOT NULL,
+    created_at timestamp without time zone DEFAULT now() NOT NULL,
+    read_at timestamp without time zone
+);
+
+
+--
+-- Name: notifications_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.notifications_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: notifications_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.notifications_id_seq OWNED BY public.notifications.id;
 
 
 --
@@ -2005,7 +2081,8 @@ CREATE TABLE public.paiement_echelonne (
     payment_method character varying(50) NOT NULL,
     payment_type character varying(50) NOT NULL,
     handled_by integer NOT NULL,
-    note text
+    note text,
+    uuid uuid DEFAULT gen_random_uuid() NOT NULL
 );
 
 
@@ -2955,6 +3032,13 @@ ALTER TABLE ONLY public.consultation_spirituel ALTER COLUMN consultation_id SET 
 
 
 --
+-- Name: discount_requests id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.discount_requests ALTER COLUMN id SET DEFAULT nextval('public.discount_requests_id_seq'::regclass);
+
+
+--
 -- Name: examens id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -2994,6 +3078,13 @@ ALTER TABLE ONLY public.medical_records ALTER COLUMN record_id SET DEFAULT nextv
 --
 
 ALTER TABLE ONLY public.medical_specialties ALTER COLUMN specialty_id SET DEFAULT nextval('public.medical_specialties_specialty_id_seq'::regclass);
+
+
+--
+-- Name: notifications id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.notifications ALTER COLUMN id SET DEFAULT nextval('public.notifications_id_seq'::regclass);
 
 
 --
@@ -3208,6 +3299,14 @@ ALTER TABLE ONLY public.consultation_spirituel
 
 
 --
+-- Name: discount_requests discount_requests_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.discount_requests
+    ADD CONSTRAINT discount_requests_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: doctor doctor_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3293,6 +3392,14 @@ ALTER TABLE ONLY public.medical_specialties
 
 ALTER TABLE ONLY public.motif_translations
     ADD CONSTRAINT motif_translations_pkey PRIMARY KEY (code);
+
+
+--
+-- Name: notifications notifications_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.notifications
+    ADD CONSTRAINT notifications_pkey PRIMARY KEY (id);
 
 
 --
@@ -3504,6 +3611,27 @@ ALTER TABLE ONLY public.users
 
 
 --
+-- Name: appointments_uuid_key; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX appointments_uuid_key ON public.appointments USING btree (uuid);
+
+
+--
+-- Name: caisse_retrait_uuid_key; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX caisse_retrait_uuid_key ON public.caisse_retrait USING btree (uuid);
+
+
+--
+-- Name: caisse_uuid_key; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX caisse_uuid_key ON public.caisse USING btree (uuid);
+
+
+--
 -- Name: idx_admissions_active; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -3700,6 +3828,62 @@ CREATE INDEX idx_toxico_psy ON public.toxico_dossiers USING btree (psychologist_
 
 
 --
+-- Name: ix_discount_requests_requested_to_status; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_discount_requests_requested_to_status ON public.discount_requests USING btree (requested_to, status);
+
+
+--
+-- Name: ix_discount_requests_transaction; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_discount_requests_transaction ON public.discount_requests USING btree (transaction_id);
+
+
+--
+-- Name: ix_lab_results_batch_uuid; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_lab_results_batch_uuid ON public.lab_results USING btree (batch_uuid);
+
+
+--
+-- Name: ix_lab_results_uuid; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX ix_lab_results_uuid ON public.lab_results USING btree (uuid);
+
+
+--
+-- Name: ix_notifications_recipient_status; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_notifications_recipient_status ON public.notifications USING btree (recipient_user_id, status);
+
+
+--
+-- Name: medical_records_uuid_key; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX medical_records_uuid_key ON public.medical_records USING btree (uuid);
+
+
+--
+-- Name: paiement_echelonne_uuid_key; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX paiement_echelonne_uuid_key ON public.paiement_echelonne USING btree (uuid);
+
+
+--
+-- Name: patients_uuid_key; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX patients_uuid_key ON public.patients USING btree (uuid);
+
+
+--
 -- Name: caisse trg_caisse_protect_cancelled; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -3826,6 +4010,14 @@ ALTER TABLE ONLY public.audit_user_actions
 
 
 --
+-- Name: caisse caisse_cancelled_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.caisse
+    ADD CONSTRAINT caisse_cancelled_by_fkey FOREIGN KEY (cancelled_by) REFERENCES public.users(user_id);
+
+
+--
 -- Name: caisse caisse_handled_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3871,6 +4063,38 @@ ALTER TABLE ONLY public.consultation_spirituel
 
 ALTER TABLE ONLY public.consultation_spirituel
     ADD CONSTRAINT consultation_spirituel_patient_id_fkey FOREIGN KEY (patient_id) REFERENCES public.patients(patient_id);
+
+
+--
+-- Name: discount_requests discount_requests_decided_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.discount_requests
+    ADD CONSTRAINT discount_requests_decided_by_fkey FOREIGN KEY (decided_by) REFERENCES public.users(user_id);
+
+
+--
+-- Name: discount_requests discount_requests_requested_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.discount_requests
+    ADD CONSTRAINT discount_requests_requested_by_fkey FOREIGN KEY (requested_by) REFERENCES public.users(user_id);
+
+
+--
+-- Name: discount_requests discount_requests_requested_to_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.discount_requests
+    ADD CONSTRAINT discount_requests_requested_to_fkey FOREIGN KEY (requested_to) REFERENCES public.users(user_id);
+
+
+--
+-- Name: discount_requests discount_requests_transaction_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.discount_requests
+    ADD CONSTRAINT discount_requests_transaction_id_fkey FOREIGN KEY (transaction_id) REFERENCES public.caisse(transaction_id);
 
 
 --
@@ -4074,6 +4298,14 @@ ALTER TABLE ONLY public.laborantin
 
 
 --
+-- Name: medical_records medical_records_appointment_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.medical_records
+    ADD CONSTRAINT medical_records_appointment_id_fkey FOREIGN KEY (appointment_id) REFERENCES public.appointments(id) ON DELETE SET NULL;
+
+
+--
 -- Name: medical_records medical_records_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4095,6 +4327,14 @@ ALTER TABLE ONLY public.medical_records
 
 ALTER TABLE ONLY public.medical_records
     ADD CONSTRAINT medical_records_patient_id_fkey FOREIGN KEY (patient_id) REFERENCES public.patients(patient_id);
+
+
+--
+-- Name: notifications notifications_recipient_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.notifications
+    ADD CONSTRAINT notifications_recipient_user_id_fkey FOREIGN KEY (recipient_user_id) REFERENCES public.users(user_id);
 
 
 --
@@ -4222,6 +4462,13 @@ ALTER TABLE ONLY public.secretaire
 --
 
 CREATE POLICY medical_policy ON public.patients TO app_medical USING (true);
+
+
+--
+-- Name: powersync; Type: PUBLICATION; Schema: -; Owner: -
+--
+
+CREATE PUBLICATION powersync FOR ALL TABLES WITH (publish = 'insert, update, delete, truncate');
 
 
 --

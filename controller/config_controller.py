@@ -52,7 +52,6 @@ class ConfigController:
         self,
         data_dict: dict,
         logo_file: UploadFile = None,  # type: ignore
-        base_url: str = ""
     ) -> OrganizationConfig:
 
         if logo_file:
@@ -70,6 +69,10 @@ class ConfigController:
             with open(file_path, "wb") as out:
                 shutil.copyfileobj(buffer, out)
 
-            data_dict["logo_url"] = f"{base_url}/static/uploads/logos/{filename}"
+            # Chemin relatif (pas d'URL absolue) : reste valable quel que
+            # soit l'hote/port du backend a l'affichage (dev sur un port
+            # non-standard, prod) - c'est au frontend de prefixer avec sa
+            # propre config d'API (voir resolveAssetUrl cote client).
+            data_dict["logo_url"] = f"/static/uploads/logos/{filename}"
 
         return self.repo.save_config(data_dict)

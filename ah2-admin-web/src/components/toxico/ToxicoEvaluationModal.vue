@@ -286,7 +286,7 @@ const handleSubmit = async () => {
         await toxicoStore.submitEvaluation(payload);
         
         console.log("✅ Évaluation réussie!");
-        emit('save'); 
+        emit('save',payload); 
         emit('close');
         
     } catch (error) {

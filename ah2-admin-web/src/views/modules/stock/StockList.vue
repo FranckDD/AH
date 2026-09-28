@@ -54,12 +54,13 @@
                 <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <MagnifyingGlassIcon class="h-5 w-5 text-gray-400" />
                 </div>
-                <input 
-                    v-model.lazy="searchQuery" 
-                    type="text" 
-                    @keyup.enter="stockStore.fetchStock()"
-                    :placeholder="t('common.search_placeholder')" 
-                    class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg bg-gray-50 focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm" 
+                <input
+                    v-model="searchInput"
+                    type="text"
+                    @input="onSearchInput"
+                    @keyup.enter="searchNow"
+                    :placeholder="t('common.search_placeholder')"
+                    class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg bg-gray-50 focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm"
                 />
             </div>
             
@@ -171,7 +172,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useStockStore } from '@/stores/stockStore';
 import { useI18n } from 'vue-i18n';
 import ProductModal from '@/components/stock/ProductModal.vue';
@@ -192,10 +193,30 @@ onMounted(() => {
     stockStore.fetchStats();
 });
 
-// Liaison Store
-const searchQuery = computed({
-    get: () => stockStore.filters.searchQuery,
-    set: (val) => stockStore.setFilters({ searchQuery: val })
+// Liaison Store - recherche en direct (debounce 300ms), meme motif que
+// CaisseInvoiceModal.vue::onLineSearchInput (deja en place et fonctionnel
+// ailleurs dans le projet). Auparavant v-model.lazy : la recherche ne se
+// declenchait qu'au blur/Entree, ce qui se voyait comme un champ casse.
+const searchInput = ref(stockStore.filters.searchQuery);
+let searchDebounceTimeout = null;
+
+const onSearchInput = () => {
+    clearTimeout(searchDebounceTimeout);
+    searchDebounceTimeout = setTimeout(() => {
+        stockStore.setFilters({ searchQuery: searchInput.value });
+    }, 300);
+};
+
+const searchNow = () => {
+    clearTimeout(searchDebounceTimeout);
+    stockStore.setFilters({ searchQuery: searchInput.value });
+};
+
+// resetFilters() (ci-dessous) ecrit directement dans le store sans passer
+// par searchInput - sans ce watch, le champ garderait visuellement l'ancien
+// texte apres un "Reinitialiser".
+watch(() => stockStore.filters.searchQuery, (val) => {
+    if (val !== searchInput.value) searchInput.value = val;
 });
 
 const categoryFilter = computed({

@@ -3,7 +3,7 @@ from repositories.user_repo import UserRepository
 from repositories.role_repo import RoleRepository
 from models.user import User
 from models.application_role import ApplicationRole
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 class UserController:
     def __init__(self, user_repo: UserRepository, role_repo: RoleRepository):
@@ -48,6 +48,9 @@ class UserController:
         try:
             self.user_repo.session.commit()
             return user
+        except IntegrityError:
+            self.user_repo.session.rollback()
+            raise
         except SQLAlchemyError as e:
             self.user_repo.session.rollback()
             raise RuntimeError(f"Erreur mise à jour utilisateur : {e}")
@@ -62,14 +65,15 @@ class UserController:
             raise ValueError(f"Utilisateur {user_id} introuvable")
         return user
 
-    def search_users(self, term: str) -> list[User]:
-            return self.user_repo.search_users(term)
+    def search_users(self, term: str, page: int = 1, per_page: int = 50):
+        return self.user_repo.search_users_paginated(term=term, page=page, per_page=per_page)
 
-    def list_users(self, page: int = 1, per_page: int = 50) -> list[User]:
+    def list_users(self, page: int = 1, per_page: int = 50):
         """
-        Renvoie une page d'utilisateurs en utilisant la pagination côté Repository.
+        Renvoie une page d'utilisateurs en utilisant la pagination côté Repository,
+        ainsi que le nombre total de comptes (calcule avant offset/limit).
         """
-        return self.user_repo.list_users(page=page, per_page=per_page)
+        return self.user_repo.list_users_paginated(page=page, per_page=per_page)
 
     def list_roles(self):
       
@@ -101,3 +105,8 @@ class UserController:
     def get_user_roles(self, user_id: int) -> list[str]:
         user = self.get_user_by_id(user_id)
         return user.roles
+    
+    def get_doctors(self) -> list[User]:
+        """Retourne la liste des utilisateurs ayant un rôle de médecin."""
+        # On cherche 'medecin' ou 'docteur' pour être large
+        return self.user_repo.get_users_by_role_name("medecin")

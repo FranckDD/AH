@@ -62,21 +62,22 @@ class CaisseRetraitController:
             date_to=date_to
         )
 
-    def effectuer_retrait(self, amount: float, justification: str, 
-                          category: str = None, payment_method: str = None) -> CaisseRetrait:
+    def effectuer_retrait(self, amount: float, justification: str,
+                          category: str = None, payment_method: str = None, uuid: str = None) -> CaisseRetrait:
         """
         Crée un nouveau retrait avec catégorie et méthode de paiement.
         """
         if amount <= 0:
             raise ValueError("Le montant du retrait doit être strictement positif.")
-            
+
         return self.repo.create(
             amount=amount,
             justification=justification,
             handled_by=self.user.user_id,
             # 🟢 Passage des nouveaux paramètres
             category=category,
-            payment_method=payment_method
+            payment_method=payment_method,
+            uuid=uuid,
         )
 
     def annuler_retrait(

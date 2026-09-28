@@ -10,6 +10,7 @@ from fastapi.responses import JSONResponse
 
 from .mapping import normalize_medical_record_data
 from .schemas import MedicalRecordCreate, MedicalRecordUpdate, MedicalRecordResponse,PaginatedResponse
+from api_backend.backend_app.utils.patient_resolution import resolve_patient_id
 from ...database import SessionLocal
 from controller.auth_controller import AuthController
 from controller.patient_controller import PatientController
@@ -128,10 +129,9 @@ def list_motifs(medical_ctrl: MedicalRecordController = Depends(get_medical_cont
 @router.post("/", response_model=MedicalRecordResponse, status_code=status.HTTP_201_CREATED)
 def create_record(data: MedicalRecordCreate, medical_ctrl: MedicalRecordController = Depends(get_medical_controller)):
     try:
-        if data.patient_id is None:
-            raise HTTPException(status_code=400, detail="patient_id est requis")
+        data.patient_id = resolve_patient_id(medical_ctrl.repo.session, data.patient_id, data.patient_uuid)
 
-        created = medical_ctrl.create_record(data.model_dump())
+        created = medical_ctrl.create_record(data.model_dump(exclude={"patient_uuid"}))
         # tenter de retourner le dernier dossier du patient (fallback si create ne renvoie pas l'objet)
         last = medical_ctrl.get_last_for_patient(data.patient_id)
         if not last:

@@ -24,6 +24,7 @@
           </div>
 
           <button 
+                v-if="canAdmitPatient"
                 @click="showAdmissionModal = true" 
                 class="flex items-center px-6 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 shadow-md transition font-semibold"
             >
@@ -34,7 +35,6 @@
     </div>
 
     <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-        
         <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-between">
             <div class="flex justify-between items-start">
                 <div>
@@ -173,6 +173,7 @@
                             </button>
 
                             <button 
+                                v-if="canDischargePatient"
                                 @click="confirmDischarge(p)"
                                 class="text-red-600 hover:text-red-900 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center inline-flex"
                                 :title="t('toxico.actions.discharge')"
@@ -272,6 +273,7 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue';
 import { useToxicoStore } from '@/stores/toxicoStore';
+import { useAuthStore } from '@/stores/auth'; // 🟢 IMPORT DU STORE AUTH
 import { useI18n } from 'vue-i18n';
 import ToxicoEvaluationModal from '@/components/toxico/ToxicoEvaluationModal.vue';
 import ToxicoDossierModal from '@/components/toxico/ToxicoDossierModal.vue';
@@ -280,11 +282,11 @@ import ToxicoPatientDetailsModal from '@/components/toxico/ToxicoPatientDetailsM
 import { 
     PlusCircleIcon, 
     UserIcon, 
-    UserGroupIcon, // Nouveau
-    CalendarIcon, // Nouveau
-    ArrowTrendingUpIcon, // Nouveau
-    ExclamationCircleIcon, // Nouveau
-    FireIcon, // Nouveau
+    UserGroupIcon, 
+    CalendarIcon, 
+    ArrowTrendingUpIcon, 
+    ExclamationCircleIcon, 
+    FireIcon, 
     MagnifyingGlassIcon, 
     ClipboardDocumentListIcon, 
     PencilSquareIcon,
@@ -296,6 +298,7 @@ import {
 
 const { t } = useI18n();
 const toxicoStore = useToxicoStore();
+const authStore = useAuthStore(); // 🟢 INITIALISATION
 
 // --- ÉTATS LOCAUX ---
 const showDossierModal = ref(false);
@@ -309,10 +312,21 @@ const selectedPatientForEval = ref(null);
 const patientToDischarge = ref(null);
 const selectedPatientForDetails = ref(null);
 
+// --- 🟢 PERMISSIONS (COMPUTED) ---
+const canAdmitPatient = computed(() => {
+    // Admin, Manager et Assistant peuvent créer une admission
+    return authStore.hasRole(['admin', 'ToxicoManager', 'Assistant']);
+});
+
+const canDischargePatient = computed(() => {
+    // Admin et Manager peuvent faire une sortie
+    return authStore.hasRole(['admin', 'ToxicoManager']);
+});
+
+
 // --- 💡 CALCUL DYNAMIQUE : +X cette semaine ---
 const newPatientsThisWeek = computed(() => {
-    // Note : Ce calcul est approximatif car il se base sur la liste actuellement chargée (paginée).
-    // Pour un chiffre exact sur TOUTE la base, il faudrait un endpoint backend dédié.
+    // Note : Ce calcul est approximatif car il se base sur la liste actuellement chargée.
     const now = new Date();
     const oneWeekAgo = new Date();
     oneWeekAgo.setDate(now.getDate() - 7);
@@ -321,7 +335,6 @@ const newPatientsThisWeek = computed(() => {
         const dateSource = p.admissionDate || p.createdAt;
         if (!dateSource) return false;
         
-        // Sécurisation de la date
         const d = new Date(typeof dateSource === 'string' ? dateSource.split('T')[0] : dateSource);
         if (isNaN(d.getTime())) return false;
 
@@ -331,11 +344,8 @@ const newPatientsThisWeek = computed(() => {
 
 // --- LIFECYCLE ---
 onMounted(() => {
-    // Charger la liste
     toxicoStore.fetchToxicoPatients();
-    // Charger la stat critique des admissions (Backend)
     toxicoStore.fetchDashboardStats(); 
-    // Précharger les psys
     toxicoStore.fetchPsychologists();
 });
 
@@ -382,7 +392,7 @@ const closeEvalModal = () => {
 const handleAdmission = async (admissionData) => {
     try {
         await toxicoStore.fetchToxicoPatients();
-        await toxicoStore.fetchDashboardStats(); // MAJ des stats
+        await toxicoStore.fetchDashboardStats();
         alert("Admission validée avec succès !");
     } catch (error) {
         console.error("Erreur lors du rafraîchissement:", error);
@@ -420,7 +430,7 @@ const handleDischarge = async () => {
         showDischargeConfirm.value = false;
         patientToDischarge.value = null;
         await toxicoStore.fetchToxicoPatients();
-        await toxicoStore.fetchDashboardStats(); // MAJ des stats
+        await toxicoStore.fetchDashboardStats();
         alert("Dossier clôturé avec succès !");
     } catch (error) {
         console.error("❌ Erreur lors de la sortie:", error);

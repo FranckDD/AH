@@ -59,6 +59,17 @@ export const useToxicoStore = defineStore('toxico', () => {
         }
     }
 
+    // 2b. Rechercher un patient existant (pour la modale d'admission toxico)
+    async function searchExistingPatients(query) {
+        try {
+            const response = await ToxicoGateway.searchPatients(query);
+            return response.data.data || [];
+        } catch (e) {
+            console.error("Erreur recherche patient:", e);
+            return [];
+        }
+    }
+
     // 3. Admission (Création)
     async function addPatient(admissionData) {
         isLoading.value = true;
@@ -247,8 +258,9 @@ export const useToxicoStore = defineStore('toxico', () => {
         
         // ACTIONS
         fetchDashboardStats, // Action pour les stats
-        fetchToxicoPatients, 
+        fetchToxicoPatients,
         fetchPsychologists,
+        searchExistingPatients,
         addPatient,
         submitEvaluation,
         dischargePatient,

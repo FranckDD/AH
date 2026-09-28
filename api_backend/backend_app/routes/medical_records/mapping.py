@@ -78,4 +78,31 @@ def normalize_medical_record_data(raw) -> dict:
     # Alias 'doctor_name' pour le front
     data["doctor_name"] = data["created_by_name"]
 
+    # Sous-objet patient (code/nom) pour l'affichage cote frontend - meme
+    # convention que Prescription/Appointment (_serialize_patient) : la
+    # relation SQLAlchemy MedicalRecord.patient est deja chargee via
+    # joinedload dans list_records() (repositories/medical_repo.py:26),
+    # mais MedicalRecordResponse ne la declarait pas encore, donc jamais
+    # retournee au client malgre la donnee deja presente en memoire.
+    #
+    # IMPORTANT : le garde ci-dessous DOIT rester isinstance(..., dict), pas
+    # une simple verite (`if not data.get("patient")`). _to_dict() copie deja
+    # l'objet ORM brut de la relation dans data["patient"] avant ce bloc (via
+    # obj.__dict__), ce qui le rend "truthy" sans etre un dict. Un garde base
+    # sur la verite le laisserait passer tel quel, et
+    # MedicalRecordResponse.model_validate() leverait alors une
+    # ValidationError (patient: Optional[dict] refuse un objet ORM) - ce qui
+    # casse TOUT l'endpoint GET /medical_records/ (500), pas seulement la
+    # colonne Patient. Verifie empiriquement lors de la revue finale de ce
+    # chantier.
+    if not isinstance(data.get("patient"), dict):
+        patient_obj = getattr(raw, "patient", None)
+        if patient_obj:
+            data["patient"] = {
+                "patient_id": getattr(patient_obj, "patient_id", None),
+                "code_patient": getattr(patient_obj, "code_patient", None),
+                "first_name": getattr(patient_obj, "first_name", None),
+                "last_name": getattr(patient_obj, "last_name", None),
+            }
+
     return data

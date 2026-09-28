@@ -22,6 +22,7 @@ def normalize_retrait_data(retrait: CaisseRetrait) -> dict:
     return {
         "retrait_id": retrait.retrait_id,
         "amount": float(retrait.amount),
+        "uuid": str(retrait.uuid) if retrait.uuid else None,
         "justification": retrait.justification,
         "status": retrait.status,
         

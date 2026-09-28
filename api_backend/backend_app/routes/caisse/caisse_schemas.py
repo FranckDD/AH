@@ -1,7 +1,7 @@
 # app/routes/caisse/caisse_schemas.py
 from datetime import datetime
 from typing import Optional,List
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 # Schéma de base
 class CaisseBase(BaseModel):
@@ -83,7 +83,8 @@ class InstallmentPaymentIn(BaseModel):
     payment_method: str = Field(..., description="Mode de paiement utilisé pour ce versement (ex: Espèces, Virement).") 
     payment_type: Optional[str] = Field("VERSEMENT_ECHEANCE", description="Type de versement. Par défaut 'VERSEMENT_ECHEANCE', peut être 'SOLDE'.")
     note: Optional[str] = Field(None, description="Note spécifique à ce versement.")
-    
+    uuid: Optional[str] = Field(None, description="UUID client (creation hors ligne PowerSync) - si absent, Postgres en genere un")
+
     class Config:
         from_attributes = True
 
@@ -97,6 +98,12 @@ class PaymentEchelonneOut(BaseModel):
     payment_type: str
     handled_by: int
     note: Optional[str]
+    uuid: Optional[str] = None
+
+    @field_validator("uuid", mode="before")
+    @classmethod
+    def _uuid_to_str(cls, v):
+        return str(v) if v is not None else v
 
     class Config:
-        from_attributes = True                    
+        from_attributes = True

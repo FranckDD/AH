@@ -38,18 +38,10 @@ def test_create_transaction_success(db_session, api_client):
     assert len(body["items"]) == 1
 
 
-def test_create_transaction_partial_payment_amount_due_bug(db_session, api_client):
+def test_create_transaction_partial_payment_computes_amount_due_and_paid_correctly(db_session, api_client):
     """
-    Documente un bug reel sur HEAD (SUIVI-AVANCEMENT.md registre F1) :
-    api_backend/backend_app/routes/caisse/mapping.py::
-    normalize_caisse_data calcule amount_due = amount + advance_amount
-    (au lieu de amount - advance_amount) et amount_paid = amount seul
-    (au lieu de advance_amount). Constate par execution reelle : avec
-    amount=100 et advance_amount=30, amount_due vaut 130 (attendu 70)
-    et amount_paid vaut 100 (attendu 30). Ce bug est independant des
-    KPIs de tableau de bord (get_caisse_kpis), qui calculent
-    correctement remaining_due = total_factured - total_paid (voir
-    test_dashboard_kpis_date_scoped_exact_values).
+    Registre F1, corrige : amount_due = amount - advance_amount,
+    amount_paid = advance_amount (mapping.py::normalize_caisse_data).
     """
     user = create_test_user(db_session, "test_caisse_secretaire_partial", "secretaire", password=TEST_PASSWORD)
     patient_id, _ = create_test_patient(db_session, user)
@@ -72,8 +64,8 @@ def test_create_transaction_partial_payment_amount_due_bug(db_session, api_clien
     body = resp.json()
     assert body["amount"] == "100.00"
     assert body["advance_amount"] == "30.00"
-    assert body["amount_due"] == "130.00"
-    assert body["amount_paid"] == "100.00"
+    assert body["amount_due"] == "70.00"
+    assert body["amount_paid"] == "30.00"
 
 
 def test_create_transaction_missing_required_field_returns_400(db_session, api_client):
@@ -267,38 +259,42 @@ def test_update_transaction_success(db_session, api_client):
     assert resp.json()["note"] == "Note mise a jour"
 
 
-def test_update_transaction_partial_payload_drops_all_items(db_session, api_client):
+def test_update_transaction_partial_payload_keeps_existing_items(db_session, api_client):
     """
-    Documente un bug reel sur HEAD (SUIVI-AVANCEMENT.md registre F6, le
-    plus grave du registre F) : repositories/caisse_repo.py::
-    update_transaction() supprime INCONDITIONNELLEMENT toutes les
-    CaisseItem existantes de la transaction avant meme de verifier si
-    le payload contient une cle "items", puis ne reinsere que
-    data.get("items", []). Un PUT partiel qui omet "items" (ex. juste
-    {"note": "..."}) supprime donc definitivement toutes les lignes de
-    facture - la transaction garde son montant total (tx.amount
-    inchange) mais n'a plus aucune ligne pour le justifier. Pour les
-    lignes de type medicament/carnet, le stock Pharmacy est restaure
-    au passage mais jamais rededuit (inflation de stock fantome
-    permanente). Constate par execution reelle : une transaction creee
-    avec 1 ligne, mise a jour avec seulement {"note": "..."}, renvoie
-    200 avec items=[] - immediatement et sur un GET ulterieur.
+    Registre F6, corrige : un PUT partiel qui omet "items" ne touche plus
+    aux lignes existantes ni au stock. "items" absent = inchange ;
+    "items": [] explicite = vide intentionnellement.
     """
-    user = create_test_user(db_session, "test_caisse_secretaire_dropitems", "secretaire", password=TEST_PASSWORD)
+    user = create_test_user(db_session, "test_caisse_secretaire_keepitems", "secretaire", password=TEST_PASSWORD)
     tx = create_test_transaction(db_session, user, amount=100.0, advance_amount=0.0, items=[
         {"item_type": "Service", "item_ref_id": 1, "unit_price": 100.0, "quantity": 1, "line_total": 100.0}
     ])
     client = api_client(auth_endpoints, caisse_endpoints)
-    headers = auth_headers(client, "test_caisse_secretaire_dropitems", TEST_PASSWORD)
+    headers = auth_headers(client, "test_caisse_secretaire_keepitems", TEST_PASSWORD)
 
     resp = client.put(f"/caisse/{tx.transaction_id}", json={"note": "Partial update"}, headers=headers)
 
     assert resp.status_code == 200
-    assert resp.json()["items"] == []
-    assert resp.json()["amount"] == "100.00"
+    assert len(resp.json()["items"]) == 1
+    assert resp.json()["note"] == "Partial update"
 
     get_resp = client.get(f"/caisse/{tx.transaction_id}", headers=headers)
-    assert get_resp.json()["items"] == []
+    assert len(get_resp.json()["items"]) == 1
+
+
+def test_update_transaction_explicit_empty_items_clears_lines(db_session, api_client):
+    """Registre F6 : "items": [] explicite reste un vidage intentionnel."""
+    user = create_test_user(db_session, "test_caisse_secretaire_clearitems", "secretaire", password=TEST_PASSWORD)
+    tx = create_test_transaction(db_session, user, amount=100.0, advance_amount=100.0, items=[
+        {"item_type": "Service", "item_ref_id": 1, "unit_price": 100.0, "quantity": 1, "line_total": 100.0}
+    ])
+    client = api_client(auth_endpoints, caisse_endpoints)
+    headers = auth_headers(client, "test_caisse_secretaire_clearitems", TEST_PASSWORD)
+
+    resp = client.put(f"/caisse/{tx.transaction_id}", json={"items": [], "advance_amount": 100.0}, headers=headers)
+
+    assert resp.status_code == 200
+    assert resp.json()["items"] == []
 
 
 def test_update_transaction_refused_after_cancel(db_session, api_client):
@@ -307,7 +303,7 @@ def test_update_transaction_refused_after_cancel(db_session, api_client):
     client = api_client(auth_endpoints, caisse_endpoints)
     headers = auth_headers(client, "test_caisse_secretaire_updatecancelled", TEST_PASSWORD)
 
-    cancel_resp = client.post(f"/caisse/{tx.transaction_id}/cancel", headers=headers)
+    cancel_resp = client.post(f"/caisse/{tx.transaction_id}/cancel", json={"cancel_justification": "Test annulation"}, headers=headers)
     assert cancel_resp.status_code == 200
 
     resp = client.put(f"/caisse/{tx.transaction_id}", json={"note": "Ne devrait pas marcher"}, headers=headers)
@@ -339,33 +335,19 @@ def test_delete_transaction_success(db_session, api_client):
     assert get_resp.status_code == 404
 
 
-def test_delete_transaction_nonexistent_returns_204_not_404(db_session, api_client):
-    """
-    Documente un bug reel sur HEAD : api_backend/backend_app/routes/
-    caisse/caisse_endpoints.py::delete_transaction ne verifie jamais
-    la valeur de retour de caisse_ctrl.delete_transaction() -
-    repositories/caisse_repo.py::delete_transaction() renvoie
-    silencieusement None (pas d'exception) si l'id n'existe pas.
-    SUIVI-AVANCEMENT.md registre F2. Meme motif que le bug E2 de
-    prescriptions (chantier 2d-3).
-    """
+def test_delete_transaction_nonexistent_returns_404(db_session, api_client):
+    """Registre F2, corrige : DELETE sur un id inexistant renvoie 404."""
     create_test_user(db_session, "test_caisse_secretaire_delete404", "secretaire", password=TEST_PASSWORD)
     client = api_client(auth_endpoints, caisse_endpoints)
     headers = auth_headers(client, "test_caisse_secretaire_delete404", TEST_PASSWORD)
 
     resp = client.delete("/caisse/999999999", headers=headers)
 
-    assert resp.status_code == 204
+    assert resp.status_code == 404
 
 
 def test_add_installment_payment_success(db_session, api_client):
-    """
-    POST /caisse/{id}/payment ne declare pas de response_model - le
-    controller/repository renvoient un objet ORM PaiementEchelonne brut
-    que FastAPI ne sait pas serialiser utilement sans schema. Constate
-    par execution reelle : 201 avec un corps vide {}. Documente tel
-    quel, pas corrige. (SUIVI-AVANCEMENT.md registre F3)
-    """
+    """Registre F3, corrige : POST /caisse/{id}/payment renvoie le versement cree, pas {}."""
     user = create_test_user(db_session, "test_caisse_secretaire_payment", "secretaire", password=TEST_PASSWORD)
     tx = create_test_transaction(db_session, user, amount=100.0, advance_amount=30.0)
     client = api_client(auth_endpoints, caisse_endpoints)
@@ -378,7 +360,11 @@ def test_add_installment_payment_success(db_session, api_client):
     )
 
     assert resp.status_code == 201
-    assert resp.json() == {}
+    body = resp.json()
+    assert body["transaction_id"] == tx.transaction_id
+    assert body["paid_amount"] == 20.0
+    assert body["payment_method"] == "Especes"
+    assert body["payment_id"]
 
     get_resp = client.get(f"/caisse/{tx.transaction_id}", headers=headers)
     assert get_resp.json()["advance_amount"] == "50.00"
@@ -418,35 +404,33 @@ def test_cancel_transaction_success(db_session, api_client):
     client = api_client(auth_endpoints, caisse_endpoints)
     headers = auth_headers(client, "test_caisse_secretaire_cancel", TEST_PASSWORD)
 
-    resp = client.post(f"/caisse/{tx.transaction_id}/cancel", headers=headers)
+    resp = client.post(f"/caisse/{tx.transaction_id}/cancel", json={"cancel_justification": "Erreur de saisie"}, headers=headers)
 
     assert resp.status_code == 200
     assert resp.json()["detail"] == "Annulé"
 
     get_resp = client.get(f"/caisse/{tx.transaction_id}", headers=headers)
     assert get_resp.json()["status"] == "cancelled"
+    assert get_resp.json()["cancel_justification"] == "Erreur de saisie"
 
 
-def test_cancel_transaction_already_cancelled_is_idempotent(db_session, api_client):
+def test_cancel_transaction_already_cancelled_returns_400(db_session, api_client):
     """
-    Documente une incoherence entre caisse et retrait : annuler une
-    transaction caisse deja annulee reussit silencieusement (200,
-    repositories/caisse_repo.py::cancel_transaction fait
-    "if tx.status == 'cancelled': return tx" sans lever d'exception),
-    alors qu'annuler un retrait deja annule est refuse explicitement
-    (400, voir test_cancel_retrait_already_cancelled_returns_400 dans
-    tests/test_retrait.py). (SUIVI-AVANCEMENT.md registre F5)
+    Registre F5, corrige : annuler une transaction caisse deja annulee
+    est maintenant refusee (400), comme pour un retrait
+    (test_cancel_retrait_already_cancelled_returns_400, tests/test_retrait.py).
     """
     user = create_test_user(db_session, "test_caisse_secretaire_doublecancel", "secretaire", password=TEST_PASSWORD)
     tx = create_test_transaction(db_session, user)
     client = api_client(auth_endpoints, caisse_endpoints)
     headers = auth_headers(client, "test_caisse_secretaire_doublecancel", TEST_PASSWORD)
 
-    first = client.post(f"/caisse/{tx.transaction_id}/cancel", headers=headers)
+    first = client.post(f"/caisse/{tx.transaction_id}/cancel", json={"cancel_justification": "Premiere annulation"}, headers=headers)
     assert first.status_code == 200
 
-    second = client.post(f"/caisse/{tx.transaction_id}/cancel", headers=headers)
-    assert second.status_code == 200
+    second = client.post(f"/caisse/{tx.transaction_id}/cancel", json={"cancel_justification": "Deuxieme annulation"}, headers=headers)
+    assert second.status_code == 400
+    assert "déjà annulée" in second.json()["detail"]
 
 
 def test_daily_total_reflects_created_transaction(db_session, api_client):
@@ -507,14 +491,14 @@ def test_total_remaining_due_default_filters_active_status(db_session, api_clien
     client = api_client(auth_endpoints, caisse_endpoints)
     headers = auth_headers(client, "test_caisse_secretaire_remaining", TEST_PASSWORD)
 
-    before = client.get("/caisse/total_remaining_due", headers=headers).json()
+    before = client.get("/caisse/total_remaining_due?status=active", headers=headers).json()
     tx = create_test_transaction(db_session, user, amount=100.0, advance_amount=40.0)
-    after_active = client.get("/caisse/total_remaining_due", headers=headers).json()
+    after_active = client.get("/caisse/total_remaining_due?status=active", headers=headers).json()
     assert after_active == before + 60.0
 
-    cancel_resp = client.post(f"/caisse/{tx.transaction_id}/cancel", headers=headers)
+    cancel_resp = client.post(f"/caisse/{tx.transaction_id}/cancel", json={"cancel_justification": "Test annulation"}, headers=headers)
     assert cancel_resp.status_code == 200
-    after_cancel = client.get("/caisse/total_remaining_due", headers=headers).json()
+    after_cancel = client.get("/caisse/total_remaining_due?status=active", headers=headers).json()
     assert after_cancel == before
 
 
@@ -592,6 +576,29 @@ def test_download_invoice_pdf_success(db_session, api_client):
     assert len(resp.content) > 1000
 
 
+def test_invoice_pdf_reflete_le_nom_etablissement_configure(db_session, api_client):
+    """Chantier exports (2026-09-23) : avant ce chantier, la facture
+    utilisait un nom/logo code en dur ('AH2 Sante'), ignorant totalement
+    OrganizationConfig - ce test verifie que ce n'est plus le cas."""
+    from api_backend.backend_app.routes.admin import config_endpoints
+
+    admin = create_test_user(db_session, "invoice_pdf_admin", "admin", password=TEST_PASSWORD)
+    tx = create_test_transaction(db_session, admin)
+    db_session.flush()
+
+    client = api_client(auth_endpoints, caisse_endpoints, config_endpoints)
+    headers = auth_headers(client, "invoice_pdf_admin", TEST_PASSWORD)
+
+    resp_config = client.post("/config/structure", data={"name": "Clinique Facture Test 2026"}, headers=headers)
+    assert resp_config.status_code == 200, resp_config.text
+
+    resp = client.get(f"/caisse/{tx.transaction_id}/invoice/download", headers=headers)
+
+    assert resp.status_code == 200
+    assert resp.headers["content-type"] == "application/pdf"
+    assert len(resp.content) > 1000
+
+
 def test_download_invoice_pdf_not_found(db_session, api_client):
     create_test_user(db_session, "test_caisse_secretaire_pdf404", "secretaire", password=TEST_PASSWORD)
     client = api_client(auth_endpoints, caisse_endpoints)
@@ -600,3 +607,22 @@ def test_download_invoice_pdf_not_found(db_session, api_client):
     resp = client.get("/caisse/999999999/invoice/download", headers=headers)
 
     assert resp.status_code == 404
+
+
+def test_total_remaining_due_without_status_includes_all_statuses(db_session, api_client):
+    """
+    Registre F4, corrige : sans parametre status explicite,
+    get_total_remaining_due() ne doit plus filtrer implicitement
+    status='active', comme ses deux voisins (total, total_payments).
+    """
+    user = create_test_user(db_session, "test_caisse_secretaire_remaining_nofilter", "secretaire", password=TEST_PASSWORD)
+    client = api_client(auth_endpoints, caisse_endpoints)
+    headers = auth_headers(client, "test_caisse_secretaire_remaining_nofilter", TEST_PASSWORD)
+
+    before = client.get("/caisse/total_remaining_due", headers=headers).json()
+    tx = create_test_transaction(db_session, user, amount=100.0, advance_amount=40.0)
+    cancel_resp = client.post(f"/caisse/{tx.transaction_id}/cancel", json={"cancel_justification": "Test annulation"}, headers=headers)
+    assert cancel_resp.status_code == 200
+
+    after = client.get("/caisse/total_remaining_due", headers=headers).json()
+    assert after == before + 60.0

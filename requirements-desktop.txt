@@ -1,0 +1,12 @@
+# === Desktop (PyQt6) — chantier 2c ===
+# Inclut requirements-api.txt : le desktop reutilise les memes
+# controllers/repositories/models que l'API (monorepo partage), donc les
+# memes dependances backend, plus ses propres paquets GUI/export/build.
+-r requirements-api.txt
+
+PyQt6==6.9.1
+PyQt6-Qt6==6.9.1  # verrouille en lockstep avec PyQt6 (compatibilite ABI)
+PyQt6_sip==13.10.2  # verrouille en lockstep avec PyQt6 (compatibilite ABI)
+matplotlib==3.10.3
+reportlab==4.4.2
+PyInstaller==6.16.0  # build de l'executable desktop (Glostone-Kare.spec)

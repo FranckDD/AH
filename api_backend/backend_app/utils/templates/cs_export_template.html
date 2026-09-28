@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Export Consultations Spirituelles</title>
+    <style>
+        @page { size: A4 landscape; margin: 1.5cm; @bottom-right { content: "Page " counter(page) " sur " counter(pages); font-size: 9pt; color: #666; } }
+        body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333; font-size: 10pt; }
+        /* .header/.hospital-info/.logo/.logo-container : voir _pdf_header.html */
+        .export-title { text-align: center; font-size: 14pt; font-weight: bold; margin-bottom: 5px; color: #2c3e50; }
+        .export-meta { text-align: center; font-size: 9pt; color: #666; margin-bottom: 15px; }
+        table { width: 100%; border-collapse: collapse; }
+        th { background-color: #2c3e50; color: white; text-align: left; padding: 6px; font-size: 9pt; }
+        td { padding: 6px; border-bottom: 1px solid #ddd; font-size: 9pt; }
+    </style>
+</head>
+<body>
+
+    {% include '_pdf_header.html' %}
+
+    <div class="export-title">Consultations spirituelles</div>
+    <div class="export-meta">{{ periode_label }} — {{ consultations|length }} consultation(s) — généré le {{ date_impression }}</div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Patient</th>
+                <th>Code</th>
+                <th>Type</th>
+                <th>Date</th>
+                <th>Intervenant</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for c in consultations %}
+            <tr>
+                <td>{{ c.patient_name or ('#' ~ c.patient_id) }}</td>
+                <td>{{ c.patient_code or '-' }}</td>
+                <td>{{ c.type_consultation }}</td>
+                <td>{{ c.consultation_date }}</td>
+                <td>{{ c.created_by_name }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+</body>
+</html>

@@ -6,6 +6,7 @@ from datetime import date, datetime, timedelta, time
 from models.appointment import Appointment
 from models.database import DatabaseManager
 from models.patient import Patient  # adapte selon ton projet
+import uuid
 
 
 
@@ -52,12 +53,19 @@ class AppointmentRepository:
 
             # Allowed fields — adapt to your model if names differ
             allowed = ("patient_id", "doctor_id", "specialty",
-                    "appointment_date", "appointment_time", "reason", "status")
+                    "appointment_date", "appointment_time", "reason", "status", "uuid")
 
             appt = Appointment()
             for k in allowed:
                 if k in data:
-                    setattr(appt, k, data[k])
+                    value = data[k]
+                    # Le modele attend un uuid.UUID (colonne UUID(as_uuid=True)),
+                    # pas une chaine brute - convertir si un uuid client (string)
+                    # est fourni (creation hors ligne PowerSync, tache ulterieure).
+                    # Si absent, le defaut Postgres (gen_random_uuid()) s'applique.
+                    if k == "uuid" and value is not None and not isinstance(value, uuid.UUID):
+                        value = uuid.UUID(str(value))
+                    setattr(appt, k, value)
 
             self.session.add(appt)
             self.session.commit()

@@ -43,6 +43,7 @@ class ToxicoPatientListItem(BaseModel):
     currentPhase: int
     relapseCount: int
     psychologist: str # Nom complet
+    admissionDate: Optional[date] = None
 
 class ToxicoDossierDetail(BaseModel):
     """Pour la modale Dossier (Détail)"""

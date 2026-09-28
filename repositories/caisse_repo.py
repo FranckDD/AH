@@ -9,9 +9,12 @@ from typing import List, Dict
 from models.caisse import Caisse
 from models.caisse_item import CaisseItem
 from models.pharmacy import Pharmacy
-from utils.invoice_pdf_generator import export_invoice_to_pdf_bytes
 from models.paiement_echelonne import PaiementEchelonne
 from models.stock_movement import StockMovement
+from api_backend.backend_app.utils.pdf_generator import render_pdf_from_template
+from api_backend.backend_app.utils.pdf_header import get_pdf_header_context
+from controller.config_controller import ConfigController
+from repositories.config_repo import ConfigRepository
 
 
 class CaisseRepository:
@@ -103,13 +106,18 @@ class CaisseRepository:
 
         # --- 1. Application des Filtres ---
         
-        # Filtre par terme (Type ou Créateur)
+        # Filtre par terme (Type, Créateur, Description/note, Patient)
+        # note et patient_label sont nullables : func.lower(NULL) vaut NULL,
+        # donc la condition LIKE correspondante est simplement fausse pour
+        # ces lignes (pas de filtrage parasite, pas de crash).
         if term:
             term_like = f"%{term.lower()}%"
             query = query.filter(
                 or_(
                     func.lower(Caisse.transaction_type).like(term_like),
-                    func.lower(Caisse.created_by_name).like(term_like)
+                    func.lower(Caisse.created_by_name).like(term_like),
+                    func.lower(Caisse.note).like(term_like),
+                    func.lower(Caisse.patient_label).like(term_like),
                 )
             )
         
@@ -163,16 +171,20 @@ class CaisseRepository:
         if status:
             query = query.filter(Caisse.status == status)
 
+        # func.date() sur la COLONNE : les endpoints de totaux declarent
+        # date_from/date_to en datetime, donc "2026-09-15" arrive a 00:00:00
+        # et un <= brut excluait toute la journee (KPI a 0). Meme regle que
+        # la liste, ligne 127, qui elle etait correcte.
         if date_from is not None:
-            query = query.filter(Caisse.paid_at >= date_from)
+            query = query.filter(func.date(Caisse.paid_at) >= date_from)
 
         if date_to is not None:
-            query = query.filter(Caisse.paid_at <= date_to)
+            query = query.filter(func.date(Caisse.paid_at) <= date_to)
 
         total = query.scalar()
         return float(total or 0.0)
 
-    def create_transaction(self, data: dict, current_user) -> Caisse:
+    def create_transaction(self, data: dict, current_user, initial_status: str = 'active') -> Caisse:
         """
         Crée une transaction complète :
         1. En-tête Caisse
@@ -193,8 +205,11 @@ class CaisseRepository:
             payment_method   = data["payment_method"], # Méthode préférée (sera utilisée pour le 1er paiement)
             transaction_type = data["transaction_type"],
             note             = data.get("note"),
-            status           = 'active'
+            status           = initial_status
         )
+        if data.get("uuid"):
+            import uuid
+            tx.uuid = uuid.UUID(str(data["uuid"]))
         self.session.add(tx)
         self.session.flush() # Récupère tx.transaction_id
 
@@ -308,6 +323,9 @@ class CaisseRepository:
             handled_by     = current_user.user_id,
             note           = data.get("note", "")
         )
+        if data.get("uuid"):
+            import uuid
+            payment.uuid = uuid.UUID(str(data["uuid"]))
         self.session.add(payment)
         self.session.flush() # Pour générer l'ID du paiement
 
@@ -342,20 +360,6 @@ class CaisseRepository:
         if tx.status == 'cancelled':
             raise ValueError(f"Impossible de modifier une transaction annulée (ID={transaction_id}).")
 
-        # 2) Rétablir d'abord le stock des anciennes lignes (avant MAJ)
-        existing_items = list(tx.items)
-        for old_item in existing_items:
-            if old_item.item_type.lower() in ("médicament", "medication", "carnet", "booklet"):
-                med = self.session.get(Pharmacy, old_item.item_ref_id)
-                if med:
-                    med.quantity += old_item.quantity
-                    med.update_stock_status()
-                    self.session.add(med)
-        # Supprimer les anciennes lignes
-        for old_item in existing_items:
-            self.session.delete(old_item)
-        self.session.flush()
-
         # 3) Mettre à jour les champs de l’en-tête
         if "amount" in data:
             tx.amount = data["amount"]
@@ -375,96 +379,88 @@ class CaisseRepository:
             tx.paid_at = data["paid_at"]
         # status reste inchangé (normalement 'active')
 
-        # 4) Réinsérer les nouvelles lignes
-        new_items = data.get("items", [])
-        for line in new_items:
-            item_type = line["item_type"]
-            ref_id    = line["item_ref_id"]
-            unit_price= line["unit_price"]
-            qty       = line["quantity"]
-            line_tot  = line["line_total"]
-            item_note = line.get("note")
+        # 2) Items : ne toucher aux lignes existantes et au stock QUE si
+        # "items" est explicitement present dans le payload (registre F6).
+        # Absent = ne pas toucher ; present (meme []) = remplacer.
+        if "items" in data:
+            existing_items = list(tx.items)
+            for old_item in existing_items:
+                if old_item.item_type.lower() in ("médicament", "medication", "carnet", "booklet"):
+                    med = self.session.get(Pharmacy, old_item.item_ref_id)
+                    if med:
+                        med.quantity += old_item.quantity
+                        med.update_stock_status()
+                        self.session.add(med)
+            for old_item in existing_items:
+                self.session.delete(old_item)
+            self.session.flush()
 
-            if item_type.lower() in ("médicament", "medication", "carnet", "booklet"):
-                med = self.session.get(Pharmacy, ref_id)
-                if not med:
-                    raise ValueError(f"Produit introuvable pour ID={ref_id}")
-                if med.quantity < qty:
-                    raise ValueError(
-                        f"Stock insuffisant pour produit ID={ref_id}. "
-                        f"Demandé={qty}, disponible={med.quantity}"
-                    )
-                med.quantity -= qty
-                med.update_stock_status()
-                self.session.add(med)
+            new_items = data.get("items", [])
+            for line in new_items:
+                item_type = line["item_type"]
+                ref_id    = line["item_ref_id"]
+                unit_price= line["unit_price"]
+                qty       = line["quantity"]
+                line_tot  = line["line_total"]
+                item_note = line.get("note")
 
-            new_item = CaisseItem(
-                transaction_id = transaction_id,
-                item_type      = item_type,
-                item_ref_id    = ref_id,
-                unit_price     = unit_price,
-                quantity       = qty,
-                line_total     = line_tot,
-                note           = item_note,
-                status         = 'active'
-            )
-            self.session.add(new_item)
+                if item_type.lower() in ("médicament", "medication", "carnet", "booklet"):
+                    med = self.session.get(Pharmacy, ref_id)
+                    if not med:
+                        raise ValueError(f"Produit introuvable pour ID={ref_id}")
+                    if med.quantity < qty:
+                        raise ValueError(
+                            f"Stock insuffisant pour produit ID={ref_id}. "
+                            f"Demandé={qty}, disponible={med.quantity}"
+                        )
+                    med.quantity -= qty
+                    med.update_stock_status()
+                    self.session.add(med)
+
+                new_item = CaisseItem(
+                    transaction_id = transaction_id,
+                    item_type      = item_type,
+                    item_ref_id    = ref_id,
+                    unit_price     = unit_price,
+                    quantity       = qty,
+                    line_total     = line_tot,
+                    note           = item_note,
+                    status         = 'active'
+                )
+                self.session.add(new_item)
 
         # 5) Commit final
         self.session.commit()
         return tx
 
-    def cancel_transaction(self, transaction_id: int, current_user) -> Caisse:
+    def cancel_transaction(self, transaction_id: int, current_user, justification: str) -> Caisse:
         """
-        Annule la transaction et restaure le stock.
-        VERSION AVEC LOGS DE DEBUG pour comprendre pourquoi le stock ne remonte pas.
+        Annule la transaction, restaure le stock, et enregistre qui/quand/
+        pourquoi (registre F5 : refuse desormais une transaction deja
+        annulee, comme caisse_retrait_repo.py::cancel_with_justification).
         """
-        print(f"--- DÉBUT ANNULATION TRANSACTION #{transaction_id} ---")
-        
         tx = self.get_by_id(transaction_id)
         if not tx:
             raise ValueError(f"Aucune transaction trouvée pour l'ID={transaction_id}")
 
         if tx.status == 'cancelled':
-            print("Transaction déjà annulée.")
-            return tx
+            raise ValueError("Cette transaction est déjà annulée.")
 
-        # 1) Rétablir le stock
-        count_restored = 0
-        
         for item in tx.items:
-            # Nettoyage de la chaîne (minuscule, sans espace autour)
-            raw_type = str(item.item_type)
-            t_type = raw_type.lower().strip()
-            
-            print(f"Traitement Ligne ID: {item.item_id} | Type brut: '{raw_type}' | Type nettoyé: '{t_type}' | RefID: {item.item_ref_id}")
-
-            # Mots-clés déclencheurs (basés sur vos données réelles)
+            t_type = str(item.item_type).lower().strip()
             keywords = ["médicament", "medicament", "carnet", "booklet"]
-            
-            # Vérifie si l'un des mots-clés est DANS le type
-            is_stock_item = any(k in t_type for k in keywords)
-
-            if is_stock_item:
-                print(f"   -> C'est un article de stock. Tentative de récupération Pharmacy ID {item.item_ref_id}...")
-                
-                # Récupération du produit
+            if any(k in t_type for k in keywords):
                 med = self.session.get(Pharmacy, item.item_ref_id)
-                
                 if med:
-                    old_qty = med.quantity
                     med.quantity += item.quantity
-                    
-                    # Mise à jour statut
-                    if med.threshold and med.quantity <= med.threshold: med.stock_status = 'bas'
-                    elif med.quantity == 0: med.stock_status = 'rupture'
-                    else: med.stock_status = 'normal'
-                    
+                    if med.threshold and med.quantity <= med.threshold:
+                        med.stock_status = 'bas'
+                    elif med.quantity == 0:
+                        med.stock_status = 'rupture'
+                    else:
+                        med.stock_status = 'normal'
                     self.session.add(med)
-                    
-                    print(f"   -> SUCCÈS : {med.drug_name} stock {old_qty} + {item.quantity} = {med.quantity}")
 
-                    # Traceabilité
                     movement = StockMovement(
                         medication_id = med.medication_id,
                         change_qty    = item.quantity,
@@ -473,14 +469,11 @@ class CaisseRepository:
                         note          = f"Annul. Tx #{tx.transaction_id}"
                     )
                     self.session.add(movement)
-                    count_restored += 1
-                else:
-                    print(f"   -> ERREUR CRITIQUE : Produit ID {item.item_ref_id} introuvable dans la table Pharmacy !")
-            else:
-                print("   -> Ignoré (pas un médicament ni un carnet).")
 
-        # 2) Marquer tout comme annulé
         tx.status = 'cancelled'
+        tx.cancelled_by = getattr(current_user, "user_id", None)
+        tx.cancelled_at = datetime.utcnow()
+        tx.cancel_justification = justification
         self.session.add(tx)
 
         for item in tx.items:
@@ -488,7 +481,6 @@ class CaisseRepository:
             self.session.add(item)
 
         self.session.commit()
-        print(f"--- FIN ANNULATION ({count_restored} articles restaurés) ---")
         return tx
 
     def delete_transaction(self, transaction_id: int) -> Caisse:
@@ -554,8 +546,11 @@ class CaisseRepository:
         # Construction des lignes d'articles
         items_list = []
         for item in tx.items:
-            # Sécurisation du nom de l'article
-            i_name = getattr(item, "item_name", item.item_type)
+            # item.note porte le libelle reel de la ligne (nom du produit,
+            # reference de consultation, ou texte libre) - item_type seul
+            # (ex. "Médicament") ne dit rien sur QUEL medicament (registre
+            # final-review I3 du chantier 7b).
+            i_name = item.note or item.item_type
             
             items_list.append({
                 "item_type": item.item_type,
@@ -597,30 +592,56 @@ class CaisseRepository:
             query = query.filter(Caisse.status == status)
 
         if date_from is not None:
-            query = query.filter(Caisse.paid_at >= date_from)
+            query = query.filter(func.date(Caisse.paid_at) >= date_from)
 
         if date_to is not None:
-            query = query.filter(Caisse.paid_at <= date_to)
+            query = query.filter(func.date(Caisse.paid_at) <= date_to)
 
         total = query.scalar()
         return float(total or 0.0)
     
     def generate_invoice_pdf_content(self, transaction_id: int) -> bytes:
-        """
-        1. Récupère toutes les données nécessaires pour la facture.
-        2. Appelle la fonction utilitaire qui construit le fichier PDF.
-        """
-
-        # 1. Récupération des Données de la Transaction
-        transaction_data = self.get_transaction_details_for_invoice(transaction_id) 
-
+        transaction_data = self.get_transaction_details_for_invoice(transaction_id)
         if not transaction_data:
             raise ValueError(f"Transaction ID {transaction_id} non trouvée pour génération PDF.")
 
-        # 2. Génération du PDF
-        # REMPLACER LE BLOC TRY...EXCEPT PAR CES DEUX LIGNES :
-        pdf_bytes = export_invoice_to_pdf_bytes(transaction_data) 
-        return pdf_bytes
+        config_ctrl = ConfigController(repo=ConfigRepository(self.session))
+        header_ctx = get_pdf_header_context(config_ctrl)
+
+        amount = float(transaction_data.get('amount', 0) or 0)
+        advance = float(transaction_data.get('advance_amount', 0) or 0)
+        items = []
+        for item in transaction_data.get('items', []):
+            try:
+                unit_price = float(item.get('unit_price', 0) or 0)
+                line_total = float(item.get('line_total', 0) or 0)
+            except (TypeError, ValueError):
+                unit_price = 0.0
+                line_total = 0.0
+            items.append({
+                "description": f"{item.get('item_type', 'Service')} - {item.get('item_name', 'Détail')}",
+                "ref": str(item.get('item_ref_id', '') or ''),
+                "quantity": item.get('quantity', 1),
+                "unit_price": unit_price,
+                "line_total": line_total,
+            })
+
+        context = {
+            **header_ctx,
+            "date_impression": datetime.now().strftime("%d/%m/%Y à %H:%M"),
+            "transaction": {
+                "transaction_id": transaction_data.get('transaction_id', 'N/A'),
+                "status": transaction_data.get('status', ''),
+                "patient_name": transaction_data.get('patient_name') or transaction_data.get('patient_label', 'Inconnu'),
+                "caissier_name": transaction_data.get('user_name') or transaction_data.get('created_by_name', 'N/A'),
+                "items": items,
+                "amount": amount,
+                "advance_amount": advance,
+                "remaining": amount - advance,
+            },
+        }
+
+        return render_pdf_from_template('invoice_template.html', context)
     
     def get_unpaid_transactions_details(
         self, 
@@ -667,7 +688,7 @@ class CaisseRepository:
                 fname = getattr(patient_obj, 'first_name', '') or ""
                 lname = getattr(patient_obj, 'last_name', '') or ""
                 patient_name = f"{fname} {lname}".strip() or tx.patient_label
-                patient_contact = getattr(patient_obj, 'contact', 'N/A')
+                patient_contact = getattr(patient_obj, 'contact_phone', 'N/A')
 
             unpaid_list.append({
                 "transaction_id": tx.transaction_id,
@@ -761,15 +782,17 @@ class CaisseRepository:
         # On utilise une requête pour la somme de l'expression
         query = self.session.query(func.coalesce(func.sum(remaining_due_expr), 0.0))
 
-        # IMPORTANT : On ne veut que les transactions actives (ou à votre convenance)
-        query = query.filter(Caisse.status == (status or 'active'))
+        # Comme get_total_transactions/get_total_payments : ne filtrer par
+        # statut que si explicitement demande (registre F4).
+        if status:
+            query = query.filter(Caisse.status == status)
 
         if date_from is not None:
             # On filtre sur la date de paiement (ou de création, selon votre besoin)
-            query = query.filter(Caisse.paid_at >= date_from) 
+            query = query.filter(func.date(Caisse.paid_at) >= date_from)
 
         if date_to is not None:
-            query = query.filter(Caisse.paid_at <= date_to)
+            query = query.filter(func.date(Caisse.paid_at) <= date_to)
 
         total = query.scalar()
         return float(total or 0.0)

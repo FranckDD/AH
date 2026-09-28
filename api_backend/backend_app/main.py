@@ -18,9 +18,14 @@ from .routes.cs import cs_endpoint
 from .routes.caisse import caisse_endpoints
 from .routes.retrait import retrait_endpoints
 from .routes.toxico import toxico_endpoint
+from .routes.patient_dossier import patient_dossier_endpoint
+from .routes.finance import finance_endpoints
 
 # --- AJOUT IMPORT LABO ---
 from .routes.labo import lab_endpoints  # <--- AJOUT ICI
+# --- AJOUT IMPORT NOTIFICATIONS ---
+from .routes.notifications import notification_endpoints
+from .routes.discount import discount_endpoints
 from .routes.audit import audit_endpoint
 from .routes.pharmacy import pharmacy_endpoints
 from .routes.admin import users_endpoint,config_endpoints
@@ -72,19 +77,26 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     """
     Intercepte les erreurs 422 et les affiche proprement dans la console serveur.
     """
-    error_details = exc.errors()
-    
+    # exc.errors() peut contenir des valeurs non serialisables en JSON
+    # n'importe ou dans la structure (ctx.error d'un model_validator qui
+    # leve ValueError, mais aussi error["input"] - la valeur brute reçue,
+    # qui peut etre un UploadFile sur une route multipart, etc.). On
+    # repasse toute la structure par un aller-retour JSON avec un
+    # fallback str() pour garantir la serialisabilite, quel que soit
+    # l'objet en cause (registre E1).
+    error_details = json.loads(json.dumps(exc.errors(), default=str))
+
     print("\n" + "="*50)
     print(f"🛑 ERREUR DE VALIDATION (422) SUR : {request.method} {request.url}")
     print("="*50)
-    
+
     for i, error in enumerate(error_details):
         loc = " -> ".join(str(l) for l in error['loc'])
         msg = error['msg']
         print(f"❌ Erreur #{i+1}:")
         print(f"   📍 Emplacement : {loc}")
         print(f"   ⚠️ Message     : {msg}")
-    
+
     print("="*50 + "\n")
 
     return JSONResponse(
@@ -94,17 +106,23 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 
 origins = [
     # 1. Votre frontend Vue/Vite qui tourne sur ce port
-    "http://localhost:5173", 
+    "http://localhost:5173",
     # 2. Si vous utilisez un autre port, ajoutez-le ici
-    "http://127.0.0.1:5173", 
+    "http://127.0.0.1:5173",
     "http://localhost:3000",      # Autre port courant
-    "*"
+    # 3. `npm run preview` (build de production, necessaire pour tester le
+    #    service worker/PWA du pilote PowerSync - `npm run dev` n'active
+    #    pas le SW) sert par defaut sur ce port, distinct de `npm run dev`.
+    "http://localhost:4173",
+    "http://127.0.0.1:4173",
+    #"*"
 ]
 
 app.add_middleware(
     CORSMiddleware,
     # Autorise les origines ci-dessus (votre frontend)
-    allow_origins=["*"],#allow_origins=origins, 
+    #allow_origins=["*"], 
+    allow_origins=origins, 
     # Autorise les identifiants/cookies (souvent requis pour l'authentification)
     allow_credentials=True, 
     # Autorise toutes les méthodes (GET, POST, PUT, DELETE, OPTIONS, etc.)
@@ -125,9 +143,14 @@ app.include_router(cs_endpoint.router)
 app.include_router(caisse_endpoints.router)
 app.include_router(retrait_endpoints.router)
 app.include_router(toxico_endpoint.router)
+app.include_router(patient_dossier_endpoint.router)
+app.include_router(finance_endpoints.router)
 
 # --- AJOUT ROUTER LABO ---
 app.include_router(lab_endpoints.router) # <--- AJOUT ICI (Le préfixe "/labo" est déjà défini dans le fichier endpoint)
+# --- AJOUT ROUTER NOTIFICATIONS ---
+app.include_router(notification_endpoints.router)
+app.include_router(discount_endpoints.router)
 app.include_router(audit_endpoint.router)
 app.include_router(pharmacy_endpoints.router)
 app.include_router(users_endpoint.router)

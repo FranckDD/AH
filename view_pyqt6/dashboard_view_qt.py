@@ -30,6 +30,10 @@ except Exception:
 # en haut du fichier, ajoute si nécessaire :
 from view_pyqt6.appointment_views.list_appointment import AppointmentsListView
 from view_pyqt6.appointment_views.book_appoint_view import AppointmentsBookDialog
+from view_pyqt6.change_password_dialog import ChangePasswordDialog 
+
+import logging
+logger = logging.getLogger(__name__)
 
 
 class DashboardView(QWidget):
@@ -240,7 +244,7 @@ class DashboardView(QWidget):
         self.profile_menu = QMenu()
         self.profile_menu.addAction("Paramètres", lambda: None)
         self.profile_menu.addAction("Éditer Profil", lambda: None)
-        self.profile_menu.addAction("Changer MDP", lambda: None)
+        self.profile_menu.addAction("Changer MDP", self._show_change_password)
         self.profile_menu.addSeparator()
         self.profile_menu.addAction("Déconnexion", self._logout)
         self.profile_btn.setMenu(self.profile_menu)
@@ -885,6 +889,35 @@ class DashboardView(QWidget):
         for b in self.menu_buttons:
             b.setStyleSheet("")
         btn.setStyleSheet("font-weight: bold; color: #2e7d32;")
+
+    def _show_change_password(self):
+        """
+        Ouvre le dialogue modal de changement de mot de passe.
+        Contrairement aux vues (show_patient_add), ceci est un Popup.
+        """
+        # 1. Vérification de sécurité
+        if not self.user:
+            # Logger l'erreur comme tu le fais ailleurs
+            #logger.warning("Tentative de changement de mot de passe sans utilisateur connecté.")
+            return
+
+        try:
+            # 2. Instanciation
+            # On passe self.controllers comme tu le fais pour PatientFormView
+            dialog = ChangePasswordDialog(
+                parent=self, 
+                controllers=self.controllers, 
+                current_user=self.user
+            )
+            
+            # 3. Affichage Modal (bloquant)
+            # On n'utilise pas content_area.setCurrentWidget car c'est une fenêtre flottante
+            dialog.exec()
+            
+        except Exception as e:
+            logger.error(f"Erreur creation ChangePasswordDialog: {e}")
+            from PyQt6.QtWidgets import QMessageBox
+            QMessageBox.critical(self, "Erreur", f"Impossible d'ouvrir le module de sécurité : {e}")    
 
     def _logout(self):
         if callable(self.on_logout):

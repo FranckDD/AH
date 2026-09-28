@@ -86,6 +86,23 @@ class RemoteGateway:
 
             except requests.exceptions.RequestException as e:
                 return {"error": "Network error", "details": str(e), "_status_code": None}
+            
+
+    def change_user_password(self, user_id: int, old_pass: str, new_pass: str):
+        """
+        Appelle l'endpoint PUT /auth/password.
+        Mappe les arguments vers le schéma UserPasswordUpdate.
+        """
+        payload = {
+            "old_password": old_pass,
+            "new_password": new_pass,
+            "confirm_password": new_pass  # On auto-confirme pour l'API
+        }
+        
+        # Note: user_id n'est pas envoyé dans le body, car l'API utilise le token (current_user)
+        # Mais on le garde en paramètre pour garder la signature identique au contrôleur local
+        
+        return self.request("PUT", "/auth/password", json=payload)       
 
 
     # --------------------
@@ -658,6 +675,11 @@ class RemoteGateway:
         res = self.request("GET", "/users/specialties")
         return self._unwrap_list_response(res)
     
+    def list_doctors(self):
+        """Récupère la liste des médecins via le service User."""
+        res = self.request("GET", "/users/doctors")
+        return self._unwrap_list_response(res)
+    
 
     # --------------------
     # CAISSE RETRAITS
@@ -1226,50 +1248,157 @@ class RemoteGateway:
     
 
     # --------------------
-    # Laboratoire 🟢 AJOUTS CRUD EXAMEN
+    # 🧪 LABORATOIRE (Méthodes Complètes)
     # --------------------
+
+    # --- 1. CONFIGURATION (Examens) ---
+
     def list_examens(self):
-        """
-        Récupère la liste complète des examens depuis l'API.
-        Route Backend: GET /labo/
-        """
-        return self.request("GET", "/labo/")
-    
+        """ GET /labo/exams """
+        return self.request("GET", "/labo/exams")
+
     def create_examen(self, data: Dict[str, Any]):
-        """
-        Crée un nouvel examen.
-        Route Backend: POST /labo/exams
-        """
+        """ POST /labo/exams """
         return self.request("POST", "/labo/exams", json=data)
 
     def update_examen(self, examen_id: int, data: Dict[str, Any]):
-        """
-        Met à jour un examen existant.
-        Route Backend: PUT /labo/exams/{examen_id}
-        """
+        """ PUT /labo/exams/{id} """
         return self.request("PUT", f"/labo/exams/{examen_id}", json=data)
 
     def delete_examen(self, examen_id: int):
-        """
-        Supprime un examen.
-        Route Backend: DELETE /labo/exams/{examen_id}
-        """
-        # Le backend renvoie 204 No Content, donc on gère le statut plutôt que le JSON.
-        response = self.request("DELETE", f"/labo/exams/{examen_id}")
-        if isinstance(response, dict) and "_status_code" in response:
-             return response["_status_code"] == 200
-        # Si la requête réussit sans corps, requests.request peut ne pas retourner de JSON.
-        # Nous modifions request pour capturer le statut HTTP si l'appel réussit mais ne renvoie pas de JSON.
-        # Pour une méthode DELETE qui renvoie 204, on suppose que le succès est 204.
-        return response
+        """ DELETE /labo/exams/{id} """
+        return self.request("DELETE", f"/labo/exams/{examen_id}")
 
-    
+    # --- 2. CONFIGURATION (Paramètres) ---
+
+    def list_examen_params(self, examen_id: int):
+        """ GET /labo/exams/{id}/params """
+        return self.request("GET", f"/labo/exams/{examen_id}/params")
+
+    def add_examen_param(self, examen_id: int, data: Dict[str, Any]):
+        """ POST /labo/exams/{id}/params """
+        return self.request("POST", f"/labo/exams/{examen_id}/params", json=data)
+
+    def delete_examen_param(self, param_id: int):
+        """ DELETE /labo/params/{id} """
+        return self.request("DELETE", f"/labo/params/{param_id}")
+
+    # --- 3. GESTION DES DOSSIERS (Workflow) ---
+
+    def search_lab_files(self, query: str):
+        """ GET /labo/search?q=... """
+        return self.request("GET", "/labo/search", params={"q": query})
+
+    def create_lab_folder(self, data: Dict[str, Any]):
+        """ 
+        POST /labo/results 
+        Crée un dossier vide ou pré-rempli.
+        """
+        return self.request("POST", "/labo/results", json=data)
+
+    def get_result_detail(self, result_id: int):
+        """ 
+        GET /labo/results/{id} 
+        Récupère le dossier complet pour affichage/saisie.
+        """
+        return self.request("GET", f"/labo/results/{result_id}")
+
+    def submit_result_values(self, result_id: int, values_map: Dict[int, Any], completed: bool = False):
+        """
+        PUT /labo/results/{id}/values
+        Sauvegarde les valeurs saisies par le technicien.
+        """
+        payload = {
+            "values": values_map,
+            "completed": completed
+        }
+        return self.request("PUT", f"/labo/results/{result_id}/values", json=payload)
+
+    def delete_lab_result(self, result_id: int):
+        """ DELETE /labo/results/{id} """
+        return self.request("DELETE", f"/labo/results/{result_id}")
+
+    # --- 4. BATCH & HISTORIQUE & STATS ---
+
+    def get_paginated_history(self, page: int = 1, limit: int = 20, search: str = None, status: str = None):
+        """ 
+        GET /labo/history/paginated
+        Récupère l'historique global paginé avec filtres optionnels.
+        """
+        params = {"page": page, "limit": limit}
+        if search:
+            params["search"] = search
+        if status:
+            params["status"] = status
+            
+        return self.request("GET", "/labo/history/paginated", params=params)
+
+    def get_results_by_batch(self, batch_id: str): # <--- CELLE-CI MANQUE
+        """ 
+        GET /labo/batch/{batch_id}
+        Récupère tous les examens liés à un même lot (UUID).
+        Utile quand on clique sur un résultat pour afficher tout le groupe.
+        """
+        return self.request("GET", f"/labo/batch/{batch_id}")
+
+    def create_batch_results(self, data: Dict[str, Any]):
+        """ POST /labo/results/batch (Saisie rapide tableau) """
+        return self.request("POST", "/labo/results/batch", json=data)
+
     def get_patient_lab_history(self, patient_id: int):
-        """
-        Récupère l'historique des résultats labo pour un patient.
-        Endpoint: GET /labo/patient/{id}/history
-        """
+        """ GET /labo/patient/{id}/history """
         return self.request("GET", f"/labo/patient/{patient_id}/history")
+
+    def get_lab_stats(self, period: str = "month"):
+        """ GET /labo/stats avec paramètre de filtrage """
+        # On passe la période dans les query params
+        return self.request("GET", "/labo/stats", params={"period": period})
+    
+    def get_lab_worklist(self):
+        """ 
+        GET /labo/worklist 
+        Récupère les prescriptions en attente de traitement labo.
+        """
+        return self.request("GET", "/labo/worklist")
+    
+    def get_paillasse_list(self):
+        """ 
+        GET /labo/paillasse 
+        LISTE TECHNIQUE : Affiche les dossiers créés en attente de résultats.
+        Utilisé par le technicien pour savoir quoi analyser
+        """
+        return self.request("GET", "/labo/paillasse")
+    
+    def search_internal_prescriptions(self, query: str):
+        """ 
+        GET /labo/search-internal?q=...
+        Recherche les patients internes ayant une prescription ACTIVE.
+        Appelé après le debounce de 300ms.
+        """
+        return self.request("GET", "/labo/search-internal", params={"q": query})
+
+    def download_result_pdf(self, result_id: int) -> Union[bytes, Dict[str, Any]]:
+        """ 
+        GET /labo/results/{id}/pdf 
+        Récupère les bytes du PDF sans passer par self.request() pour éviter le crash JSON.
+        """
+        url = f"{self.base_url}/labo/results/{result_id}/pdf"
+        try:
+            # On appelle directement requests pour avoir accès à .content
+            response = requests.get(
+                url, 
+                headers=self._headers(), 
+                timeout=20
+            )
+            response.raise_for_status()
+            
+            # On retourne les bytes bruts (le contenu du PDF)
+            return response.content
+            
+        except requests.exceptions.RequestException as e:
+            # En cas d'erreur, on retourne un dictionnaire formaté comme tes autres méthodes
+            #logger.error(f"Erreur téléchargement PDF {result_id}: {e}")
+            return {"error": "Download error", "details": str(e)}
     
 
     #-----------

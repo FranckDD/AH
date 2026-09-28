@@ -6,6 +6,15 @@ from pydantic import ValidationError
 import logging
 from typing import List, Any, Optional
 
+import csv
+import io
+from datetime import date as date_type, datetime
+from fastapi.responses import Response, StreamingResponse
+from api_backend.backend_app.utils.pdf_generator import render_pdf_from_template
+from api_backend.backend_app.utils.pdf_header import get_pdf_header_context
+from controller.config_controller import ConfigController
+from repositories.config_repo import ConfigRepository
+
 from ...database import SessionLocal
 from controller.auth_controller import AuthController
 from controller.patient_controller import PatientController
@@ -15,7 +24,7 @@ from api_backend.backend_app.routes.auth.auth_endpoints import get_current_user,
 from api_backend.backend_app.exceptions import translate_integrity_error
 
 from .mapping import normalize_consultation_data
-from ..cs.schemas_cs import   ConsultationCreate,ConsultationUpdate,ConsultationResponse,PrayerBookTypeResponse
+from ..cs.schemas_cs import   ConsultationCreate,ConsultationUpdate,ConsultationResponse,PrayerBookTypeResponse,ConsultationListResponse
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +32,12 @@ logger = logging.getLogger(__name__)
 router = APIRouter(
     prefix="/cs",
     tags=["Consultation spirituelle"],
-    dependencies=[Depends(role_required("secretaire", "admin", "medecin", "nurse", "SpiritualCounsellor"))]
+    # "medecin"/"nurse" retires (chantier perimetre medical, decision
+    # utilisateur 2026-09-22) : le spirituel ne les concerne pas, meme
+    # motif que le retrait deja fait du dossier consolide et des onglets
+    # patients. Aucune route de ce fichier n'a de dependance propre qui
+    # les mentionnait, donc ce seul changement ferme tout le module.
+    dependencies=[Depends(role_required("secretaire", "admin", "SpiritualCounsellor"))]
 )
 
 def get_db():
@@ -93,7 +107,7 @@ def get_prayer_book_types(
     return [{"type_code": b.type_code, "label": b.label} for b in books]    
 
 
-@router.get("/", response_model=List[ConsultationResponse])
+@router.get("/", response_model=ConsultationListResponse)
 def list_consultations(
     page: int = Query(1, ge=1),
     per_page: int = Query(25, ge=1, le=200),
@@ -101,16 +115,27 @@ def list_consultations(
     cs_ctrl: ConsultationSpirituelController = Depends(get_consultation_controller),
 ):
     """
-    Retourne la liste des consultations (simple pagination côté endpoint).
-    Si besoin, tu peux déplacer la pagination côté repo.
+    Retourne la liste paginee des consultations, avec le total reel.
+    Pagination toujours en memoire cote endpoint (dette connue, hors
+    perimetre de ce chantier) : le controller charge la liste complete
+    avant de la decouper, donc le total exact est disponible sans cout
+    de requete supplementaire.
+
+    "search" (registre J1) : etait deja declare ici mais jamais transmis
+    au controller - la recherche cote frontend n'avait donc jamais d'effet.
     """
-    all_raw = cs_ctrl.list_consultations()
-    # Optional: implémentation simple de pagination en mémoire
+    all_raw = cs_ctrl.list_consultations(search=search)
+    total = len(all_raw)
     start = (page - 1) * per_page
-    end = start + per_page
-    page_items = all_raw[start:end]
+    page_items = all_raw[start:start + per_page]
     validated = [ _safe_validate_consultation(item) for item in page_items ]
-    return validated
+    return {
+        "data": validated,
+        "total": total,
+        "page": page,
+        "per_page": per_page,
+        "total_pages": (total + per_page - 1) // per_page if per_page > 0 else 1,
+    }
 
 
 @router.get("/patient/{patient_id}", response_model=List[ConsultationResponse])
@@ -151,6 +176,59 @@ def get_spiritual_history(
     except Exception as e:
         logger.exception("Erreur lors de la récupération de l'historique spirituel")
         return [] # On renvoie vide plutôt que de planter
+
+
+@router.get("/export")
+def export_consultations(
+    format: str = Query(..., regex="^(pdf|csv)$"),
+    search: Optional[str] = Query(None),
+    date_from: Optional[date_type] = Query(None),
+    date_to: Optional[date_type] = Query(None),
+    cs_ctrl: ConsultationSpirituelController = Depends(get_consultation_controller),
+    db: Session = Depends(get_db),
+):
+    raw = cs_ctrl.list_consultations_for_export(search=search, date_from=date_from, date_to=date_to)
+    items = [normalize_consultation_data(c) for c in raw]
+
+    if format == "csv":
+        buffer = io.StringIO()
+        writer = csv.writer(buffer)
+        writer.writerow(["Patient", "Code", "Type", "Date", "Intervenant"])
+        for c in items:
+            writer.writerow([
+                c.get("patient_name") or f"#{c.get('patient_id')}", c.get("patient_code") or "",
+                c.get("type_consultation"), c.get("consultation_date"), c.get("created_by_name"),
+            ])
+        buffer.seek(0)
+        return StreamingResponse(
+            iter([buffer.getvalue()]),
+            media_type="text/csv",
+            headers={"Content-Disposition": "attachment; filename=consultations_export.csv"},
+        )
+
+    config_ctrl = ConfigController(repo=ConfigRepository(db))
+    header_ctx = get_pdf_header_context(config_ctrl)
+
+    if date_from and date_to:
+        periode_label = f"Période du {date_from} au {date_to}"
+    elif date_from:
+        periode_label = f"Depuis le {date_from}"
+    elif date_to:
+        periode_label = f"Jusqu'au {date_to}"
+    else:
+        periode_label = "Toutes périodes"
+
+    pdf_bytes = render_pdf_from_template('cs_export_template.html', {
+        **header_ctx,
+        "consultations": items,
+        "periode_label": periode_label,
+        "date_impression": datetime.now().strftime("%d/%m/%Y à %H:%M"),
+    })
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": "attachment; filename=consultations_export.pdf"},
+    )
 
 
 @router.get("/{cs_id}", response_model=ConsultationResponse)

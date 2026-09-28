@@ -2,6 +2,7 @@ from pydantic import BaseModel, Field, field_validator, ConfigDict
 from datetime import date
 from typing import Optional, Any, Dict, List
 import re
+import uuid as uuid_lib
 
 # --- helpers de normalisation ---
 _MALE = {"m", "male", "homme", "man", "monsieur", "masculin", "h"}
@@ -40,7 +41,13 @@ def _normalize_phone_value(raw: Any) -> Optional[str]:
         return None
     s = str(raw).strip()
     if not s:
-        return None
+        # Chaine vide explicite (distincte de None/absent) : l'appelant
+        # veut effacer le champ. public.update_patient fait
+        # COALESCE(p_contact_phone, contact_phone) - seul NULL signifie
+        # "ne pas modifier" ; "" est une vraie valeur qui efface la
+        # colonne. Retourner None ici la reconvertirait a tort en
+        # "ne pas modifier" (voir chantier 7a, correctif final).
+        return ""
 
     cleaned = _phone_clean_re.sub("", s)
 
@@ -74,6 +81,18 @@ class PatientCreate(BaseModel):
     is_clinical: bool = False
     is_toxicology: bool = False
     is_spiritual: bool = False
+
+    # Chantier 4 sous-projet 4 : uuid client d'un patient cree hors ligne
+    # (PowerSync). Persiste tel quel ; un rejeu du meme uuid est idempotent
+    # cote endpoint (voir patients_endpoints.create_patient).
+    uuid: Optional[str] = None
+
+    @field_validator("uuid", mode="before")
+    @classmethod
+    def _val_uuid_create(cls, v):
+        if v in (None, ""):
+            return None
+        return str(uuid_lib.UUID(str(v)))
 
     @field_validator("gender", mode="before")
     @classmethod

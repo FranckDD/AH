@@ -67,7 +67,17 @@ except ImportError:
         # IMPORTANT: Doit exister pour la résolution
         def caisse_retrait_controller(self): return self
 
-    CaisseRetraitFallbackController = _MockCaisseRetraitController # type: ignore    
+    CaisseRetraitFallbackController = _MockCaisseRetraitController # type: ignore 
+
+# 5. Prescription Controller Fallback
+try:
+    from .fallback_prescription_controller import FallbackPrescriptionController
+except ImportError:
+    class _MockPrescriptionController:
+        def create_prescription(self, data): return {"id": -1, "status": "mocked"}
+        def list_prescriptions(self, **kwargs): return {"data": [], "total": 0}
+        def prescription_controller(self): return self
+    FallbackPrescriptionController = _MockPrescriptionController # type: ignore       
 
 
 class _FallbackResolver:
@@ -130,11 +140,30 @@ class _FallbackResolver:
         return getattr(self.controllers, "prescription_controller", None) or getattr(self.gateway, "prescription_controller", None)
 
     def lab_controller(self):
+        """
+        Résout le lab_controller sans jamais reboucler sur le Resolver principal.
+        """
+        # 1. Vérifie si le contrôleur primaire (Online) possède déjà la méthode
         if self.primary_controller and hasattr(self.primary_controller, "lab_controller"):
-            return self.primary_controller.lab_controller
-        if self._offline_mode() and self.fallback_controller and hasattr(self.fallback_controller, "lab_controller"):
-            return self.fallback_controller.lab_controller
-        return getattr(self.controllers, "lab_controller", None) or getattr(self.gateway, "lab_controller", None)
+            # On retourne l'attribut (si c'est un objet) ou on l'appelle (si c'est une factory)
+            res = self.primary_controller.lab_controller
+            return res() if callable(res) else res
+
+        # 2. Si on est en mode Offline, on cherche dans le fallback_controller injecté
+        if self._offline_mode():
+            if self.fallback_controller and hasattr(self.fallback_controller, "lab_controller"):
+                res = self.fallback_controller.lab_controller
+                return res() if callable(res) else res
+            # Si pas de fallback spécifique, on peut retourner un Mock si tu en as un
+            return None 
+
+        # 3. En dernier recours, on tape DIRECTEMENT dans la gateway (sans passer par self.controllers)
+        if self.gateway and hasattr(self.gateway, "lab_controller"):
+             return self.gateway.lab_controller
+        
+        # 4. Si la gateway n'a pas de sous-objet 'lab_controller', 
+        # elle a peut-être les méthodes directement (cas fréquent de ton ApiControllerProxy)
+        return self.gateway
     
     def user_controller(self):
         if self.primary_controller and hasattr(self.primary_controller, "user_controller"):

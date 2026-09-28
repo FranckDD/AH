@@ -19,11 +19,12 @@ from api_backend.backend_app.routes.auth.auth_endpoints import get_current_user,
 from api_backend.backend_app.exceptions import translate_integrity_error
 from .mapping import normalize_caisse_data
 from ..caisse.caisse_schemas import (
-    FinancialKpiSchema, 
-    UnpaidTransactionSchema, 
-    PaymentDistributionSchema, 
+    FinancialKpiSchema,
+    UnpaidTransactionSchema,
+    PaymentDistributionSchema,
     PaymentDistributionItem,
-    InstallmentPaymentIn
+    InstallmentPaymentIn,
+    PaymentEchelonneOut,
 )
 
 logger = logging.getLogger(__name__)
@@ -221,7 +222,7 @@ def create_transaction(
 #    (Placées AVANT les routes génériques {id})
 # ==========================================
 
-@router.post("/{transaction_id}/payment", status_code=status.HTTP_201_CREATED)
+@router.post("/{transaction_id}/payment", response_model=PaymentEchelonneOut, status_code=status.HTTP_201_CREATED)
 def add_payment(
     transaction_id: int, 
     payment_data: InstallmentPaymentIn,
@@ -234,6 +235,10 @@ def add_payment(
         return caisse_ctrl.add_installment_payment(transaction_id, payment_data.model_dump())
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    except IntegrityError as ie:
+        try: caisse_ctrl.repo.session.rollback()
+        except: pass
+        raise translate_integrity_error(ie)
     except Exception as e:
         logger.exception(f"Erreur serveur add_payment TX {transaction_id}")
         raise HTTPException(status_code=500, detail="Erreur interne lors du paiement.")
@@ -253,9 +258,13 @@ def settle_transaction(
         raise HTTPException(status_code=400, detail=str(ve))
 
 @router.post("/{transaction_id}/cancel", status_code=status.HTTP_200_OK)
-def cancel_transaction(transaction_id: int, caisse_ctrl: CaisseController = Depends(get_caisse_controller)):
+def cancel_transaction(
+    transaction_id: int,
+    cancel_justification: str = Body(..., embed=True),
+    caisse_ctrl: CaisseController = Depends(get_caisse_controller),
+):
     try:
-        caisse_ctrl.cancel_transaction(transaction_id)
+        caisse_ctrl.cancel_transaction(transaction_id, cancel_justification)
         return {"detail": "Annulé"}
     except ValueError as ve:
         raise HTTPException(status_code=400, detail=str(ve))
@@ -322,7 +331,9 @@ def update_transaction(
 @router.delete("/{transaction_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_transaction(transaction_id: int, caisse_ctrl: CaisseController = Depends(get_caisse_controller)):
     try:
-        caisse_ctrl.delete_transaction(transaction_id)
+        deleted = caisse_ctrl.delete_transaction(transaction_id)
+        if deleted is None:
+            raise HTTPException(status_code=404, detail=f"Aucune transaction trouvée pour l'ID = {transaction_id}")
         return None
     except ValueError as ve:
         raise HTTPException(status_code=404, detail=str(ve))

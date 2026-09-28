@@ -17,6 +17,8 @@ try:
 except ImportError:
     SecretaireHomeWidget = None
 
+from view_pyqt6.change_password_dialog import ChangePasswordDialog    
+
 PatientFormView = None
 PatientListView = None
 CSFormView = None
@@ -324,21 +326,41 @@ class SecretaireDashboardView(QWidget):
         layout.addWidget(self.btn_profile)
 
     def toggle_sidebar(self):
-        if self.sidebar_expanded:
+        # 🟢 CORRECTION : On inverse l'état TOUT DE SUITE
+        self.sidebar_expanded = not self.sidebar_expanded
+
+        if not self.sidebar_expanded:
+            # --- CAS : RÉDUCTION (Devenu petit) ---
             self.sidebar.setFixedWidth(60)
             self.logo_lbl.hide()
             self.title_lbl.hide()
+            
+            # Cacher le texte des boutons principaux
             for btn in self.menu_buttons.values():
                 btn.setText("")
+            
+            # Cacher tous les sous-menus
             for sub in self.sub_menus.values():
                 sub.hide()
+            
             self.settings_btn.setText("")
+            
         else:
+            # --- CAS : AGRANDISSEMENT (Devenu grand) ---
             self.sidebar.setFixedWidth(220)
             self.logo_lbl.show()
             self.title_lbl.show()
-            self._update_ui_texts() 
-        self.sidebar_expanded = not self.sidebar_expanded
+            
+            # 🟢 Restaurer les textes (Maintenant sidebar_expanded est True, donc ça marche)
+            self._update_ui_texts()
+            
+            # Restaurer le sous-menu actif
+            for key, btn in self.menu_buttons.items():
+                if btn.isChecked():
+                    container = self.sub_menus.get(key)
+                    if container:
+                        container.show()
+                        break
 
     def _change_language(self, index):
         self.current_locale = "fr" if index == 0 else "en"
@@ -616,7 +638,33 @@ class SecretaireDashboardView(QWidget):
         QMessageBox.information(self, "Profil", "Module Édition Profil à venir.")
 
     def _show_change_password(self):
-        QMessageBox.information(self, "Sécurité", "Module Changement Mot de Passe à venir.")
+        """
+        Ouvre le dialogue modal de changement de mot de passe.
+        Contrairement aux vues (show_patient_add), ceci est un Popup.
+        """
+        # 1. Vérification de sécurité
+        if not self.user:
+            # Logger l'erreur comme tu le fais ailleurs
+            #logger.warning("Tentative de changement de mot de passe sans utilisateur connecté.")
+            return
+
+        try:
+            # 2. Instanciation
+            # On passe self.controllers_obj comme tu le fais pour PatientFormView
+            dialog = ChangePasswordDialog(
+                parent=self, 
+                controllers=self.controllers_obj, 
+                current_user=self.user
+            )
+            
+            # 3. Affichage Modal (bloquant)
+            # On n'utilise pas content_area.setCurrentWidget car c'est une fenêtre flottante
+            dialog.exec()
+            
+        except Exception as e:
+            logger.error(f"Erreur creation ChangePasswordDialog: {e}")
+            from PyQt6.QtWidgets import QMessageBox
+            QMessageBox.critical(self, "Erreur", f"Impossible d'ouvrir le module de sécurité : {e}")
 
     def _get_user_name(self):
         if isinstance(self.user, dict):

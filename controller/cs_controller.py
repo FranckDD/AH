@@ -1,5 +1,5 @@
 # controllers/consultation_spirituel_controller.py
-from typing import List
+from typing import List, Optional
 
 class ConsultationSpirituelController:
     def __init__(self, repo, patient_controller, current_user):
@@ -7,8 +7,11 @@ class ConsultationSpirituelController:
         self.patient_controller = patient_controller
         self.user = current_user
 
-    def list_consultations(self) -> List:
-        return self.repo.list_all()
+    def list_consultations(self, search: Optional[str] = None) -> List:
+        return self.repo.list_all(search=search)
+
+    def list_consultations_for_export(self, search: Optional[str] = None, date_from=None, date_to=None) -> List:
+        return self.repo.list_all_for_export(search=search, date_from=date_from, date_to=date_to)
 
     def list_for_patient(self, patient_id: int) -> List:
         return self.repo.find_by_patient(patient_id)

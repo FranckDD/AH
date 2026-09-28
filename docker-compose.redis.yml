@@ -1,0 +1,26 @@
+# Redis pour AH2 (cache applicatif - toxico/patients/caisse/medical/
+# pharmacy/prescription, tous appellent redis_client sur REDIS_URL,
+# defaut "redis://localhost:6379/0", voir .env). Conteneur autonome,
+# separe de powersync/docker-compose.yaml (Redis n'a rien a voir avec la
+# synchronisation hors-ligne, c'est juste un cache pour l'API).
+#
+# Demarrer : docker compose -f docker-compose.redis.yml up -d
+# Arreter  : docker compose -f docker-compose.redis.yml down
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: ah2_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - ah2_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  ah2_redis_data:

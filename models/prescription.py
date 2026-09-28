@@ -1,7 +1,7 @@
 # models/prescription.py
 import uuid
-from sqlalchemy import Column, Integer, String, Date, Text, ForeignKey
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import Column, Integer, String, Date, Text, ForeignKey, Boolean
+from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import relationship
 from .database import Base
 
@@ -21,6 +21,9 @@ class Prescription(Base):
     prescribed_by   = Column(Integer, ForeignKey("users.user_id"))
     prescribed_by_name = Column(String(100))
     uuid = Column(UUID(as_uuid=True), unique=True, nullable=False, default=uuid.uuid4)
+    # --- OPTIMISATION : PONT LABO ---
+    is_lab_order    = Column(Boolean, default=False) # True si c'est un examen
+    lab_exams_list = Column(JSONB, default=list) # Ex: "NFS, Glycémie, Créatinine"
 
     #relations
     patient         = relationship("Patient", back_populates="prescriptions")

@@ -1,0 +1,75 @@
+# Service PowerSync self-hoste (Open Edition) pour AH2.
+#
+# Ne demarre PAS de conteneur Postgres pour les donnees applicatives : le
+# service PowerSync se connecte au Postgres natif Windows existant
+# (base "AH2", deja utilise par api_backend/) via host.docker.internal.
+#
+# Un second Postgres, minimal et separe ("pg-storage"), sert uniquement de
+# stockage interne PowerSync (buckets/etat de replication) - aucune donnee
+# applicative n'y transite, c'est un detail d'implementation de PowerSync.
+#
+# Variables reelles (secrets, URI de connexion) dans ./.env (gitignore).
+# Voir ./.env.example pour la liste des variables attendues.
+
+services:
+  powersync:
+    image: journeyapps/powersync-service:latest
+    restart: unless-stopped
+    command: ["start", "-r", "unified"]
+    depends_on:
+      pg-storage:
+        condition: service_healthy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      POWERSYNC_CONFIG_PATH: /config/service.yaml
+      NODE_OPTIONS: --max-old-space-size=1000
+      PS_DATA_SOURCE_URI: ${PS_DATA_SOURCE_URI}
+      PS_STORAGE_SOURCE_URI: ${PS_STORAGE_SOURCE_URI}
+      PS_PORT: ${PS_PORT}
+      PS_APP_HS256_SECRET: ${PS_APP_HS256_SECRET}
+      PS_ADMIN_TOKEN: ${PS_ADMIN_TOKEN}
+    volumes:
+      - ./service.yaml:/config/service.yaml:ro
+      - ./sync-config.yaml:/config/sync-config.yaml:ro
+    ports:
+      - "${PS_PORT}:${PS_PORT}"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://localhost:${PS_PORT}/probes/liveness').then(r => r.ok ? process.exit(0) : process.exit(1)).catch(() => process.exit(1))"
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 15
+
+  # Stockage interne PowerSync uniquement (pas les donnees AH2).
+  pg-storage:
+    image: postgres:18
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${PG_STORAGE_DATABASE_USER}
+      POSTGRES_DB: ${PG_STORAGE_DATABASE_NAME}
+      POSTGRES_PASSWORD: ${PG_STORAGE_DATABASE_PASSWORD}
+      PGPORT: ${PG_STORAGE_DATABASE_PORT}
+    volumes:
+      - ps_storage_data:/var/lib/postgresql
+    # Pas de mapping de port hote : PowerSync s'y connecte via le nom DNS
+    # interne "pg-storage" du reseau docker-compose (PS_STORAGE_SOURCE_URI),
+    # jamais via localhost/le port hote - ce mapping n'etait donc utile que
+    # pour un acces debug optionnel depuis Windows. Retire le 2026-09-24 :
+    # bloquait le redemarrage du conteneur (port hote 5433 refuse par
+    # Windows, "forbidden by its access permissions" - plage de ports
+    # reservee dynamiquement par Hyper-V/WSL2, meme classe de probleme que
+    # le port 8080 lors du bring-up initial).
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${PG_STORAGE_DATABASE_USER} -d ${PG_STORAGE_DATABASE_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  ps_storage_data:

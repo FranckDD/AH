@@ -1,0 +1,308 @@
+# yaml-language-server: $schema=https://unpkg.com/@powersync/service-sync-rules@latest/schema/sync_rules.json
+#
+# Regles de sync du pilote Rendez-vous (chantier 4, sous-projet 1).
+# Convention PowerSync : la colonne locale "id" (implicite, cle primaire
+# de chaque table SQLite cote client) DOIT correspondre a une colonne
+# texte stable connue avant confirmation serveur - on utilise donc la
+# colonne "uuid" (deja presente sur appointments/patients, generee par
+# Postgres) aliasee "AS id", jamais l'entier auto-incremente "id" de
+# Postgres (renomme "server_id" ici pour eviter toute confusion).
+#
+# my_appointments/all_appointments/patients_lookup/doctors_lookup ne sont
+# PAS auto_subscribe : c'est le client (ah2-admin-web) qui choisit lequel
+# souscrire selon le role de l'utilisateur connecte (tache ulterieure) -
+# sinon un medecin recevrait aussi la portee large de all_appointments,
+# annulant la restriction voulue.
+#
+# Le service doit etre redemarre apres toute modification de ce fichier
+# (docker restart powersync-powersync-1).
+
+config:
+  edition: 3
+
+streams:
+  my_appointments:
+    auto_subscribe: false
+    queries:
+      - SELECT uuid::text AS id, id AS server_id, patient_id, doctor_id,
+          specialty, appointment_date::text AS appointment_date,
+          appointment_time::text AS appointment_time, reason, status,
+          created_at::text AS created_at, updated_at::text AS updated_at
+        FROM appointments
+        WHERE doctor_id = CAST(auth.user_id() AS integer)
+
+  all_appointments:
+    auto_subscribe: false
+    queries:
+      - SELECT uuid::text AS id, id AS server_id, patient_id, doctor_id,
+          specialty, appointment_date::text AS appointment_date,
+          appointment_time::text AS appointment_time, reason, status,
+          created_at::text AS created_at, updated_at::text AS updated_at
+        FROM appointments
+
+  patients_lookup:
+    auto_subscribe: false
+    queries:
+      # "AS patients_lookup" est obligatoire : sans alias sur FROM, le nom
+      # de table locale cible (cote client, AppSchema.js) reste celui de la
+      # table source Postgres ("patients") - qui n'existe pas dans le schema
+      # client (seul "patients_lookup" y existe), donc les lignes seraient
+      # synchronisees puis silencieusement perdues cote client (bug reel
+      # trouve pendant le test navigateur : n_patients=0/n_doctors=0 alors
+      # que le serveur envoyait bien les operations - voir progress.md).
+      - SELECT patient_id::text AS id, patient_id, code_patient,
+          first_name, last_name, contact_phone
+        FROM patients AS patients_lookup
+        WHERE is_deleted = false
+
+  doctors_lookup:
+    auto_subscribe: false
+    queries:
+      # Colonnes limitees a ce qui est affiche (nom du medecin sur un RDV) -
+      # jamais password_hash/postgres_role/email, meme si "users" est
+      # couverte par la publication FOR ALL TABLES cote Postgres.
+      # "AS doctors_lookup" obligatoire - meme raison que patients_lookup
+      # ci-dessus (FROM users sans alias ciblerait une table locale "users"
+      # inexistante dans AppSchema.js).
+      - SELECT user_id::text AS id, user_id, username, full_name
+        FROM users AS doctors_lookup
+
+  clinical_patients:
+    auto_subscribe: false
+    queries:
+      # Filtre par DOMAINE (patient ayant au moins un dossier medical),
+      # pas par praticien proprietaire - politique d'acces large aux
+      # soignants deja en place cote REST (chantier 6). Colonnes
+      # is_toxicology/is_spiritual incluses (ce sont de simples booleens
+      # d'existence, deja affiches medecin/nurse cote dossier consolide -
+      # chantier perimetre medical, "flags") - jamais les tables
+      # toxico_dossiers/consultation_spirituelle elles-memes.
+      # EXISTS(...) non supporte par le parseur SQL de PowerSync ("Unknown
+      # function" au demarrage - verifie empiriquement) - JOIN utilise a la
+      # place pour le meme filtre de domaine (doublons inoffensifs : meme
+      # id patient re-emis pour chaque medical_records associe, ecrase
+      # sans effet cote bucket).
+      - SELECT patients.uuid::text AS id, patients.patient_id AS server_id,
+          patients.code_patient, patients.first_name, patients.last_name,
+          patients.birth_date::text AS birth_date, patients.gender,
+          patients.contact_phone, patients.is_clinical, patients.is_toxicology,
+          patients.is_spiritual
+        FROM patients
+        JOIN medical_records ON medical_records.patient_id = patients.patient_id
+        WHERE patients.is_deleted = false
+
+  clinical_medical_records:
+    auto_subscribe: false
+    queries:
+      - SELECT medical_records.uuid::text AS id, medical_records.record_id AS server_id,
+          medical_records.patient_id, medical_records.consultation_date::text AS consultation_date,
+          medical_records.marital_status, medical_records.bp, medical_records.temperature,
+          medical_records.weight, medical_records.height, medical_records.medical_history,
+          medical_records.allergies, medical_records.symptoms, medical_records.diagnosis,
+          medical_records.treatment, medical_records.severity, medical_records.notes,
+          medical_records.motif_code, medical_records.appointment_id,
+          medical_records.created_by, medical_records.created_by_name
+        FROM medical_records
+        JOIN patients ON patients.patient_id = medical_records.patient_id
+        WHERE patients.is_deleted = false
+
+  clinical_prescriptions:
+    auto_subscribe: false
+    queries:
+      - SELECT prescriptions.uuid::text AS id, prescriptions.prescription_id AS server_id,
+          prescriptions.patient_id, prescriptions.medical_record_id, prescriptions.medication,
+          prescriptions.dosage, prescriptions.frequency, prescriptions.duration,
+          prescriptions.start_date::text AS start_date, prescriptions.end_date::text AS end_date,
+          prescriptions.notes, prescriptions.status, prescriptions.prescribed_by,
+          prescriptions.prescribed_by_name, prescriptions.is_lab_order,
+          prescriptions.lab_exams_list::text AS lab_exams_list
+        FROM prescriptions
+        JOIN patients ON patients.patient_id = prescriptions.patient_id
+        WHERE patients.is_deleted = false
+
+  clinical_lab_results:
+    auto_subscribe: false
+    queries:
+      # Lecture seule (pas de PUT/PATCH cote client sur cette table) -
+      # meme filtre status='completed' que LabController._est_medical_lecture_seule()
+      # cote REST. Pas de colonne uuid propre sur lab_results (seul
+      # batch_id existe, pas destine a cet usage) - result_id::text
+      # suffit comme id local, meme motif que patients_lookup deja en
+      # place (cle entiere, pas de uuid, car table jamais ecrite hors ligne).
+      # Toutes les colonnes qualifiees par table (lab_results.xxx) - un JOIN
+      # met 2 tables en scope, le parseur PowerSync rejette toute reference
+      # non qualifiee dans ce cas ("Invalid unqualified reference since
+      # multiple tables are in scope", verifie empiriquement au demarrage).
+      - SELECT lab_results.result_id::text AS id, lab_results.result_id AS server_id,
+          lab_results.patient_id, lab_results.test_type,
+          lab_results.test_date::text AS test_date, lab_results.status,
+          lab_results.note, lab_results.examen_id, lab_results.code_lab_patient,
+          lab_results.prescribed_by_name
+        FROM lab_results
+        JOIN patients ON patients.patient_id = lab_results.patient_id
+        WHERE patients.is_deleted = false AND lab_results.status = 'completed'
+
+  secretariat_caisse:
+    auto_subscribe: false
+    queries:
+      # Pas de filtre par secretaire proprietaire - toutes les transactions
+      # sont visibles a l'ecran caisse aujourd'hui (pas de cloisonnement
+      # par utilisateur cote REST non plus), meme politique hors ligne.
+      - SELECT uuid::text AS id, transaction_id AS server_id, patient_id,
+          patient_label, amount::text AS amount, advance_amount::text AS advance_amount,
+          paid_at::text AS paid_at, payment_method, transaction_type, note,
+          status, upload_error
+        FROM caisse
+
+  secretariat_retraits:
+    auto_subscribe: false
+    queries:
+      - SELECT uuid::text AS id, retrait_id AS server_id, amount::text AS amount,
+          justification, retrait_at::text AS retrait_at, status, category,
+          payment_method
+        FROM caisse_retrait
+
+  secretariat_payments:
+    auto_subscribe: false
+    queries:
+      - SELECT uuid::text AS id, payment_id AS server_id, transaction_id,
+          paid_amount::text AS paid_amount, payment_date::text AS payment_date,
+          payment_method, payment_type, note
+        FROM paiement_echelonne
+
+  secretariat_pharmacy_stock:
+    auto_subscribe: false
+    queries:
+      # Lecture seule (jamais d'ecriture locale) - affichage informatif du
+      # stock au moment de la vente hors ligne, decision utilisateur
+      # 2026-09-23 (pas de verification/deduction cote client, la
+      # deduction reelle reste exclusivement serveur au moment de l'upload).
+      - SELECT medication_id::text AS id, medication_id AS server_id,
+          drug_name, quantity, threshold, price::text AS price, stock_status
+        FROM pharmacy AS pharmacy_stock
+
+  # Catalogues de reference en lecture seule (chantier 4 sous-projet 4) -
+  # indispensables pour que les formulaires restent utilisables hors ligne
+  # (motif obligatoire d'une consultation, examens d'une demande/facture).
+  # Alias FROM ... AS ... OBLIGATOIRE : les noms locaux different des
+  # tables Postgres - sans alias, les lignes atterrissent dans une table
+  # locale non declaree et restent invisibles (bug deja subi deux fois :
+  # patients_lookup, pharmacy_stock).
+  reference_exam_catalog:
+    auto_subscribe: false
+    queries:
+      - SELECT id::text AS id, id AS server_id, code, nom, categorie,
+          prix::text AS prix
+        FROM examens AS exam_catalog
+
+  reference_motifs:
+    auto_subscribe: false
+    queries:
+      - SELECT code AS id, code, label_fr, label_en
+        FROM motif_translations AS motifs
+
+  # Chantier 4 sous-projet 5 : role laborantin, reception + paillasse +
+  # saisie hors ligne. Colonnes qualifiees par table partout ou une jointure
+  # met plusieurs tables en scope (meme regle que clinical_lab_results).
+  # Alias FROM ... AS ... OBLIGATOIRE partout ou le nom de table Postgres
+  # differe du nom de table locale (AppSchema.js) - meme regle que
+  # patients_lookup/doctors_lookup/exam_catalog ci-dessus (bug deja subi
+  # deux fois). lab_pending_prescriptions (source: prescriptions),
+  # reference_lab_params (source: parametres) et reference_lab_ranges
+  # (source: reference_ranges) sont concernes ; lab_active_results (source:
+  # lab_results) et lab_active_result_details (source: lab_result_details)
+  # ne le sont pas, le nom Postgres et le nom local coincident deja.
+  #
+  # 4e lecon (bug reel trouve en revue finale, sous-projet 6) : une colonne
+  # `patient_uuid`-style d'une table n'existe que cote ecriture locale (voir
+  # AppSchema.js sur medical_records/prescriptions/lab_results - remplie
+  # uniquement quand un dossier est cree hors ligne pour un patient lui-meme
+  # cree hors ligne dans la meme session) et ne doit JAMAIS apparaitre dans
+  # le SELECT d'un stream de telechargement, seulement dans AppSchema.js.
+  # Postgres ne possede pas cette colonne : la reference casse silencieusement
+  # (aucun log, aucun signal dans /diagnostics) tant qu'aucun client ne
+  # souscrit au stream, puisque PowerSync n'evalue les colonnes du SELECT
+  # qu'a la premiere souscription. lab_active_results en a ete victime :
+  # `lab_results.patient_uuid::text AS patient_uuid` a ete retire du SELECT
+  # ci-dessous ; suivre l'exemple de clinical_medical_records et
+  # clinical_prescriptions plus haut dans ce fichier, qui omettent deja
+  # correctement patient_uuid de leur SELECT.
+
+  lab_pending_prescriptions:
+    auto_subscribe: false
+    queries:
+      - SELECT lab_pending_prescriptions.uuid::text AS id,
+          lab_pending_prescriptions.prescription_id AS server_id,
+          lab_pending_prescriptions.patient_id, lab_pending_prescriptions.prescribed_by_name,
+          lab_pending_prescriptions.lab_exams_list::text AS lab_exams_list,
+          lab_pending_prescriptions.start_date::text AS start_date
+        FROM prescriptions AS lab_pending_prescriptions
+        JOIN patients ON patients.patient_id = lab_pending_prescriptions.patient_id
+        WHERE patients.is_deleted = false
+          AND lab_pending_prescriptions.is_lab_order = true
+          AND lab_pending_prescriptions.status = 'active'
+
+  lab_active_results:
+    auto_subscribe: false
+    queries:
+      - SELECT lab_results.uuid::text AS id, lab_results.result_id AS server_id,
+          lab_results.patient_id,
+          lab_results.test_type, lab_results.test_date::text AS test_date,
+          lab_results.status, lab_results.note, lab_results.examen_id,
+          lab_results.code_lab_patient, lab_results.prescribed_by_name,
+          lab_results.prescribed_by, lab_results.origin_prescription_id,
+          lab_results.batch_uuid, lab_results.external_patient_info::text AS external_patient_info
+        FROM lab_results
+        WHERE lab_results.status = 'pending' OR lab_results.status = 'partial'
+
+  lab_active_result_details:
+    auto_subscribe: false
+    queries:
+      # PowerSync (Streams) interdit toute projection issue d'une autre
+      # table dans le SELECT : un JOIN ne peut servir qu'au filtrage
+      # (WHERE), jamais a alimenter une colonne projetee, et meme une
+      # sous-requete scalaire en position SELECT est rejetee ("Invalid
+      # position for subqueries. Subqueries are only supported in WHERE
+      # clauses."). L'operateur IN (liste de litteraux OU sous-requete)
+      # est lui aussi rejete ("This expression is not supported by
+      # PowerSync" pointant precisement sur la liste IN) - aucune requete
+      # existante de ce fichier n'utilise IN, seulement =/AND/OR - remplace
+      # ici par deux comparaisons OR, meme motif que patients.is_deleted =
+      # false ailleurs dans ce fichier. Trois erreurs fatales distinctes
+      # constatees empiriquement au redemarrage du service en ecrivant ce
+      # bloc, corrigees une a une.
+      # lab_result_details n'a pas de colonne uuid propre cote Postgres
+      # (voir ci/schema_only.sql) : impossible de peupler result_uuid
+      # depuis le serveur par une requete a une seule table. On synchronise
+      # donc l'entier result_id natif (colonne locale dediee, voir
+      # AppSchema.js) ; la resolution vers l'uuid du dossier lab_results
+      # parent (deja present localement via lab_active_results) se fait
+      # cote client par une jointure locale SQLite, hors de portee de
+      # PowerSync. Le JOIN ci-dessous ne sert qu'au filtrage WHERE, meme
+      # motif que clinical_lab_results plus haut dans ce fichier - aucune
+      # colonne de lab_results n'est projetee dans le SELECT.
+      - SELECT lab_result_details.detail_id::text AS id,
+          lab_result_details.result_id, lab_result_details.parametre_id,
+          lab_result_details.valeur_text, lab_result_details.valeur_num::text AS valeur_num
+        FROM lab_result_details
+        JOIN lab_results ON lab_results.result_id = lab_result_details.result_id
+        WHERE lab_results.status = 'pending' OR lab_results.status = 'partial'
+
+  reference_lab_params:
+    auto_subscribe: false
+    queries:
+      - SELECT reference_lab_params.id::text AS id, reference_lab_params.id AS server_id,
+          reference_lab_params.examen_id, reference_lab_params.nom_parametre,
+          reference_lab_params.unite, reference_lab_params.type_valeur,
+          reference_lab_params.input_type, reference_lab_params.options_list
+        FROM parametres AS reference_lab_params
+
+  reference_lab_ranges:
+    auto_subscribe: false
+    queries:
+      - SELECT reference_lab_ranges.id::text AS id, reference_lab_ranges.id AS server_id,
+          reference_lab_ranges.parametre_id, reference_lab_ranges.sexe,
+          reference_lab_ranges.age_min, reference_lab_ranges.age_max,
+          reference_lab_ranges.valeur_min::text AS valeur_min,
+          reference_lab_ranges.valeur_max::text AS valeur_max
+        FROM reference_ranges AS reference_lab_ranges

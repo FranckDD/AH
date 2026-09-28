@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Dossier patient</title>
+    <style>
+        @page { size: A4; margin: 2cm; @bottom-right { content: "Page " counter(page) " sur " counter(pages); font-size: 9pt; color: #666; } }
+        body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333; font-size: 10pt; line-height: 1.4; }
+        /* .header/.hospital-info/.logo/.logo-container : voir _pdf_header.html */
+        .section-title { font-size: 12pt; font-weight: bold; color: #2c3e50; margin-top: 20px; border-bottom: 1px solid #ccc; padding-bottom: 4px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+        th { background-color: #2c3e50; color: white; text-align: left; padding: 5px; font-size: 9pt; }
+        td { padding: 5px; border-bottom: 1px solid #ddd; font-size: 9pt; }
+    </style>
+</head>
+<body>
+
+    {% include '_pdf_header.html' %}
+
+    <div class="section-title">Patient</div>
+    <p><strong>{{ patient.first_name }} {{ patient.last_name }}</strong> — {{ patient.code_patient }}</p>
+
+    {% if historique_medical is not none %}
+    <div class="section-title">Historique médical</div>
+    <table>
+        <thead><tr><th>Date</th><th>Motif</th><th>Diagnostic</th></tr></thead>
+        <tbody>
+            {% for r in historique_medical %}
+            <tr><td>{{ r.consultation_date or r.created_at }}</td><td>{{ r.motif_code }}</td><td>{{ r.diagnosis }}</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+
+    {% if prescriptions is not none %}
+    <div class="section-title">Prescriptions</div>
+    <table>
+        <thead><tr><th>Médicament</th><th>Dosage</th><th>Fréquence</th><th>Début</th><th>Fin</th></tr></thead>
+        <tbody>
+            {% for p in prescriptions %}
+            <tr><td>{{ p.medication }}</td><td>{{ p.dosage }}</td><td>{{ p.frequency }}</td><td>{{ p.start_date }}</td><td>{{ p.end_date }}</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+
+    {% if historique_labo is not none %}
+    <div class="section-title">Laboratoire</div>
+    <table>
+        <thead><tr><th>Date</th><th>Examen</th><th>Statut</th></tr></thead>
+        <tbody>
+            {% for r in historique_labo %}
+            <tr><td>{{ r.test_date }}</td><td>{{ r.examen_name }}</td><td>{{ r.status }}</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+
+    {% if dossier_toxico is not none %}
+    <div class="section-title">Toxicologie</div>
+    <p>Substance : {{ dossier_toxico.substance }} — Phase : {{ dossier_toxico.current_phase }}</p>
+    {% endif %}
+
+    {% if historique_spirituel is not none %}
+    <div class="section-title">Suivi spirituel</div>
+    <table>
+        <thead><tr><th>Date</th><th>Type</th><th>Intervenant</th></tr></thead>
+        <tbody>
+            {% for r in historique_spirituel %}
+            <tr><td>{{ r.consultation_date }}</td><td>{{ r.type_consultation }}</td><td>{{ r.created_by_name }}</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+
+</body>
+</html>

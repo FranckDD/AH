@@ -7,6 +7,17 @@
         
         <PatientHeader :patient="dossierStore.patientSummary" @back="goBack" />
 
+        <div class="flex justify-end gap-2 px-1">
+          <button @click="exportDossier('pdf')" :disabled="isExportingDossier"
+                  class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition disabled:opacity-50">
+            {{ t('export.confirm') }} PDF
+          </button>
+          <button @click="exportDossier('excel')" :disabled="isExportingDossier"
+                  class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition disabled:opacity-50">
+            {{ t('export.confirm') }} Excel
+          </button>
+        </div>
+
         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 px-1">
             <VitalsCard :label="t('medical.vitals.bp')" :value="dossierStore.vitals.bp" unit="mmHg" :icon="HeartIcon" colorClass="bg-rose-500" iconColor="text-rose-600" :date="dossierStore.vitals.lastDate" />
             <VitalsCard :label="t('medical.vitals.weight')" :value="dossierStore.patientSummary?.last_weight" unit="kg" :icon="ScaleIcon" colorClass="bg-blue-500" iconColor="text-blue-600" />
@@ -52,7 +63,7 @@
                 <div v-if="currentTab === 'MEDICAL'" class="space-y-4">
                     <div class="flex justify-between items-center mb-4">
                         <h3 class="text-lg font-bold text-gray-800">{{ t('medical.history.title') }}</h3>
-                        <button class="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 transition">
+                        <button v-if="canCreateConsultation" @click="openConsultationModal()" class="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 transition">
                             {{ t('medical.actions.new_consultation') }}
                         </button>
                     </div>
@@ -79,13 +90,16 @@
                         <h3 class="text-lg font-bold text-gray-800 text-amber-700">
                             {{ t('medical.tabs.spiritual_followup') }}
                         </h3>
-                        <button class="px-4 py-2 bg-amber-600 text-white rounded-lg text-sm font-medium hover:bg-amber-700 transition">
+                        <button v-if="!dossierStore.spirituelRestreint" class="px-4 py-2 bg-amber-600 text-white rounded-lg text-sm font-medium hover:bg-amber-700 transition">
                             {{ t('medical.spiritual.new_note') }}
                         </button>
                     </div>
 
-                    <SpiritualTimeline :records="dossierStore.spiritualHistory" />
-                    
+                    <div v-if="dossierStore.spirituelRestreint" class="bg-gray-50 p-4 rounded-lg border border-gray-200 text-gray-500 text-sm">
+                        Ce domaine relève d'un autre service — non affiché ici.
+                    </div>
+                    <SpiritualTimeline v-else :records="dossierStore.spiritualHistory" />
+
                 </div>
 
                 <div v-if="currentTab === 'TOXICO'">
@@ -94,15 +108,56 @@
                             {{ t('medical.tabs.toxico_followup') }}
                         </h3>
                     </div>
-                    <div class="bg-orange-50 p-4 rounded-lg border border-orange-200 text-orange-800">
-                        <p class="font-medium">{{ t('medical.toxico.summary') }}</p>
-                        <p class="text-sm mt-1">{{ t('medical.toxico.details') }}</p>
+                    <div v-if="dossierStore.toxicoRestreint" class="bg-gray-50 p-4 rounded-lg border border-gray-200 text-gray-500 text-sm">
+                        Ce domaine relève d'un autre service — non affiché ici.
                     </div>
+                    <div v-else-if="dossierStore.isDomaineIndisponible('dossier_toxico')" class="bg-gray-50 p-4 rounded-lg border border-gray-200 text-gray-500 text-sm">
+                        Indisponible pour le moment — réessayez plus tard.
+                    </div>
+                    <div v-else-if="dossierStore.toxicoDossier" class="bg-orange-50 p-4 rounded-lg border border-orange-200 space-y-2">
+                        <p><span class="font-medium text-orange-800">Substance :</span> {{ dossierStore.toxicoDossier.substance }}</p>
+                        <p><span class="font-medium text-orange-800">Phase actuelle :</span> {{ dossierStore.toxicoDossier.currentPhase }}</p>
+                        <p><span class="font-medium text-orange-800">Psychologue :</span> {{ dossierStore.toxicoDossier.psychologist }}</p>
+                        <p><span class="font-medium text-orange-800">Admission :</span> {{ dossierStore.toxicoDossier.admissionDate }}</p>
+                    </div>
+                    <div v-else class="text-sm text-gray-400">Aucun dossier toxicologie pour ce patient.</div>
+                </div>
+
+                <div v-if="dossierStore.domainesIndisponibles.length" class="mt-4 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                    Certaines informations sont temporairement indisponibles : {{ dossierStore.domainesIndisponibles.join(', ') }}.
                 </div>
             </div>
         </div>
+
+        <div v-if="prescriptionOffer.visible" class="mx-1 bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex items-center justify-between">
+            <p class="text-sm text-emerald-800">{{ t('medical.consultation_flow.offer_prescription') }}</p>
+            <div class="flex gap-2">
+                <button @click="declinePrescriptionOffer" class="px-3 py-1.5 text-xs font-medium rounded-lg bg-white border border-emerald-300 text-emerald-700 hover:bg-emerald-100 transition">
+                    {{ t('medical.consultation_flow.decline') }}
+                </button>
+                <button @click="acceptPrescriptionOffer" class="px-3 py-1.5 text-xs font-medium rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 transition">
+                    {{ t('medical.consultation_flow.accept') }}
+                </button>
+            </div>
+        </div>
+
+        <MedicalRecordModal
+            v-if="showConsultationModal"
+            :appointmentId="consultationAppointmentId"
+            :prefilledPatient="patientPrefill"
+            @close="closeConsultationModal"
+            @save="handleConsultationSave"
+        />
+
+        <PrescriptionModal
+            v-if="showPrescriptionModal"
+            :prefilledPatient="patientPrefill"
+            :prefilledMedicalRecordId="prescriptionOffer.medicalRecordId"
+            @close="showPrescriptionModal = false"
+            @save="handlePrescriptionSave"
+        />
     </div>
-    
+
     <div v-else class="min-h-screen flex flex-col items-center justify-center text-red-500 p-6 bg-gray-50">
         <ExclamationTriangleIcon class="h-10 w-10 mb-3" />
         <p class="text-lg font-medium">{{ dossierStore.error || t('medical.errors.patient_not_found') }}</p>
@@ -110,9 +165,10 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
+import api from '@/services/api';
 import { usePatientDossierStore } from '@/stores/patientDossierStore';
 
 import PatientHeader from '@/components/patients/PatientHeader.vue';
@@ -120,9 +176,16 @@ import VitalsCard from '@/components/patients/medical/VitalsCard.vue';
 import MedicalRecordTimeline from '@/components/patients/medical/MedicalRecordTimeline.vue';
 import LabResultTable from '@/components/patients/labs/LabResultTable.vue';
 // 🟢 Le composant est bien importé ici
-import SpiritualTimeline from '@/components/patients/medical/SpiritualTimeline.vue'; 
+import SpiritualTimeline from '@/components/patients/medical/SpiritualTimeline.vue';
 
-import { 
+import MedicalRecordModal from '@/components/medical-records/MedicalRecordModal.vue';
+import PrescriptionModal from '@/components/prescriptions/PrescriptionModal.vue';
+import { useMedicalRecordStore } from '@/stores/medicalRecordStore';
+import { usePrescriptionStore } from '@/stores/prescriptionStore';
+import { useAppointmentStore } from '@/stores/appointmentStore';
+import { useAuthStore } from '@/stores/auth';
+
+import {
     HeartIcon, ScaleIcon, FireIcon, ExclamationTriangleIcon,
     BeakerIcon, TagIcon, NoSymbolIcon, SparklesIcon
 } from '@heroicons/vue/24/outline';
@@ -131,12 +194,140 @@ const { t } = useI18n();
 const route = useRoute();
 const router = useRouter();
 const dossierStore = usePatientDossierStore();
+const medicalRecordStore = useMedicalRecordStore();
+const prescriptionStore = usePrescriptionStore();
+const appointmentStore = useAppointmentStore();
+const authStore = useAuthStore();
+
+const canCreateConsultation = computed(() => authStore.hasRole(['medecin', 'nurse']));
+
 const currentTab = ref('MEDICAL');
+
+const showConsultationModal = ref(false);
+const consultationAppointmentId = ref(null);
+const showPrescriptionModal = ref(false);
+const prescriptionOffer = ref({ visible: false, medicalRecordId: null });
+
+const patientPrefill = computed(() => {
+    const p = dossierStore.patientSummary;
+    if (!p) return null;
+    return {
+        patientId: p.patient_id,
+        patientUuid: p.patient_uuid || null,
+        code: p.code,
+        firstName: (p.full_name || '').split(' ')[0] || '',
+        lastName: (p.full_name || '').split(' ').slice(1).join(' ') || '',
+    };
+});
+
+function openConsultationModal(appointmentId = null) {
+    consultationAppointmentId.value = appointmentId;
+    showConsultationModal.value = true;
+}
+
+function closeConsultationModal() {
+    showConsultationModal.value = false;
+    consultationAppointmentId.value = null;
+}
+
+async function handleConsultationSave(data) {
+    try {
+        const record = await medicalRecordStore.createMedicalRecord(data);
+
+        // medecin/nurse : l'ecriture ci-dessus est locale (Tache 2), un
+        // refresh HTTP juste apres lirait avant que DossierConnector.js
+        // n'ait eu le temps d'uploader vers le serveur (course) - on relit
+        // directement la meme table locale qui vient d'etre ecrite.
+        // Autres roles : comportement HTTP inchange.
+        if (authStore.hasRole(['medecin', 'nurse'])) {
+            await dossierStore.refreshMedicalHistoryLocal(route.params.id);
+            // Non attendu (pas de await) : rafraichissement des constantes
+            // vitales seules, best-effort, ne doit jamais retarder la suite
+            // du flux (proposition de prescription) ni le bloquer si hors
+            // ligne - voir refreshVitalsSummaryLocal ci-dessus.
+            dossierStore.refreshVitalsSummaryLocal(route.params.id);
+        } else {
+            await dossierStore.refreshMedicalHistory(route.params.id);
+        }
+
+        if (data.appointmentId) {
+            try {
+                await appointmentStore.completeAppointment(data.appointmentId);
+            } catch (err) {
+                console.error('Erreur complétion RDV:', err);
+                alert(t('medical.consultation_flow.appointment_complete_failed'));
+            }
+        }
+
+        closeConsultationModal();
+        if (record && record.record_id) {
+            prescriptionOffer.value = { visible: true, medicalRecordId: record.record_id };
+        } else {
+            console.warn('Dossier medical cree mais record_id indisponible (reponse de secours du backend) - proposition de prescription liee non affichee.');
+        }
+    } catch (err) {
+        console.error('Erreur enregistrement dossier medical:', err);
+        alert('Erreur lors de l\'enregistrement : ' + (err.response?.data?.detail || err.message));
+    }
+}
+
+function declinePrescriptionOffer() {
+    prescriptionOffer.value = { visible: false, medicalRecordId: null };
+}
+
+function acceptPrescriptionOffer() {
+    prescriptionOffer.value.visible = false;
+    showPrescriptionModal.value = true;
+}
+
+async function handlePrescriptionSave(data) {
+    try {
+        await prescriptionStore.createPrescription(data);
+
+        if (authStore.hasRole(['medecin', 'nurse'])) {
+            await dossierStore.refreshPrescriptionHistoryLocal(route.params.id);
+        }
+
+        showPrescriptionModal.value = false;
+        prescriptionOffer.value = { visible: false, medicalRecordId: null };
+    } catch (err) {
+        console.error('Erreur enregistrement prescription:', err);
+        alert('Erreur lors de l\'enregistrement : ' + (err.response?.data?.detail || err.message));
+    }
+}
 
 onMounted(() => {
     const id = route.params.id;
     if (id) dossierStore.fetchDossierComplete(id);
+
+    const appointmentId = route.query.appointmentId ? Number(route.query.appointmentId) : null;
+    if (appointmentId && canCreateConsultation.value) {
+        openConsultationModal(appointmentId);
+        router.replace({ query: {} });
+    }
 });
 
 const goBack = () => router.back();
+
+const isExportingDossier = ref(false);
+
+const exportDossier = async (format) => {
+    isExportingDossier.value = true;
+    try {
+        const response = await api.get(`/patients/${route.params.id}/dossier/export`, {
+            params: { format },
+            responseType: 'blob',
+        });
+        const mimeType = format === 'pdf' ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+        const blob = new Blob([response.data], { type: mimeType });
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `dossier_${route.params.id}.${format === 'pdf' ? 'pdf' : 'xlsx'}`;
+        link.click();
+        window.URL.revokeObjectURL(url);
+    } finally {
+        isExportingDossier.value = false;
+    }
+};
 </script>
