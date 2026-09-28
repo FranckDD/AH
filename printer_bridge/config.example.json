@@ -1,0 +1,8 @@
+{
+  "connection_type": "win32raw",
+  "printer_name": "POS Printer Emulator",
+  "vendor_id": null,
+  "product_id": null,
+  "token": "CHANGE_ME_avec_le_jeton_genere_dans_Configuration_Systeme",
+  "port": 9123
+}

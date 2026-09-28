@@ -23,3 +23,6 @@ view/
 htmlcov/
 build/
 dist/*.log
+
+# Service pont impression POS - config locale avec token, jamais commitee
+printer_bridge/config.json
