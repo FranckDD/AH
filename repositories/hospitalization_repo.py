@@ -8,6 +8,7 @@ from models.hospitalization import (
     DISCHARGE_DISPOSITIONS,
     CLINICAL_STATUSES,
 )
+from models.patient import Patient
 
 
 class HospitalizationRepository:
@@ -22,6 +23,14 @@ class HospitalizationRepository:
         )
 
     def admit(self, patient_id: int, admitted_by_id: int, admission_reason: Optional[str]) -> Hospitalization:
+        patient = self.session.get(Patient, patient_id)
+        if patient is None:
+            raise ValueError(f"Patient introuvable (ID={patient_id}).")
+        if not patient.is_clinical:
+            raise ValueError(
+                "Ce patient n'est pas dans le périmètre clinique (médecin/infirmier) — admission impossible."
+            )
+
         if self.get_open_for_patient(patient_id) is not None:
             raise ValueError("Ce patient est déjà hospitalisé (séjour en cours).")
 

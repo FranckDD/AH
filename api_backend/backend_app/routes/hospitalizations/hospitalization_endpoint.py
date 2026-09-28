@@ -15,6 +15,7 @@ from ...database import SessionLocal
 from controller.hospitalization_controller import HospitalizationController
 from repositories.hospitalization_repo import HospitalizationRepository
 from repositories.audit_repo import AuditRepository
+from models.hospitalization import CLINICAL_STATUSES, DISCHARGE_DISPOSITIONS
 from api_backend.backend_app.routes.auth.auth_endpoints import get_current_user, role_required
 
 logger = logging.getLogger(__name__)
@@ -70,7 +71,12 @@ def admit(data: HospitalizationAdmit, ctrl: HospitalizationController = Depends(
         hosp = ctrl.admit(data.patient_id, data.admission_reason)
         return _to_out(hosp)
     except ValueError as ve:
-        raise HTTPException(status_code=409, detail=str(ve))
+        if "introuvable" in str(ve):
+            raise HTTPException(status_code=404, detail=str(ve))
+        elif "périmètre clinique" in str(ve):
+            raise HTTPException(status_code=400, detail=str(ve))
+        else:
+            raise HTTPException(status_code=409, detail=str(ve))
     except IntegrityError:
         logger.exception("Conflit base de donnees a l'admission")
         raise HTTPException(status_code=409, detail="Ce patient est déjà hospitalisé (séjour en cours).")
@@ -87,12 +93,14 @@ def add_status_update(
     data: HospitalizationStatusCreate,
     ctrl: HospitalizationController = Depends(get_hospitalization_controller),
 ):
-    if data.status not in ("AMELIORATION", "STABLE", "AGGRAVATION"):
+    if data.status not in CLINICAL_STATUSES:
         raise HTTPException(status_code=422, detail="Statut clinique invalide.")
     try:
         update = ctrl.add_status_update(hospitalization_id, data.status, data.note)
         return HospitalizationStatusUpdateOut.model_validate(update)
     except ValueError as ve:
+        if "Aucune hospitalisation trouvée" in str(ve):
+            raise HTTPException(status_code=404, detail=str(ve))
         raise HTTPException(status_code=400, detail=str(ve))
 
 
@@ -106,12 +114,14 @@ def discharge(
     data: HospitalizationDischarge,
     ctrl: HospitalizationController = Depends(get_hospitalization_controller),
 ):
-    if data.discharge_disposition not in ("GUERI", "TRANSFERE", "SORTIE_CONTRE_AVIS_MEDICAL", "DECES"):
+    if data.discharge_disposition not in DISCHARGE_DISPOSITIONS:
         raise HTTPException(status_code=422, detail="Type de sortie invalide.")
     try:
         hosp = ctrl.discharge(hospitalization_id, data.discharge_disposition, data.discharge_note)
         return _to_out(hosp)
     except ValueError as ve:
+        if "Aucune hospitalisation trouvée" in str(ve):
+            raise HTTPException(status_code=404, detail=str(ve))
         raise HTTPException(status_code=400, detail=str(ve))
 
 

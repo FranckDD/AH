@@ -10,7 +10,7 @@ from tests.conftest import create_test_user, create_test_patient
 
 def test_admit_creates_open_hospitalization(db_session):
     medecin = create_test_user(db_session, "hosp_repo_medecin1", "medecin")
-    patient_id, _ = create_test_patient(db_session, medecin, first_name="RepoAdmit")
+    patient_id, _ = create_test_patient(db_session, medecin, first_name="RepoAdmit", is_clinical=True)
 
     repo = HospitalizationRepository(db_session)
     hosp = repo.admit(patient_id, medecin.user_id, "Fièvre persistante")
@@ -21,9 +21,28 @@ def test_admit_creates_open_hospitalization(db_session):
     assert hosp.discharged_at is None
 
 
+def test_admit_refuses_unknown_patient(db_session):
+    medecin = create_test_user(db_session, "hosp_repo_medecin_unknown", "medecin")
+    repo = HospitalizationRepository(db_session)
+
+    with pytest.raises(ValueError, match="introuvable"):
+        repo.admit(999999999, medecin.user_id, None)
+
+
+def test_admit_refuses_non_clinical_patient(db_session):
+    medecin = create_test_user(db_session, "hosp_repo_medecin_nonclin", "medecin")
+    patient_id, _ = create_test_patient(
+        db_session, medecin, first_name="RepoNonClinical", is_clinical=False, is_toxicology=True
+    )
+    repo = HospitalizationRepository(db_session)
+
+    with pytest.raises(ValueError, match="périmètre clinique"):
+        repo.admit(patient_id, medecin.user_id, None)
+
+
 def test_admit_refuses_second_open_stay_for_same_patient(db_session):
     medecin = create_test_user(db_session, "hosp_repo_medecin2", "medecin")
-    patient_id, _ = create_test_patient(db_session, medecin, first_name="RepoDoubleAdmit")
+    patient_id, _ = create_test_patient(db_session, medecin, first_name="RepoDoubleAdmit", is_clinical=True)
 
     repo = HospitalizationRepository(db_session)
     repo.admit(patient_id, medecin.user_id, None)
@@ -34,7 +53,7 @@ def test_admit_refuses_second_open_stay_for_same_patient(db_session):
 
 def test_add_status_update_on_open_stay(db_session):
     medecin = create_test_user(db_session, "hosp_repo_medecin3", "medecin")
-    patient_id, _ = create_test_patient(db_session, medecin, first_name="RepoStatus")
+    patient_id, _ = create_test_patient(db_session, medecin, first_name="RepoStatus", is_clinical=True)
     repo = HospitalizationRepository(db_session)
     hosp = repo.admit(patient_id, medecin.user_id, None)
 
@@ -46,7 +65,7 @@ def test_add_status_update_on_open_stay(db_session):
 
 def test_add_status_update_refuses_on_discharged_stay(db_session):
     medecin = create_test_user(db_session, "hosp_repo_medecin4", "medecin")
-    patient_id, _ = create_test_patient(db_session, medecin, first_name="RepoStatusClosed")
+    patient_id, _ = create_test_patient(db_session, medecin, first_name="RepoStatusClosed", is_clinical=True)
     repo = HospitalizationRepository(db_session)
     hosp = repo.admit(patient_id, medecin.user_id, None)
     repo.discharge(hosp.id, "GUERI", None, medecin.user_id)
@@ -57,7 +76,7 @@ def test_add_status_update_refuses_on_discharged_stay(db_session):
 
 def test_discharge_closes_stay(db_session):
     medecin = create_test_user(db_session, "hosp_repo_medecin5", "medecin")
-    patient_id, _ = create_test_patient(db_session, medecin, first_name="RepoDischarge")
+    patient_id, _ = create_test_patient(db_session, medecin, first_name="RepoDischarge", is_clinical=True)
     repo = HospitalizationRepository(db_session)
     hosp = repo.admit(patient_id, medecin.user_id, None)
 
@@ -70,7 +89,7 @@ def test_discharge_closes_stay(db_session):
 
 def test_discharge_refuses_already_discharged_stay(db_session):
     medecin = create_test_user(db_session, "hosp_repo_medecin6", "medecin")
-    patient_id, _ = create_test_patient(db_session, medecin, first_name="RepoDoubleDischarge")
+    patient_id, _ = create_test_patient(db_session, medecin, first_name="RepoDoubleDischarge", is_clinical=True)
     repo = HospitalizationRepository(db_session)
     hosp = repo.admit(patient_id, medecin.user_id, None)
     repo.discharge(hosp.id, "GUERI", None, medecin.user_id)
@@ -81,7 +100,7 @@ def test_discharge_refuses_already_discharged_stay(db_session):
 
 def test_get_open_for_patient(db_session):
     medecin = create_test_user(db_session, "hosp_repo_medecin7", "medecin")
-    patient_id, _ = create_test_patient(db_session, medecin, first_name="RepoGetOpen")
+    patient_id, _ = create_test_patient(db_session, medecin, first_name="RepoGetOpen", is_clinical=True)
     repo = HospitalizationRepository(db_session)
 
     assert repo.get_open_for_patient(patient_id) is None
@@ -95,8 +114,8 @@ def test_get_open_for_patient(db_session):
 
 def test_list_current_only_returns_open_stays(db_session):
     medecin = create_test_user(db_session, "hosp_repo_medecin8", "medecin")
-    p1, _ = create_test_patient(db_session, medecin, first_name="RepoCurrent1")
-    p2, _ = create_test_patient(db_session, medecin, first_name="RepoCurrent2")
+    p1, _ = create_test_patient(db_session, medecin, first_name="RepoCurrent1", is_clinical=True)
+    p2, _ = create_test_patient(db_session, medecin, first_name="RepoCurrent2", is_clinical=True)
     repo = HospitalizationRepository(db_session)
 
     open_hosp = repo.admit(p1, medecin.user_id, None)
@@ -110,7 +129,7 @@ def test_list_current_only_returns_open_stays(db_session):
 
 def test_get_history_for_patient_includes_open_and_closed_stays(db_session):
     medecin = create_test_user(db_session, "hosp_repo_medecin9", "medecin")
-    patient_id, _ = create_test_patient(db_session, medecin, first_name="RepoHistory")
+    patient_id, _ = create_test_patient(db_session, medecin, first_name="RepoHistory", is_clinical=True)
     repo = HospitalizationRepository(db_session)
 
     first_stay = repo.admit(patient_id, medecin.user_id, None)

@@ -16,7 +16,7 @@ def _client(api_client):
 
 def test_admit_success(db_session, api_client):
     medecin = create_test_user(db_session, "hosp_ep_medecin1", "medecin", password=TEST_PASSWORD)
-    patient_id, _ = create_test_patient(db_session, medecin, first_name="EpAdmit")
+    patient_id, _ = create_test_patient(db_session, medecin, first_name="EpAdmit", is_clinical=True)
     client = _client(api_client)
     headers = auth_headers(client, "hosp_ep_medecin1", TEST_PASSWORD)
 
@@ -35,7 +35,7 @@ def test_admit_refuses_double_open_stay(db_session, api_client):
     """Review Focus : admettre un patient deja hospitalise doit etre
     refuse avec un message clair, jamais une erreur SQL brute."""
     medecin = create_test_user(db_session, "hosp_ep_medecin2", "medecin", password=TEST_PASSWORD)
-    patient_id, _ = create_test_patient(db_session, medecin, first_name="EpDoubleAdmit")
+    patient_id, _ = create_test_patient(db_session, medecin, first_name="EpDoubleAdmit", is_clinical=True)
     client = _client(api_client)
     headers = auth_headers(client, "hosp_ep_medecin2", TEST_PASSWORD)
 
@@ -46,11 +46,52 @@ def test_admit_refuses_double_open_stay(db_session, api_client):
     assert "déjà" in resp.json()["detail"]
 
 
+def test_admit_unknown_patient_returns_404(db_session, api_client):
+    create_test_user(db_session, "hosp_ep_medecin_unknown", "medecin", password=TEST_PASSWORD)
+    client = _client(api_client)
+    headers = auth_headers(client, "hosp_ep_medecin_unknown", TEST_PASSWORD)
+
+    resp = client.post("/hospitalizations/", json={"patient_id": 999999999}, headers=headers)
+
+    assert resp.status_code == 404
+    assert "introuvable" in resp.json()["detail"]
+
+
+def test_admit_non_clinical_patient_returns_400(db_session, api_client):
+    medecin = create_test_user(db_session, "hosp_ep_medecin_nonclin", "medecin", password=TEST_PASSWORD)
+    patient_id, _ = create_test_patient(
+        db_session, medecin, first_name="EpNonClinical", is_clinical=False, is_toxicology=True
+    )
+    client = _client(api_client)
+    headers = auth_headers(client, "hosp_ep_medecin_nonclin", TEST_PASSWORD)
+
+    resp = client.post("/hospitalizations/", json={"patient_id": patient_id}, headers=headers)
+
+    assert resp.status_code == 400
+    assert "périmètre clinique" in resp.json()["detail"]
+
+
+def test_status_and_discharge_on_unknown_hospitalization_return_404(db_session, api_client):
+    medecin = create_test_user(db_session, "hosp_ep_medecin_unknownhosp", "medecin", password=TEST_PASSWORD)
+    client = _client(api_client)
+    headers = auth_headers(client, "hosp_ep_medecin_unknownhosp", TEST_PASSWORD)
+
+    resp_status = client.post(
+        "/hospitalizations/999999999/status", json={"status": "STABLE"}, headers=headers
+    )
+    assert resp_status.status_code == 404
+
+    resp_discharge = client.post(
+        "/hospitalizations/999999999/discharge", json={"discharge_disposition": "GUERI"}, headers=headers
+    )
+    assert resp_discharge.status_code == 404
+
+
 def test_status_update_refused_on_discharged_stay(db_session, api_client):
     """Review Focus : ajouter une evolution clinique sur un sejour
     deja clos doit etre refuse (400)."""
     medecin = create_test_user(db_session, "hosp_ep_medecin3", "medecin", password=TEST_PASSWORD)
-    patient_id, _ = create_test_patient(db_session, medecin, first_name="EpStatusClosed")
+    patient_id, _ = create_test_patient(db_session, medecin, first_name="EpStatusClosed", is_clinical=True)
     client = _client(api_client)
     headers = auth_headers(client, "hosp_ep_medecin3", TEST_PASSWORD)
 
@@ -65,7 +106,7 @@ def test_discharge_requires_valid_disposition(db_session, api_client):
     """Review Focus : sortir sans discharge_disposition valide doit
     etre refuse (422), jamais persiste avec une valeur libre."""
     medecin = create_test_user(db_session, "hosp_ep_medecin4", "medecin", password=TEST_PASSWORD)
-    patient_id, _ = create_test_patient(db_session, medecin, first_name="EpBadDisposition")
+    patient_id, _ = create_test_patient(db_session, medecin, first_name="EpBadDisposition", is_clinical=True)
     client = _client(api_client)
     headers = auth_headers(client, "hosp_ep_medecin4", TEST_PASSWORD)
 
@@ -80,7 +121,7 @@ def test_discharge_requires_valid_disposition(db_session, api_client):
 
 def test_discharge_refused_on_already_discharged_stay(db_session, api_client):
     medecin = create_test_user(db_session, "hosp_ep_medecin5", "medecin", password=TEST_PASSWORD)
-    patient_id, _ = create_test_patient(db_session, medecin, first_name="EpDoubleDischarge")
+    patient_id, _ = create_test_patient(db_session, medecin, first_name="EpDoubleDischarge", is_clinical=True)
     client = _client(api_client)
     headers = auth_headers(client, "hosp_ep_medecin5", TEST_PASSWORD)
 
@@ -93,8 +134,8 @@ def test_discharge_refused_on_already_discharged_stay(db_session, api_client):
 
 def test_list_current_only_shows_open_stays(db_session, api_client):
     medecin = create_test_user(db_session, "hosp_ep_medecin6", "medecin", password=TEST_PASSWORD)
-    p_open, _ = create_test_patient(db_session, medecin, first_name="EpCurrentOpen")
-    p_closed, _ = create_test_patient(db_session, medecin, first_name="EpCurrentClosed")
+    p_open, _ = create_test_patient(db_session, medecin, first_name="EpCurrentOpen", is_clinical=True)
+    p_closed, _ = create_test_patient(db_session, medecin, first_name="EpCurrentClosed", is_clinical=True)
     client = _client(api_client)
     headers = auth_headers(client, "hosp_ep_medecin6", TEST_PASSWORD)
 
@@ -111,7 +152,7 @@ def test_list_current_only_shows_open_stays(db_session, api_client):
 
 def test_patient_history_includes_all_stays(db_session, api_client):
     medecin = create_test_user(db_session, "hosp_ep_medecin7", "medecin", password=TEST_PASSWORD)
-    patient_id, _ = create_test_patient(db_session, medecin, first_name="EpHistory")
+    patient_id, _ = create_test_patient(db_session, medecin, first_name="EpHistory", is_clinical=True)
     client = _client(api_client)
     headers = auth_headers(client, "hosp_ep_medecin7", TEST_PASSWORD)
 
@@ -128,7 +169,7 @@ def test_patient_history_includes_all_stays(db_session, api_client):
 
 def test_nurse_has_same_rights_as_medecin(db_session, api_client):
     nurse = create_test_user(db_session, "hosp_ep_nurse1", "nurse", password=TEST_PASSWORD)
-    patient_id, _ = create_test_patient(db_session, nurse, first_name="EpNurse")
+    patient_id, _ = create_test_patient(db_session, nurse, first_name="EpNurse", is_clinical=True)
     client = _client(api_client)
     headers = auth_headers(client, "hosp_ep_nurse1", TEST_PASSWORD)
 
@@ -142,7 +183,7 @@ def test_secretaire_forbidden_on_write_and_read(db_session, api_client):
     clinique est etanche."""
     create_test_user(db_session, "hosp_ep_secretaire1", "secretaire", password=TEST_PASSWORD)
     medecin = create_test_user(db_session, "hosp_ep_medecin8", "medecin", password=TEST_PASSWORD)
-    patient_id, _ = create_test_patient(db_session, medecin, first_name="EpSecretaire")
+    patient_id, _ = create_test_patient(db_session, medecin, first_name="EpSecretaire", is_clinical=True)
     client = _client(api_client)
     headers = auth_headers(client, "hosp_ep_secretaire1", TEST_PASSWORD)
 
@@ -183,7 +224,7 @@ def test_admit_and_discharge_write_audit_entries(db_session, api_client):
     from models.audit import AuditUserAction
 
     medecin = create_test_user(db_session, "hosp_ep_medecin10", "medecin", password=TEST_PASSWORD)
-    patient_id, _ = create_test_patient(db_session, medecin, first_name="EpAudit")
+    patient_id, _ = create_test_patient(db_session, medecin, first_name="EpAudit", is_clinical=True)
     client = _client(api_client)
     headers = auth_headers(client, "hosp_ep_medecin10", TEST_PASSWORD)
 
