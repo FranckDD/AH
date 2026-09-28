@@ -194,6 +194,28 @@ export const useCaisseStore = defineStore('caisse', () => {
         await fetchTransactions();
     }
 
+    // Patiente que PowerSync fasse l'aller-retour (upload de l'ecriture
+    // locale puis telechargement de la ligne serveur correspondante, qui
+    // remplit caisse.server_id) pour une secretaire en ligne - permet
+    // d'imprimer avec le vrai numero de facture serveur et le logo au lieu
+    // du repli local, sans jamais bloquer indefiniment (voir CaisseList.vue
+    // handleCreateInvoice, finding critique du dernier examen : le chemin
+    // local etait pris inconditionnellement, meme en ligne). Retourne le
+    // server_id (entier) des qu'il apparait, ou null si le delai expire.
+    async function waitForSyncedTransactionId(localUuid, timeoutMs = 2000) {
+        const pollIntervalMs = 250;
+        const deadline = Date.now() + timeoutMs;
+        while (Date.now() < deadline) {
+            const rows = await db.getAll('SELECT server_id FROM caisse WHERE id = ?', [localUuid]);
+            const serverId = rows?.[0]?.server_id;
+            if (serverId != null) {
+                return serverId;
+            }
+            await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
+        }
+        return null;
+    }
+
     const pagination = computed(() => ({
         page: filters.value.page,
         per_page: filters.value.per_page,
@@ -205,5 +227,6 @@ export const useCaisseStore = defineStore('caisse', () => {
         transactions, isLoading, loadError, kpi, kpiError, filters, pagination,
         fetchTransactions, refreshTransactionsLocal, setPage, setFilters,
         createInvoice, addPayment, settleTransaction, cancelTransaction,
+        waitForSyncedTransactionId,
     };
 });

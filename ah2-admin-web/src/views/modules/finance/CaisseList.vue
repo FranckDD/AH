@@ -332,13 +332,27 @@ const mapErrorToMessage = (err) => {
 // sans ticket physique puis annulee discretement).
 const printError = ref('');
 
+// PrinterBridgeGateway.printTicket() leve un message explicite
+// "Jeton d'impression non configuré." quand configStore.ticketPrintToken
+// est vide (voir PrinterBridgeGateway.js) - un vrai probleme de
+// configuration, pas un probleme d'imprimante. Le distinguer evite de
+// faire chercher a un administrateur un cable/une imprimante qui n'a
+// rien a voir (finding du dernier examen).
+const TOKEN_ERROR_MESSAGE = "Jeton d'impression non configuré.";
+const describePrintError = (err) => {
+  if (err?.message === TOKEN_ERROR_MESSAGE) {
+    return "Jeton d'impression non configuré ou invalide — contactez un administrateur.";
+  }
+  return "Ticket non imprimé — imprimante indisponible. Utilisez le bouton Réimprimer pour réessayer.";
+};
+
 const printTicketForTransaction = async (transactionId) => {
   printError.value = '';
   try {
     const resp = await CaisseGateway.getTicket(transactionId);
     await PrinterBridgeGateway.printTicket(resp.data);
   } catch (err) {
-    printError.value = "Ticket non imprimé — imprimante indisponible. Utilisez le bouton Réimprimer pour réessayer.";
+    printError.value = describePrintError(err);
     console.error('Erreur impression ticket:', err);
   }
 };
@@ -392,7 +406,7 @@ const printLocallyBuiltTicket = async (localTransactionId, payload, patientDispl
     const ticketData = buildLocalTicketData(localTransactionId, payload, patientDisplayName);
     await PrinterBridgeGateway.printTicket(ticketData);
   } catch (err) {
-    printError.value = "Ticket non imprimé — imprimante indisponible. Utilisez le bouton Réimprimer pour réessayer.";
+    printError.value = describePrintError(err);
     console.error('Erreur impression ticket (local):', err);
   }
 };
@@ -422,7 +436,18 @@ const handleCreateInvoice = async (payload, patientDisplayName) => {
       if (Number.isInteger(result.transaction_id)) {
         printTicketForTransaction(result.transaction_id);
       } else {
-        printLocallyBuiltTicket(result.transaction_id, payload, patientDisplayName);
+        // uuid local (chemin secretaire/PowerSync, systematique meme en
+        // ligne - voir caisseStore.js::createInvoice). Si le reseau est
+        // disponible, on patiente brievement que PowerSync confirme le
+        // vrai server_id pour imprimer avec le numero de facture reel et
+        // le logo, plutot que de prendre systematiquement le repli local
+        // (finding critique du dernier examen : Number.isInteger() seul
+        // prenait TOUJOURS la branche locale pour la secretaire). Ceci
+        // est deliberement fire-and-forget vis-a-vis du reste de la
+        // fonction : ne jamais retarder la fermeture de la modale ni la
+        // remise a zero de isSavingInvoice, qui se font juste apres, la
+        // facture etant deja enregistree a ce stade.
+        printEventualTicket(result.transaction_id, payload, patientDisplayName);
       }
     }
   } catch (err) {
@@ -430,6 +455,21 @@ const handleCreateInvoice = async (payload, patientDisplayName) => {
   } finally {
     isSavingInvoice.value = false;
   }
+};
+
+// Attend (best-effort, timeout court) une confirmation de synchronisation
+// avant de choisir entre le chemin d'impression serveur (numero de
+// facture reel + logo) et le repli local construit cote client. Jamais
+// awaited par handleCreateInvoice - void intentionnel.
+const printEventualTicket = async (localUuid, payload, patientDisplayName) => {
+  if (navigator.onLine) {
+    const serverId = await caisseStore.waitForSyncedTransactionId(localUuid);
+    if (serverId != null) {
+      await printTicketForTransaction(serverId);
+      return;
+    }
+  }
+  await printLocallyBuiltTicket(localUuid, payload, patientDisplayName);
 };
 
 // --- Versement ---
