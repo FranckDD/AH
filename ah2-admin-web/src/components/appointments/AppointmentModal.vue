@@ -98,6 +98,13 @@ const props = defineProps({
     type: Object,
     default: null,
   },
+  // Pre-remplit la date a la creation (vue calendrier - clic sur un jour
+  // vide, voir AppointmentsCalendar.vue). Ignore en mode edition
+  // (props.appointment garde toujours la priorite).
+  initialDate: {
+    type: String,
+    default: '',
+  },
 });
 
 const isEdit = computed(() => !!props.appointment);
@@ -193,6 +200,8 @@ onMounted(() => {
     form.appointmentDate = (appt.appointment_date || '').substring(0, 10);
     form.appointmentTime = (appt.appointment_time || '').substring(0, 5);
     form.reason = appt.reason || '';
+  } else if (props.initialDate) {
+    form.appointmentDate = props.initialDate;
   }
 });
 

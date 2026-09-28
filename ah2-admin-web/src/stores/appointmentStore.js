@@ -145,6 +145,12 @@ export const useAppointmentStore = defineStore('appointment', () => {
 
     return {
         appointments,
+        // Expose en plus de "appointments" (filtre liste) - la vue
+        // calendrier (AppointmentsCalendar.vue) affiche volontairement
+        // TOUT le mois, independamment des filtres recherche/statut de la
+        // vue liste, decision prise avec l'utilisateur (voir brainstorming
+        // du 2026-09-28).
+        rawAppointments,
         specialties,
         isLoading,
         filters,

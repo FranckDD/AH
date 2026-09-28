@@ -9,16 +9,35 @@
         <p class="text-sm text-gray-500">{{ t('appointments.subtitle') }}</p>
       </div>
 
-      <button
-        @click="openCreateModal"
-        class="flex items-center px-6 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 shadow-md shadow-emerald-200 transition font-semibold"
-      >
-        <PlusCircleIcon class="h-5 w-5 mr-2" />
-        {{ t('appointments.new_appointment') }}
-      </button>
+      <div class="flex items-center gap-3">
+        <div class="flex bg-gray-100 rounded-xl p-1">
+          <button
+            @click="viewMode = 'list'"
+            class="px-4 py-1.5 text-sm font-medium rounded-lg transition"
+            :class="viewMode === 'list' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'"
+          >
+            {{ t('appointments.view_list') }}
+          </button>
+          <button
+            @click="viewMode = 'calendar'"
+            class="px-4 py-1.5 text-sm font-medium rounded-lg transition"
+            :class="viewMode === 'calendar' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'"
+          >
+            {{ t('appointments.view_calendar') }}
+          </button>
+        </div>
+
+        <button
+          @click="openCreateModal"
+          class="flex items-center px-6 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 shadow-md shadow-emerald-200 transition font-semibold"
+        >
+          <PlusCircleIcon class="h-5 w-5 mr-2" />
+          {{ t('appointments.new_appointment') }}
+        </button>
+      </div>
     </div>
 
-    <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-wrap gap-4 items-end">
+    <div v-if="viewMode === 'list'" class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-wrap gap-4 items-end">
 
       <div class="flex-1 min-w-[220px]">
         <label class="text-xs font-bold text-gray-500 uppercase mb-1 block">{{ t('appointments.search_label') }}</label>
@@ -58,7 +77,7 @@
       </div>
     </div>
 
-    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+    <div v-if="viewMode === 'list'" class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
 
       <div class="p-4 border-b border-gray-100 flex items-center justify-between">
         <div class="text-sm text-gray-500">
@@ -161,9 +180,30 @@
 
     </div>
 
+    <div v-else class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+      <div class="lg:col-span-2">
+        <AppointmentsCalendar
+          :appointments="appointmentStore.rawAppointments"
+          @day-click="handleDayClick"
+        />
+      </div>
+      <AppointmentDayPanel
+        v-if="selectedDate"
+        :date="selectedDate"
+        :appointments="selectedDateAppointments"
+        @close="selectedDate = null"
+        @edit="openEditModal"
+        @cancel="(appt) => appointmentStore.cancelAppointment(appt.server_id)"
+        @complete="(appt) => appointmentStore.completeAppointment(appt.server_id)"
+        @view-dossier="voirDossier"
+        @start-consultation="demarrerConsultation"
+      />
+    </div>
+
     <AppointmentModal
       v-if="showModal"
       :appointment="editingAppointment"
+      :initial-date="createDate"
       @close="closeModal"
       @save="handleSave"
     />
@@ -178,6 +218,8 @@ import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import StatusBadge from '@/components/appointments/StatusBadge.vue';
 import AppointmentModal from '@/components/appointments/AppointmentModal.vue';
+import AppointmentsCalendar from '@/components/appointments/AppointmentsCalendar.vue';
+import AppointmentDayPanel from '@/components/appointments/AppointmentDayPanel.vue';
 import {
   PlusCircleIcon,
   MagnifyingGlassIcon,
@@ -227,9 +269,11 @@ function patientName(appt) {
 
 const showModal = ref(false);
 const editingAppointment = ref(null);
+const createDate = ref('');
 
 function openCreateModal() {
   editingAppointment.value = null;
+  createDate.value = '';
   showModal.value = true;
 }
 
@@ -241,6 +285,35 @@ function openEditModal(appt) {
 function closeModal() {
   showModal.value = false;
   editingAppointment.value = null;
+  createDate.value = '';
+}
+
+// --- Vue calendrier ---
+const viewMode = ref('list'); // 'list' | 'calendar'
+const selectedDate = ref(null);
+
+const selectedDateAppointments = computed(() => {
+  if (!selectedDate.value) return [];
+  return appointmentStore.rawAppointments
+    .filter((a) => (a.appointment_date || '').substring(0, 10) === selectedDate.value)
+    .sort((a, b) => (a.appointment_time || '').localeCompare(b.appointment_time || ''));
+});
+
+// Clic sur un jour du calendrier (AppointmentsCalendar.vue) : un jour avec
+// des RDV ouvre le panneau de detail, un jour vide ouvre directement la
+// creation avec la date pre-remplie - decision prise avec l'utilisateur
+// au brainstorming (2026-09-28).
+function handleDayClick(dateStr) {
+  const hasAppointments = appointmentStore.rawAppointments.some(
+    (a) => (a.appointment_date || '').substring(0, 10) === dateStr
+  );
+  if (hasAppointments) {
+    selectedDate.value = dateStr;
+  } else {
+    editingAppointment.value = null;
+    createDate.value = dateStr;
+    showModal.value = true;
+  }
 }
 
 async function handleSave(data) {

@@ -179,6 +179,15 @@ const messages = {
         save: "Enregistrer",
         patient_not_found: "Patient introuvable",
         patient_lookup_error: "Erreur lors de la recherche locale du patient."
+      },
+      view_list: "Vue liste",
+      view_calendar: "Vue calendrier",
+      calendar: {
+        today: "Aujourd'hui",
+        weekdays_short: ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"],
+        more: "de plus",
+        day_panel_empty: "Aucun rendez-vous ce jour.",
+        day_panel_title: "Rendez-vous du"
       }
     },
     prescriptions: {
@@ -1118,6 +1127,15 @@ const messages = {
         save: "Save",
         patient_not_found: "Patient not found",
         patient_lookup_error: "Local patient lookup failed."
+      },
+      view_list: "List view",
+      view_calendar: "Calendar view",
+      calendar: {
+        today: "Today",
+        weekdays_short: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+        more: "more",
+        day_panel_empty: "No appointments this day.",
+        day_panel_title: "Appointments for"
       }
     },
     prescriptions: {
