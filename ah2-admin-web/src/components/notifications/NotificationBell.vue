@@ -72,6 +72,15 @@ const maybePrintApprovedDiscountTicket = async (n) => {
     console.error('Impression automatique post-décision échouée:', err);
     // Pas de bandeau ici (composant global monté partout) - l'utilisateur
     // peut toujours reimprimer manuellement depuis CaisseList.vue (Task 11).
+  } finally {
+    // Marquer lue dans tous les cas (succes ou echec d'impression) : sinon
+    // cette notification 'discount_decided' reste indefiniment dans la
+    // liste des non-lues (jamais marquee lue ailleurs) et serait
+    // re-offerte a l'impression a chaque reload/login, provoquant une
+    // reimpression papier a chaque fois (finding critique du dernier
+    // examen). printedDecisionIds seul ne suffit pas : c'est un Set en
+    // memoire qui se reinitialise a chaque remontage du composant.
+    await notificationStore.markRead(n.id);
   }
 };
 
