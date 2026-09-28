@@ -259,9 +259,13 @@ import {
 } from '@heroicons/vue/24/outline';
 import { CaisseGateway } from '@/services/CaisseGateway';
 import { PrinterBridgeGateway } from '@/services/PrinterBridgeGateway';
+import { useAuthStore } from '@/stores/auth';
+import { useConfigStore } from '@/stores/configStore';
 
 const { t } = useI18n();
 const caisseStore = useCaisseStore();
+const authStore = useAuthStore();
+const configStore = useConfigStore();
 
 // Compteur independant du filtre courant - residu documente au chantier
 // notifications ("factures en attente invisibles/mal etiquetees dans le
@@ -339,12 +343,66 @@ const printTicketForTransaction = async (transactionId) => {
   }
 };
 
+// Construit le ticket cote client, sans appel reseau, pour le chemin
+// secretaire/PowerSync (ecriture locale - voir caisseStore.js) ou
+// transaction_id n'est encore qu'un uuid local non reconnu par le
+// backend. Les noms de champs miroir exactement CaisseController
+// .build_ticket_data() / CaisseRepository.get_transaction_details_for
+// _invoice() (repositories/caisse_repo.py) et le contrat consomme par
+// printer_bridge/ticket_renderer.py::render_ticket(), pour que le meme
+// rendu fonctionne a l'identique en ligne et hors ligne.
+// - discount est toujours null ici : une facture creee hors ligne n'a
+//   jamais pu passer par le circuit d'approbation de reduction (appel
+//   reseau direct, jamais mis en file d'attente hors ligne - voir
+//   DiscountRequestGateway.create), donc aucun risque de faux-negatif.
+// - ticket_logo_path est omis : le backend le resout vers un chemin
+//   fichier local a LUI (voir get_ticket_header_context), impossible a
+//   reproduire cote client sans reseau. ticket_renderer.py traite deja
+//   un ticket_logo_path absent comme optionnel (en-tete texte seul).
+const buildLocalTicketData = (localTransactionId, payload, patientDisplayName) => ({
+  transaction_id: localTransactionId,
+  patient_name: payload.patient_label || patientDisplayName || '—',
+  user_name: authStore.user?.full_name || authStore.user?.username || '',
+  paid_at: new Date().toISOString(),
+  amount: payload.amount,
+  advance_amount: payload.advance_amount,
+  remaining: payload.amount - payload.advance_amount,
+  payment_method: payload.payment_method,
+  items: (payload.items || []).map((i) => ({
+    item_name: i.note || i.item_type,
+    quantity: i.quantity,
+    unit_price: i.unit_price,
+    line_total: i.line_total,
+  })),
+  discount: null,
+  header: {
+    structure_name: configStore.structureInfo.name,
+    address: configStore.structureInfo.address,
+    phone: configStore.structureInfo.phone,
+    niu: configStore.structureInfo.niu,
+    rccm: configStore.structureInfo.rccm,
+    legal_info: configStore.structureInfo.legal_info,
+    ticket_logo_path: null,
+  },
+});
+
+const printLocallyBuiltTicket = async (localTransactionId, payload, patientDisplayName) => {
+  printError.value = '';
+  try {
+    const ticketData = buildLocalTicketData(localTransactionId, payload, patientDisplayName);
+    await PrinterBridgeGateway.printTicket(ticketData);
+  } catch (err) {
+    printError.value = "Ticket non imprimé — imprimante indisponible. Utilisez le bouton Réimprimer pour réessayer.";
+    console.error('Erreur impression ticket (local):', err);
+  }
+};
+
 // --- Creation facture ---
 const showInvoiceModal = ref(false);
 const isSavingInvoice = ref(false);
 const invoiceError = ref('');
 
-const handleCreateInvoice = async (payload) => {
+const handleCreateInvoice = async (payload, patientDisplayName) => {
   isSavingInvoice.value = true;
   invoiceError.value = '';
   try {
@@ -354,14 +412,18 @@ const handleCreateInvoice = async (payload) => {
     // secretaire/PowerSync (ecriture locale, voir caisseStore.js) renvoie
     // { transaction_id: <uuid local> } sans champ status, alors que le
     // chemin en ligne renvoie la reponse serveur reelle ou transaction_id
-    // est un entier (voir caisse_schemas.py TransactionResponse). Un uuid
-    // local n'est pas reconnu par le backend (GET /caisse/{id}/ticket
-    // echouerait) tant que la transaction n'a pas synchronise : on ne
-    // tente donc l'impression automatique que pour un id serveur reel,
-    // silencieusement ignore sinon (pas de tentative, pas de bandeau
-    // d'erreur trompeur "imprimante indisponible").
-    if (result && result.status !== 'pending_approval' && Number.isInteger(result.transaction_id)) {
-      printTicketForTransaction(result.transaction_id);
+    // est un entier (voir caisse_schemas.py TransactionResponse). Impression
+    // toujours tentee quand la facture est active (jamais conditionnee par
+    // la reduction) : id serveur reel -> chemin backend authoritative ;
+    // uuid local (pas encore synchronise) -> ticket construit cote client
+    // avec les donnees deja en main, pour que l'impression marche aussi
+    // bien hors ligne qu'en ligne.
+    if (result && result.status !== 'pending_approval' && result.transaction_id) {
+      if (Number.isInteger(result.transaction_id)) {
+        printTicketForTransaction(result.transaction_id);
+      } else {
+        printLocallyBuiltTicket(result.transaction_id, payload, patientDisplayName);
+      }
     }
   } catch (err) {
     invoiceError.value = mapErrorToMessage(err);

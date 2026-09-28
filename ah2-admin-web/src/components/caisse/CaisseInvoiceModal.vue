@@ -437,9 +437,21 @@ const buildInvoiceData = () => {
   return payload;
 };
 
+// Nom d'affichage du patient pour un usage purement cosmetique cote
+// impression (ticket construit localement quand hors ligne, voir
+// CaisseList.vue::printTicketForTransaction) - ne fait pas partie du
+// payload envoye au backend (buildInvoiceData() reste inchange) pour ne
+// pas risquer un champ inattendu cote schema Pydantic.
+const resolvedPatientDisplayName = () => {
+  if (selectedPatient.value) {
+    return `${selectedPatient.value.first_name || ''} ${selectedPatient.value.last_name || ''}`.trim();
+  }
+  return patientLabel.value.trim();
+};
+
 const handleSubmit = () => {
   if (!isFormValid.value) return;
-  emit('save', buildInvoiceData());
+  emit('save', buildInvoiceData(), resolvedPatientDisplayName());
 };
 
 // --- Demande de réduction : reste sur place (pas d'emit('save')), affiche
