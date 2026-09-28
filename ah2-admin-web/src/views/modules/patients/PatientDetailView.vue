@@ -49,6 +49,9 @@
                     <button @click="currentTab = 'PHARMA'" :class="[currentTab === 'PHARMA' ? 'border-purple-500 text-purple-600' : 'border-transparent text-gray-500 hover:text-gray-700', 'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center transition duration-150']">
                         <TagIcon class="h-5 w-5 mr-2" /> {{ t('medical.tabs.treatments') }}
                     </button>
+                    <button v-if="authStore.hasRole(['medecin', 'nurse'])" @click="currentTab = 'HOSPITALISATION'" :class="[currentTab === 'HOSPITALISATION' ? 'border-red-500 text-red-600' : 'border-transparent text-gray-500 hover:text-gray-700', 'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center transition duration-150']">
+                        <BuildingOffice2Icon class="h-5 w-5 mr-2" /> {{ t('hospitalization.card_title') }}
+                    </button>
                     <button v-if="dossierStore.isToxicology" @click="currentTab = 'TOXICO'" :class="[currentTab === 'TOXICO' ? 'border-orange-500 text-orange-600' : 'border-transparent text-gray-500 hover:text-gray-700', 'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center transition duration-150']">
                         <NoSymbolIcon class="h-5 w-5 mr-2" /> {{ t('medical.tabs.toxico_followup') }}
                     </button>
@@ -83,6 +86,10 @@
                             </span>
                         </li>
                     </ul>
+                </div>
+
+                <div v-if="currentTab === 'HOSPITALISATION'">
+                    <HospitalizationCard :patient-id="dossierStore.patientSummary.patient_id" />
                 </div>
 
                 <div v-if="currentTab === 'SPIRITUEL'" class="space-y-4">
@@ -177,6 +184,7 @@ import MedicalRecordTimeline from '@/components/patients/medical/MedicalRecordTi
 import LabResultTable from '@/components/patients/labs/LabResultTable.vue';
 // 🟢 Le composant est bien importé ici
 import SpiritualTimeline from '@/components/patients/medical/SpiritualTimeline.vue';
+import HospitalizationCard from '@/components/hospitalization/HospitalizationCard.vue';
 
 import MedicalRecordModal from '@/components/medical-records/MedicalRecordModal.vue';
 import PrescriptionModal from '@/components/prescriptions/PrescriptionModal.vue';
@@ -187,7 +195,7 @@ import { useAuthStore } from '@/stores/auth';
 
 import {
     HeartIcon, ScaleIcon, FireIcon, ExclamationTriangleIcon,
-    BeakerIcon, TagIcon, NoSymbolIcon, SparklesIcon
+    BeakerIcon, TagIcon, NoSymbolIcon, SparklesIcon, BuildingOffice2Icon
 } from '@heroicons/vue/24/outline';
 
 const { t } = useI18n();
