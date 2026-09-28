@@ -23,8 +23,11 @@ export const useCaisseStore = defineStore('caisse', () => {
         endDate: '',
     });
 
-    async function fetchTransactions() {
-        isLoading.value = true;
+    // silent=true : rafraichissement en arriere-plan (apres synchro, ou
+    // periodique depuis CaisseList.vue) - pas d'ecran "chargement" qui
+    // ferait clignoter la liste sous les yeux de la secretaire.
+    async function fetchTransactions({ silent = false } = {}) {
+        if (!silent) isLoading.value = true;
         loadError.value = false;
         try {
             const resp = await CaisseGateway.fetchTransactions(filters.value);
@@ -79,6 +82,14 @@ export const useCaisseStore = defineStore('caisse', () => {
             items: r.items ? JSON.parse(r.items) : [],
         }));
         totalItems.value = rows.length;
+        // Retour terrain 2026-09-28 : les KPI (recette, reste du) ne se
+        // rafraichissaient qu'au chargement initial ou a un changement de
+        // filtre/page (seul fetchTransactions() appelait updateKpis()) -
+        // jamais apres une creation/un paiement fait par la secretaire, qui
+        // passe systematiquement par ce chemin local PowerSync (voir
+        // createInvoice/addPayment plus haut). updateKpis() reste safe hors
+        // ligne (deja try/catch, degrade vers kpiError="Indisponible").
+        await updateKpis();
     }
 
     async function updateKpis() {
@@ -129,6 +140,7 @@ export const useCaisseStore = defineStore('caisse', () => {
                 ]
             );
             await refreshTransactionsLocal();
+            refreshAfterSync(uuid);
             return { transaction_id: uuid };
         }
 
@@ -165,6 +177,7 @@ export const useCaisseStore = defineStore('caisse', () => {
                 [String(data.paid_amount), transactionId]
             );
             await refreshTransactionsLocal();
+            refreshAfterSync(null);
             return { payment_id: uuid };
         }
 
@@ -202,6 +215,23 @@ export const useCaisseStore = defineStore('caisse', () => {
     // handleCreateInvoice, finding critique du dernier examen : le chemin
     // local etait pris inconditionnellement, meme en ligne). Retourne le
     // server_id (entier) des qu'il apparait, ou null si le delai expire.
+    // Retour terrain 2026-09-28 : apres 2 factures creees par la secretaire,
+    // ni la liste ni les KPI ne se mettaient a jour sans rechargement manuel.
+    // Cause : l'ecriture est locale (PowerSync) et updateKpis() interroge le
+    // SERVEUR - appele juste apres l'ecriture locale, il relit des totaux qui
+    // n'incluent pas encore la facture (pas encore uploadee). On attend donc
+    // la confirmation de synchro (server_id rempli, ou simple delai pour un
+    // versement) puis on recharge la verite serveur (liste + KPI), en
+    // silence. Fire-and-forget, jamais bloquant.
+    function refreshAfterSync(localUuid) {
+        const wait = localUuid
+            ? waitForSyncedTransactionId(localUuid, 15000)
+            : new Promise((resolve) => setTimeout(resolve, 3000));
+        wait
+            .then(() => fetchTransactions({ silent: true }))
+            .catch((err) => console.warn('Rafraichissement caisse post-synchro impossible:', err));
+    }
+
     async function waitForSyncedTransactionId(localUuid, timeoutMs = 2000) {
         const pollIntervalMs = 250;
         const deadline = Date.now() + timeoutMs;

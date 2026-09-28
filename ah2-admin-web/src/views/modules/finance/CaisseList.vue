@@ -245,7 +245,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useCaisseStore } from '@/stores/caisseStore';
 import api from '@/services/api';
@@ -281,9 +281,37 @@ const fetchPendingApprovalCount = async () => {
   }
 };
 
+// Rafraichissement periodique silencieux (liste + KPI) - filet de securite
+// si la synchro tarde, et affiche aussi les factures saisies depuis un
+// autre poste. Meme cadence que notificationStore (30s).
+//
+// Suspendu tant qu'une modale caisse est ouverte (retour terrain 2026-09-28,
+// question explicite de l'utilisateur) : remplacer caisseStore.transactions
+// pendant que la secretaire est en train d'annuler/solder/creer une facture
+// ne perd jamais sa saisie (les modales gardent leur propre etat, une
+// reference figee au tx cliquee - voir cancellingTx/installmentTx/viewingTx
+// plus bas, jamais recalculee depuis la liste live), mais rafraichir la
+// LISTE sous ses yeux pendant qu'elle vise un bouton reste une gene/un
+// risque de clic sur la mauvaise ligne si l'ordre bouge. On saute juste ce
+// tour-la, sans jamais arreter le minuteur - le tour suivant recupere.
+const isCaisseBusy = () =>
+  showInvoiceModal.value || !!cancellingTx.value || !!installmentTx.value || !!viewingTx.value;
+
+const AUTO_REFRESH_MS = 30000;
+let autoRefreshTimer = null;
+
 onMounted(() => {
   caisseStore.fetchTransactions();
   fetchPendingApprovalCount();
+  autoRefreshTimer = setInterval(() => {
+    if (isCaisseBusy()) return;
+    caisseStore.fetchTransactions({ silent: true }).catch(() => {});
+    fetchPendingApprovalCount();
+  }, AUTO_REFRESH_MS);
+});
+
+onUnmounted(() => {
+  clearInterval(autoRefreshTimer);
 });
 
 const searchQuery = computed({

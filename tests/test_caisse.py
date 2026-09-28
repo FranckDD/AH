@@ -6,6 +6,10 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from api_backend.backend_app.routes.auth import auth_endpoints
 from api_backend.backend_app.routes.caisse import caisse_endpoints
+from controller.caisse_controller import CaisseController
+from repositories.caisse_repo import CaisseRepository
+from models.pharmacy import Pharmacy
+from models.stock_movement import StockMovement
 from tests.conftest import create_test_user, create_test_patient, create_test_transaction, login, auth_headers
 
 TEST_PASSWORD = "Correct123!"
@@ -412,6 +416,49 @@ def test_cancel_transaction_success(db_session, api_client):
     get_resp = client.get(f"/caisse/{tx.transaction_id}", headers=headers)
     assert get_resp.json()["status"] == "cancelled"
     assert get_resp.json()["cancel_justification"] == "Erreur de saisie"
+
+
+def test_cancel_transaction_restores_pharmacy_stock(db_session):
+    """Retour terrain 2026-09-28 (question explicite de l'utilisateur) :
+    CaisseRepository.cancel_transaction() restaure deja le stock
+    pharmacie pour les lignes 'médicament'/'carnet' (voir
+    repositories/caisse_repo.py) mais ce chemin n'etait jamais couvert
+    par un test - item_type='Service' est utilise partout ailleurs dans
+    ce fichier (voir create_test_transaction) precisement pour eviter
+    toute dependance a une vraie ligne Pharmacy."""
+    user = create_test_user(db_session, "test_caisse_secretaire_stock_cancel", "secretaire", password=TEST_PASSWORD)
+
+    med = Pharmacy(drug_name="Paracetamol 500mg", quantity=10, threshold=5, medication_type="comprime")
+    db_session.add(med)
+    db_session.commit()
+    db_session.refresh(med)
+
+    tx = create_test_transaction(db_session, user, items=[
+        {
+            "item_type": "médicament",
+            "item_ref_id": med.medication_id,
+            "unit_price": 500.0,
+            "quantity": 3,
+            "line_total": 1500.0,
+        }
+    ])
+
+    db_session.refresh(med)
+    assert med.quantity == 7  # create_transaction deduit deja le stock a la vente (10 - 3)
+
+    ctrl = CaisseController(repo=CaisseRepository(db_session), current_user=user)
+    ctrl.cancel_transaction(tx.transaction_id, "Erreur de saisie")
+
+    db_session.refresh(med)
+    assert med.quantity == 10  # stock restaure a son niveau d'avant-vente
+
+    movement = (
+        db_session.query(StockMovement)
+        .filter_by(medication_id=med.medication_id, movement_type="ANNULATION_VENTE")
+        .first()
+    )
+    assert movement is not None
+    assert movement.change_qty == 3
 
 
 def test_cancel_transaction_already_cancelled_returns_400(db_session, api_client):
