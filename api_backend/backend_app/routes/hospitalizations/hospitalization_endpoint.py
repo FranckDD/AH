@@ -73,10 +73,7 @@ def admit(data: HospitalizationAdmit, ctrl: HospitalizationController = Depends(
     except ValueError as ve:
         if "introuvable" in str(ve):
             raise HTTPException(status_code=404, detail=str(ve))
-        elif "périmètre clinique" in str(ve):
-            raise HTTPException(status_code=400, detail=str(ve))
-        else:
-            raise HTTPException(status_code=409, detail=str(ve))
+        raise HTTPException(status_code=409, detail=str(ve))
     except IntegrityError:
         logger.exception("Conflit base de donnees a l'admission")
         raise HTTPException(status_code=409, detail="Ce patient est déjà hospitalisé (séjour en cours).")

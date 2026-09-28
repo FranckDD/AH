@@ -57,18 +57,24 @@ def test_admit_unknown_patient_returns_404(db_session, api_client):
     assert "introuvable" in resp.json()["detail"]
 
 
-def test_admit_non_clinical_patient_returns_400(db_session, api_client):
+def test_admit_toxico_only_patient_returns_201(db_session, api_client):
+    """Soins holistiques : aucun refus par parcours (decision utilisateur 2026-09-28)."""
     medecin = create_test_user(db_session, "hosp_ep_medecin_nonclin", "medecin", password=TEST_PASSWORD)
     patient_id, _ = create_test_patient(
         db_session, medecin, first_name="EpNonClinical", is_clinical=False, is_toxicology=True
     )
+    # Vrai dossier toxico (la colonne is_toxicology n'est plus la source de
+    # verite - compute_domain_flags lit l'existence reelle des dossiers).
+    from datetime import date
+    from models.toxico import ToxicoDossier
+    db_session.add(ToxicoDossier(patient_id=patient_id, admission_date=date.today(), substance="Test"))
+    db_session.flush()
     client = _client(api_client)
     headers = auth_headers(client, "hosp_ep_medecin_nonclin", TEST_PASSWORD)
 
     resp = client.post("/hospitalizations/", json={"patient_id": patient_id}, headers=headers)
 
-    assert resp.status_code == 400
-    assert "périmètre clinique" in resp.json()["detail"]
+    assert resp.status_code == 201, resp.text
 
 
 def test_status_and_discharge_on_unknown_hospitalization_return_404(db_session, api_client):
@@ -239,3 +245,21 @@ def test_admit_and_discharge_write_audit_entries(db_session, api_client):
     actions = {e.action_performed for e in entries}
     assert "ADMIT" in actions
     assert "DISCHARGE" in actions
+
+
+def test_admit_patient_with_stale_is_clinical_column_but_real_medical_record(db_session, api_client):
+    """Retour terrain 2026-09-28 : admission refusee (400) pour un patient
+    clinique reel dont la colonne patients.is_clinical (depreciee, chantier 6)
+    valait False. Le perimetre doit se lire sur l'existence reelle des
+    dossiers (compute_domain_flags), pas sur la colonne stockee."""
+    medecin = create_test_user(db_session, "hosp_ep_medecin_stale", "medecin", password=TEST_PASSWORD)
+    patient_id, _ = create_test_patient(db_session, medecin, first_name="EpStale", is_clinical=False)
+    from models.medical_record import MedicalRecord
+    db_session.add(MedicalRecord(patient_id=patient_id, motif_code="consultation"))
+    db_session.flush()
+    client = _client(api_client)
+    headers = auth_headers(client, "hosp_ep_medecin_stale", TEST_PASSWORD)
+
+    resp = client.post("/hospitalizations/", json={"patient_id": patient_id}, headers=headers)
+
+    assert resp.status_code == 201, resp.text

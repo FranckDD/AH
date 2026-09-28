@@ -26,10 +26,12 @@ class HospitalizationRepository:
         patient = self.session.get(Patient, patient_id)
         if patient is None:
             raise ValueError(f"Patient introuvable (ID={patient_id}).")
-        if not patient.is_clinical:
-            raise ValueError(
-                "Ce patient n'est pas dans le périmètre clinique (médecin/infirmier) — admission impossible."
-            )
+        # Pas de restriction par parcours (decision utilisateur 2026-09-28) :
+        # le centre offre des soins holistiques, un patient peut suivre 1, 2
+        # ou les 3 parcours (clinique/toxico/spirituel), et un patient
+        # toxico ou spirituel peut avoir besoin d'une hospitalisation - c'est
+        # l'admission elle-meme qui l'inscrit dans le suivi clinique. Le
+        # controle d'acces reste le role (medecin/nurse, cote endpoint).
 
         if self.get_open_for_patient(patient_id) is not None:
             raise ValueError("Ce patient est déjà hospitalisé (séjour en cours).")

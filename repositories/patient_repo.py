@@ -11,6 +11,7 @@ from models.appointment import Appointment
 from models.medical_record import MedicalRecord
 from models.toxico import ToxicoDossier
 from models.consultation_spirituelle import ConsultationSpirituel
+from models.hospitalization import Hospitalization
 from datetime import datetime, date, timedelta,time
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.engine import Result
@@ -292,8 +293,13 @@ class PatientRepository:
         de verite pour toute decision d'affichage ou de filtrage (registre L2,
         chantier 6)."""
         return {
+            # Une hospitalisation inscrit aussi le patient dans le parcours
+            # clinique (soins holistiques, decision utilisateur 2026-09-28).
             "is_clinical": self.session.query(
-                exists().where(MedicalRecord.patient_id == patient_id)
+                or_(
+                    exists().where(MedicalRecord.patient_id == patient_id),
+                    exists().where(Hospitalization.patient_id == patient_id),
+                )
             ).scalar(),
             "is_toxicology": self.session.query(
                 exists().where(ToxicoDossier.patient_id == patient_id)
@@ -312,7 +318,7 @@ class PatientRepository:
         # une source de verite, voir compute_domain_flags)
         if filters:
             if filters.get('is_clinical'):
-                query = query.filter(exists().where(MedicalRecord.patient_id == Patient.patient_id))
+                query = query.filter(or_(exists().where(MedicalRecord.patient_id == Patient.patient_id), exists().where(Hospitalization.patient_id == Patient.patient_id)))
             if filters.get('is_toxicology'):
                 query = query.filter(exists().where(ToxicoDossier.patient_id == Patient.patient_id))
             if filters.get('is_spiritual'):
@@ -369,7 +375,7 @@ class PatientRepository:
             )
         if filters:
             if filters.get('is_clinical'):
-                query = query.filter(exists().where(MedicalRecord.patient_id == Patient.patient_id))
+                query = query.filter(or_(exists().where(MedicalRecord.patient_id == Patient.patient_id), exists().where(Hospitalization.patient_id == Patient.patient_id)))
             if filters.get('is_toxicology'):
                 query = query.filter(exists().where(ToxicoDossier.patient_id == Patient.patient_id))
             if filters.get('is_spiritual'):
@@ -397,10 +403,21 @@ class PatientRepository:
     def _list_by_flag(self, flag_name: str, page: int, per_page: int, search: Optional[str]) -> Dict[str, Any]:
         """Méthode interne pour filtrer par un drapeau spécifique (is_clinical, is_toxicology, is_spiritual)"""
         
-        # 1. Base Query : Non supprimés ET le flag est True
+        # 1. Base Query : Non supprimés ET appartenance au parcours calculee
+        # dynamiquement (existence reelle de dossiers, meme regle que
+        # compute_domain_flags/list_patients) - jamais la colonne stockee,
+        # depreciee depuis le chantier 6 (decision utilisateur 2026-09-28).
+        domain_condition = {
+            'is_clinical': or_(
+                exists().where(MedicalRecord.patient_id == Patient.patient_id),
+                exists().where(Hospitalization.patient_id == Patient.patient_id),
+            ),
+            'is_toxicology': exists().where(ToxicoDossier.patient_id == Patient.patient_id),
+            'is_spiritual': exists().where(ConsultationSpirituel.patient_id == Patient.patient_id),
+        }[flag_name]
         query = self.session.query(Patient).filter(
             Patient.is_deleted == False,
-            getattr(Patient, flag_name) == True 
+            domain_condition,
         )
 
         # 2. Recherche (si applicable)

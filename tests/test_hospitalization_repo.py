@@ -29,15 +29,23 @@ def test_admit_refuses_unknown_patient(db_session):
         repo.admit(999999999, medecin.user_id, None)
 
 
-def test_admit_refuses_non_clinical_patient(db_session):
+def test_admit_accepts_toxico_only_patient(db_session):
+    """Soins holistiques : un patient suivi uniquement en toxico peut etre
+    hospitalise (decision utilisateur 2026-09-28)."""
     medecin = create_test_user(db_session, "hosp_repo_medecin_nonclin", "medecin")
     patient_id, _ = create_test_patient(
         db_session, medecin, first_name="RepoNonClinical", is_clinical=False, is_toxicology=True
     )
+    # Vrai dossier toxico (la colonne is_toxicology n'est plus la source de
+    # verite - compute_domain_flags lit l'existence reelle des dossiers).
+    from datetime import date
+    from models.toxico import ToxicoDossier
+    db_session.add(ToxicoDossier(patient_id=patient_id, admission_date=date.today(), substance="Test"))
+    db_session.flush()
     repo = HospitalizationRepository(db_session)
 
-    with pytest.raises(ValueError, match="périmètre clinique"):
-        repo.admit(patient_id, medecin.user_id, None)
+    hosp = repo.admit(patient_id, medecin.user_id, None)
+    assert hosp.discharged_at is None
 
 
 def test_admit_refuses_second_open_stay_for_same_patient(db_session):
