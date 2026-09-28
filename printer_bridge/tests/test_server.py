@@ -69,6 +69,25 @@ def test_print_endpoint_returns_503_when_printer_unreachable(client):
         assert r.status_code == 503
 
 
+def test_cors_preflight_allows_frontend_origin(client):
+    r = client.options("/print", headers={
+        "Origin": "http://localhost:4173",
+        "Access-Control-Request-Method": "POST",
+        "Access-Control-Request-Headers": "content-type,x-print-token",
+    })
+    assert r.status_code == 200
+    assert r.headers["access-control-allow-origin"] == "http://localhost:4173"
+
+
+def test_get_active_printer_uses_network_when_configured():
+    network_config = {**FAKE_CONFIG, "connection_type": "network", "printer_host": "192.168.1.50", "printer_port": 9100}
+    with patch("server.load_config", return_value=network_config):
+        import server
+        with patch("server.Network") as mock_network:
+            server.get_active_printer()
+            mock_network.assert_called_once_with("192.168.1.50", port=9100, profile="TM-T88V")
+
+
 def test_print_endpoint_returns_500_when_render_fails(client):
     with patch("server.get_active_printer") as mock_get_printer, \
          patch("server.render_ticket", side_effect=Exception("render error")):

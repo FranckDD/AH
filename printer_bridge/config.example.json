@@ -3,6 +3,10 @@
   "printer_name": "POS Printer Emulator",
   "vendor_id": null,
   "product_id": null,
+  "printer_host": null,
+  "printer_port": 9100,
   "token": "CHANGE_ME_avec_le_jeton_genere_dans_Configuration_Systeme",
-  "port": 9123
+  "port": 9123,
+  "profile": "TM-T88V",
+  "allowed_origins": ["http://localhost:4173", "http://localhost:5173"]
 }

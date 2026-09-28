@@ -6,7 +6,47 @@ recherche de la reduction approuvee) vit deja cote backend
 (CaisseController.build_ticket_data) - cette fonction ne fait QUE mettre en
 page ce qui lui est fourni."""
 
+import base64
+import io
+
+from PIL import Image
+
 PAPER_WIDTH_CHARS = 42  # 80mm, police normale - marge de securite volontaire
+
+# Retour terrain (test manuel contre l'emulateur, 2026-09-28) : le logo
+# imprimait a sa resolution native, beaucoup trop grand sur un ticket 80mm.
+# python-escpos ne borne la largeur d'une image que si le profil imprimante
+# declare une largeur en pixels connue (voir server.py::get_active_printer) -
+# sans ca, escpos.escpos.Escpos.image() imprime tel quel, aucune erreur.
+# On redimensionne donc nous-memes, independamment du profil configure, pour
+# que la taille du logo soit fiable meme si le pont tourne avec un profil
+# generique.
+LOGO_SCALE = 0.35  # reduit le logo a 35% de sa taille source (~-65%)
+
+
+def _open_logo_source(source: str) -> Image.Image:
+    """Ouvre le logo depuis un chemin fichier serveur (chemin online,
+    get_ticket_header_context) OU une data URI base64 (chemin hors ligne/
+    local - voir configStore.js::ticketLogoDataUri, CaisseList.vue
+    ::buildLocalTicketData - le navigateur n'a jamais acces au systeme de
+    fichiers du serveur)."""
+    if source.startswith("data:"):
+        _, _, b64_data = source.partition(",")
+        return Image.open(io.BytesIO(base64.b64decode(b64_data)))
+    return Image.open(source)
+
+
+def _load_scaled_logo(path: str):
+    """Charge le logo et le redimensionne a LOGO_SCALE. Retourne un objet
+    PIL.Image (accepte directement par escpos.printer.*.image()), ou le
+    chemin/la donnee d'origine si le redimensionnement echoue - jamais
+    bloquant, le logo reste optionnel."""
+    try:
+        img = _open_logo_source(path)
+        new_size = (max(1, int(img.width * LOGO_SCALE)), max(1, int(img.height * LOGO_SCALE)))
+        return img.resize(new_size, Image.LANCZOS)
+    except Exception:
+        return path
 
 
 def _truncate(text: str, max_len: int = PAPER_WIDTH_CHARS) -> str:
@@ -38,17 +78,25 @@ def render_ticket(printer, ticket_data: dict) -> None:
     ticket_logo_path = header.get("ticket_logo_path")
     if ticket_logo_path:
         try:
-            printer.image(ticket_logo_path)
+            printer.image(_load_scaled_logo(ticket_logo_path), center=True)
         except Exception:
             pass  # logo illisible/corrompu -> le ticket continue sans, jamais bloquant
 
-    printer.set(align="center", bold=True, double_height=True)
+    # bold seul (pas double_height) : le nom de la structure imprimait
+    # beaucoup trop grand sur un ticket 80mm avec double_height=True (retour
+    # terrain 2026-09-28).
+    printer.set(align="center", bold=True, double_height=False)
     printer.text(f"{header.get('structure_name') or ''}\n")
     printer.set(align="center", bold=False, double_height=False)
+    if header.get("slogan"):
+        printer.text(f"{header['slogan']}\n")
     if header.get("address"):
         printer.text(f"{header['address']}\n")
-    if header.get("phone"):
-        printer.text(f"Tel: {header['phone']}\n")
+    phones = [p for p in (header.get("phone"), header.get("phone2")) if p]
+    if phones:
+        printer.text(f"Tel: {' / '.join(phones)}\n")
+    if header.get("website"):
+        printer.text(f"{header['website']}\n")
     if header.get("niu") or header.get("rccm"):
         printer.text(f"NIU: {header.get('niu') or ''}  RCCM: {header.get('rccm') or ''}\n")
 

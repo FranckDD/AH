@@ -369,10 +369,13 @@ const printTicketForTransaction = async (transactionId) => {
 //   jamais pu passer par le circuit d'approbation de reduction (appel
 //   reseau direct, jamais mis en file d'attente hors ligne - voir
 //   DiscountRequestGateway.create), donc aucun risque de faux-negatif.
-// - ticket_logo_path est omis : le backend le resout vers un chemin
-//   fichier local a LUI (voir get_ticket_header_context), impossible a
-//   reproduire cote client sans reseau. ticket_renderer.py traite deja
-//   un ticket_logo_path absent comme optionnel (en-tete texte seul).
+// - ticket_logo_path utilise le cache configStore.ticketLogoDataUri (data
+//   URI base64, rempli au dernier fetchStructureInfo/saveStructureInfo
+//   reussi - voir configStore.js::refreshTicketLogoCache) plutot que le
+//   chemin fichier serveur renvoye en ligne (get_ticket_header_context),
+//   jamais accessible depuis le navigateur. Absent (jamais synchronise en
+//   ligne au moins une fois) -> null, ticket_renderer.py traite deja ce cas
+//   comme optionnel (en-tete texte seul).
 const buildLocalTicketData = (localTransactionId, payload, patientDisplayName) => ({
   transaction_id: localTransactionId,
   patient_name: payload.patient_label || patientDisplayName || '—',
@@ -391,12 +394,15 @@ const buildLocalTicketData = (localTransactionId, payload, patientDisplayName) =
   discount: null,
   header: {
     structure_name: configStore.structureInfo.name,
+    slogan: configStore.structureInfo.slogan,
     address: configStore.structureInfo.address,
     phone: configStore.structureInfo.phone,
+    phone2: configStore.structureInfo.phone2,
+    website: configStore.structureInfo.website,
     niu: configStore.structureInfo.niu,
     rccm: configStore.structureInfo.rccm,
     legal_info: configStore.structureInfo.legal_info,
-    ticket_logo_path: null,
+    ticket_logo_path: configStore.ticketLogoDataUri || null,
   },
 });
 

@@ -1,10 +1,13 @@
 # printer_bridge/tests/test_ticket_renderer.py
+import base64
+import io
 import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
+from PIL import Image
 from escpos.printer import Dummy
-from ticket_renderer import render_ticket
+from ticket_renderer import render_ticket, _load_scaled_logo, LOGO_SCALE
 
 
 def _sample_ticket(**overrides):
@@ -23,8 +26,11 @@ def _sample_ticket(**overrides):
         "discount": None,
         "header": {
             "structure_name": "Clinique AH2",
+            "slogan": "Transforming lives through holistic care.",
             "address": "Douala",
             "phone": "699000000",
+            "phone2": "677000000",
+            "website": "ahandtohumanity-ngo.org",
             "niu": "M012345678",
             "rccm": "RC/DLA/2020/B/1234",
             "legal_info": None,
@@ -65,6 +71,60 @@ def test_render_ticket_omits_discount_block_when_none():
     render_ticket(printer, _sample_ticket(discount=None))
     output = printer.output.decode("latin-1", errors="ignore")
     assert "Réduction" not in output
+
+
+def test_render_ticket_includes_slogan_and_contacts():
+    """Retour terrain 2026-09-28 : slogan, second telephone et site web
+    manquaient completement du ticket alors que la config systeme les
+    porte deja (models/organization_config.py)."""
+    printer = Dummy()
+    render_ticket(printer, _sample_ticket())
+    output = printer.output.decode("latin-1", errors="ignore")
+    assert "Transforming lives through holistic care." in output
+    assert "699000000" in output and "677000000" in output
+    assert "ahandtohumanity-ngo.org" in output
+
+
+def test_load_scaled_logo_reduces_dimensions(tmp_path):
+    logo_path = tmp_path / "logo.png"
+    Image.new("RGB", (800, 400), color="white").save(logo_path)
+
+    scaled = _load_scaled_logo(str(logo_path))
+
+    assert isinstance(scaled, Image.Image)
+    assert scaled.width == int(800 * LOGO_SCALE)
+    assert scaled.height == int(400 * LOGO_SCALE)
+
+
+def test_load_scaled_logo_falls_back_to_path_on_bad_file():
+    result = _load_scaled_logo("/path/does/not/exist.png")
+    assert result == "/path/does/not/exist.png"
+
+
+def test_load_scaled_logo_decodes_data_uri():
+    """Chemin hors ligne/local (CaisseList.vue::buildLocalTicketData) : le
+    navigateur n'a jamais accès au système de fichiers serveur, il envoie le
+    logo en data URI base64 (configStore.js::ticketLogoDataUri)."""
+    buf = io.BytesIO()
+    Image.new("RGB", (400, 200), color="black").save(buf, format="PNG")
+    data_uri = "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode("ascii")
+
+    scaled = _load_scaled_logo(data_uri)
+
+    assert isinstance(scaled, Image.Image)
+    assert scaled.width == int(400 * LOGO_SCALE)
+    assert scaled.height == int(200 * LOGO_SCALE)
+
+
+def test_render_ticket_accepts_data_uri_logo_without_crashing():
+    buf = io.BytesIO()
+    Image.new("RGB", (200, 100), color="black").save(buf, format="PNG")
+    data_uri = "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode("ascii")
+
+    printer = Dummy()
+    ticket = _sample_ticket()
+    ticket["header"]["ticket_logo_path"] = data_uri
+    render_ticket(printer, ticket)  # ne doit pas lever
 
 
 def test_render_ticket_truncates_long_item_name_without_crashing():

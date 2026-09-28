@@ -311,8 +311,11 @@ def get_invoice_ticket_data(
         structure = header_ctx["structure"]
         ticket["header"] = {
             "structure_name": getattr(structure, "name", None),
+            "slogan": getattr(structure, "slogan", None),
             "address": getattr(structure, "address", None),
             "phone": getattr(structure, "phone", None),
+            "phone2": getattr(structure, "phone2", None),
+            "website": getattr(structure, "website", None),
             "niu": getattr(structure, "niu", None),
             "rccm": getattr(structure, "rccm", None),
             "legal_info": getattr(structure, "legal_info", None),

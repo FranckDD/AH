@@ -9,28 +9,63 @@ export const useConfigStore = defineStore('config', () => {
     const examens = ref([]);
     const prayerBookTypes = ref([]); 
 
-    // 🟢 NOUVEL ÉTAT : Infos de la structure COMPLÈTES
-    // Mise à jour pour correspondre aux champs du formulaire "Impression Professionnelle"
-    const structureInfo = ref({
+    // Valeurs de secours (organisation reelle, communiquees 2026-09-28) -
+    // utilisees UNIQUEMENT tant qu'aucune reponse de /config/structure n'a
+    // encore ete recue (demarrage hors ligne avant toute synchronisation) ni
+    // mise en cache localStorage d'un appel precedent (voir
+    // readCachedStructureInfo ci-dessous). La source de verite reste la
+    // configuration systeme geree par l'admin (SystemConfig.vue) - ces
+    // valeurs ne sont PAS codees en dur dans le flux normal, seulement en
+    // dernier recours pour que le ticket hors ligne ne soit jamais vide.
+    const FALLBACK_STRUCTURE_INFO = {
         id: null,
-        name: 'AH2 DASHBOARD', 
-        slogan: '',
-        logo_url: null,       
-        
+        name: 'A Hand to Humanity (A.H2)',
+        slogan: 'Transforming lives through holistic care.',
+        logo_url: null,
+
         // Coordonnées
         address: '',
-        city: '',       // Nouveau : Ville
-        po_box: '',     // Nouveau : Boite Postale
-        phone: '',
-        phone2: '',     // Nouveau : Téléphone secondaire
+        city: '',
+        po_box: '',
+        phone: '(+237) 678 951 970',
+        phone2: '694 682 198',
         email: '',
-        website: '',    // Nouveau : Site Web
-        
+        website: 'ahandtohumanity-ngo.org',
+
         // Infos Légales
-        niu: '',        // Nouveau : Numéro Identifiant Unique
-        rccm: '',       // Nouveau : Registre de Commerce
-        legal_info: ''  // On garde pour compatibilité ou infos supplémentaires
-    });
+        niu: '',
+        rccm: '',
+        legal_info: ''
+    };
+
+    const STRUCTURE_INFO_STORAGE_KEY = 'structureInfoCache';
+
+    // Meme motif que readCachedTicketPrintToken/writeCachedTicketPrintToken
+    // plus bas : permet a une session hors ligne de reutiliser la derniere
+    // configuration reellement recue du backend, plutot que de retomber sur
+    // le FALLBACK_STRUCTURE_INFO statique des qu'un admin a deja modifie la
+    // config au moins une fois en ligne.
+    function readCachedStructureInfo() {
+        try {
+            const raw = localStorage.getItem(STRUCTURE_INFO_STORAGE_KEY);
+            return raw ? { ...FALLBACK_STRUCTURE_INFO, ...JSON.parse(raw) } : { ...FALLBACK_STRUCTURE_INFO };
+        } catch (err) {
+            console.warn('Lecture localStorage des infos structure impossible:', err);
+            return { ...FALLBACK_STRUCTURE_INFO };
+        }
+    }
+
+    function writeCachedStructureInfo(info) {
+        try {
+            localStorage.setItem(STRUCTURE_INFO_STORAGE_KEY, JSON.stringify(info));
+        } catch (err) {
+            console.warn('Ecriture localStorage des infos structure impossible:', err);
+        }
+    }
+
+    // 🟢 État : Infos de la structure COMPLÈTES
+    // Mise à jour pour correspondre aux champs du formulaire "Impression Professionnelle"
+    const structureInfo = ref(readCachedStructureInfo());
 
     const isLoading = ref(false);
     const error = ref(null);
@@ -71,6 +106,66 @@ export const useConfigStore = defineStore('config', () => {
 
     const ticketPrintToken = ref(readCachedTicketPrintToken());
 
+    // Logo monochrome du ticket, mis en cache en base64 (data URI) - permet
+    // au ticket construit cote client (secretaire hors ligne, ou en ligne
+    // mais pas encore synchronise, voir CaisseList.vue::buildLocalTicketData)
+    // d'inclure quand meme le logo. Sans ca, ce chemin ne peut structurellement
+    // jamais l'avoir : ticket_logo_path resolu cote backend est un chemin
+    // fichier SERVEUR (voir get_ticket_header_context), jamais accessible
+    // depuis le navigateur. Meme motif de cache que structureInfo/
+    // ticketPrintToken ci-dessus.
+    const TICKET_LOGO_STORAGE_KEY = 'ticketLogoDataUriCache';
+
+    function readCachedTicketLogoDataUri() {
+        try {
+            return localStorage.getItem(TICKET_LOGO_STORAGE_KEY) || null;
+        } catch (err) {
+            console.warn('Lecture localStorage du logo ticket impossible:', err);
+            return null;
+        }
+    }
+
+    function writeCachedTicketLogoDataUri(dataUri) {
+        try {
+            if (dataUri) {
+                localStorage.setItem(TICKET_LOGO_STORAGE_KEY, dataUri);
+            } else {
+                localStorage.removeItem(TICKET_LOGO_STORAGE_KEY);
+            }
+        } catch (err) {
+            // Le plus probable : quota localStorage depasse (une image
+            // encodee en base64 pese ~33% de plus que le fichier) - jamais
+            // bloquant, le ticket local continuera simplement sans logo.
+            console.warn('Ecriture localStorage du logo ticket impossible:', err);
+        }
+    }
+
+    const ticketLogoDataUri = ref(readCachedTicketLogoDataUri());
+
+    // Telecharge l'image du logo depuis /static (public, sans auth - voir
+    // main.py) et la convertit en data URI. Best-effort total : un echec ne
+    // doit jamais empecher fetchStructureInfo() de faire son travail
+    // principal, le ticket local continue de fonctionner sans logo comme
+    // avant.
+    async function refreshTicketLogoCache(ticketLogoUrl) {
+        if (!ticketLogoUrl) {
+            return;
+        }
+        try {
+            const response = await api.get(ticketLogoUrl, { responseType: 'blob' });
+            const dataUri = await new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(response.data);
+            });
+            ticketLogoDataUri.value = dataUri;
+            writeCachedTicketLogoDataUri(dataUri);
+        } catch (err) {
+            console.warn('Impossible de mettre en cache le logo du ticket:', err);
+        }
+    }
+
     async function fetchTicketPrintToken() {
         try {
             const response = await api.get('/config/ticket-print-token');
@@ -97,6 +192,8 @@ export const useConfigStore = defineStore('config', () => {
             structureError.value = null;
             if (response.data) {
                 structureInfo.value = { ...structureInfo.value, ...response.data };
+                writeCachedStructureInfo(structureInfo.value);
+                refreshTicketLogoCache(structureInfo.value.ticket_logo_url);
             }
         } catch (err) {
             structureError.value = "Impossible de charger les informations de l'établissement.";
@@ -115,7 +212,9 @@ export const useConfigStore = defineStore('config', () => {
             });
             
             // Mise à jour immédiate avec la réponse du serveur
-            structureInfo.value = response.data; 
+            structureInfo.value = response.data;
+            writeCachedStructureInfo(structureInfo.value);
+            refreshTicketLogoCache(structureInfo.value.ticket_logo_url);
         } catch (err) {
             console.error("Erreur saveStructureInfo:", err);
             throw err;
@@ -212,6 +311,7 @@ export const useConfigStore = defineStore('config', () => {
         error,
         structureError,
         ticketPrintToken,
+        ticketLogoDataUri,
 
         // Actions
         fetchExamens,
