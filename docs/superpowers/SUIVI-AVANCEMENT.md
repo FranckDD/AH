@@ -1,6 +1,6 @@
 # Suivi d'avancement — AH2 / Glostone-Kare
 
-**Dernière mise à jour :** 2026-09-29 (suivi des hospitalisations + calendrier de rotation des infirmiers livrés et poussés sur `AH2_V3-1`)
+**Dernière mise à jour :** 2026-09-29 (tableau de bord médecin/infirmier — vrai backend dédié — livré et poussé sur `AH2_V3-1`)
 **But de ce document :** état d'avancement des chantiers de remise en service et de sécurisation, et registre des découvertes faites en cours de route mais non encore traitées. Pour le contexte général du projet, voir `docs/superpowers/CONTEXTE-PROJET.md`. Pour le détail d'un chantier, voir les fichiers correspondants dans `docs/superpowers/specs/` et `docs/superpowers/plans/`.
 
 ## Feuille de route
@@ -1040,3 +1040,18 @@ Spec : `2026-09-29-planning-rotation-infirmiers-design.md` · Plan : `2026-09-29
 Vérifié : 13/13 tests du correctif final + suite complète du backend stable (357 passed, mêmes 9 échecs pré-existants inchangés + 1 flaky déjà documenté — aucune régression). Build frontend production : succès. Poussé sur `origin/AH2_V3-1`.
 
 Build frontend vert pour les deux. Tous les items "petites tâches" du backlog post-notifications sont maintenant clos.
+
+### Tableau de bord médecin/infirmier — vrai backend dédié (2026-09-29) — ✅ clos
+
+Spec : `2026-09-29-tableau-de-bord-medecin-design.md` · Plan : `2026-09-29-tableau-de-bord-medecin.md`. Exécuté en développement piloté par sous-agents (6 tâches + 1 revue finale + 1 correctif consolidé).
+
+Remplace `DoctorKpiView.vue`'s 5 appels réseau parallèles (chantier 3, Étape 5, livré comme MVP volontaire — décision utilisateur de l'époque : revenir construire un vrai backend une fois tous les chantiers terminés) par un seul endpoint d'agrégation `GET /doctor-dashboard/kpi`, **premier motif d'agrégation/BFF côté serveur de tout le projet** : un nouveau `DoctorDashboardController` compose 4 contrôleurs déjà existants (RDV, dossiers médicaux, prescriptions, hospitalisations) sans réimplémenter la moindre logique métier, avec dégradation par carte (une source en échec ne renvoie qu'une valeur neutre + log, jamais une 500 globale) et un cache Redis unique sur le résultat composé (5 min, dégradation silencieuse).
+
+Ferme au passage le gap du registre I1 : `PrescriptionController.count_prescriptions` n'acceptait qu'un `period` fixe (jour/semaine), contrairement aux 3 autres sources KPI déjà filtrables par plage de dates arbitraire — étendu sans toucher au comportement établissement existant utilisé par le desktop.
+
+**3 défauts réels trouvés et corrigés, invisibles aux revues par tâche** :
+1. (Task 4) Le plan supposait que `create_test_patient()` renvoie un objet `.patient_id` — il renvoie en réalité un tuple `(patient_id, code_patient)`. Trouvé et corrigé partout où le défaut récurrait.
+2. (Task 4, le plus important) Le helper de test HTTP ne surchargeait la session DB que pour 2 des 5 modules de routes réellement impliqués — `doctor_dashboard_endpoint` compose 4 autres contrôleurs, chacun avec sa **propre connexion Postgres réelle** (motif `get_db()` par module déjà connu, registre ARC-05). Sans surcharger les 4, chaque test aurait silencieusement lu 0 pour tous les KPI quelle que soit la donnée créée — la suite entière aurait été verte pour la mauvaise raison. Corrigé et re-vérifié indépendamment de bout en bout.
+3. (Revue finale) `DoctorDashboardController` mettait en cache Redis un résultat dégradé (0/{} d'une source en échec transitoire) pendant les 5 minutes complètes — un médecin rafraîchissant la page pendant cette fenêtre continuait à voir un faux zéro, à l'encontre de l'intention même de la dégradation par carte. Corrigé (suivi de dégradation par attribut d'instance, écriture cache sautée si dégradation). Corrigé au passage : `breakdown_by_motif_for_doctor` (répartition par motif) et `count_records_for_doctor` (total) utilisaient des bornes de date incohérentes (`func.date()` sur l'un, timestamp brut sur l'autre) — défaut pré-existant, invisible jusqu'à ce que ce nouveau tableau de bord affiche les deux chiffres côte à côte.
+
+Vérifié : 373 passing sur la suite complète après le correctif final (mêmes 9 échecs pré-existants documentés, aucune régression). Build frontend production : succès. Poussé sur `origin/AH2_V3-1`.
