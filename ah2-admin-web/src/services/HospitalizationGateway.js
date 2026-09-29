@@ -34,4 +34,11 @@ export const HospitalizationGateway = {
     async fetchKpiCount() {
         return api.get('/hospitalizations/kpi/count_current');
     },
+
+    // responseType 'blob' : voir CaisseGateway/CaisseList.vue::downloadInvoice
+    // pour le motif exact (meme decodage d'erreur cote appelant, err.response
+    // .data arrive en Blob, jamais un objet JSON directement exploitable).
+    async downloadDischargeLetter(hospitalizationId) {
+        return api.get(`/hospitalizations/${hospitalizationId}/discharge-letter`, { responseType: 'blob' });
+    },
 };

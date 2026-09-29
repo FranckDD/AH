@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Lettre de sortie — {{ stay.patient_name }}</title>
+    <style>
+        @page { size: A4; margin: 2cm; @bottom-right { content: "Page " counter(page) " sur " counter(pages); font-size: 9pt; color: #666; } }
+        body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333; font-size: 11pt; line-height: 1.5; }
+        /* .header/.hospital-info/.logo/.logo-container : voir _pdf_header.html */
+        .doc-title { text-align: center; font-size: 16pt; font-weight: bold; margin-bottom: 20px; text-transform: uppercase; color: #2c3e50; }
+        .meta-row { display: flex; justify-content: space-between; background-color: #f8f9fa; border: 1px solid #e9ecef; padding: 15px; border-radius: 5px; margin-bottom: 20px; }
+        .section-title { font-size: 12pt; font-weight: bold; color: #2c3e50; margin: 20px 0 8px; border-bottom: 1px solid #ddd; padding-bottom: 4px; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
+        th { background-color: #2c3e50; color: white; text-align: left; padding: 8px; font-size: 10pt; }
+        td { padding: 8px; border-bottom: 1px solid #ddd; font-size: 10pt; vertical-align: top; }
+        .status-AMELIORATION { color: #1e7e34; font-weight: bold; }
+        .status-STABLE { color: #555; font-weight: bold; }
+        .status-AGGRAVATION { color: #d9534f; font-weight: bold; }
+        .disposition-box { margin-top: 10px; padding: 12px; border: 1px solid #e9ecef; border-radius: 5px; background-color: #f8f9fa; }
+    </style>
+</head>
+<body>
+
+    {% include '_pdf_header.html' %}
+
+    <div class="doc-title">Lettre de sortie</div>
+
+    <div class="meta-row">
+        <div>
+            <p><strong>Patient :</strong> {{ stay.patient_name }}</p>
+            <p><strong>Admis le :</strong> {{ stay.admitted_at }}</p>
+            <p><strong>Admis par :</strong> {{ stay.admitted_by_name }}</p>
+        </div>
+        <div>
+            <p><strong>Sorti le :</strong> {{ stay.discharged_at }}</p>
+            <p><strong>Durée du séjour :</strong> {{ stay.duration_days }} jour(s)</p>
+            <p><strong>Document édité le :</strong> {{ date_impression }}</p>
+        </div>
+    </div>
+
+    {% if stay.admission_reason %}
+    <div class="section-title">Motif d'admission</div>
+    <p>{{ stay.admission_reason }}</p>
+    {% endif %}
+
+    <div class="section-title">Évolution durant le séjour</div>
+    {% if stay.status_updates %}
+    <table>
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>État</th>
+                <th>Enregistré par</th>
+                <th>Note</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for u in stay.status_updates %}
+            <tr>
+                <td>{{ u.created_at }}</td>
+                <td class="status-{{ u.status }}">{{ u.status_label }}</td>
+                <td>{{ u.created_by_name }}</td>
+                <td>{{ u.note or '' }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p><em>Aucune évolution clinique enregistrée durant ce séjour.</em></p>
+    {% endif %}
+
+    <div class="section-title">Sortie</div>
+    <div class="disposition-box">
+        <p><strong>Type de sortie :</strong> {{ stay.disposition_label }}</p>
+        <p><strong>Prononcée par :</strong> {{ stay.discharged_by_name }}</p>
+        {% if stay.discharge_note %}
+        <p><strong>Note de sortie :</strong> {{ stay.discharge_note }}</p>
+        {% endif %}
+    </div>
+
+</body>
+</html>

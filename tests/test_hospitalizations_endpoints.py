@@ -283,3 +283,86 @@ def test_status_updates_include_author_name_not_just_id(db_session, api_client):
     assert stay["admitted_by_name"] == medecin.full_name
     assert len(stay["status_updates"]) == 1
     assert stay["status_updates"][0]["created_by_name"] == medecin.full_name
+
+
+def test_discharge_letter_available_after_discharge(db_session, api_client):
+    medecin = create_test_user(db_session, "hosp_ep_medecin_letter", "medecin", password=TEST_PASSWORD)
+    patient_id, _ = create_test_patient(db_session, medecin, first_name="EpLetter", is_clinical=True)
+    client = _client(api_client)
+    headers = auth_headers(client, "hosp_ep_medecin_letter", TEST_PASSWORD)
+
+    hosp_id = client.post("/hospitalizations/", json={"patient_id": patient_id, "admission_reason": "Fièvre"}, headers=headers).json()["id"]
+    client.post(f"/hospitalizations/{hosp_id}/status", json={"status": "AMELIORATION", "note": "Va mieux"}, headers=headers)
+    client.post(f"/hospitalizations/{hosp_id}/discharge", json={"discharge_disposition": "GUERI"}, headers=headers)
+
+    resp = client.get(f"/hospitalizations/{hosp_id}/discharge-letter", headers=headers)
+
+    assert resp.status_code == 200
+    assert resp.headers["content-type"] == "application/pdf"
+    assert resp.content.startswith(b"%PDF")
+
+
+def test_discharge_letter_refused_while_stay_open(db_session, api_client):
+    medecin = create_test_user(db_session, "hosp_ep_medecin_letter2", "medecin", password=TEST_PASSWORD)
+    patient_id, _ = create_test_patient(db_session, medecin, first_name="EpLetterOpen", is_clinical=True)
+    client = _client(api_client)
+    headers = auth_headers(client, "hosp_ep_medecin_letter2", TEST_PASSWORD)
+
+    hosp_id = client.post("/hospitalizations/", json={"patient_id": patient_id}, headers=headers).json()["id"]
+
+    resp = client.get(f"/hospitalizations/{hosp_id}/discharge-letter", headers=headers)
+    assert resp.status_code == 400
+
+
+def test_discharge_letter_unknown_id_returns_404(db_session, api_client):
+    medecin = create_test_user(db_session, "hosp_ep_medecin_letter3", "medecin", password=TEST_PASSWORD)
+    client = _client(api_client)
+    headers = auth_headers(client, "hosp_ep_medecin_letter3", TEST_PASSWORD)
+
+    resp = client.get("/hospitalizations/999999999/discharge-letter", headers=headers)
+    assert resp.status_code == 404
+
+
+def test_aggravation_notifies_other_staff_but_not_self(db_session, api_client):
+    """Retour terrain 2026-09-28 (decision utilisateur) : une aggravation
+    doit alerter le reste de l'equipe medecin/nurse, jamais celui qui vient
+    de la signaler lui-meme."""
+    from models.notification import Notification
+
+    medecin1 = create_test_user(db_session, "hosp_ep_medecin_aggr1", "medecin", password=TEST_PASSWORD)
+    medecin2 = create_test_user(db_session, "hosp_ep_medecin_aggr2", "medecin", password=TEST_PASSWORD)
+    nurse1 = create_test_user(db_session, "hosp_ep_nurse_aggr1", "nurse", password=TEST_PASSWORD)
+    patient_id, _ = create_test_patient(db_session, medecin1, first_name="EpAggravation", is_clinical=True)
+    client = _client(api_client)
+    headers = auth_headers(client, "hosp_ep_medecin_aggr1", TEST_PASSWORD)
+
+    hosp_id = client.post("/hospitalizations/", json={"patient_id": patient_id}, headers=headers).json()["id"]
+    resp = client.post(f"/hospitalizations/{hosp_id}/status", json={"status": "AGGRAVATION", "note": "Tension en baisse"}, headers=headers)
+    assert resp.status_code == 201
+
+    notifs = (
+        db_session.query(Notification)
+        .filter(Notification.type == "hospitalization_aggravation")
+        .all()
+    )
+    recipients = {n.recipient_user_id for n in notifs}
+    assert medecin2.user_id in recipients
+    assert nurse1.user_id in recipients
+    assert medecin1.user_id not in recipients
+    assert all(n.payload["patient_name"] == "EpAggravation Patient" for n in notifs)
+
+
+def test_amelioration_does_not_notify_team(db_session, api_client):
+    from models.notification import Notification
+
+    medecin1 = create_test_user(db_session, "hosp_ep_medecin_ok1", "medecin", password=TEST_PASSWORD)
+    create_test_user(db_session, "hosp_ep_medecin_ok2", "medecin", password=TEST_PASSWORD)
+    patient_id, _ = create_test_patient(db_session, medecin1, first_name="EpNoNotif", is_clinical=True)
+    client = _client(api_client)
+    headers = auth_headers(client, "hosp_ep_medecin_ok1", TEST_PASSWORD)
+
+    hosp_id = client.post("/hospitalizations/", json={"patient_id": patient_id}, headers=headers).json()["id"]
+    client.post(f"/hospitalizations/{hosp_id}/status", json={"status": "AMELIORATION"}, headers=headers)
+
+    count = db_session.query(Notification).filter(Notification.type == "hospitalization_aggravation").count()
+    assert count == 0

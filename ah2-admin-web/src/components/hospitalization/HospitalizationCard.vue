@@ -100,9 +100,19 @@
       <h4 class="text-xs font-bold text-gray-500 uppercase mb-2">{{ t('hospitalization.history_title') }}</h4>
       <div class="space-y-3">
         <div v-for="stay in hospitalizationStore.patientHistory" :key="stay.id" class="text-xs">
-          <div class="flex justify-between text-gray-600">
+          <div class="flex justify-between items-center text-gray-600">
             <span>{{ formatDate(stay.admitted_at) }} → {{ stay.discharged_at ? formatDate(stay.discharged_at) : '…' }}</span>
-            <span v-if="stay.discharge_disposition" class="font-medium">{{ t(`hospitalization.disposition.${stay.discharge_disposition}`) }}</span>
+            <div class="flex items-center gap-2">
+              <span v-if="stay.discharge_disposition" class="font-medium">{{ t(`hospitalization.disposition.${stay.discharge_disposition}`) }}</span>
+              <button
+                v-if="stay.discharge_disposition"
+                @click="downloadLetter(stay.id)"
+                :disabled="downloadingLetterId === stay.id"
+                class="px-2 py-0.5 text-xs font-medium rounded bg-gray-100 text-gray-700 hover:bg-gray-200 transition disabled:opacity-40"
+              >
+                {{ t('hospitalization.download_letter') }}
+              </button>
+            </div>
           </div>
           <div v-if="stay.discharge_disposition" class="text-gray-400">
             {{ t('hospitalization.discharged_by') }} {{ stay.discharged_by_name || t('hospitalization.unknown_user') }}
@@ -125,6 +135,7 @@ import { ref, computed, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import dayjs from 'dayjs';
 import { useHospitalizationStore, DISCHARGE_DISPOSITIONS, CLINICAL_STATUSES } from '@/stores/hospitalizationStore';
+import { HospitalizationGateway } from '@/services/HospitalizationGateway';
 
 const { t } = useI18n();
 const hospitalizationStore = useHospitalizationStore();
@@ -193,6 +204,42 @@ async function submitStatusUpdate() {
     error.value = "Erreur lors de la mise à jour du statut.";
   } finally {
     isSubmitting.value = false;
+  }
+}
+
+const downloadingLetterId = ref(null);
+
+async function downloadLetter(hospitalizationId) {
+  error.value = null;
+  downloadingLetterId.value = hospitalizationId;
+  try {
+    const resp = await HospitalizationGateway.downloadDischargeLetter(hospitalizationId);
+    const url = window.URL.createObjectURL(new Blob([resp.data], { type: 'application/pdf' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `lettre_sortie_${hospitalizationId}.pdf`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+  } catch (err) {
+    // Meme motif que CaisseList.vue::downloadInvoice : responseType 'blob'
+    // recoit une erreur JSON du backend comme un Blob binaire, jamais un
+    // objet exploitable directement - decodage explicite necessaire.
+    let detail = null;
+    if (err.response?.data instanceof Blob) {
+      try {
+        const text = await err.response.data.text();
+        detail = JSON.parse(text)?.detail;
+      } catch {
+        detail = null;
+      }
+    } else {
+      detail = err.response?.data?.detail;
+    }
+    error.value = detail || "Impossible de télécharger la lettre de sortie.";
+  } finally {
+    downloadingLetterId.value = null;
   }
 }
 

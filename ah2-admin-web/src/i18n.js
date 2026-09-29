@@ -209,6 +209,7 @@ const messages = {
       discharged_by: "Sortie prononcée par",
       recorded_by: "par",
       unknown_user: "Utilisateur inconnu",
+      download_letter: "Télécharger la lettre de sortie",
       status: {
         AMELIORATION: "Amélioration",
         STABLE: "Stable",
@@ -1201,6 +1202,7 @@ const messages = {
       discharged_by: "Discharge recorded by",
       recorded_by: "by",
       unknown_user: "Unknown user",
+      download_letter: "Download discharge letter",
       status: {
         AMELIORATION: "Improving",
         STABLE: "Stable",

@@ -99,6 +99,9 @@ const labelFor = (n) => {
     if (deadline) parts.push(`échéance ${new Date(deadline).toLocaleDateString('fr-FR')}`);
     return parts.length ? `Demande de réduction approuvée — ${parts.join(', ')}` : 'Demande de réduction approuvée';
   }
+  if (n.type === 'hospitalization_aggravation') {
+    return `⚠ Aggravation signalée — ${n.payload?.patient_name || 'patient'} (par ${n.payload?.reported_by_name || '?'})`;
+  }
   return n.type;
 };
 
@@ -109,6 +112,9 @@ const handleClick = async (n) => {
   open.value = false;
   if (n.type === 'discount_request') {
     router.push({ name: 'discount-review' });
+  }
+  if (n.type === 'hospitalization_aggravation' && n.payload?.patient_id) {
+    router.push(`/medical/patients/${n.payload.patient_id}`);
   }
 };
 

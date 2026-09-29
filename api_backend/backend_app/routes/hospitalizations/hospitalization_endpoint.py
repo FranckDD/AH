@@ -1,6 +1,6 @@
 import logging
 from typing import Optional
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Response
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 
@@ -16,6 +16,8 @@ from ...database import SessionLocal
 from controller.hospitalization_controller import HospitalizationController
 from repositories.hospitalization_repo import HospitalizationRepository
 from repositories.audit_repo import AuditRepository
+from repositories.notification_repo import NotificationRepository
+from repositories.user_repo import UserRepository
 from models.hospitalization import CLINICAL_STATUSES, DISCHARGE_DISPOSITIONS
 from api_backend.backend_app.routes.auth.auth_endpoints import get_current_user, role_required
 
@@ -41,7 +43,15 @@ def get_hospitalization_controller(
 ) -> HospitalizationController:
     repo = HospitalizationRepository(db)
     audit_repo = AuditRepository(db)
-    return HospitalizationController(repo=repo, current_user=current_user, audit_repo=audit_repo)
+    notification_repo = NotificationRepository(db)
+    user_repo = UserRepository(db)
+    return HospitalizationController(
+        repo=repo,
+        current_user=current_user,
+        audit_repo=audit_repo,
+        notification_repo=notification_repo,
+        user_repo=user_repo,
+    )
 
 
 def _user_name(user) -> Optional[str]:
@@ -161,6 +171,30 @@ def list_current(ctrl: HospitalizationController = Depends(get_hospitalization_c
 )
 def get_history_for_patient(patient_id: int, ctrl: HospitalizationController = Depends(get_hospitalization_controller)):
     return [_to_out(h) for h in ctrl.get_history_for_patient(patient_id)]
+
+
+@router.get(
+    "/{hospitalization_id}/discharge-letter",
+    dependencies=[Depends(role_required("medecin", "nurse"))],
+)
+def download_discharge_letter(
+    hospitalization_id: int,
+    ctrl: HospitalizationController = Depends(get_hospitalization_controller),
+):
+    try:
+        pdf_bytes = ctrl.generate_discharge_letter_pdf(hospitalization_id)
+        return Response(
+            content=pdf_bytes,
+            media_type="application/pdf",
+            headers={"Content-Disposition": f"attachment; filename=lettre_sortie_{hospitalization_id}.pdf"},
+        )
+    except ValueError as ve:
+        if "Aucune hospitalisation trouvée" in str(ve):
+            raise HTTPException(status_code=404, detail=str(ve))
+        raise HTTPException(status_code=400, detail=str(ve))
+    except Exception:
+        logger.exception("Erreur lors de la génération de la lettre de sortie")
+        raise HTTPException(status_code=500, detail="Erreur interne lors de la génération du PDF")
 
 
 @router.get(
