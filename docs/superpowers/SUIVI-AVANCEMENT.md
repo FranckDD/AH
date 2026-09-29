@@ -1,6 +1,6 @@
 # Suivi d'avancement — AH2 / Glostone-Kare
 
-**Dernière mise à jour :** 2026-09-14/15 (chantier 4 — pilote PowerSync + PWA Rendez-vous implémenté, vérification navigateur finale en attente de l'utilisateur)
+**Dernière mise à jour :** 2026-09-29 (suivi des hospitalisations + calendrier de rotation des infirmiers livrés et poussés sur `AH2_V3-1`)
 **But de ce document :** état d'avancement des chantiers de remise en service et de sécurisation, et registre des découvertes faites en cours de route mais non encore traitées. Pour le contexte général du projet, voir `docs/superpowers/CONTEXTE-PROJET.md`. Pour le détail d'un chantier, voir les fichiers correspondants dans `docs/superpowers/specs/` et `docs/superpowers/plans/`.
 
 ## Feuille de route
@@ -1010,5 +1010,33 @@ Item indépendant du backlog post-notifications, entièrement spécifié par l'u
 
 - **KPI "Patients Actifs" (admin) mal étiqueté, trouvé en vérifiant le KPI d'admissions demandé** : le calcul du nombre d'admissions toxico du mois est correct (base réelle vérifiée, cache Redis bien invalidé à chaque admission), mais la carte du tableau de bord admin était titrée « Patients Actifs » alors qu'elle affichait ce chiffre toxico-seul — aucun vrai calcul clinique de patients actifs n'existe dans le projet. Corrigé le libellé (« Admissions Toxico (Mois) », FR+EN) et le nom du champ en code (`activePatients` → `toxicoAdmissionsThisMonth`). Le vrai KPI clinique reste à concevoir, lié au chantier hospitalisations.
 - **Calendrier visuel des RDV, médecin/infirmier** — dernier item du groupe "petites tâches" du backlog. Vue mensuelle ajoutée à côté de la liste existante (`/medical/appointments`, bascule liste/calendrier), panneau latéral au clic sur un jour avec RDV, création pré-remplie au clic sur un jour vide. Aucun changement backend, réutilise toutes les actions existantes. `dayjs` (déjà une dépendance) synchronisé avec la langue de l'interface (sinon le nom du mois restait toujours en anglais).
+
+### Suivi des hospitalisations (2026-09-28/29) — ✅ clos
+
+Spec : `2026-09-28-suivi-hospitalisations-design.md` · Plan : `2026-09-28-suivi-hospitalisations.md`. Nouveau module complet (`Hospitalization`/`HospitalizationStatusUpdate`, `hospitalization_repo`/`_controller`, `POST /hospitalizations` + statut + sortie + historique + KPI), exécuté en développement piloté par sous-agents (10 tâches).
+
+**Découverte structurante, faite en corrigeant un bug de production signalé juste après la livraison** : le centre offre des soins holistiques — un patient peut être simultanément sur 1, 2 ou les 3 parcours (clinique/toxicologie/spirituel). La revue finale avait ajouté une restriction "admission refusée si le patient n'est pas déjà clinique", qui lisait en plus la colonne stockée `patients.is_clinical` — **périmée en base** (59/103 patients avaient `is_clinical=False` malgré de vrais dossiers médicaux, écart déjà connu depuis le chantier 6 mais pas entièrement purgé). Corrigé en deux temps sur demande explicite de l'utilisateur : (1) suppression totale de la restriction par parcours (aucune n'a de sens si l'admission peut elle-même être ce qui établit l'appartenance à un parcours) ; (2) remplacement de toute lecture restante des colonnes stockées `is_clinical`/`is_toxicology`/`is_spiritual` par le calcul dynamique `PatientRepository.compute_domain_flags()` (déjà existant depuis le chantier 6, mais 3 sites l'avaient contourné, dont un — `_list_by_flag()` — invisible aux revues précédentes). Test de non-régression ajouté sur le cas exact signalé (`test_admit_patient_with_stale_is_clinical_column_but_real_medical_record`).
+
+**Extensions ajoutées après validation utilisateur** (2 propositions du modèle + 1 correctif UX demandé) :
+- Historique complet des états cliniques d'un séjour (auparavant seul le dernier état était visible côté frontend, alors que le backend stockait déjà tout).
+- Lettre de sortie PDF (réutilise l'infrastructure PDF existante, même motif d'en-tête dynamique que les exports du chantier précédent).
+- Alerte d'équipe à la déclaration d'une aggravation (système de notification générique déjà existant, diffusion à `medecin`+`nurse` sauf l'auteur).
+
+Vérifié : suite complète du backend stable (317→324 passed au fil des correctifs de ce chantier), aucune régression. Poussé sur `origin/AH2_V3-1`.
+
+### Calendrier de rotation des infirmiers + indicateur "chef infirmier/infirmière" (2026-09-29) — ✅ clos
+
+Spec : `2026-09-29-planning-rotation-infirmiers-design.md` · Plan : `2026-09-29-planning-rotation-infirmiers.md`. Exécuté en développement piloté par sous-agents (10 tâches + 1 revue finale + 1 correctif consolidé).
+
+**Décision de conception centrale** : ce projet attribue un seul rôle par utilisateur (`users.role_id`). Un vrai rôle `chef_infirmier` distinct de `nurse` aurait fait perdre à la personne tous ses droits infirmier habituels partout dans l'application, sauf à retrouver et modifier chaque garde de rôle existante déjà écrite pour `nurse` — risque réel d'oubli. Choisi à la place : `users.is_head_nurse` (booléen simple sur le compte `nurse` existant). Le médecin garde un accès inconditionnel au planning. Créneaux fixes (MATIN/APRES_MIDI/NUIT), plusieurs infirmiers possibles par créneau, aucun effet sur les gardes de rôle existantes ailleurs (confirmé par la revue finale : aucune garde existante touchée hors du nouveau module et du champ additif).
+
+**3 défauts réels trouvés et corrigés par la revue finale de branche** (invisibles à toute revue par tâche, comme systématiquement sur ce projet) :
+1. Un infirmier créé avec la case "chef infirmier/infirmière" cochée devenait silencieusement un infirmier normal — `UserController.create_user()` avait une liste explicite de champs transmis au repository qui omettait `is_head_nurse` (seul `PUT` avait été couvert, pas `POST`).
+2. Le calendrier ne récupérait que les créneaux du mois affiché, alors que la grille visuelle inclut aussi des jours du mois précédent/suivant pour compléter les semaines — ces jours affichaient toujours "vide" et une affectation dessus semblait échouer silencieusement (créée côté serveur, jamais revue côté client).
+3. Les échecs d'ajout/retrait de créneau (doublon, droit retiré en cours de session) ne produisaient aucun retour visible — erreur avalée silencieusement côté frontend.
+
+**Découverte annexe, trouvée en résolvant une question ouverte du plan** : `/auth/me` construisait sa réponse "à la main" plutôt que via le schéma déjà étendu au chantier — `authStore.user.is_head_nurse` aurait toujours été faux côté frontend, peu importe le statut réel. Un seul champ ajouté à la réponse existante a suffi.
+
+Vérifié : 13/13 tests du correctif final + suite complète du backend stable (357 passed, mêmes 9 échecs pré-existants inchangés + 1 flaky déjà documenté — aucune régression). Build frontend production : succès. Poussé sur `origin/AH2_V3-1`.
 
 Build frontend vert pour les deux. Tous les items "petites tâches" du backlog post-notifications sont maintenant clos.
