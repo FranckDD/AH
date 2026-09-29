@@ -31,7 +31,8 @@ class UserController:
                 postgres_role = data.get('postgres_role'),
                 is_active     = data.get('is_active', True),
                 role_id       = data.get('role_id'),
-                specialty_id  = data.get('specialty_id')
+                specialty_id  = data.get('specialty_id'),
+                is_head_nurse = data.get('is_head_nurse') or False
             )
         except SQLAlchemyError as e:
             raise RuntimeError(f"Erreur création utilisateur : {e}")

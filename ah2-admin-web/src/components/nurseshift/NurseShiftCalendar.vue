@@ -81,10 +81,21 @@ const weekdayLabels = computed(() =>
     : ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim']
 );
 
+const gridRange = computed(() => {
+  const monthStart = currentMonth.value;
+  const monthEnd = monthStart.endOf('month');
+  const startOffset = (monthStart.day() + 6) % 7;
+  const endOffset = (6 - ((monthEnd.day() + 6) % 7));
+  return {
+    gridStart: monthStart.subtract(startOffset, 'day'),
+    gridEnd: monthEnd.add(endOffset, 'day'),
+  };
+});
+
 function emitMonthRange() {
   emit('month-change', {
-    start: currentMonth.value.startOf('month').format('YYYY-MM-DD'),
-    end: currentMonth.value.endOf('month').format('YYYY-MM-DD'),
+    start: gridRange.value.gridStart.format('YYYY-MM-DD'),
+    end: gridRange.value.gridEnd.format('YYYY-MM-DD'),
   });
 }
 
@@ -112,11 +123,7 @@ const shiftsByDate = computed(() => {
 
 const daysGrid = computed(() => {
   const monthStart = currentMonth.value;
-  const monthEnd = monthStart.endOf('month');
-  const startOffset = (monthStart.day() + 6) % 7;
-  const endOffset = (6 - ((monthEnd.day() + 6) % 7));
-  const gridStart = monthStart.subtract(startOffset, 'day');
-  const gridEnd = monthEnd.add(endOffset, 'day');
+  const { gridStart, gridEnd } = gridRange.value;
 
   const today = dayjs().format('YYYY-MM-DD');
   const days = [];

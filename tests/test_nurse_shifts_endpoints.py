@@ -150,14 +150,15 @@ def test_secretaire_forbidden_on_read_and_write(db_session, api_client):
 def test_list_nurses_returns_only_active_nurses(db_session, api_client):
     medecin = create_test_user(db_session, "nsh_ep_medecin8", "medecin", password=TEST_PASSWORD)
     active_nurse = create_test_user(db_session, "nsh_ep_activenurse", "nurse", password=TEST_PASSWORD)
-    create_test_user(db_session, "nsh_ep_inactivenurse", "nurse", password=TEST_PASSWORD, is_active=False)
+    inactive_nurse = create_test_user(db_session, "nsh_ep_inactivenurse", "nurse", password=TEST_PASSWORD, is_active=False)
     client = _client(api_client)
     headers = auth_headers(client, "nsh_ep_medecin8", TEST_PASSWORD)
 
     resp = client.get("/nurse-shifts/nurses", headers=headers)
     assert resp.status_code == 200
-    usernames = {n["user_id"] for n in resp.json()}
-    assert active_nurse.user_id in usernames
+    user_ids = {n["user_id"] for n in resp.json()}
+    assert active_nurse.user_id in user_ids
+    assert inactive_nurse.user_id not in user_ids
 
 
 def test_assign_and_remove_write_audit_entries(db_session, api_client):

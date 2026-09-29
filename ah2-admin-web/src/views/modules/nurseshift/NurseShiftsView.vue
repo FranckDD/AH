@@ -11,16 +11,18 @@
       <div class="lg:col-span-2">
         <NurseShiftCalendar :shifts="nurseShiftStore.shifts" @day-click="handleDayClick" @month-change="handleMonthChange" />
       </div>
-      <NurseShiftDayPanel
-        v-if="selectedDate"
-        :date="selectedDate"
-        :shifts="selectedDateShifts"
-        :available-nurses="nurseShiftStore.activeNurses"
-        :can-manage="canManage"
-        @close="selectedDate = null"
-        @add="handleAdd"
-        @remove="handleRemove"
-      />
+      <div v-if="selectedDate" class="space-y-2">
+        <p v-if="actionError" class="text-sm text-red-600">{{ actionError }}</p>
+        <NurseShiftDayPanel
+          :date="selectedDate"
+          :shifts="selectedDateShifts"
+          :available-nurses="nurseShiftStore.activeNurses"
+          :can-manage="canManage"
+          @close="selectedDate = null"
+          @add="handleAdd"
+          @remove="handleRemove"
+        />
+      </div>
     </div>
 
   </div>
@@ -40,6 +42,7 @@ const authStore = useAuthStore();
 
 const selectedDate = ref(null);
 const currentRange = ref({ start: null, end: null });
+const actionError = ref(null);
 
 // medecin toujours autorise ; infirmier seulement si is_head_nurse - le
 // backend refuse (403) de toute facon si ce garde frontend etait
@@ -61,15 +64,26 @@ function handleMonthChange({ start, end }) {
 
 function handleDayClick(dateStr) {
   selectedDate.value = dateStr;
+  actionError.value = null;
 }
 
 async function handleAdd({ shiftType, nurseId }) {
   if (!nurseId) return;
-  await nurseShiftStore.createShift(selectedDate.value, shiftType, nurseId, currentRange.value.start, currentRange.value.end);
+  actionError.value = null;
+  try {
+    await nurseShiftStore.createShift(selectedDate.value, shiftType, nurseId, currentRange.value.start, currentRange.value.end);
+  } catch (err) {
+    actionError.value = err.response?.data?.detail || 'Une erreur est survenue.';
+  }
 }
 
 async function handleRemove(shiftId) {
-  await nurseShiftStore.deleteShift(shiftId, currentRange.value.start, currentRange.value.end);
+  actionError.value = null;
+  try {
+    await nurseShiftStore.deleteShift(shiftId, currentRange.value.start, currentRange.value.end);
+  } catch (err) {
+    actionError.value = err.response?.data?.detail || 'Une erreur est survenue.';
+  }
 }
 
 onMounted(() => {

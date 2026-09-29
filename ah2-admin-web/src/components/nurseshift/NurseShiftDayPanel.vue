@@ -27,12 +27,12 @@
         <div v-if="canManage" class="flex gap-2 mt-1">
           <select v-model="selectedNurseByShift[st]" class="flex-1 px-2 py-1 border border-gray-300 rounded-lg text-xs">
             <option value="" disabled>{{ t('nurseShift.select_nurse') }}</option>
-            <option v-for="n in availableNurses" :key="n.user_id" :value="n.user_id">
+            <option v-for="n in unassignedNursesFor(st)" :key="n.user_id" :value="n.user_id">
               {{ n.full_name }}{{ n.is_head_nurse ? ` (${t('nurseShift.head_nurse_badge')})` : '' }}
             </option>
           </select>
           <button
-            @click="$emit('add', { shiftType: st, nurseId: selectedNurseByShift[st] })"
+            @click="handleAdd(st)"
             :disabled="!selectedNurseByShift[st]"
             class="px-3 py-1 text-xs font-medium rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 transition disabled:opacity-40 disabled:cursor-not-allowed"
           >
@@ -72,7 +72,7 @@ const props = defineProps({
   },
 });
 
-defineEmits(['close', 'add', 'remove']);
+const emit = defineEmits(['close', 'add', 'remove']);
 
 const selectedNurseByShift = reactive({ MATIN: '', APRES_MIDI: '', NUIT: '' });
 
@@ -80,5 +80,18 @@ const formattedDate = computed(() => dayjs(props.date).format('DD/MM/YYYY'));
 
 function shiftsFor(shiftType) {
   return props.shifts.filter((s) => s.shift_type === shiftType);
+}
+
+function unassignedNursesFor(shiftType) {
+  const assignedIds = new Set(shiftsFor(shiftType).map((s) => s.nurse_id));
+  return props.availableNurses.filter((n) => !assignedIds.has(n.user_id));
+}
+
+function handleAdd(shiftType) {
+  const nurseId = selectedNurseByShift[shiftType];
+  emit('add', { shiftType, nurseId });
+  // Reset optimiste : le parent recharge props.shifts apres l'ajout, la
+  // liste sera re-filtree au prochain rendu (voir unassignedNursesFor).
+  selectedNurseByShift[shiftType] = '';
 }
 </script>

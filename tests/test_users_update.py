@@ -50,3 +50,27 @@ def test_update_user_sets_is_head_nurse_without_breaking_other_fields(db_session
     body = resp.json()
     assert body["is_head_nurse"] is True
     assert body["is_active"] is True
+
+
+def test_create_user_with_head_nurse_checked_persists_flag(db_session, api_client):
+    """Finding Important 1 (revue finale planning-rotation-infirmiers) :
+    UserController.create_user passait une whitelist explicite de kwargs a
+    user_repo.create_user(...) qui omettait is_head_nurse, meme si UserCreate
+    l'accepte et que le frontend l'envoie a la creation - la coche etait
+    silencieusement ignoree. Verifie que POST /users/ avec is_head_nurse=True
+    renvoie bien is_head_nurse=True."""
+    admin = create_test_user(db_session, "nsh_admin_createheadnurse", "admin", password=TEST_PASSWORD)
+
+    client = api_client(auth_endpoints, users_endpoint)
+    headers = auth_headers(client, "nsh_admin_createheadnurse", TEST_PASSWORD)
+
+    resp = client.post("/users/", json={
+        "username": "nsh_new_headnurse",
+        "password": "NewNursePass123!",
+        "full_name": "Nouvelle Infirmiere Cheffe",
+        "is_head_nurse": True,
+    }, headers=headers)
+
+    assert resp.status_code == 201, resp.text
+    body = resp.json()
+    assert body["is_head_nurse"] is True
