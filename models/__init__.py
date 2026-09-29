@@ -9,6 +9,7 @@ from .audit import AuditAccess, AuditUserAction
 from .caisse import Caisse
 from .caisse_item import CaisseItem
 from .hospitalization import Hospitalization, HospitalizationStatusUpdate
+from .nurse_shift import NurseShift
 from .consultation_spirituelle import ConsultationSpirituel
 from .lab import Examen, Parametre, ReferenceRange, LabResult, LabResultDetail
 from .medical_speciality import MedicalSpecialty

@@ -2103,6 +2103,41 @@ CREATE TABLE public.nurse (
 
 
 --
+-- Name: nurse_shifts; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.nurse_shifts (
+    id integer NOT NULL,
+    shift_date date NOT NULL,
+    shift_type character varying(20) NOT NULL,
+    nurse_id integer NOT NULL,
+    created_by integer NOT NULL,
+    created_at timestamp without time zone DEFAULT now() NOT NULL,
+    CONSTRAINT nurse_shifts_shift_type_check CHECK (((shift_type)::text = ANY ((ARRAY['MATIN'::character varying, 'APRES_MIDI'::character varying, 'NUIT'::character varying])::text[])))
+);
+
+
+--
+-- Name: nurse_shifts_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.nurse_shifts_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: nurse_shifts_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.nurse_shifts_id_seq OWNED BY public.nurse_shifts.id;
+
+
+--
 -- Name: organization_config; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -2726,6 +2761,7 @@ CREATE TABLE public.users (
     email character varying(150),
     contact character varying(50),
     token_version integer DEFAULT 0 NOT NULL,
+    is_head_nurse boolean DEFAULT false NOT NULL,
     CONSTRAINT chk_specialty CHECK ((((postgres_role)::text = 'app_medical'::text) OR (((postgres_role)::text <> 'app_medical'::text) AND (specialty_id IS NULL)))),
     CONSTRAINT users_postgres_role_check CHECK (((postgres_role)::text = ANY (ARRAY['app_secretaire'::text, 'app_medical'::text, 'app_laborantin'::text, 'app_admin'::text, 'app_toxico_web'::text])))
 );
@@ -3179,6 +3215,13 @@ ALTER TABLE ONLY public.notifications ALTER COLUMN id SET DEFAULT nextval('publi
 
 
 --
+-- Name: nurse_shifts id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.nurse_shifts ALTER COLUMN id SET DEFAULT nextval('public.nurse_shifts_id_seq'::regclass);
+
+
+--
 -- Name: organization_config id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -3515,6 +3558,14 @@ ALTER TABLE ONLY public.notifications
 
 ALTER TABLE ONLY public.nurse
     ADD CONSTRAINT nurse_pkey PRIMARY KEY (user_id);
+
+
+--
+-- Name: nurse_shifts nurse_shifts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.nurse_shifts
+    ADD CONSTRAINT nurse_shifts_pkey PRIMARY KEY (id);
 
 
 --
@@ -3984,6 +4035,13 @@ CREATE INDEX ix_notifications_recipient_status ON public.notifications USING btr
 
 
 --
+-- Name: ix_nurse_shifts_date; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_nurse_shifts_date ON public.nurse_shifts USING btree (shift_date);
+
+
+--
 -- Name: medical_records_uuid_key; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -4009,6 +4067,13 @@ CREATE UNIQUE INDEX patients_uuid_key ON public.patients USING btree (uuid);
 --
 
 CREATE UNIQUE INDEX ux_hospitalizations_one_open_per_patient ON public.hospitalizations USING btree (patient_id) WHERE (discharged_at IS NULL);
+
+
+--
+-- Name: ux_nurse_shifts_no_duplicate; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX ux_nurse_shifts_no_duplicate ON public.nurse_shifts USING btree (shift_date, shift_type, nurse_id);
 
 
 --
@@ -4503,6 +4568,22 @@ ALTER TABLE ONLY public.medical_records
 
 ALTER TABLE ONLY public.notifications
     ADD CONSTRAINT notifications_recipient_user_id_fkey FOREIGN KEY (recipient_user_id) REFERENCES public.users(user_id);
+
+
+--
+-- Name: nurse_shifts nurse_shifts_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.nurse_shifts
+    ADD CONSTRAINT nurse_shifts_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(user_id);
+
+
+--
+-- Name: nurse_shifts nurse_shifts_nurse_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.nurse_shifts
+    ADD CONSTRAINT nurse_shifts_nurse_id_fkey FOREIGN KEY (nurse_id) REFERENCES public.users(user_id);
 
 
 --
