@@ -102,6 +102,9 @@ const labelFor = (n) => {
   if (n.type === 'hospitalization_aggravation') {
     return `⚠ Aggravation signalée — ${n.payload?.patient_name || 'patient'} (par ${n.payload?.reported_by_name || '?'})`;
   }
+  if (n.type === 'patient_pending_review') {
+    return `🩺 Patient en attente — ${n.payload?.patient_name || 'patient'} (${n.payload?.created_by_name || '?'})`;
+  }
   return n.type;
 };
 
@@ -114,6 +117,9 @@ const handleClick = async (n) => {
     router.push({ name: 'discount-review' });
   }
   if (n.type === 'hospitalization_aggravation' && n.payload?.patient_id) {
+    router.push(`/medical/patients/${n.payload.patient_id}`);
+  }
+  if (n.type === 'patient_pending_review' && n.payload?.patient_id) {
     router.push(`/medical/patients/${n.payload.patient_id}`);
   }
 };

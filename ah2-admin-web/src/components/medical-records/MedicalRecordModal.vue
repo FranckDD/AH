@@ -115,6 +115,22 @@
           </div>
         </div>
 
+        <div>
+          <h4 class="text-sm font-bold text-gray-500 uppercase mb-3">{{ t('medicalRecords.modal.section_triage') }}</h4>
+          <label class="inline-flex items-center cursor-pointer mb-3">
+            <input type="checkbox" v-model="form.needsDoctorReview" class="sr-only peer">
+            <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-teal-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-teal-600"></div>
+            <span class="ms-3 text-sm font-medium text-gray-900">{{ t('medicalRecords.modal.needs_doctor_review') }}</span>
+          </label>
+          <div v-if="form.needsDoctorReview">
+            <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('medicalRecords.modal.assign_doctor') }}</label>
+            <select v-model="form.assignedDoctorId" class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500 sm:text-sm">
+              <option value="">{{ t('medicalRecords.modal.assign_doctor_pool') }}</option>
+              <option v-for="d in doctors" :key="d.user_id" :value="d.user_id">{{ d.full_name }}</option>
+            </select>
+          </div>
+        </div>
+
         <div class="flex justify-end space-x-3 mt-6 pt-4 border-t border-gray-100">
           <button type="button" @click="$emit('close')" class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition shadow-sm">
             {{ t('medicalRecords.modal.cancel') }}
@@ -130,10 +146,11 @@
 </template>
 
 <script setup>
-import { reactive, computed, onMounted } from 'vue';
+import { reactive, computed, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useMedicalRecordStore } from '@/stores/medicalRecordStore';
 import { usePatientLookup } from '@/composables/usePatientLookup';
+import api from '@/services/api';
 
 const { t } = useI18n();
 const medicalRecordStore = useMedicalRecordStore();
@@ -184,7 +201,11 @@ const form = reactive({
   diagnosis: '',
   treatment: '',
   notes: '',
+  needsDoctorReview: false,
+  assignedDoctorId: '',
 });
+
+const doctors = ref([]);
 
 const maritalOptions = [
   { value: 'Single', labelKey: 'medicalRecords.modal.marital_single' },
@@ -199,7 +220,7 @@ const severityOptions = [
   { value: 'high', labelKey: 'medicalRecords.severity_high' },
 ];
 
-onMounted(() => {
+onMounted(async () => {
   if (!medicalRecordStore.motifs.length) {
     medicalRecordStore.fetchMotifs();
   }
@@ -231,6 +252,13 @@ onMounted(() => {
 
   if (!props.record && props.prefilledPatient) {
     setFromExisting(props.prefilledPatient);
+  }
+
+  try {
+    const resp = await api.get('/doctor-dashboard/doctors');
+    doctors.value = resp.data || [];
+  } catch (e) {
+    console.error('Erreur chargement liste medecins:', e);
   }
 });
 
@@ -282,6 +310,8 @@ async function handleSubmit() {
     diagnosis: form.diagnosis,
     treatment: form.treatment,
     notes: form.notes,
+    needsDoctorReview: form.needsDoctorReview,
+    assignedDoctorId: form.needsDoctorReview ? (form.assignedDoctorId || null) : null,
   });
 }
 </script>
