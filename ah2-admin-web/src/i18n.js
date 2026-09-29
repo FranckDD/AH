@@ -87,6 +87,7 @@ const messages = {
         phone: "Téléphone",
         role: "Rôle",
         is_active: "Compte actif (autorisé à se connecter)",
+        is_head_nurse: "Chef infirmier/infirmière",
         cancel: "Annuler",
         create: "Créer le compte",
         update: "Mettre à jour"
@@ -234,6 +235,23 @@ const messages = {
         current_status: "État actuel",
         admitted_by: "Admis par"
       }
+    },
+    nurseShift: {
+      title: "Planning infirmiers",
+      subtitle: "Rotation de l'équipe (matin / après-midi / nuit)",
+      today: "Aujourd'hui",
+      shift: {
+        MATIN: "Matin",
+        APRES_MIDI: "Après-midi",
+        NUIT: "Nuit"
+      },
+      day_panel_title: "Planning du",
+      add_nurse: "Ajouter un infirmier",
+      select_nurse: "Choisir un infirmier",
+      remove: "Retirer",
+      no_assignment: "Aucun infirmier assigné.",
+      read_only_note: "Seuls le médecin ou le chef infirmier/infirmière peuvent modifier ce planning.",
+      head_nurse_badge: "Chef infirmier/infirmière"
     },
     prescriptions: {
       title: "Prescriptions",
@@ -1080,6 +1098,7 @@ const messages = {
         phone: "Phone",
         role: "Role",
         is_active: "Active account (allowed to log in)",
+        is_head_nurse: "Head nurse",
         cancel: "Cancel",
         create: "Create Account",
         update: "Update"
@@ -1227,6 +1246,23 @@ const messages = {
         current_status: "Current status",
         admitted_by: "Admitted by"
       }
+    },
+    nurseShift: {
+      title: "Nurse Schedule",
+      subtitle: "Team rotation (morning / afternoon / night)",
+      today: "Today",
+      shift: {
+        MATIN: "Morning",
+        APRES_MIDI: "Afternoon",
+        NUIT: "Night"
+      },
+      day_panel_title: "Schedule for",
+      add_nurse: "Add a nurse",
+      select_nurse: "Select a nurse",
+      remove: "Remove",
+      no_assignment: "No nurse assigned.",
+      read_only_note: "Only the physician or the head nurse can edit this schedule.",
+      head_nurse_badge: "Head nurse"
     },
     prescriptions: {
       title: "Prescriptions",
