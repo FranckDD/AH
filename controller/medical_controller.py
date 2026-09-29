@@ -27,11 +27,12 @@ redis_client = redis.Redis.from_url(REDIS_URL, decode_responses=True)
 
 
 class MedicalRecordController:
-    def __init__(self, repo=None, patient_controller=None, current_user=None, audit_repo: Optional[AuditRepository] = None):
+    def __init__(self, repo=None, patient_controller=None, current_user=None, audit_repo: Optional[AuditRepository] = None, notification_repo=None):
         self.repo = repo or MedicalRecordRepository() # type: ignore
         self.patient_ctrl = patient_controller
         self.user = current_user
         self.audit_repo = audit_repo
+        self.notification_repo = notification_repo
         self.logger = logging.getLogger(__name__)
 
     # --- MÉTHODES DE LECTURE OPTIMISÉES (CACHE) ---
@@ -140,7 +141,22 @@ class MedicalRecordController:
 
         # 1. Création via Repo (qui appelle la Procédure SQL corrigée)
         record = self.repo.create(data)
-        
+
+        # Triage infirmiere -> medecin (2026-09-29) : needs_doctor_review/
+        # assigned_doctor_id ne passent pas par la procedure stockee
+        # create_medical_record (non modifiee pour ce chantier, evite
+        # d'alourdir une routine SQL deja complexe) - on relit le dossier
+        # via get_last_for_patient (motif deja etabli, voir l'endpoint
+        # POST /medical_records/ qui fait exactement cette relecture pour
+        # renvoyer la reponse HTTP) et on pose les 2 colonnes en ORM simple.
+        if data.get('needs_doctor_review'):
+            created = self.repo.get_last_for_patient(data['patient_id'])
+            if created:
+                created.needs_doctor_review = True
+                created.assigned_doctor_id = data.get('assigned_doctor_id')
+                self.repo.session.commit()
+                self._notify_assigned_doctor(created, data)
+
         # 2. Invalidation Cache
         try:
             today = date.today()
@@ -184,6 +200,31 @@ class MedicalRecordController:
                 self.logger.exception("Échec de l'écriture d'audit")
             
         return record
+
+    def _notify_assigned_doctor(self, record, data):
+        """Notifie le medecin assigne - jamais pour la file partagee
+        (assigned_doctor_id=None, on ne sait pas encore a qui notifier),
+        jamais bloquant pour la creation du dossier."""
+        if not (self.notification_repo and record.assigned_doctor_id):
+            return
+        try:
+            patient = self.patient_ctrl.get_patient(record.patient_id) if self.patient_ctrl else None
+            patient = patient or {}
+            patient_name = f"{patient.get('first_name') or ''} {patient.get('last_name') or ''}".strip() or "Patient"
+            payload = {
+                "record_id": record.record_id,
+                "patient_id": record.patient_id,
+                "patient_name": patient_name,
+                "motif_code": record.motif_code,
+                "created_by_name": data.get('created_by_name'),
+            }
+            self.notification_repo.create(
+                recipient_user_id=record.assigned_doctor_id,
+                type="patient_pending_review",
+                payload=payload,
+            )
+        except Exception:
+            self.logger.exception("Echec notification patient_pending_review")
 
     def update_record(self, record_id: int, data: dict):
         record = self.repo.update(record_id, data)
@@ -270,7 +311,17 @@ class MedicalRecordController:
     
     def get_last_for_patient(self, patient_id: int):
         return self.repo.get_last_for_patient(patient_id)
-    
+
+    def claim_review(self, record_id: int):
+        roles = getattr(self.user, "roles", []) or []
+        if "medecin" not in roles:
+            raise PermissionError("Seul un médecin peut prendre en charge un dossier en attente.")
+        return self.repo.claim(record_id, self.user.user_id)
+
+    def list_pending_review(self):
+        doctor_id = getattr(self.user, "user_id", None)
+        return self.repo.list_pending_for_doctor(doctor_id)
+
     def _calculate_age(self, birth_date):
         if not birth_date: return 0
         today = date.today()
