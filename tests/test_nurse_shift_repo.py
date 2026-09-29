@@ -5,6 +5,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from datetime import date
 import pytest
+from sqlalchemy.exc import IntegrityError
 from repositories.nurse_shift_repo import NurseShiftRepository
 from tests.conftest import create_test_user
 
@@ -43,6 +44,47 @@ def test_assign_refuses_exact_duplicate(db_session):
 
     with pytest.raises(ValueError, match="déjà"):
         repo.assign(date(2026, 10, 5), "APRES_MIDI", nurse.user_id, medecin.user_id)
+
+
+def test_assign_converts_race_integrity_error_to_value_error(db_session, monkeypatch):
+    """
+    Reproduit le cas de course : deux appels concurrents passent tous les
+    deux la pre-verification SELECT, et le "perdant" ne decouvre le doublon
+    qu'au moment du commit(), via la contrainte unique reelle
+    ux_nurse_shifts_no_duplicate (IntegrityError SQLAlchemy brute).
+
+    Une vraie course a deux connexions/threads n'est pas reproductible de
+    facon fiable dans cette suite : la fixture db_session isole chaque test
+    dans une SAVEPOINT sur une connexion unique (voir tests/conftest.py),
+    donc une deuxieme session reelle sur une deuxieme connexion ne verrait
+    ni l'utilisateur de test ni le nurse crees (jamais commit pour de vrai),
+    et forcer un vrai commit concurrent polluerait durablement la base.
+
+    A la place, ce test force le commit() a lever l'IntegrityError reelle
+    que Postgres leverait dans ce scenario, pour verifier que le bloc
+    try/except de assign() la convertit bien en ValueError (jamais une
+    exception SQLAlchemy brute qui ne fait pas partie du contrat du repo).
+    """
+    medecin = create_test_user(db_session, "nsh_repo_medecin9", "medecin")
+    nurse = create_test_user(db_session, "nsh_repo_nurse9", "nurse")
+    repo = NurseShiftRepository(db_session)
+
+    def failing_commit():
+        raise IntegrityError(
+            "INSERT INTO nurse_shifts (...) VALUES (...)",
+            {},
+            Exception(
+                'duplicate key value violates unique constraint '
+                '"ux_nurse_shifts_no_duplicate"'
+            ),
+        )
+
+    monkeypatch.setattr(db_session, "commit", failing_commit)
+
+    with pytest.raises(ValueError, match="déjà") as excinfo:
+        repo.assign(date(2026, 10, 10), "MATIN", nurse.user_id, medecin.user_id)
+
+    assert not isinstance(excinfo.value, IntegrityError)
 
 
 def test_assign_refuses_invalid_shift_type(db_session):

@@ -1,6 +1,7 @@
 # repositories/nurse_shift_repo.py
 from typing import Optional, List
 from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.exc import IntegrityError
 
 from models.nurse_shift import NurseShift, SHIFT_TYPES
 from models.user import User
@@ -50,7 +51,11 @@ class NurseShiftRepository:
             created_by=created_by_id,
         )
         self.session.add(shift)
-        self.session.commit()
+        try:
+            self.session.commit()
+        except IntegrityError:
+            self.session.rollback()
+            raise ValueError("Cet infirmier est déjà affecté à ce créneau.")
         self.session.refresh(shift)
         return shift
 
