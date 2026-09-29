@@ -110,8 +110,8 @@
              <HomeModernIcon class="h-6 w-6 text-purple-600" />
           </div>
           <div>
-            <p class="text-sm text-gray-500 font-medium">{{ $t('dashboard.stats.bed_occupancy') }}</p> 
-            <p class="text-xl font-bold text-gray-900">--</p>
+            <p class="text-sm text-gray-500 font-medium">{{ $t('dashboard.stats.bed_occupancy') }}</p>
+            <p class="text-xl font-bold text-gray-900">{{ valeurAffichee('hospitalized', dashboardStore.stats.hospitalizedCount) }}</p>
           </div>
         </div>
       </div>

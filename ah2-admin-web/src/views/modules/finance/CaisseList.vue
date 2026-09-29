@@ -378,7 +378,13 @@ const printTicketForTransaction = async (transactionId) => {
   printError.value = '';
   try {
     const resp = await CaisseGateway.getTicket(transactionId);
-    await PrinterBridgeGateway.printTicket(resp.data);
+    // ticket_logo_path renvoye par le backend est un chemin fichier sur SON
+    // disque (get_ticket_header_context), jamais accessible depuis le poste
+    // secretariat qui heberge printer_bridge (meme motif deja documente pour
+    // buildLocalTicketData ci-dessous) : Image.open() echoue silencieusement
+    // cote pont, le ticket s'imprime mais sans logo. On substitue le cache
+    // data URI local, seule forme que printer_bridge peut effectivement lire.
+    await PrinterBridgeGateway.printTicket({ ...resp.data, ticket_logo_path: configStore.ticketLogoDataUri || null });
   } catch (err) {
     printError.value = describePrintError(err);
     console.error('Erreur impression ticket:', err);

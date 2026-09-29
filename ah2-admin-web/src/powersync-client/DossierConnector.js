@@ -6,6 +6,7 @@ import { PrescriptionGateway } from '@/services/PrescriptionGateway';
 import { CaisseGateway } from '@/services/CaisseGateway';
 import api, { API_URL } from '@/services/api';
 import { isPatientQuarantined, isLabResultQuarantined, quarantine } from '@/powersync-client/syncQuarantine';
+import { useToastStore } from '@/stores/toastStore';
 
 // URL du service PowerSync self-hoste (voir powersync/.env, PS_PORT) -
 // distincte de l'API FastAPI (API_URL). A definir dans .env.local du
@@ -555,6 +556,20 @@ export class DossierConnector {
             await database.execute('UPDATE caisse SET upload_error = ? WHERE id = ?', [detail, lastOp.id]);
           } catch (markError) {
             console.error('Impossible de marquer la transaction en echec de sync:', markError);
+          }
+        }
+        // Meme garde-fou que caisse (registre Important) mais en toast plutot
+        // qu'en persistance locale : une prescription rejetee definitivement
+        // (422/409/...) disparaissait de la file sans que personne ne s'en
+        // apercoive - demande explicite de ne pas reprendre le pattern
+        // "bandeau bas de page" de caisse ici, mais une notification
+        // ephemere (ToastContainer, glisse depuis la droite).
+        if (lastOp?.table === 'prescriptions') {
+          try {
+            const detail = error?.response?.data?.detail || 'Echec de synchronisation de la prescription - contacter un administrateur.';
+            useToastStore().push(`Prescription non synchronisee : ${typeof detail === 'string' ? detail : 'donnees refusees par le serveur.'}`);
+          } catch (toastError) {
+            console.error('Impossible d\'afficher la notification de prescription en echec:', toastError);
           }
         }
         // Patient refuse definitivement (doublon national_id, donnees

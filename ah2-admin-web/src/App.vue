@@ -1,11 +1,13 @@
 <template>
   <router-view />
+  <ToastContainer />
 </template>
 
 <script setup>
 import { onMounted } from 'vue';
 import { useAuthStore } from '@/stores/auth';
 import { connectPowerSync } from '@/powersync-client/client';
+import ToastContainer from '@/components/common/ToastContainer.vue';
 
 onMounted(() => {
   const authStore = useAuthStore();

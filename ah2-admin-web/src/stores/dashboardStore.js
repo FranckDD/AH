@@ -2,9 +2,10 @@
 
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
-import { FinanceGateway } from '@/services/FinanceGateway'; 
+import { FinanceGateway } from '@/services/FinanceGateway';
 import { ToxicoGateway } from '@/services/ToxicoGateway';
-import api from '@/services/api'; 
+import { HospitalizationGateway } from '@/services/HospitalizationGateway';
+import api from '@/services/api';
 
 export const useDashboardStore = defineStore('dashboard', () => {
     
@@ -29,7 +30,8 @@ export const useDashboardStore = defineStore('dashboard', () => {
         // suivi des hospitalisations, backlog).
         toxicoAdmissionsThisMonth: 0,
         onlineUsers: 0,
-        alertsCount: 0
+        alertsCount: 0,
+        hospitalizedCount: 0
     });
 
     const recentActivities = ref([]);
@@ -70,9 +72,10 @@ export const useDashboardStore = defineStore('dashboard', () => {
                 // Autres stats
                 ToxicoGateway.getDashboardStats(),
                 api.get('/users/', { params: { page: 1, per_page: 1 } }),
+                HospitalizationGateway.fetchKpiCount(),
             ]);
 
-            const [incomeRes, expenseRes, debtRes, recentIncomes, recentExpenses, toxicoRes, usersRes] = resultats;
+            const [incomeRes, expenseRes, debtRes, recentIncomes, recentExpenses, toxicoRes, usersRes, hospitalizedRes] = resultats;
             const echecs = [];
 
             const valeurOuEchec = (resultat, nomBloc, lecture, defaut = 0) => {
@@ -106,6 +109,13 @@ export const useDashboardStore = defineStore('dashboard', () => {
             // Users : /users/ renvoie desormais une enveloppe paginee (tache 2) :
             // total est le nombre reel de comptes, pas la taille de la page.
             stats.value.onlineUsers = valeurOuEchec(usersRes, 'users', (r) => r.data?.total ?? 0);
+
+            // Occupation des lits : patients actuellement hospitalises (pas
+            // filtre par date, un sejour en cours n'a pas de date de fin -
+            // meme motif que HospitalizationController.count_current()).
+            stats.value.hospitalizedCount = valeurOuEchec(
+                hospitalizedRes, 'hospitalized', (r) => r.data?.count ?? 0
+            );
 
             // 🟢 5. Activités Récentes (Fusion & Correction Logique)
 
