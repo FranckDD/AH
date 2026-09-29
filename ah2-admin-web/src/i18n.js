@@ -378,7 +378,9 @@ const messages = {
       medical_records_note: "Détail par motif ci-dessous.",
       by_status: "Rendez-vous par statut",
       by_motif: "Dossiers médicaux par motif",
-      no_data: "Aucune donnée pour cette période."
+      no_data: "Aucune donnée pour cette période.",
+      prescriptions_total: "Prescriptions (période)",
+      hospitalizations_current: "Séjours en cours (établissement)"
     },
     secretariat: {
       title: "Secrétariat",
@@ -1389,7 +1391,9 @@ const messages = {
       medical_records_note: "Breakdown by reason below.",
       by_status: "Appointments by status",
       by_motif: "Medical records by reason",
-      no_data: "No data for this period."
+      no_data: "No data for this period.",
+      prescriptions_total: "Prescriptions (period)",
+      hospitalizations_current: "Current stays (establishment)"
     },
     secretariat: {
       title: "Secretary",

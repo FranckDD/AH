@@ -37,7 +37,7 @@
     </div>
 
     <template v-else>
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
         <StatCard
           :title="t('doctorKpi.total_appointments')"
           :value="kpiStore.stats.totalAppointments"
@@ -60,6 +60,20 @@
           iconColor="text-amber-600"
           :trend="t('doctorKpi.medical_records_note')"
           :trendIsPositive="true"
+        />
+        <StatCard
+          :title="t('doctorKpi.prescriptions_total')"
+          :value="kpiStore.stats.prescriptionsCount"
+          :icon="ClipboardDocumentListIcon"
+          colorClass="bg-rose-50"
+          iconColor="text-rose-600"
+        />
+        <StatCard
+          :title="t('doctorKpi.hospitalizations_current')"
+          :value="kpiStore.stats.hospitalizationsCurrentCount"
+          :icon="ClipboardDocumentListIcon"
+          colorClass="bg-sky-50"
+          iconColor="text-sky-600"
         />
       </div>
 
