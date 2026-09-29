@@ -126,14 +126,16 @@ export const useMedicalRecordStore = defineStore('medicalRecord', () => {
                 `INSERT INTO medical_records (
                     id, patient_id, patient_uuid, consultation_date, motif_code, appointment_id,
                     marital_status, severity, bp, temperature, weight, height,
-                    medical_history, allergies, symptoms, diagnosis, treatment, notes
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                    medical_history, allergies, symptoms, diagnosis, treatment, notes,
+                    needs_doctor_review, assigned_doctor_id
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                 [
                     uuid, data.patientId || null, data.patientUuid || null, data.consultationDate || null, data.motifCode, data.appointmentId || null,
                     data.maritalStatus || null, data.severity || null, data.bp || null,
                     data.temperature ?? null, data.weight ?? null, data.height ?? null,
                     data.medicalHistory || null, data.allergies || null, data.symptoms || null,
                     data.diagnosis || null, data.treatment || null, data.notes || null,
+                    data.needsDoctorReview ? 1 : 0, data.assignedDoctorId || null,
                 ]
             );
             await refreshMedicalRecordsLocal();

@@ -55,6 +55,8 @@ export const MedicalRecordGateway = {
             diagnosis: data.diagnosis || null,
             treatment: data.treatment || null,
             notes: data.notes || null,
+            needs_doctor_review: !!data.needsDoctorReview,
+            assigned_doctor_id: data.assignedDoctorId || null,
             uuid: data.uuid || null,
         };
         return api.post('/medical_records/', payload);

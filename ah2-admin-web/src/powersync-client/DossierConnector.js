@@ -157,6 +157,8 @@ export class DossierConnector {
               diagnosis: op.opData.diagnosis,
               treatment: op.opData.treatment,
               notes: op.opData.notes,
+              needsDoctorReview: !!op.opData.needs_doctor_review,
+              assignedDoctorId: op.opData.assigned_doctor_id || null,
               uuid: op.id,
             });
             break;

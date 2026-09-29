@@ -89,6 +89,8 @@ const medical_records = new Table(
     // uuid du patient quand celui-ci a ete cree hors ligne (pas encore de
     // server_id) - resolu cote serveur (POST /medical_records patient_uuid).
     patient_uuid: column.text,
+    needs_doctor_review: column.integer,
+    assigned_doctor_id: column.integer,
   },
   { indexes: { by_patient: ['patient_id'], by_patient_uuid: ['patient_uuid'] } }
 );
