@@ -223,6 +223,41 @@ class MedicalRecordRepository:
                 .first()
         )
     
+    def list_pending_for_doctor(self, doctor_id: int, limit: int = 20):
+        """File d'attente triage : dossiers marques a transmettre au
+        medecin, pas encore pris en charge, assignes a ce medecin OU dans
+        la file partagee (assigned_doctor_id IS NULL)."""
+        return (
+            self.session.query(self.model)
+            .filter(self.model.needs_doctor_review == True)
+            .filter(self.model.reviewed_at.is_(None))
+            .filter(
+                (self.model.assigned_doctor_id == doctor_id) |
+                (self.model.assigned_doctor_id.is_(None))
+            )
+            .order_by(self.model.consultation_date.asc())
+            .limit(limit)
+            .all()
+        )
+
+    def claim(self, record_id: int, doctor_id: int):
+        """Prise en charge : pose reviewed_by/reviewed_at, et assigned_doctor_id
+        si le dossier venait de la file partagee. Refuse si deja pris en
+        charge par quelqu'un d'autre - protection contre la course a
+        plusieurs medecins (scenario explicitement anticipe par ce chantier)."""
+        record = self.session.get(self.model, record_id)
+        if record is None:
+            raise ValueError(f"Dossier medical introuvable (ID={record_id}).")
+        if record.reviewed_at is not None:
+            raise ValueError("Ce dossier a déjà été pris en charge.")
+        record.reviewed_by = doctor_id
+        record.reviewed_at = func.now()
+        if record.assigned_doctor_id is None:
+            record.assigned_doctor_id = doctor_id
+        self.session.commit()
+        self.session.refresh(record)
+        return record
+
     #KPI Dashboard Medecin
     
     def count_records_for_doctor(self, doctor_id: int, start_date: Optional[date]=None, end_date: Optional[date]=None) -> int:
