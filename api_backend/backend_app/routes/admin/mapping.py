@@ -36,6 +36,7 @@ def normalize_user_data(raw: Any) -> Dict[str, Any]:
         # -----------------------------
         
         "is_active": get_field(raw, "is_active"),
+        "is_head_nurse": get_field(raw, "is_head_nurse") or False,
         "postgres_role": get_field(raw, "postgres_role"),
         "role_id": get_field(raw, "role_id"),
         "role_name": _role_name(raw),

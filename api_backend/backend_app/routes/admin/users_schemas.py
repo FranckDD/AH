@@ -21,6 +21,7 @@ class UserCreate(UserBase):
     username: Optional[str] = Field(..., description="Nom d'utilisateur (unique)")
     password: Optional[str] = Field(..., description="Mot de passe en clair")
     full_name: Optional[str] = Field(..., description="Nom complet")
+    is_head_nurse: Optional[bool] = None
 
     model_config = ConfigDict()
 
@@ -32,6 +33,7 @@ class UserUpdate(BaseModel):
     contact: Optional[str] = None
     postgres_role: Optional[str] = None
     is_active: Optional[bool] = None
+    is_head_nurse: Optional[bool] = None
     role_id: Optional[int] = None
     specialty_id: Optional[int] = None
 
@@ -44,6 +46,7 @@ class UserOut(BaseModel):
     email: Optional[str] = None
     contact: Optional[str] = None
     is_active: bool
+    is_head_nurse: bool = False
     postgres_role: Optional[str] = None
     role_id: Optional[int] = None
     role_name: Optional[str] = None

@@ -29,3 +29,24 @@ def test_update_user_duplicate_email_returns_409_not_500(db_session, api_client)
     resp = client.put(f"/users/{target.user_id}", json={"email": "deja.pris@example.com"}, headers=headers)
 
     assert resp.status_code == 409
+
+
+def test_update_user_sets_is_head_nurse_without_breaking_other_fields(db_session, api_client):
+    """Review Focus : le nouveau champ doit voyager de bout en bout sans
+    casser un champ deja whiteliste (is_active reste modifiable dans le
+    meme appel)."""
+    admin = create_test_user(db_session, "nsh_admin_headnurse", "admin", password=TEST_PASSWORD)
+    nurse = create_test_user(db_session, "nsh_target_headnurse", "nurse", password=TEST_PASSWORD)
+
+    client = api_client(auth_endpoints, users_endpoint)
+    headers = auth_headers(client, "nsh_admin_headnurse", TEST_PASSWORD)
+
+    resp = client.put(f"/users/{nurse.user_id}", json={
+        "is_head_nurse": True,
+        "is_active": True,
+    }, headers=headers)
+
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body["is_head_nurse"] is True
+    assert body["is_active"] is True

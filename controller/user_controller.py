@@ -40,7 +40,7 @@ class UserController:
         user = self.user_repo.session.query(User).get(user_id)
         if not user:
             raise ValueError(f"Utilisateur {user_id} introuvable")
-        for field in ('full_name','email', 'contact','postgres_role','is_active','role_id','specialty_id'):
+        for field in ('full_name','email', 'contact','postgres_role','is_active','role_id','specialty_id','is_head_nurse'):
             if field in data:
                 setattr(user, field, data[field])
         if data.get('password'):
