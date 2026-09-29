@@ -229,6 +229,7 @@ class MedicalRecordRepository:
         la file partagee (assigned_doctor_id IS NULL)."""
         return (
             self.session.query(self.model)
+            .options(joinedload(self.model.patient))
             .filter(self.model.needs_doctor_review == True)
             .filter(self.model.reviewed_at.is_(None))
             .filter(
