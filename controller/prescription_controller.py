@@ -47,7 +47,7 @@ class PrescriptionController:
             return self.current_user.user_id
         raise RuntimeError("doctor_id non disponible")
 
-    def count_prescriptions(self, period: str = "day", doctor_id: Optional[int] = None) -> int:
+    def count_prescriptions(self, period: str = "day", doctor_id: Optional[int] = None, start: Optional[date] = None, end: Optional[date] = None) -> int:
         """
         Compteur prescriptions (Cache 5 min).
 
@@ -60,7 +60,31 @@ class PrescriptionController:
         Donc ici, doctor_id=None => pas de filtre (etablissement) ; un
         doctor_id explicite (nouveau, pour un futur tableau de bord medecin
         personnel) le scope reellement via _resolve_doctor.
+
+        Si start ET end sont fournis, ignore `period` et compte sur cette
+        plage de dates arbitraire (ferme le gap decouvert au chantier
+        "tableau de bord medecin" : les 4 autres sources KPI de ce
+        tableau de bord acceptent deja une plage de dates libre, seule
+        celle-ci etait limitee a jour/semaine).
         """
+        if start is not None and end is not None:
+            d = self._resolve_doctor(doctor_id) if doctor_id is not None else None
+            cache_scope = d if d is not None else "all"
+            CACHE_KEY = f"prescription:stats:count:range:{start}:{end}:{cache_scope}"
+
+            try:
+                cached = redis_client.get(CACHE_KEY)
+                if cached: return int(cached) # type: ignore
+            except Exception: pass
+
+            res = self.repo.count_by_prescription_date_range(start, end, doctor_id=d)
+
+            try:
+                redis_client.setex(CACHE_KEY, 300, res)
+            except Exception: pass
+
+            return res
+
         today = date.today()
         d = self._resolve_doctor(doctor_id) if doctor_id is not None else None
         cache_scope = d if d is not None else "all"

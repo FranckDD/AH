@@ -525,6 +525,69 @@ def test_kpi_count_day_scoped_to_doctor_id(db_session, api_client):
     assert after_total == before_total + 1
 
 
+def test_kpi_count_accepts_arbitrary_date_range(db_session, api_client):
+    """Le gap ferme par ce chantier : count_prescriptions n'acceptait
+    auparavant que period=day/week, jamais une plage libre - contrairement
+    aux 4 autres sources KPI du futur tableau de bord medecin."""
+    from datetime import date, timedelta
+
+    medecin = create_test_user(db_session, "tbm_presc_medecin1", "medecin", password=TEST_PASSWORD)
+    patient_id, _ = create_test_patient(db_session, medecin)
+    create_test_prescription(db_session, patient_id, medecin)
+
+    client = api_client(auth_endpoints, prescriptions_endpoints)
+    headers = auth_headers(client, "tbm_presc_medecin1", TEST_PASSWORD)
+
+    today = date.today()
+    start = (today - timedelta(days=1)).isoformat()
+    end = (today + timedelta(days=1)).isoformat()
+
+    resp = client.get(
+        f"/prescriptions/kpi/count?start={start}&end={end}&doctor_id={medecin.user_id}",
+        headers=headers,
+    )
+    assert resp.status_code == 200
+    assert resp.json()["count"] >= 1
+
+
+def test_kpi_count_date_range_scoped_by_doctor(db_session, api_client):
+    from datetime import date, timedelta
+
+    medecin_a = create_test_user(db_session, "tbm_presc_medecin_a", "medecin", password=TEST_PASSWORD)
+    medecin_b = create_test_user(db_session, "tbm_presc_medecin_b", "medecin", password=TEST_PASSWORD)
+    patient_id, _ = create_test_patient(db_session, medecin_a)
+    create_test_prescription(db_session, patient_id, medecin_a)
+
+    client = api_client(auth_endpoints, prescriptions_endpoints)
+    headers = auth_headers(client, "tbm_presc_medecin_a", TEST_PASSWORD)
+
+    today = date.today()
+    start = (today - timedelta(days=1)).isoformat()
+    end = (today + timedelta(days=1)).isoformat()
+
+    resp_a = client.get(f"/prescriptions/kpi/count?start={start}&end={end}&doctor_id={medecin_a.user_id}", headers=headers)
+    resp_b = client.get(f"/prescriptions/kpi/count?start={start}&end={end}&doctor_id={medecin_b.user_id}", headers=headers)
+
+    assert resp_a.json()["count"] >= 1
+    assert resp_b.json()["count"] == 0
+
+
+def test_kpi_count_without_dates_still_uses_period(db_session, api_client):
+    """Non-regression explicite : l'appel existant (desktop) sans
+    start/end/doctor_id doit continuer a fonctionner exactement comme
+    avant cette extension."""
+    medecin = create_test_user(db_session, "tbm_presc_medecin2", "medecin", password=TEST_PASSWORD)
+    patient_id, _ = create_test_patient(db_session, medecin)
+    create_test_prescription(db_session, patient_id, medecin)
+
+    client = api_client(auth_endpoints, prescriptions_endpoints)
+    headers = auth_headers(client, "tbm_presc_medecin2", TEST_PASSWORD)
+
+    resp = client.get("/prescriptions/kpi/count?period=day", headers=headers)
+    assert resp.status_code == 200
+    assert resp.json()["count"] >= 1
+
+
 def test_patient_prescription_history_returns_created_prescription(db_session, api_client):
     """
     GET /prescriptions/patient/{id} renvoie aussi une LISTE JSON NUE,

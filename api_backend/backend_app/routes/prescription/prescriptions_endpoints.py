@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from pydantic import ValidationError
 import logging
+from datetime import date
 from typing import List, Optional, Any, Dict
 from fastapi import Query
 from fastapi.encoders import jsonable_encoder
@@ -303,10 +304,12 @@ def prescription_renewals(
 def kpi_count_prescriptions(
     period: str = Query("day", regex="^(day|week)$"),
     doctor_id: Optional[int] = Query(None, description="Registre I1 : scope le compte a ce medecin. Omis = total etablissement (comportement d'origine, inchange)."),
+    start: Optional[date] = Query(None, description="Plage de dates arbitraire (avec `end`) - remplace `period` si les deux sont fournis."),
+    end: Optional[date] = Query(None, description="Voir `start`."),
     prescription_ctrl: PrescriptionController = Depends(get_prescription_controller),
 ):
     try:
-        cnt = prescription_ctrl.count_prescriptions(period=period, doctor_id=doctor_id)
+        cnt = prescription_ctrl.count_prescriptions(period=period, doctor_id=doctor_id, start=start, end=end)
         return {"count": cnt}
     except SQLAlchemyError:
         logger.exception("Erreur DB count_prescriptions")
