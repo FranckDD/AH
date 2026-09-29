@@ -4,6 +4,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from api_backend.backend_app.routes.auth import auth_endpoints
 from api_backend.backend_app.routes.medical_records import medical_records_endpoint
+from models.notification import Notification
 from tests.conftest import create_test_user, create_test_patient, auth_headers
 
 TEST_PASSWORD = "TestPass123!"
@@ -29,6 +30,35 @@ def test_create_record_with_review_flag_appears_in_pending_list(db_session, api_
     resp = client.get("/medical_records/pending-review", headers=medecin_headers)
     assert resp.status_code == 200
     assert any(r["patient_id"] == patient_id for r in resp.json())
+
+
+def test_create_record_via_http_sends_notification_to_assigned_doctor(db_session, api_client):
+    """
+    Regression pour le bug critique de la revue finale : get_medical_controller()
+    n'injectait pas notification_repo, donc MedicalRecordController.notification_repo
+    valait None pour toute vraie requete HTTP et _notify_assigned_doctor() no-opait
+    silencieusement - seuls les tests unitaires du controleur (qui construisent le
+    controleur directement avec un vrai NotificationRepository) passaient. Ce test
+    passe par le vrai endpoint HTTP et verifie qu'une ligne Notification existe
+    vraiment en base ensuite.
+    """
+    nurse = create_test_user(db_session, "triage_hep_nurse5", "nurse", password=TEST_PASSWORD)
+    medecin = create_test_user(db_session, "triage_hep_medecin5", "medecin", password=TEST_PASSWORD)
+    patient_id, _ = create_test_patient(db_session, nurse)
+    client = _client(api_client)
+    nurse_headers = auth_headers(client, "triage_hep_nurse5", TEST_PASSWORD)
+
+    resp = client.post("/medical_records/", json={
+        "patient_id": patient_id, "motif_code": "consultation",
+        "needs_doctor_review": True, "assigned_doctor_id": medecin.user_id,
+    }, headers=nurse_headers)
+    assert resp.status_code == 201
+
+    notifs = db_session.query(Notification).filter(
+        Notification.recipient_user_id == medecin.user_id,
+        Notification.type == "patient_pending_review",
+    ).all()
+    assert len(notifs) == 1
 
 
 def test_claim_forbidden_for_nurse(db_session, api_client):

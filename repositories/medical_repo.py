@@ -5,7 +5,7 @@ from models.patient import Patient
 from sqlalchemy.orm import Session
 from models.medical_record import MedicalRecord
 from sqlalchemy.orm import joinedload
-from sqlalchemy import cast, Date, and_
+from sqlalchemy import cast, Date, and_, case
 from datetime import date, timedelta, datetime
 from typing import Dict, List, Optional, Tuple
 
@@ -245,17 +245,49 @@ class MedicalRecordRepository:
         """Prise en charge : pose reviewed_by/reviewed_at, et assigned_doctor_id
         si le dossier venait de la file partagee. Refuse si deja pris en
         charge par quelqu'un d'autre - protection contre la course a
-        plusieurs medecins (scenario explicitement anticipe par ce chantier)."""
-        record = self.session.get(self.model, record_id)
-        if record is None:
-            raise ValueError(f"Dossier medical introuvable (ID={record_id}).")
-        if record.reviewed_at is not None:
-            raise ValueError("Ce dossier a déjà été pris en charge.")
-        record.reviewed_by = doctor_id
-        record.reviewed_at = func.now()
-        if record.assigned_doctor_id is None:
-            record.assigned_doctor_id = doctor_id
+        plusieurs medecins (scenario explicitement anticipe par ce chantier).
+
+        Implemente via un UPDATE conditionnel atomique (WHERE reviewed_at IS
+        NULL AND needs_doctor_review = True) plutot qu'un
+        get() -> verification -> mutation -> commit() : ce dernier pattern
+        laisse une fenetre ou deux medecins peuvent tous les deux passer la
+        verification avant que l'un des deux commit, et le second ecrase
+        silencieusement reviewed_by du premier sans jamais lever d'erreur.
+        Avec l'UPDATE conditionnel, seule la premiere requete a atteindre
+        Postgres peut matcher la ligne (encore non modifiee) ; la seconde
+        matche 0 ligne et on retombe alors sur une erreur explicite.
+        """
+        values = {
+            "reviewed_by": doctor_id,
+            "reviewed_at": func.now(),
+            # N'ecrase assigned_doctor_id que s'il etait NULL (file partagee) ;
+            # sinon conserve la valeur existante (deja assigne a ce medecin).
+            "assigned_doctor_id": case(
+                (self.model.assigned_doctor_id.is_(None), doctor_id),
+                else_=self.model.assigned_doctor_id,
+            ),
+        }
+
+        rows_updated = (
+            self.session.query(self.model)
+            .filter(
+                self.model.record_id == record_id,
+                self.model.reviewed_at.is_(None),
+                self.model.needs_doctor_review.is_(True),
+            )
+            .update(values, synchronize_session=False)
+        )
         self.session.commit()
+
+        if rows_updated == 0:
+            record = self.session.get(self.model, record_id)
+            if record is None:
+                raise ValueError(f"Dossier medical introuvable (ID={record_id}).")
+            if not record.needs_doctor_review:
+                raise ValueError("Ce dossier n'est pas dans la file d'attente.")
+            raise ValueError("Ce dossier a déjà été pris en charge.")
+
+        record = self.session.get(self.model, record_id)
         self.session.refresh(record)
         return record
 

@@ -27,6 +27,7 @@ export const useDoctorKpiStore = defineStore('doctorKpi', () => {
     });
 
     const pendingReview = ref([]);
+    const claimError = ref(null);
 
     async function fetchPendingReview() {
         try {
@@ -38,7 +39,16 @@ export const useDoctorKpiStore = defineStore('doctorKpi', () => {
     }
 
     async function claimRecord(recordId) {
-        await api.post(`/medical_records/${recordId}/claim`);
+        claimError.value = null;
+        try {
+            await api.post(`/medical_records/${recordId}/claim`);
+        } catch (err) {
+            // Sur echec (ex: 409 si un autre medecin vient de le prendre en
+            // charge, ou 403), on rafraichit quand meme la liste : c'est
+            // l'issue la plus informative pour l'utilisateur (la ligne
+            // perimee disparait si quelqu'un d'autre l'a prise).
+            claimError.value = err.response?.data?.detail || 'Une erreur est survenue.';
+        }
         await fetchPendingReview();
     }
 
@@ -70,5 +80,5 @@ export const useDoctorKpiStore = defineStore('doctorKpi', () => {
         fetchKpiData();
     }
 
-    return { isLoading, error, filters, stats, pendingReview, fetchKpiData, setDates, fetchPendingReview, claimRecord };
+    return { isLoading, error, filters, stats, pendingReview, claimError, fetchKpiData, setDates, fetchPendingReview, claimRecord };
 });

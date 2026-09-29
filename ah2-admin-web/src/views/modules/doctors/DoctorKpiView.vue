@@ -81,6 +81,7 @@
         <h2 class="text-sm font-bold text-gray-700 uppercase tracking-wider mb-4">
           {{ t('doctorKpi.pending_review_title') }}
         </h2>
+        <p v-if="kpiStore.claimError" class="text-sm text-red-600 mb-3">{{ kpiStore.claimError }}</p>
         <div v-if="kpiStore.pendingReview.length === 0" class="text-sm text-gray-400">
           {{ t('doctorKpi.pending_review_empty') }}
         </div>
@@ -93,6 +94,7 @@
               <p class="text-xs text-gray-400">{{ r.motif_code }} — {{ t('doctorKpi.pending_review_by') }} {{ r.created_by_name || '?' }}</p>
             </div>
             <button
+              v-if="canClaim"
               @click="kpiStore.claimRecord(r.record_id)"
               class="px-3 py-1.5 text-xs font-medium rounded-lg bg-teal-600 text-white hover:bg-teal-700 transition"
             >
@@ -147,6 +149,7 @@
 import { computed, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useDoctorKpiStore } from '@/stores/doctorKpiStore';
+import { useAuthStore } from '@/stores/auth';
 import StatCard from '@/components/dashboard/StatCard.vue';
 import {
   CalendarDaysIcon,
@@ -156,6 +159,14 @@ import {
 
 const { t } = useI18n();
 const kpiStore = useDoctorKpiStore();
+const authStore = useAuthStore();
+
+// La file "Patients en attente" est visible par medecin et nurse (lecture
+// partagee voulue), mais claim_review() cote backend est medecin-only : un
+// nurse qui cliquerait aurait toujours un 403. On cache donc le bouton pour
+// qui n'est pas medecin, meme pattern que
+// NurseShiftsView.vue::canManage / authStore.hasRole().
+const canClaim = computed(() => authStore.hasRole(['medecin']));
 
 const KNOWN_STATUSES = ['pending', 'completed', 'cancelled'];
 

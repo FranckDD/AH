@@ -18,6 +18,7 @@ from controller.medical_controller import MedicalRecordController
 from repositories.audit_repo import AuditRepository
 from repositories.patient_repo import PatientRepository
 from repositories.medical_repo import MedicalRecordRepository
+from repositories.notification_repo import NotificationRepository
 from api_backend.backend_app.routes.auth.auth_endpoints import get_current_user, role_required
 from api_backend.backend_app.routes.patients.patients_schemas import PatientResponse
 
@@ -43,21 +44,23 @@ def get_medical_controller(
     
     # Création des Repositories nécessaires
     patient_repo = PatientRepository(db)
-    medical_repo = MedicalRecordRepository(db) 
-    audit_repo = AuditRepository(db) 
-    
+    medical_repo = MedicalRecordRepository(db)
+    audit_repo = AuditRepository(db)
+    notification_repo = NotificationRepository(db)
+
     # 1. Instanciation du PatientController avec audit (requis par MedicalRecordController)
     patient_ctrl = PatientController(
-        repo=patient_repo, 
+        repo=patient_repo,
         current_user=current_user,
-        audit_repo=audit_repo 
+        audit_repo=audit_repo
     )
 
     return MedicalRecordController(
-        repo=medical_repo, 
-        patient_controller=patient_ctrl, 
+        repo=medical_repo,
+        patient_controller=patient_ctrl,
         current_user=current_user,
-        audit_repo=audit_repo 
+        audit_repo=audit_repo,
+        notification_repo=notification_repo,
     )
 
 
