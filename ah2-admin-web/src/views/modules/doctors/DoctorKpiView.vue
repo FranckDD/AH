@@ -179,7 +179,10 @@ const canClaim = computed(() => authStore.hasRole(['medecin']));
 async function handleClaim(record) {
   const success = await kpiStore.claimRecord(record.record_id);
   if (success) {
-    router.push(`/medical/patients/${record.patient_id}`);
+    router.push({
+      path: `/medical/patients/${record.patient_id}`,
+      query: { record: record.record_id },
+    });
   }
 }
 

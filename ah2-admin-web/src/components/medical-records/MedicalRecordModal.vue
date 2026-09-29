@@ -115,19 +115,21 @@
           </div>
         </div>
 
-        <div>
+        <div v-if="!isEdit">
           <h4 class="text-sm font-bold text-gray-500 uppercase mb-3">{{ t('medicalRecords.modal.section_triage') }}</h4>
           <label class="inline-flex items-center cursor-pointer mb-3">
             <input type="checkbox" v-model="form.needsDoctorReview" class="sr-only peer">
             <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-teal-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-teal-600"></div>
             <span class="ms-3 text-sm font-medium text-gray-900">{{ t('medicalRecords.modal.needs_doctor_review') }}</span>
           </label>
+          <p v-if="!form.needsDoctorReview" class="text-xs text-gray-400 mb-1">{{ t('medicalRecords.modal.needs_doctor_review_hint') }}</p>
           <div v-if="form.needsDoctorReview">
             <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('medicalRecords.modal.assign_doctor') }}</label>
             <select v-model="form.assignedDoctorId" class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500 sm:text-sm">
               <option value="">{{ t('medicalRecords.modal.assign_doctor_pool') }}</option>
               <option v-for="d in doctors" :key="d.user_id" :value="d.user_id">{{ d.full_name }}</option>
             </select>
+            <p class="text-xs text-gray-400 mt-1">{{ t('medicalRecords.modal.assign_doctor_hint') }}</p>
           </div>
         </div>
 

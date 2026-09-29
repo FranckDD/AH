@@ -75,6 +75,9 @@ class MedicalRecordResponse(MedicalRecordBase):
     last_updated_by_name: Optional[str] = None
     patient: Optional[dict] = None
     uuid: Optional[str] = None
+    needs_doctor_review: Optional[bool] = False
+    assigned_doctor_id: Optional[int] = None
+    reviewed_at: Optional[datetime] = None
 
     model_config = {"from_attributes": True}
 

@@ -70,7 +70,11 @@
                             {{ t('medical.actions.new_consultation') }}
                         </button>
                     </div>
-                    <MedicalRecordTimeline :records="dossierStore.medicalHistory" />
+                    <MedicalRecordTimeline
+                        :records="dossierStore.medicalHistory"
+                        @edit="openEditConsultationModal"
+                        @prescribe="openPrescriptionFor"
+                    />
                 </div>
 
                 <div v-if="currentTab === 'LABO'">
@@ -150,6 +154,7 @@
 
         <MedicalRecordModal
             v-if="showConsultationModal"
+            :record="editingRecord"
             :appointmentId="consultationAppointmentId"
             :prefilledPatient="patientPrefill"
             @close="closeConsultationModal"
@@ -213,8 +218,20 @@ const currentTab = ref('MEDICAL');
 
 const showConsultationModal = ref(false);
 const consultationAppointmentId = ref(null);
+const editingRecord = ref(null);
 const showPrescriptionModal = ref(false);
 const prescriptionOffer = ref({ visible: false, medicalRecordId: null });
+
+// Une consultation peut venir de 2 sources differentes selon le contexte
+// (Tache 6, chantier triage) : la reponse HTTP normale (record_id, entier
+// reel) ou la table locale PowerSync (offline/juste apres creation), qui
+// n'a que id (uuid local) et server_id (entier une fois synchronise, sinon
+// null). medicalRecordStore.updateMedicalRecord() sait deja resoudre les
+// deux (WHERE id = ? OR server_id = ?) - on reutilise le meme ordre de
+// priorite ici plutot que d'en inventer un nouveau.
+function resolveRecordId(record) {
+    return record?.record_id ?? record?.server_id ?? record?.id ?? null;
+}
 
 const patientPrefill = computed(() => {
     const p = dossierStore.patientSummary;
@@ -229,17 +246,41 @@ const patientPrefill = computed(() => {
 });
 
 function openConsultationModal(appointmentId = null) {
+    editingRecord.value = null;
     consultationAppointmentId.value = appointmentId;
+    showConsultationModal.value = true;
+}
+
+// Reutilise exactement le motif deja etabli par
+// MedicalRecordsList.vue::openEditModal - meme modale, meme store, juste
+// un point d'entree de plus (depuis la timeline du dossier patient au
+// lieu du module Dossiers medicaux separe).
+function openEditConsultationModal(record) {
+    editingRecord.value = record;
+    consultationAppointmentId.value = null;
     showConsultationModal.value = true;
 }
 
 function closeConsultationModal() {
     showConsultationModal.value = false;
     consultationAppointmentId.value = null;
+    editingRecord.value = null;
 }
 
 async function handleConsultationSave(data) {
     try {
+        if (editingRecord.value) {
+            const recordId = resolveRecordId(editingRecord.value);
+            await medicalRecordStore.updateMedicalRecord(recordId, data);
+            if (authStore.hasRole(['medecin', 'nurse'])) {
+                await dossierStore.refreshMedicalHistoryLocal(route.params.id);
+            } else {
+                await dossierStore.refreshMedicalHistory(route.params.id);
+            }
+            closeConsultationModal();
+            return;
+        }
+
         const record = await medicalRecordStore.createMedicalRecord(data);
 
         // medecin/nurse : l'ecriture ci-dessus est locale (Tache 2), un
@@ -279,6 +320,15 @@ async function handleConsultationSave(data) {
     }
 }
 
+// Prescription depuis la timeline, independante de "qui a cree la
+// consultation" - contrairement a prescriptionOffer (proposee seulement
+// juste apres une nouvelle creation), utilisable sur n'importe quelle
+// consultation existante par n'importe qui ayant le droit d'agir ici.
+function openPrescriptionFor(record) {
+    prescriptionOffer.value = { visible: false, medicalRecordId: resolveRecordId(record) };
+    showPrescriptionModal.value = true;
+}
+
 function declinePrescriptionOffer() {
     prescriptionOffer.value = { visible: false, medicalRecordId: null };
 }
@@ -304,13 +354,28 @@ async function handlePrescriptionSave(data) {
     }
 }
 
-onMounted(() => {
+onMounted(async () => {
     const id = route.params.id;
-    if (id) dossierStore.fetchDossierComplete(id);
+    if (id) await dossierStore.fetchDossierComplete(id);
 
     const appointmentId = route.query.appointmentId ? Number(route.query.appointmentId) : null;
     if (appointmentId && canCreateConsultation.value) {
         openConsultationModal(appointmentId);
+        router.replace({ query: {} });
+        return;
+    }
+
+    // Venu de "Prendre en charge" (dashboard medecin, chantier triage) :
+    // on atterrit directement sur la consultation prise en charge plutot
+    // que de laisser le medecin la rechercher dans la timeline.
+    const recordQuery = route.query.record;
+    if (recordQuery && canCreateConsultation.value) {
+        const target = dossierStore.medicalHistory.find(
+            (r) => String(resolveRecordId(r)) === String(recordQuery)
+        );
+        if (target) {
+            openEditConsultationModal(target);
+        }
         router.replace({ query: {} });
     }
 });
