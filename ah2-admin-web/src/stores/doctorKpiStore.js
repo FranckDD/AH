@@ -40,6 +40,7 @@ export const useDoctorKpiStore = defineStore('doctorKpi', () => {
 
     async function claimRecord(recordId) {
         claimError.value = null;
+        let success = true;
         try {
             await api.post(`/medical_records/${recordId}/claim`);
         } catch (err) {
@@ -48,8 +49,10 @@ export const useDoctorKpiStore = defineStore('doctorKpi', () => {
             // l'issue la plus informative pour l'utilisateur (la ligne
             // perimee disparait si quelqu'un d'autre l'a prise).
             claimError.value = err.response?.data?.detail || 'Une erreur est survenue.';
+            success = false;
         }
         await fetchPendingReview();
+        return success;
     }
 
     async function fetchKpiData() {

@@ -95,7 +95,7 @@
             </div>
             <button
               v-if="canClaim"
-              @click="kpiStore.claimRecord(r.record_id)"
+              @click="handleClaim(r)"
               class="px-3 py-1.5 text-xs font-medium rounded-lg bg-teal-600 text-white hover:bg-teal-700 transition"
             >
               {{ t('doctorKpi.claim_button') }}
@@ -148,6 +148,7 @@
 <script setup>
 import { computed, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useRouter } from 'vue-router';
 import { useDoctorKpiStore } from '@/stores/doctorKpiStore';
 import { useAuthStore } from '@/stores/auth';
 import StatCard from '@/components/dashboard/StatCard.vue';
@@ -158,6 +159,7 @@ import {
 } from '@heroicons/vue/24/outline';
 
 const { t } = useI18n();
+const router = useRouter();
 const kpiStore = useDoctorKpiStore();
 const authStore = useAuthStore();
 
@@ -167,6 +169,19 @@ const authStore = useAuthStore();
 // qui n'est pas medecin, meme pattern que
 // NurseShiftsView.vue::canManage / authStore.hasRole().
 const canClaim = computed(() => authStore.hasRole(['medecin']));
+
+// Apres une prise en charge reussie, on redirige vers le dossier
+// consolide du patient (chantier 6) : c'est de la que le medecin met a
+// jour la consultation, ajoute une prescription, etc. - reutilise le
+// flux deja existant plutot que d'en construire un nouveau. En cas
+// d'echec (quelqu'un d'autre a pris le dossier entre-temps), on reste
+// sur le dashboard - le message d'erreur est deja affiche par le store.
+async function handleClaim(record) {
+  const success = await kpiStore.claimRecord(record.record_id);
+  if (success) {
+    router.push(`/medical/patients/${record.patient_id}`);
+  }
+}
 
 const KNOWN_STATUSES = ['pending', 'completed', 'cancelled'];
 

@@ -86,6 +86,8 @@
             >EN</button>
           </div>
 
+          <NotificationBell v-if="authStore.hasRole(['medecin', 'nurse'])" />
+
           <button
             @click="showAccountModal = true"
             class="flex items-center text-gray-600 hover:text-gray-900 text-sm font-medium transition"
@@ -120,6 +122,7 @@ import { useI18n } from 'vue-i18n';
 import { useConfigStore } from '@/stores/configStore';
 import { resolveAssetUrl } from '@/services/api';
 import AccountModal from '@/components/account/AccountModal.vue';
+import NotificationBell from '@/components/notifications/NotificationBell.vue';
 import { useSyncQuarantineCount } from '@/composables/useSyncQuarantineCount';
 
 import {
