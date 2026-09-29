@@ -67,7 +67,7 @@
           <div>
             <h1 class="text-xl font-bold flex items-center gap-2">
               {{ activeDossier.examen_nom }}
-              <span class="text-xs bg-indigo-500 px-2 py-0.5 rounded-sm text-white bg-opacity-50 border border-indigo-400 font-mono">
+              <span class="text-xs bg-indigo-500/50 px-2 py-0.5 rounded-sm text-white border border-indigo-400 font-mono">
                 #{{ activeDossier.code }}
               </span>
             </h1>

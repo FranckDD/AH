@@ -14,7 +14,7 @@
           </div>
         </div>
 
-        <div :class="`p-3 rounded-xl ${colorClass} bg-opacity-10 text-white shadow-inner`">
+        <div :class="`p-3 rounded-xl ${colorClass} text-white shadow-inner`">
           <component :is="icon" :class="`h-8 w-8 ${iconColor}`" aria-hidden="true" />
         </div>
       </div>
@@ -34,7 +34,7 @@ defineProps({
   title: { type: String, required: true },
   value: { type: [String, Number], required: true },
   icon: { type: [Object, Function], required: true },
-  colorClass: { type: String, default: 'bg-blue-500' }, // Fond de l'icône
+  colorClass: { type: String, default: 'bg-blue-500/10' }, // Fond de l'icône
   iconColor: { type: String, default: 'text-blue-600' }, // Couleur de l'icône elle-même
   trend: { type: String, default: null },
   trendIsPositive: { type: Boolean, default: true }
