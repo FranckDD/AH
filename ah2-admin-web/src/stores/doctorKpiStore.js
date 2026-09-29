@@ -5,6 +5,7 @@ import { DoctorKpiGateway } from '@/services/DoctorKpiGateway';
 export const useDoctorKpiStore = defineStore('doctorKpi', () => {
 
     const isLoading = ref(false);
+    const error = ref(null);
 
     const today = new Date();
     const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
@@ -20,31 +21,26 @@ export const useDoctorKpiStore = defineStore('doctorKpi', () => {
         countByStatus: {},
         medicalRecordsCount: 0,
         consultationDistribution: {},
+        prescriptionsCount: 0,
+        hospitalizationsCurrentCount: 0,
     });
 
     async function fetchKpiData() {
         isLoading.value = true;
+        error.value = null;
         try {
-            const dateParams = {
-                start: filters.value.startDate,
-                end: filters.value.endDate,
-            };
-
-            const [totalRes, statusRes, patientsRes, recordsRes, distribRes] = await Promise.all([
-                DoctorKpiGateway.fetchAppointmentsTotal(dateParams),
-                DoctorKpiGateway.fetchAppointmentsByStatus(dateParams),
-                DoctorKpiGateway.fetchDistinctPatients(dateParams),
-                DoctorKpiGateway.fetchMedicalRecordsCount(dateParams),
-                DoctorKpiGateway.fetchConsultationDistribution(dateParams),
-            ]);
-
-            stats.value.totalAppointments = totalRes.data?.total || 0;
-            stats.value.countByStatus = statusRes.data || {};
-            stats.value.distinctPatients = patientsRes.data?.distinct_patients || 0;
-            stats.value.medicalRecordsCount = recordsRes.data?.count || 0;
-            stats.value.consultationDistribution = distribRes.data || {};
-        } catch (error) {
-            console.error('Erreur chargement KPI medecin:', error);
+            const resp = await DoctorKpiGateway.fetchDashboard(filters.value.startDate, filters.value.endDate);
+            const data = resp.data || {};
+            stats.value.totalAppointments = data.total_appointments || 0;
+            stats.value.countByStatus = data.count_by_status || {};
+            stats.value.distinctPatients = data.distinct_patients || 0;
+            stats.value.medicalRecordsCount = data.medical_records_count || 0;
+            stats.value.consultationDistribution = data.consultation_distribution || {};
+            stats.value.prescriptionsCount = data.prescriptions_count || 0;
+            stats.value.hospitalizationsCurrentCount = data.hospitalizations_current_count || 0;
+        } catch (err) {
+            console.error('Erreur chargement tableau de bord medecin:', err);
+            error.value = "Impossible de charger le tableau de bord.";
         } finally {
             isLoading.value = false;
         }
@@ -56,5 +52,5 @@ export const useDoctorKpiStore = defineStore('doctorKpi', () => {
         fetchKpiData();
     }
 
-    return { isLoading, filters, stats, fetchKpiData, setDates };
+    return { isLoading, error, filters, stats, fetchKpiData, setDates };
 });
