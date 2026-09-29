@@ -1,5 +1,5 @@
 <template>
-  <div class="fixed inset-0 bg-gray-900 bg-opacity-60 overflow-y-auto h-full w-full z-50 flex items-center justify-center backdrop-blur-xs" @click.self="$emit('close')">
+  <div class="fixed inset-0 bg-gray-900/60 overflow-y-auto h-full w-full z-50 flex items-center justify-center backdrop-blur-xs" @click.self="$emit('close')">
     
     <div class="relative mx-auto w-full max-w-lg bg-white shadow-xl rounded-2xl border border-gray-200 p-6 transform transition-all">
         

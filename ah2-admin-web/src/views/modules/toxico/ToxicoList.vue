@@ -231,7 +231,7 @@
         @open-dossier="openDossierFromDetails"
     />
 
-    <div v-if="showDischargeConfirm" class="fixed inset-0 bg-gray-900 bg-opacity-60 overflow-y-auto h-full w-full z-50 flex items-center justify-center backdrop-blur-xs">
+    <div v-if="showDischargeConfirm" class="fixed inset-0 bg-gray-900/60 overflow-y-auto h-full w-full z-50 flex items-center justify-center backdrop-blur-xs">
       <div class="relative mx-auto w-full max-w-md bg-white shadow-2xl rounded-2xl border border-gray-200">
         <div class="px-6 py-4 border-b border-gray-100 bg-red-50 rounded-t-2xl">
           <h3 class="text-lg font-bold text-red-800 flex items-center">

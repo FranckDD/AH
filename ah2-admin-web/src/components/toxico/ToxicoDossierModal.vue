@@ -1,5 +1,5 @@
 <template>
-  <div class="fixed inset-0 bg-gray-900 bg-opacity-75 overflow-y-auto h-full w-full z-50 flex items-center justify-center backdrop-blur-xs">
+  <div class="fixed inset-0 bg-gray-900/75 overflow-y-auto h-full w-full z-50 flex items-center justify-center backdrop-blur-xs">
     
     <div class="relative mx-auto w-full max-w-4xl bg-white shadow-2xl rounded-2xl border border-gray-200 flex flex-col max-h-[90vh]">
       

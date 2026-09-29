@@ -201,7 +201,7 @@
                         :label="`Facture ${cancellingTx.transaction_id} — ${formatCurrency(cancellingTx.amount)}`"
                         @close="cancellingTx = null" @confirm="handleCancel" />
 
-    <div v-if="viewingTx" class="fixed inset-0 bg-gray-900 bg-opacity-60 overflow-y-auto h-full w-full z-50 flex items-center justify-center backdrop-blur-xs">
+    <div v-if="viewingTx" class="fixed inset-0 bg-gray-900/60 overflow-y-auto h-full w-full z-50 flex items-center justify-center backdrop-blur-xs">
       <div class="relative mx-auto w-full max-w-2xl bg-white shadow-xl rounded-2xl border border-gray-200 flex flex-col max-h-[90vh]">
         <div class="px-6 py-4 border-b border-gray-100 bg-gray-700 rounded-t-2xl flex justify-between items-center shrink-0">
           <h3 class="text-lg font-bold text-white">{{ t('caisse.actions.view') }} — {{ viewingTx.patient_name || viewingTx.transaction_id }}</h3>

@@ -1,5 +1,5 @@
 <template>
-  <div class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
+  <div class="fixed inset-0 bg-gray-600/50 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
     <div class="relative mx-auto p-6 border w-full max-w-md shadow-xl rounded-2xl bg-white">
       <div class="flex justify-between items-center mb-6">
         <h3 class="text-xl font-bold text-gray-900">{{ t('retrait.modal.title') }}</h3>

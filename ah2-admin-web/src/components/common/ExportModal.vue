@@ -1,5 +1,5 @@
 <template>
-  <div class="fixed inset-0 bg-gray-900 bg-opacity-60 flex items-center justify-center z-50" @click.self="$emit('close')">
+  <div class="fixed inset-0 bg-gray-900/60 flex items-center justify-center z-50" @click.self="$emit('close')">
     <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 space-y-5">
       <div class="flex justify-between items-center">
         <h3 class="text-lg font-bold text-gray-800">{{ title }}</h3>

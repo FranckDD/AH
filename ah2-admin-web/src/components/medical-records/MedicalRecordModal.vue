@@ -1,5 +1,5 @@
 <template>
-  <div class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
+  <div class="fixed inset-0 bg-gray-600/50 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
     <div class="relative mx-auto p-6 border w-full max-w-2xl shadow-xl rounded-2xl bg-white my-8">
 
       <div class="flex justify-between items-center mb-6">
