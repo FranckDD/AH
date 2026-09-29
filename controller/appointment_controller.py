@@ -144,8 +144,12 @@ class AppointmentController:
         if not data or "patient_id" not in data:
             raise ValueError("patient_id manquant")
         
-        # Ensure doctor_id
-        if "doctor_id" not in data or data.get("doctor_id") is None:
+        # Ensure doctor_id - ne retombe sur le createur QUE si la cle est
+        # absente du dict (vrai appelant historique, jamais le nouveau
+        # formulaire web qui envoie toujours la cle, y compris a None pour
+        # "Non assigne" explicite - chantier triage 2026-09-29, voir
+        # commentaire de book_appointment() dans le plan de ce chantier).
+        if "doctor_id" not in data:
             if getattr(self.user, "user_id", None) is not None:
                 data["doctor_id"] = self.user.user_id
         

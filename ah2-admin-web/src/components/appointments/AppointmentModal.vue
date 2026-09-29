@@ -40,6 +40,14 @@
           </select>
         </div>
 
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('appointments.modal.doctor') }}</label>
+          <select v-model="form.doctorId" class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm">
+            <option value="">{{ t('appointments.modal.doctor_unassigned') }}</option>
+            <option v-for="d in doctors" :key="d.user_id" :value="d.user_id">{{ d.full_name }}</option>
+          </select>
+        </div>
+
         <div class="grid grid-cols-2 gap-4">
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('appointments.modal.date') }}</label>
@@ -88,6 +96,7 @@ import { reactive, ref, computed, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useAppointmentStore } from '@/stores/appointmentStore';
 import { db, waitForInitialSync } from '@/powersync-client/client';
+import api from '@/services/api';
 
 const { t } = useI18n();
 const appointmentStore = useAppointmentStore();
@@ -119,7 +128,10 @@ const form = reactive({
   appointmentDate: '',
   appointmentTime: '',
   reason: '',
+  doctorId: '',
 });
+
+const doctors = ref([]);
 
 // Creneaux de 30 min, 08:00-18:30 - port exact de book_appoint_view.py
 // (f"{h:02d}:{m:02d}" for h in range(8, 19) for m in (0, 30))
@@ -189,7 +201,7 @@ async function lookupPatient() {
   }
 }
 
-onMounted(() => {
+onMounted(async () => {
   if (props.appointment) {
     const appt = props.appointment;
     patientId.value = appt.patient_id || null;
@@ -200,8 +212,16 @@ onMounted(() => {
     form.appointmentDate = (appt.appointment_date || '').substring(0, 10);
     form.appointmentTime = (appt.appointment_time || '').substring(0, 5);
     form.reason = appt.reason || '';
+    form.doctorId = appt.doctor_id || '';
   } else if (props.initialDate) {
     form.appointmentDate = props.initialDate;
+  }
+
+  try {
+    const resp = await api.get('/doctor-dashboard/doctors');
+    doctors.value = resp.data || [];
+  } catch (e) {
+    console.error('Erreur chargement liste medecins:', e);
   }
 });
 
@@ -221,6 +241,7 @@ async function handleSubmit() {
     appointmentDate: form.appointmentDate,
     appointmentTime: form.appointmentTime,
     reason: form.reason,
+    doctorId: form.doctorId || null,
   });
 }
 </script>

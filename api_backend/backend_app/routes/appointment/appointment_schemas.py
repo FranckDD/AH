@@ -27,6 +27,12 @@ class AppointmentCreate(BaseModel):
     patient_id: int = Field(..., description="Identifiant du patient")
     appointment_date: date = Field(..., description="Date du rendez-vous")
     appointment_time: time = Field(..., description="Heure du rendez-vous")
+    # Ajoute lors du chantier triage 2026-09-29 : ce champ etait absent du
+    # schema alors que le controller (book_appointment) savait deja gerer
+    # un doctor_id explicite (y compris None pour "Non assigne") - sans
+    # lui, model_dump() n'incluait jamais la cle et Pydantic ignorait
+    # silencieusement tout doctor_id envoye par le payload JSON.
+    doctor_id: Optional[int] = Field(None, description="Medecin assigne (None = non assigne)")
     specialty: Optional[str] = Field(None, description="Spécialité médicale")
     reason: Optional[str] = Field(None, description="Motif / commentaire")
     uuid: Optional[str] = Field(None, description="UUID client (creation hors ligne PowerSync) - si absent, Postgres en genere un")

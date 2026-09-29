@@ -75,6 +75,7 @@ export class DossierConnector {
           case 'appointments:PUT': {
             await AppointmentGateway.createAppointment({
               patientId: op.opData.patient_id,
+              doctorId: op.opData.doctor_id || null,
               specialty: op.opData.specialty,
               appointmentDate: op.opData.appointment_date,
               appointmentTime: op.opData.appointment_time,
@@ -90,7 +91,7 @@ export class DossierConnector {
             // pilote : PowerSync a deja applique l'ecriture locale avant
             // de mettre l'operation en file.
             const current = await database.getOptional(
-              'SELECT server_id, patient_id, specialty, appointment_date, appointment_time, reason FROM appointments WHERE id = ?',
+              'SELECT server_id, patient_id, doctor_id, specialty, appointment_date, appointment_time, reason FROM appointments WHERE id = ?',
               [op.id]
             );
             if (!current?.server_id) {
@@ -99,6 +100,7 @@ export class DossierConnector {
             }
             await AppointmentGateway.updateAppointment(current.server_id, {
               patientId: current.patient_id,
+              doctorId: current.doctor_id || null,
               specialty: current.specialty,
               appointmentDate: current.appointment_date,
               appointmentTime: current.appointment_time,

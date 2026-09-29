@@ -33,6 +33,7 @@ export const AppointmentGateway = {
     async createAppointment(data) {
         const payload = {
             patient_id: data.patientId,
+            doctor_id: data.doctorId || null,
             specialty: data.specialty || null,
             appointment_date: data.appointmentDate,
             appointment_time: data.appointmentTime,
@@ -45,6 +46,7 @@ export const AppointmentGateway = {
     async updateAppointment(appointmentId, data) {
         const payload = {
             patient_id: data.patientId,
+            doctor_id: data.doctorId || null,
             specialty: data.specialty || null,
             appointment_date: data.appointmentDate,
             appointment_time: data.appointmentTime,

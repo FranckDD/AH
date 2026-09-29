@@ -89,18 +89,18 @@ export const useAppointmentStore = defineStore('appointment', () => {
     async function createAppointment(data) {
         const uuid = crypto.randomUUID();
         await db.execute(
-            `INSERT INTO appointments (id, patient_id, specialty, appointment_date, appointment_time, reason, status)
-             VALUES (?, ?, ?, ?, ?, ?, 'pending')`,
-            [uuid, data.patientId, data.specialty || null, data.appointmentDate, data.appointmentTime, data.reason || '']
+            `INSERT INTO appointments (id, patient_id, doctor_id, specialty, appointment_date, appointment_time, reason, status)
+             VALUES (?, ?, ?, ?, ?, ?, ?, 'pending')`,
+            [uuid, data.patientId, data.doctorId || null, data.specialty || null, data.appointmentDate, data.appointmentTime, data.reason || '']
         );
     }
 
     async function updateAppointment(localId, data) {
         await db.execute(
             `UPDATE appointments
-             SET patient_id = ?, specialty = ?, appointment_date = ?, appointment_time = ?, reason = ?
+             SET patient_id = ?, doctor_id = ?, specialty = ?, appointment_date = ?, appointment_time = ?, reason = ?
              WHERE id = ?`,
-            [data.patientId, data.specialty || null, data.appointmentDate, data.appointmentTime, data.reason || '', localId]
+            [data.patientId, data.doctorId || null, data.specialty || null, data.appointmentDate, data.appointmentTime, data.reason || '', localId]
         );
     }
 
