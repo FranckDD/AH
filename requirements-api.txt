@@ -23,10 +23,13 @@ celery==5.6.0
 redis==6.4.0
 supabase==2.25.0
 
-# === Async / travail en cours (non committé sur HEAD) ===
-Flask-Login==0.6.3  # controller/lab_controller.py (WIP, non commite)
-Jinja2==3.1.6  # api_backend/backend_app/utils/pdf_generator.py (WIP, non commite)
-weasyprint==68.1  # api_backend/backend_app/utils/pdf_generator.py (WIP, non commite)
+# === Generation PDF (chantier exports/impressions, 2026-09-23) ===
+# weasyprint necessite des libs systeme (Pango, Cairo, GDK-Pixbuf, libffi) -
+# absentes des images Python de base, a installer explicitement dans le
+# Dockerfile (voir https://doc.courtbouillon.org/weasyprint/stable/first_steps.html#linux).
+Flask-Login==0.6.3  # controller/lab_controller.py
+Jinja2==3.1.6  # api_backend/backend_app/utils/pdf_generator.py, utils/pdf_header.py
+weasyprint==68.1  # api_backend/backend_app/utils/pdf_generator.py, utils/pdf_header.py
 
 # === Tests ===
 pytest==8.4.2
