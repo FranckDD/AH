@@ -77,6 +77,31 @@
         />
       </div>
 
+      <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+        <h2 class="text-sm font-bold text-gray-700 uppercase tracking-wider mb-4">
+          {{ t('doctorKpi.pending_review_title') }}
+        </h2>
+        <div v-if="kpiStore.pendingReview.length === 0" class="text-sm text-gray-400">
+          {{ t('doctorKpi.pending_review_empty') }}
+        </div>
+        <div v-else class="divide-y divide-gray-100">
+          <div v-for="r in kpiStore.pendingReview" :key="r.record_id" class="py-3 flex items-center justify-between">
+            <div>
+              <router-link :to="`/medical/patients/${r.patient_id}`" class="font-medium text-teal-700 hover:underline">
+                {{ r.patient_name }}
+              </router-link>
+              <p class="text-xs text-gray-400">{{ r.motif_code }} — {{ t('doctorKpi.pending_review_by') }} {{ r.created_by_name || '?' }}</p>
+            </div>
+            <button
+              @click="kpiStore.claimRecord(r.record_id)"
+              class="px-3 py-1.5 text-xs font-medium rounded-lg bg-teal-600 text-white hover:bg-teal-700 transition"
+            >
+              {{ t('doctorKpi.claim_button') }}
+            </button>
+          </div>
+        </div>
+      </div>
+
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
           <h2 class="text-sm font-bold text-gray-700 uppercase tracking-wider mb-4">

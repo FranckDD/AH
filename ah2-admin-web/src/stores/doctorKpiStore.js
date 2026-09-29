@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { DoctorKpiGateway } from '@/services/DoctorKpiGateway';
+import api from '@/services/api';
 
 export const useDoctorKpiStore = defineStore('doctorKpi', () => {
 
@@ -25,6 +26,22 @@ export const useDoctorKpiStore = defineStore('doctorKpi', () => {
         hospitalizationsCurrentCount: 0,
     });
 
+    const pendingReview = ref([]);
+
+    async function fetchPendingReview() {
+        try {
+            const resp = await api.get('/medical_records/pending-review');
+            pendingReview.value = resp.data || [];
+        } catch (err) {
+            console.error('Erreur chargement patients en attente:', err);
+        }
+    }
+
+    async function claimRecord(recordId) {
+        await api.post(`/medical_records/${recordId}/claim`);
+        await fetchPendingReview();
+    }
+
     async function fetchKpiData() {
         isLoading.value = true;
         error.value = null;
@@ -44,6 +61,7 @@ export const useDoctorKpiStore = defineStore('doctorKpi', () => {
         } finally {
             isLoading.value = false;
         }
+        await fetchPendingReview();
     }
 
     function setDates(start, end) {
@@ -52,5 +70,5 @@ export const useDoctorKpiStore = defineStore('doctorKpi', () => {
         fetchKpiData();
     }
 
-    return { isLoading, error, filters, stats, fetchKpiData, setDates };
+    return { isLoading, error, filters, stats, pendingReview, fetchKpiData, setDates, fetchPendingReview, claimRecord };
 });

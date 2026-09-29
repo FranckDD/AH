@@ -386,7 +386,11 @@ const messages = {
       by_motif: "Dossiers médicaux par motif",
       no_data: "Aucune donnée pour cette période.",
       prescriptions_total: "Prescriptions (période)",
-      hospitalizations_current: "Séjours en cours (établissement)"
+      hospitalizations_current: "Séjours en cours (établissement)",
+      pending_review_title: "Patients en attente",
+      pending_review_empty: "Aucun patient en attente.",
+      pending_review_by: "signalé par",
+      claim_button: "Prendre en charge"
     },
     secretariat: {
       title: "Secrétariat",
@@ -1405,7 +1409,11 @@ const messages = {
       by_motif: "Medical records by reason",
       no_data: "No data for this period.",
       prescriptions_total: "Prescriptions (period)",
-      hospitalizations_current: "Current stays (establishment)"
+      hospitalizations_current: "Current stays (establishment)",
+      pending_review_title: "Patients awaiting review",
+      pending_review_empty: "No patient waiting.",
+      pending_review_by: "flagged by",
+      claim_button: "Take in charge"
     },
     secretariat: {
       title: "Secretary",
