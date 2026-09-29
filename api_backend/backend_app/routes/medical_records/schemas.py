@@ -33,6 +33,8 @@ class MedicalRecordCreate(MedicalRecordBase):
     patient_uuid: Optional[str] = Field(None, description="UUID du patient cree hors ligne (resolu en patient_id cote serveur)")
     consultation_date: Optional[datetime] = None  # server_default possible
     uuid: Optional[str] = Field(None, description="UUID client (creation hors ligne PowerSync) - si absent, Postgres en genere un")
+    needs_doctor_review: Optional[bool] = False
+    assigned_doctor_id: Optional[int] = None
 
 
 class MedicalRecordUpdate(BaseModel):
@@ -114,3 +116,15 @@ class MedicalRecordResponse(MedicalRecordBase):
         if v is None:
             return v
         return str(v).strip().lower()
+
+
+class PendingReviewRecordOut(BaseModel):
+    record_id: int
+    patient_id: int
+    patient_name: str
+    motif_code: str
+    consultation_date: Optional[str] = None
+    created_by_name: Optional[str] = None
+    assigned_doctor_id: Optional[int] = None
+
+    model_config = {"from_attributes": True}

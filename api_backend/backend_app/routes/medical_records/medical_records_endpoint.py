@@ -9,7 +9,7 @@ from datetime import date
 from fastapi.responses import JSONResponse
 
 from .mapping import normalize_medical_record_data
-from .schemas import MedicalRecordCreate, MedicalRecordUpdate, MedicalRecordResponse,PaginatedResponse
+from .schemas import MedicalRecordCreate, MedicalRecordUpdate, MedicalRecordResponse,PaginatedResponse, PendingReviewRecordOut
 from api_backend.backend_app.utils.patient_resolution import resolve_patient_id
 from ...database import SessionLocal
 from controller.auth_controller import AuthController
@@ -294,6 +294,38 @@ def kpi_count_consultations(period: str = Query("day", regex="^(day|week)$"), me
         logger.exception("Erreur DB kpi_count_consultations")
         raise HTTPException(status_code=500, detail="Erreur serveur lors du calcul KPI")
     
+
+@router.get("/pending-review", response_model=list[PendingReviewRecordOut])
+def get_pending_review(medical_ctrl: MedicalRecordController = Depends(get_medical_controller)):
+    records = medical_ctrl.list_pending_review()
+    out = []
+    for r in records:
+        patient = getattr(r, "patient", None)
+        patient_name = f"{getattr(patient, 'first_name', '') or ''} {getattr(patient, 'last_name', '') or ''}".strip() or "Patient" if patient else "Patient"
+        out.append(PendingReviewRecordOut(
+            record_id=r.record_id,
+            patient_id=r.patient_id,
+            patient_name=patient_name,
+            motif_code=r.motif_code,
+            consultation_date=r.consultation_date.isoformat() if r.consultation_date else None,
+            created_by_name=r.created_by_name,
+            assigned_doctor_id=r.assigned_doctor_id,
+        ))
+    return out
+
+
+@router.post("/{record_id}/claim", response_model=MedicalRecordResponse)
+def claim_record(record_id: int, medical_ctrl: MedicalRecordController = Depends(get_medical_controller)):
+    try:
+        record = medical_ctrl.claim_review(record_id)
+        return MedicalRecordResponse.model_validate(normalize_medical_record_data(record))
+    except PermissionError as pe:
+        raise HTTPException(status_code=403, detail=str(pe))
+    except ValueError as ve:
+        if "introuvable" in str(ve):
+            raise HTTPException(status_code=404, detail=str(ve))
+        raise HTTPException(status_code=409, detail=str(ve))
+
 
 @router.get("/{record_id}", response_model=MedicalRecordResponse)
 def get_record(record_id: int, medical_ctrl: MedicalRecordController = Depends(get_medical_controller)):
