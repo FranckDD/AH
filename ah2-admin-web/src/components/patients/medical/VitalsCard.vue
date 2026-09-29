@@ -20,7 +20,7 @@
       </p>
     </div>
 
-    <div :class="`p-3 rounded-xl ${colorClass} bg-opacity-10 flex items-center justify-center`">
+    <div :class="`p-3 rounded-xl ${colorClass} flex items-center justify-center`">
       <component 
         :is="icon" 
         :class="`h-6 w-6 ${iconColor}`" 
@@ -38,7 +38,7 @@ defineProps({
   unit: { type: String, default: '' }, // Ex: 'kg', 'mmHg', '°C'
   date: { type: String, default: null }, // Ex: 'Il y a 2 jours'
   icon: { type: [Object, Function], required: true }, // Support Heroicons v1 & v2
-  colorClass: { type: String, default: 'bg-emerald-500' },
+  colorClass: { type: String, default: 'bg-emerald-500/10' },
   iconColor: { type: String, default: 'text-emerald-600' }
 });
 </script>

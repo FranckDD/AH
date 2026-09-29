@@ -19,9 +19,9 @@
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 px-1">
-            <VitalsCard :label="t('medical.vitals.bp')" :value="dossierStore.vitals.bp" unit="mmHg" :icon="HeartIcon" colorClass="bg-rose-500" iconColor="text-rose-600" :date="dossierStore.vitals.lastDate" />
-            <VitalsCard :label="t('medical.vitals.weight')" :value="dossierStore.patientSummary?.last_weight" unit="kg" :icon="ScaleIcon" colorClass="bg-blue-500" iconColor="text-blue-600" />
-            <VitalsCard :label="t('medical.vitals.temperature')" :value="dossierStore.patientSummary?.last_temp" unit="°C" :icon="FireIcon" colorClass="bg-orange-500" iconColor="text-orange-600" />
+            <VitalsCard :label="t('medical.vitals.bp')" :value="dossierStore.vitals.bp" unit="mmHg" :icon="HeartIcon" colorClass="bg-rose-500/10" iconColor="text-rose-600" :date="dossierStore.vitals.lastDate" />
+            <VitalsCard :label="t('medical.vitals.weight')" :value="dossierStore.patientSummary?.last_weight" unit="kg" :icon="ScaleIcon" colorClass="bg-blue-500/10" iconColor="text-blue-600" />
+            <VitalsCard :label="t('medical.vitals.temperature')" :value="dossierStore.patientSummary?.last_temp" unit="°C" :icon="FireIcon" colorClass="bg-orange-500/10" iconColor="text-orange-600" />
 
             <div class="bg-red-50 p-4 rounded-xl border border-red-100 flex items-start shadow-xs">
                 <ExclamationTriangleIcon class="h-6 w-6 text-red-600 mr-3 mt-1 shrink-0" />
