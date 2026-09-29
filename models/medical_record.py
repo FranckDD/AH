@@ -1,6 +1,6 @@
 # models/medical_record.py
 import uuid
-from sqlalchemy import Column, Integer, String, Numeric, DateTime, Text, ForeignKey
+from sqlalchemy import Column, Integer, String, Numeric, DateTime, Text, ForeignKey, Boolean
 from sqlalchemy.sql import func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
@@ -34,7 +34,14 @@ class MedicalRecord(Base):
     last_updated_by_name = Column(String(100))
     uuid = Column(UUID(as_uuid=True), unique=True, nullable=False, default=uuid.uuid4)
 
+    needs_doctor_review = Column(Boolean, nullable=False, default=False, server_default="false")
+    assigned_doctor_id = Column(Integer, ForeignKey('users.user_id'))
+    reviewed_by = Column(Integer, ForeignKey('users.user_id'))
+    reviewed_at = Column(DateTime)
+
     # Relation vers Patient
     patient            = relationship("Patient", back_populates="medical_records")
+    assigned_doctor = relationship("User", foreign_keys=[assigned_doctor_id])
+    reviewed_by_user = relationship("User", foreign_keys=[reviewed_by])
     appointment        = relationship("Appointment")
     prescriptions = relationship("Prescription", back_populates="medical_record", cascade="all, delete-orphan")

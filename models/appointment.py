@@ -16,8 +16,7 @@ class Appointment(Base):
     )
     doctor_id = Column(
         Integer,
-        ForeignKey('users.user_id', ondelete='CASCADE'),
-        nullable=False
+        ForeignKey('users.user_id', ondelete='CASCADE')
     )
     specialty = Column(String(100))
     appointment_date = Column(Date, nullable=False)

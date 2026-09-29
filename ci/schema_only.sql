@@ -1273,7 +1273,7 @@ ALTER SEQUENCE public.application_roles_role_id_seq OWNED BY public.application_
 CREATE TABLE public.appointments (
     id integer NOT NULL,
     patient_id integer NOT NULL,
-    doctor_id integer NOT NULL,
+    doctor_id integer,
     specialty character varying(100),
     appointment_date date NOT NULL,
     appointment_time time without time zone NOT NULL,
@@ -1985,6 +1985,10 @@ CREATE TABLE public.medical_records (
     last_updated_by_name character varying(100),
     uuid uuid DEFAULT gen_random_uuid() NOT NULL,
     appointment_id integer,
+    needs_doctor_review boolean DEFAULT false NOT NULL,
+    assigned_doctor_id integer,
+    reviewed_by integer,
+    reviewed_at timestamp without time zone,
     CONSTRAINT medical_records_motif_code_check CHECK (((motif_code)::text = ANY (ARRAY[('consultation'::character varying)::text, ('appointment'::character varying)::text, ('prenatal'::character varying)::text, ('hospitalization'::character varying)::text, ('emergency'::character varying)::text, ('free'::character varying)::text]))),
     CONSTRAINT medical_records_severity_check CHECK (((severity)::text = ANY (ARRAY[('low'::character varying)::text, ('medium'::character varying)::text, ('high'::character varying)::text])))
 );
@@ -4028,6 +4032,13 @@ CREATE UNIQUE INDEX ix_lab_results_uuid ON public.lab_results USING btree (uuid)
 
 
 --
+-- Name: ix_medical_records_pending_review; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_medical_records_pending_review ON public.medical_records USING btree (needs_doctor_review, reviewed_at) WHERE ((needs_doctor_review = true) AND (reviewed_at IS NULL));
+
+
+--
 -- Name: ix_notifications_recipient_status; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -4539,6 +4550,14 @@ ALTER TABLE ONLY public.medical_records
 
 
 --
+-- Name: medical_records medical_records_assigned_doctor_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.medical_records
+    ADD CONSTRAINT medical_records_assigned_doctor_id_fkey FOREIGN KEY (assigned_doctor_id) REFERENCES public.users(user_id);
+
+
+--
 -- Name: medical_records medical_records_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4560,6 +4579,14 @@ ALTER TABLE ONLY public.medical_records
 
 ALTER TABLE ONLY public.medical_records
     ADD CONSTRAINT medical_records_patient_id_fkey FOREIGN KEY (patient_id) REFERENCES public.patients(patient_id);
+
+
+--
+-- Name: medical_records medical_records_reviewed_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.medical_records
+    ADD CONSTRAINT medical_records_reviewed_by_fkey FOREIGN KEY (reviewed_by) REFERENCES public.users(user_id);
 
 
 --
