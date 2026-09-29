@@ -8,7 +8,7 @@ import pytest
 from sqlalchemy import event
 from sqlalchemy.orm import Session
 from fastapi.testclient import TestClient
-from datetime import date
+from datetime import date, time
 
 from api_backend.backend_app.database import engine
 from api_backend.backend_app.main import app
@@ -220,6 +220,83 @@ def create_test_prescription(session, patient_id, current_user, **overrides):
     repo.create(data)
     _flush_redis_cache()
     return data
+
+
+def create_test_appointment(session, current_user, patient_id, **overrides):
+    """
+    Cree un RDV ephemere en appelant directement AppointmentRepository.create()
+    (ORM simple, pas de procedure stockee), dans la transaction de test.
+    Meme motif que create_test_transaction : le repo fait un commit()
+    interne, sans risque, la fixture db_session relance la SAVEPOINT.
+
+    patient_id est un entier simple (create_test_patient renvoie un tuple
+    (patient_id, code_patient) - deballer avant d'appeler ce helper, ex :
+    patient_id, _ = create_test_patient(db_session, medecin)).
+    """
+    from repositories.appointment_repo import AppointmentRepository
+
+    data = {
+        "patient_id": patient_id,
+        "doctor_id": getattr(current_user, "user_id", None),
+        "appointment_date": date.today(),
+        "appointment_time": time(9, 0),
+        "reason": "Controle de routine",
+        "status": "pending",
+        **overrides,
+    }
+    repo = AppointmentRepository(session)
+    return repo.create(data)
+
+
+def create_test_medical_record(session, current_user, patient_id, **overrides):
+    """
+    Cree un dossier medical ephemere via MedicalRecordController.create_record()
+    plutot que MedicalRecordRepository.create() directement : le controller
+    pose created_by/created_by_name depuis current_user (comportement
+    corrige le 2026-09-28, voir SUIVI-AVANCEMENT.md), reproduisant
+    fidelement le chemin de creation reel de l'application.
+
+    patient_id est un entier simple (voir create_test_appointment ci-dessus
+    pour la note sur create_test_patient).
+
+    NOTE (correction appliquee) : le brief d'origine ne fournissait que
+    patient_id/motif_code/diagnosis. MedicalRecordRepository.create()
+    appelle CALL public.create_medical_record(...) avec une liste fixe
+    de parametres nommes (marital_status, bp, temperature, weight,
+    height, medical_history, allergies, symptoms, treatment, severity,
+    notes, en plus de diagnosis/motif_code) - seuls created_by/
+    created_by_name/last_updated_by/last_updated_by_name/appointment_id/
+    uuid ont un setdefault(None) cote repo. Sans ces cles explicitement
+    presentes dans `data`, session.execute() leve
+    sqlalchemy.exc.InvalidRequestError ("A value is required for bind
+    parameter 'marital_status'") - verifie empiriquement en ecrivant ce
+    helper. Le vrai chemin HTTP (POST /medical_records/) ne rencontre
+    jamais ce probleme car MedicalRecordCreate (schemas.py) declare tous
+    ces champs Optional[...] = None, donc .dict() les fournit toujours.
+    """
+    from controller.medical_controller import MedicalRecordController
+    from repositories.medical_repo import MedicalRecordRepository
+
+    data = {
+        "patient_id": patient_id,
+        "motif_code": "consultation",
+        "diagnosis": "RAS",
+        "marital_status": None,
+        "bp": None,
+        "temperature": None,
+        "weight": None,
+        "height": None,
+        "medical_history": None,
+        "allergies": None,
+        "symptoms": None,
+        "treatment": None,
+        "severity": None,
+        "notes": None,
+        **overrides,
+    }
+    repo = MedicalRecordRepository(session)
+    ctrl = MedicalRecordController(repo=repo, current_user=current_user)
+    ctrl.create_record(data)
 
 
 def create_test_transaction(session, current_user, **overrides):
