@@ -9,6 +9,7 @@ from api_backend.backend_app.routes.appointment import appointment_endpoints
 from api_backend.backend_app.routes.medical_records import medical_records_endpoint
 from api_backend.backend_app.routes.prescription import prescriptions_endpoints
 from api_backend.backend_app.routes.hospitalizations import hospitalization_endpoint
+from api_backend.backend_app.routes.doctor_dashboard import doctor_dashboard_endpoint
 from tests.conftest import (
     create_test_user,
     create_test_patient,
@@ -166,3 +167,22 @@ def test_dashboard_uses_cache_scoped_by_doctor_and_range(db_session, api_client)
     other_end = (date.today() - timedelta(days=358)).isoformat()
     other_range = client.get(f"/doctor-dashboard/kpi?start={other_start}&end={other_end}", headers=headers)
     assert other_range.json()["total_appointments"] == 0
+
+
+def test_list_doctors_returns_only_medecin_role(db_session, api_client):
+    # NOTE : n'utilise pas _client() ci-dessus - cette route ne depend
+    # que de son propre get_db() (nouvellement ajoute a
+    # doctor_dashboard_endpoint), pas des 4 sous-controllers. Il faut
+    # explicitement overrider doctor_dashboard_endpoint.get_db pour que
+    # la route voie les donnees flush (non committees) de db_session -
+    # meme raison que documentee dans _client() plus haut.
+    medecin = create_test_user(db_session, "triage_ep_medecin_list", "medecin", password=TEST_PASSWORD)
+    create_test_user(db_session, "triage_ep_nurse_list", "nurse", password=TEST_PASSWORD)
+    client = api_client(auth_endpoints, doctor_dashboard_endpoint)
+    headers = auth_headers(client, "triage_ep_medecin_list", TEST_PASSWORD)
+
+    resp = client.get("/doctor-dashboard/doctors", headers=headers)
+
+    assert resp.status_code == 200
+    user_ids = [d["user_id"] for d in resp.json()]
+    assert medecin.user_id in user_ids
