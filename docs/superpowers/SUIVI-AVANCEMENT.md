@@ -1,6 +1,6 @@
 # Suivi d'avancement — AH2 / Glostone-Kare
 
-**Dernière mise à jour :** 2026-09-29 (tableau de bord médecin/infirmier — vrai backend dédié — livré et poussé sur `AH2_V3-1`)
+**Dernière mise à jour :** 2026-09-29 (triage infirmière → médecin + assignation RDV livrés et poussés sur `AH2_V3-1`)
 **But de ce document :** état d'avancement des chantiers de remise en service et de sécurisation, et registre des découvertes faites en cours de route mais non encore traitées. Pour le contexte général du projet, voir `docs/superpowers/CONTEXTE-PROJET.md`. Pour le détail d'un chantier, voir les fichiers correspondants dans `docs/superpowers/specs/` et `docs/superpowers/plans/`.
 
 ## Feuille de route
@@ -1055,3 +1055,22 @@ Ferme au passage le gap du registre I1 : `PrescriptionController.count_prescript
 3. (Revue finale) `DoctorDashboardController` mettait en cache Redis un résultat dégradé (0/{} d'une source en échec transitoire) pendant les 5 minutes complètes — un médecin rafraîchissant la page pendant cette fenêtre continuait à voir un faux zéro, à l'encontre de l'intention même de la dégradation par carte. Corrigé (suivi de dégradation par attribut d'instance, écriture cache sautée si dégradation). Corrigé au passage : `breakdown_by_motif_for_doctor` (répartition par motif) et `count_records_for_doctor` (total) utilisaient des bornes de date incohérentes (`func.date()` sur l'un, timestamp brut sur l'autre) — défaut pré-existant, invisible jusqu'à ce que ce nouveau tableau de bord affiche les deux chiffres côte à côte.
 
 Vérifié : 373 passing sur la suite complète après le correctif final (mêmes 9 échecs pré-existants documentés, aucune régression). Build frontend production : succès. Poussé sur `origin/AH2_V3-1`.
+
+### Triage infirmière → médecin + assignation RDV (2026-09-29) — ✅ clos
+
+Spec : `2026-09-29-triage-infirmiere-medecin-design.md` · Plan : `2026-09-29-triage-infirmiere-medecin.md`. Exécuté en développement piloté par sous-agents (9 tâches + 1 revue finale + 1 correctif consolidé).
+
+Signalé juste après la livraison du tableau de bord médecin/infirmier : une consultation ou un RDV enregistrés par une infirmière n'apparaissaient sur le dashboard d'aucun médecin. Vérifié avant toute proposition : pas un bug du chantier précédent — `created_by`/`doctor_id` étaient posés sur qui **enregistre**, pas sur qui **traite**, et `AppointmentModal.vue` n'avait tout simplement aucun sélecteur de médecin. Décision utilisateur importante pour le design : anticiper plusieurs médecins à l'avenir (le centre n'en a qu'un aujourd'hui), donc file d'attente partagée + mécanisme de prise en charge plutôt qu'une assignation figée.
+
+**Livré** : 4 nouveaux champs sur `medical_records` (`needs_doctor_review`, `assigned_doctor_id` nullable — fondation du mécanisme de file partagée, `reviewed_by`, `reviewed_at`), `appointments.doctor_id` rendu nullable ; case "à transmettre au médecin" + sélecteur de médecin (ou file d'attente) sur le formulaire de dossier médical ; notification au médecin assigné (système générique déjà existant) ; nouvelle section "Patients en attente" + bouton "Prendre en charge" sur le dashboard médecin ; vrai sélecteur de médecin sur le formulaire RDV, avec option "Non assigné".
+
+**Complication réelle trouvée en creusant l'implémentation, avant même d'écrire le plan** : la création de dossier médical et de RDV ne passe pas par l'API directement — elle écrit d'abord en local (PowerSync SQLite), synchronisé en arrière-plan. A nécessité d'étendre le schéma local, le connecteur de synchronisation et le gateway pour chacun des deux domaines, en plus du backend — zone déjà signalée comme sensible lors du chantier PowerSync d'origine.
+
+**3 défauts réels trouvés et corrigés en cours de route, invisibles aux revues par tâche précédentes** :
+1. (Task 3) Le plan supposait `self.patient_ctrl.repo.get(...)` — cette méthode n'existe pas sur `PatientRepository` (seul `get_by_id()`, qui renvoie un dict). Corrigé en `get_patient()` + accès dict, motif déjà établi ailleurs dans le même fichier.
+2. (Task 8, le plus structurant) Le contrôleur `book_appointment()` avait bien un correctif du repli automatique vers le créateur, mais **le schéma `AppointmentCreate` n'avait tout simplement aucun champ `doctor_id`** — Pydantic élimine silencieusement les clés JSON non déclarées, donc le correctif du contrôleur seul aurait été sans effet : le choix du sélecteur n'aurait jamais atteint le contrôleur. Champ ajouté, tracé de bout en bout (création ET modification, RDV comme dossier médical) jusqu'au backend.
+3. (Revue finale, **Critical**) `get_medical_controller()` (l'injection de dépendance réellement utilisée par toutes les requêtes HTTP) n'avait jamais été mise à jour pour passer `notification_repo` au contrôleur — la notification "patient en attente" ne partait donc **jamais** en production, alors que les tests unitaires de la Task 3 passaient (ils construisent le contrôleur à la main avec un vrai `NotificationRepository`). Corrigé + nouveau test de bout en bout par vrai appel HTTP vérifiant qu'une ligne `Notification` existe réellement après coup — c'est exactement le genre de trou qu'un test unitaire de contrôleur ne peut pas voir.
+
+**2 défauts supplémentaires trouvés par la même revue finale, corrigés dans le même correctif** : `claim()` (prise en charge) n'était pas atomique — deux médecins cliquant en même temps pouvaient tous les deux passer la vérification avant que l'un des deux ne committe, le second écrasant silencieusement le premier sans erreur — corrigé en une seule requête `UPDATE` conditionnelle atomique (le centre n'a qu'un médecin aujourd'hui, mais la conception devait anticiper plusieurs médecins concurrents) ; le bouton "Prendre en charge" était visible pour `nurse`, toujours refusé côté serveur (403) sans aucun message.
+
+Vérifié : 397 passing sur la suite complète après le correctif final (mêmes 9 échecs pré-existants documentés, aucune régression). Build frontend production : succès. Poussé sur `origin/AH2_V3-1`.
