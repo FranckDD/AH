@@ -124,6 +124,7 @@ import { useSyncQuarantineCount } from '@/composables/useSyncQuarantineCount';
 
 import {
   CalendarIcon,
+  CalendarDaysIcon,
   TagIcon,
   HeartIcon,
   UserGroupIcon,
@@ -180,6 +181,11 @@ const menuItems = [
     path: '/medical/hospitalizations',
     labelKey: 'hospitalization.title',
     icon: BuildingOffice2Icon,
+  },
+  {
+    path: '/medical/nurse-shifts',
+    labelKey: 'nurseShift.title',
+    icon: CalendarDaysIcon,
   },
   {
     path: '/medical/lab-results',

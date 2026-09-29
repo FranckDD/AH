@@ -195,6 +195,11 @@ def get_me(current_user=Depends(get_current_user)):
         "full_name": getattr(current_user, "full_name", None),
         "email": getattr(current_user, "email", None),
         "contact": getattr(current_user, "contact", None),
+        # Chantier planning-rotation-infirmiers (Task 10) : le front (authStore.user)
+        # est peuple directement depuis ce dict, pas depuis UserOut/normalize_user_data
+        # (Task 6) - il faut donc exposer explicitement is_head_nurse ici pour que le
+        # garde d'ecriture NurseShiftsView.vue::canManage fonctionne.
+        "is_head_nurse": bool(getattr(current_user, "is_head_nurse", False)),
         "application_role": {
             "id": getattr(current_user.application_role, "id", None),
             "role_name": getattr(current_user.application_role, "role_name", None),

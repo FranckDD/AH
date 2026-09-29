@@ -326,6 +326,15 @@ const routes = [
         }
       },
       {
+        path: 'nurse-shifts',
+        name: 'medical-nurse-shifts',
+        component: () => import('@/views/modules/nurseshift/NurseShiftsView.vue'),
+        meta: {
+          requiresAuth: true,
+          roles: [ROLES.MEDECIN, ROLES.NURSE]
+        }
+      },
+      {
         path: 'lab-results',
         name: 'medical-lab-results',
         component: () => import('@/views/modules/labo/MedicalLabResults.vue'),
