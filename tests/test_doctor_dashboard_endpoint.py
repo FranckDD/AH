@@ -36,6 +36,14 @@ def _client(api_client):
     # create_test_* (flush/commit dans la transaction de test, jamais
     # commit externe) seraient invisibles (isolation READ COMMITTED),
     # et tous les compteurs reviendraient a 0.
+    #
+    # ADDENDUM (triage nurse->medecin, tache 4) : doctor_dashboard_endpoint
+    # a DESORMAIS son propre get_db() (ajoute dans cette tache, utilise par
+    # la route /doctor-dashboard/doctors) - mais il n'est PAS dans la liste
+    # d'overrides ci-dessous, qui reste inchangee volontairement. Un test
+    # ayant besoin de ce get_db() doit passer doctor_dashboard_endpoint
+    # explicitement a api_client(...) lui-meme plutot que de passer par
+    # _client() - voir test_list_doctors_returns_only_medecin_role plus bas.
     return api_client(
         auth_endpoints,
         appointment_endpoints,
@@ -177,7 +185,7 @@ def test_list_doctors_returns_only_medecin_role(db_session, api_client):
     # la route voie les donnees flush (non committees) de db_session -
     # meme raison que documentee dans _client() plus haut.
     medecin = create_test_user(db_session, "triage_ep_medecin_list", "medecin", password=TEST_PASSWORD)
-    create_test_user(db_session, "triage_ep_nurse_list", "nurse", password=TEST_PASSWORD)
+    nurse = create_test_user(db_session, "triage_ep_nurse_list", "nurse", password=TEST_PASSWORD)
     client = api_client(auth_endpoints, doctor_dashboard_endpoint)
     headers = auth_headers(client, "triage_ep_medecin_list", TEST_PASSWORD)
 
@@ -186,3 +194,4 @@ def test_list_doctors_returns_only_medecin_role(db_session, api_client):
     assert resp.status_code == 200
     user_ids = [d["user_id"] for d in resp.json()]
     assert medecin.user_id in user_ids
+    assert nurse.user_id not in user_ids
