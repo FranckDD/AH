@@ -1,7 +1,7 @@
 <template>
   <div class="space-y-6 w-full">
     
-    <div class="flex flex-col md:flex-row justify-between items-center bg-white p-6 rounded-2xl shadow-sm border border-gray-100 gap-4">
+    <div class="flex flex-col md:flex-row justify-between items-center bg-white p-6 rounded-2xl shadow-xs border border-gray-100 gap-4">
       <div>
         <h1 class="text-2xl font-extrabold text-gray-800 tracking-tight">
           {{ t('stock.title') }}
@@ -18,7 +18,7 @@
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-5 gap-6">
-        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+        <div class="bg-white p-6 rounded-2xl shadow-xs border border-gray-100">
             <p class="text-xs font-bold text-gray-500 uppercase">
                 {{ isFiltered ? 'VALEUR (SÉLECTION)' : t('stock.kpi.total_value') }}
             </p>
@@ -27,28 +27,28 @@
             </p>
         </div>
 
-        <div class="bg-blue-50 p-6 rounded-2xl shadow-sm border border-blue-100">
+        <div class="bg-blue-50 p-6 rounded-2xl shadow-xs border border-blue-100">
             <p class="text-xs font-bold text-blue-600 uppercase">{{ t('stock.kpi.pharma_items') }}</p>
             <p class="text-3xl font-bold text-blue-900 mt-2">{{ stockStore.stats.countPharma }}</p>
         </div>
 
-        <div class="bg-green-50 p-6 rounded-2xl shadow-sm border border-green-100">
+        <div class="bg-green-50 p-6 rounded-2xl shadow-xs border border-green-100">
             <p class="text-xs font-bold text-green-600 uppercase">{{ t('stock.kpi.natural_items') }}</p>
             <p class="text-3xl font-bold text-green-900 mt-2">{{ stockStore.stats.countNatural }}</p>
         </div>
 
-        <div class="bg-red-50 p-6 rounded-2xl shadow-sm border border-red-100">
+        <div class="bg-red-50 p-6 rounded-2xl shadow-xs border border-red-100">
             <p class="text-xs font-bold text-red-600 uppercase">{{ t('stock.kpi.low_stock') }}</p>
             <p class="text-3xl font-bold text-red-900 mt-2">{{ stockStore.stats.lowStockAlerts }}</p>
         </div>
 
-        <div class="bg-purple-50 p-6 rounded-2xl shadow-sm border border-purple-100">
+        <div class="bg-purple-50 p-6 rounded-2xl shadow-xs border border-purple-100">
             <p class="text-xs font-bold text-purple-600 uppercase">PÉRIMÉS</p>
             <p class="text-3xl font-bold text-purple-900 mt-2">{{ stockStore.stats.expiredCount }}</p>
         </div>
     </div>
 
-    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+    <div class="bg-white rounded-2xl shadow-xs border border-gray-100 overflow-hidden">
         <div class="p-4 border-b border-gray-100 flex flex-wrap gap-4 items-center justify-between">
             <div class="relative w-full md:w-64">
                 <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -65,7 +65,7 @@
             </div>
             
             <div class="flex items-center gap-2">
-                <select v-model="categoryFilter" class="block w-full md:w-48 pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm rounded-lg">
+                <select v-model="categoryFilter" class="block w-full md:w-48 pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-hidden focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm rounded-lg">
                     <option value="ALL">Toutes Catégories</option>
                     <option value="PHARMA">{{ t('stock.categories.PHARMA') }}</option>
                     <option value="NATUREL">{{ t('stock.categories.NATUREL') }}</option>
@@ -116,7 +116,7 @@
                                 <span class="font-bold mr-2" :class="prod.quantity <= prod.minThreshold ? 'text-red-600' : 'text-gray-900'">
                                     {{ prod.quantity }}
                                 </span>
-                                <span v-if="prod.quantity <= prod.minThreshold" class="bg-red-100 text-red-700 text-[10px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wide animate-pulse">
+                                <span v-if="prod.quantity <= prod.minThreshold" class="bg-red-100 text-red-700 text-[10px] px-1.5 py-0.5 rounded-sm font-bold uppercase tracking-wide animate-pulse">
                                     BAS
                                 </span>
                             </div>
@@ -128,7 +128,7 @@
                             <button @click="openModal(prod)" class="text-indigo-600 hover:text-indigo-900 bg-indigo-50 p-1.5 rounded-lg transition">
                                 <PencilSquareIcon class="h-4 w-4" />
                             </button>
-                            <button v-if="getExpiryStatus(prod.expiryDate) === 'EXPIRED' && prod.quantity > 0" @click="handleDispose(prod)" class="text-white bg-red-600 hover:bg-red-700 p-1.5 rounded-lg transition shadow-sm" :title="t('stock.actions.dispose')">
+                            <button v-if="getExpiryStatus(prod.expiryDate) === 'EXPIRED' && prod.quantity > 0" @click="handleDispose(prod)" class="text-white bg-red-600 hover:bg-red-700 p-1.5 rounded-lg transition shadow-xs" :title="t('stock.actions.dispose')">
                                 <ArchiveBoxXMarkIcon class="h-4 w-4" /> 
                             </button>
                             <button @click="confirmDelete(prod)" class="text-red-400 hover:text-red-600 p-1.5 rounded-lg transition">
@@ -150,10 +150,10 @@
                 Page {{ stockStore.pagination.page }} sur {{ stockStore.pagination.total_pages }}
             </p>
             <div class="flex space-x-2">
-                <button @click="goToPage(stockStore.pagination.page - 1)" :disabled="stockStore.pagination.page === 1" class="px-3 py-1 border rounded bg-white disabled:opacity-50">
+                <button @click="goToPage(stockStore.pagination.page - 1)" :disabled="stockStore.pagination.page === 1" class="px-3 py-1 border rounded-sm bg-white disabled:opacity-50">
                     <ChevronLeftIcon class="h-5 w-5" />
                 </button>
-                <button @click="goToPage(stockStore.pagination.page + 1)" :disabled="stockStore.pagination.page === stockStore.pagination.total_pages" class="px-3 py-1 border rounded bg-white disabled:opacity-50">
+                <button @click="goToPage(stockStore.pagination.page + 1)" :disabled="stockStore.pagination.page === stockStore.pagination.total_pages" class="px-3 py-1 border rounded-sm bg-white disabled:opacity-50">
                     <ChevronRightIcon class="h-5 w-5" />
                 </button>
             </div>
@@ -264,8 +264,8 @@ const getExpiryStatus = (dateString) => {
 const getExpiryColor = (dateString) => {
     const status = getExpiryStatus(dateString);
     switch (status) {
-        case 'EXPIRED': return 'text-red-600 font-bold bg-red-100 px-2 py-1 rounded';
-        case 'SOON': return 'text-orange-600 font-bold bg-orange-100 px-2 py-1 rounded';
+        case 'EXPIRED': return 'text-red-600 font-bold bg-red-100 px-2 py-1 rounded-sm';
+        case 'SOON': return 'text-orange-600 font-bold bg-orange-100 px-2 py-1 rounded-sm';
         default: return 'text-gray-600';
     }
 };

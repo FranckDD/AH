@@ -1,11 +1,11 @@
 <template>
   <div class="flex h-[calc(100vh-120px)] gap-6 max-w-7xl mx-auto pb-4">
     
-    <div class="w-1/3 flex flex-col bg-white rounded-2xl shadow border border-gray-200 overflow-hidden">
+    <div class="w-1/3 flex flex-col bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
       <div class="p-4 border-b bg-gray-50 flex justify-between items-center">
         <div>
            <h2 class="font-bold text-gray-700 flex items-center gap-2">
-             <span class="bg-indigo-100 text-indigo-600 p-1 rounded">🧪</span>
+             <span class="bg-indigo-100 text-indigo-600 p-1 rounded-sm">🧪</span>
              Paillasse Technique
            </h2>
            <p class="text-xs text-gray-500 mt-1">
@@ -28,14 +28,14 @@
           :key="item.result_id"
           @click="openDossier(item.result_id)"
           :class="activeId === item.result_id ? 'bg-indigo-50 border-indigo-500 ring-1 ring-indigo-500' : 'hover:bg-gray-50 border-transparent'"
-          class="p-3 border-l-4 rounded bg-white shadow-sm cursor-pointer transition-all relative group"
+          class="p-3 border-l-4 rounded-sm bg-white shadow-xs cursor-pointer transition-all relative group"
         >
           <div class="font-bold text-gray-800 truncate pr-6">
             {{ item.patient_name }}
           </div>
           
           <div class="flex justify-between items-center mt-2">
-            <span class="text-xs font-bold bg-blue-100 text-blue-700 px-2 py-1 rounded border border-blue-200 truncate max-w-[150px]">
+            <span class="text-xs font-bold bg-blue-100 text-blue-700 px-2 py-1 rounded-sm border border-blue-200 truncate max-w-[150px]">
               {{ item.examen_nom || 'Examen' }}
             </span>
             <span class="text-xs text-gray-500 font-mono">
@@ -44,7 +44,7 @@
           </div>
 
           <div v-if="item.is_external" class="absolute top-2 right-2">
-            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-orange-100 text-orange-800 border border-orange-200">
+            <span class="inline-flex items-center px-1.5 py-0.5 rounded-sm text-[10px] font-medium bg-orange-100 text-orange-800 border border-orange-200">
               EXT
             </span>
           </div>
@@ -52,7 +52,7 @@
       </div>
     </div>
 
-    <div class="w-2/3 flex flex-col bg-white rounded-2xl shadow border border-gray-200 relative overflow-hidden">
+    <div class="w-2/3 flex flex-col bg-white rounded-2xl shadow-sm border border-gray-200 relative overflow-hidden">
       
       <div v-if="!activeDossier" class="flex-1 flex flex-col items-center justify-center text-gray-300">
         <div class="bg-gray-50 p-6 rounded-full mb-4">
@@ -67,7 +67,7 @@
           <div>
             <h1 class="text-xl font-bold flex items-center gap-2">
               {{ activeDossier.examen_nom }}
-              <span class="text-xs bg-indigo-500 px-2 py-0.5 rounded text-white bg-opacity-50 border border-indigo-400 font-mono">
+              <span class="text-xs bg-indigo-500 px-2 py-0.5 rounded-sm text-white bg-opacity-50 border border-indigo-400 font-mono">
                 #{{ activeDossier.code }}
               </span>
             </h1>
@@ -96,7 +96,7 @@
             </button>
         </div>
 
-        <div class="p-4 border-b bg-white flex justify-between items-center shadow-sm z-10 relative">
+        <div class="p-4 border-b bg-white flex justify-between items-center shadow-xs z-10 relative">
             <button 
               @click="submit(false)" 
               :disabled="labStore.loading"
@@ -109,7 +109,7 @@
                 <button 
                   @click="submit(true, false)" 
                   :disabled="labStore.loading || !activeDossier.details.length || isFormEmpty"
-                  class="bg-white border border-gray-300 text-gray-700 px-4 py-2.5 rounded-xl font-bold text-sm hover:bg-gray-50 shadow-sm transition transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-100"
+                  class="bg-white border border-gray-300 text-gray-700 px-4 py-2.5 rounded-xl font-bold text-sm hover:bg-gray-50 shadow-xs transition transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-100"
                 >
                   Valider & Clôturer
                 </button>
@@ -128,7 +128,7 @@
 
         <div class="flex-1 overflow-y-auto p-6 bg-gray-50 pb-12">
           
-          <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+          <div class="bg-white rounded-xl shadow-xs border border-gray-200 overflow-hidden">
             <table class="w-full">
               <thead class="bg-gray-50">
                 <tr class="text-left text-xs font-bold text-gray-500 uppercase tracking-wider border-b border-gray-200">
@@ -155,21 +155,21 @@
                               type="number" 
                               step="any"
                               @wheel="$event.target.blur()"
-                              class="w-full border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 font-bold text-gray-900 shadow-sm transition-all text-center py-2"
+                              class="w-full border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 font-bold text-gray-900 shadow-xs transition-all text-center py-2"
                               placeholder="-"
                           />
                           <input 
                               v-else
                               v-model="formValues[detail.detail_id]" 
                               type="text"
-                              class="w-full border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-gray-900 shadow-sm transition-all py-2"
+                              class="w-full border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-gray-900 shadow-xs transition-all py-2"
                               placeholder="Résultat..."
                           />
                       </div>
                     </td>
 
                     <td class="py-3 text-center">
-                      <span class="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                      <span class="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded-sm">
                           {{ detail.unite }}
                       </span>
                     </td>
@@ -185,10 +185,10 @@
                     <td colspan="4" class="py-2 pl-6 pr-6 pb-3">
                       <div class="flex items-center gap-3 pl-4 border-l-2 border-indigo-200 ml-2">
                         
-                        <div class="w-36 flex-shrink-0">
+                        <div class="w-36 shrink-0">
                           <select 
                             v-model="formFlags[detail.detail_id]"
-                            class="w-full text-xs border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 shadow-sm py-1.5 text-gray-700 bg-white"
+                            class="w-full text-xs border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 shadow-xs py-1.5 text-gray-700 bg-white"
                           >
                             <option value="">-- Flag --</option>
                             <option value="H">🔺 Haut (H)</option>
@@ -202,7 +202,7 @@
                           <input 
                             v-model="formInterpretations[detail.detail_id]"
                             type="text"
-                            class="w-full text-xs border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 shadow-sm py-1.5 px-3 bg-white"
+                            class="w-full text-xs border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 shadow-xs py-1.5 px-3 bg-white"
                             placeholder="Interprétation ou remarque spécifique à ce paramètre..."
                           />
                         </div>
@@ -220,7 +220,7 @@
             </table>
           </div>
 
-          <div v-if="activeDossier.details && activeDossier.details.length > 0" class="mt-6 bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+          <div v-if="activeDossier.details && activeDossier.details.length > 0" class="mt-6 bg-white rounded-xl shadow-xs border border-gray-200 overflow-hidden">
             <div class="bg-gray-50 px-6 py-3 border-b border-gray-200">
               <h3 class="text-sm font-bold text-gray-700 tracking-wider">
                 Conclusion Globale de l'Examen
@@ -230,7 +230,7 @@
               <textarea 
                 v-model="formGlobalNote"
                 rows="3"
-                class="w-full border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-gray-700 shadow-sm transition-all p-3 text-sm"
+                class="w-full border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-gray-700 shadow-xs transition-all p-3 text-sm"
                 placeholder="Saisissez ici la conclusion ou les notes générales qui apparaîtront au bas du compte-rendu..."
               ></textarea>
             </div>

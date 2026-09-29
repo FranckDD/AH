@@ -1,7 +1,7 @@
 <template>
   <div class="space-y-6 w-full">
 
-    <div class="flex flex-col md:flex-row justify-between items-center bg-white p-6 rounded-2xl shadow-sm border border-gray-100 gap-4">
+    <div class="flex flex-col md:flex-row justify-between items-center bg-white p-6 rounded-2xl shadow-xs border border-gray-100 gap-4">
       <div>
         <h1 class="text-2xl font-extrabold text-gray-800 tracking-tight">
           {{ t('appointments.title') }}
@@ -14,14 +14,14 @@
           <button
             @click="viewMode = 'list'"
             class="px-4 py-1.5 text-sm font-medium rounded-lg transition"
-            :class="viewMode === 'list' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'"
+            :class="viewMode === 'list' ? 'bg-white shadow-xs text-gray-900' : 'text-gray-500 hover:text-gray-700'"
           >
             {{ t('appointments.view_list') }}
           </button>
           <button
             @click="viewMode = 'calendar'"
             class="px-4 py-1.5 text-sm font-medium rounded-lg transition"
-            :class="viewMode === 'calendar' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'"
+            :class="viewMode === 'calendar' ? 'bg-white shadow-xs text-gray-900' : 'text-gray-500 hover:text-gray-700'"
           >
             {{ t('appointments.view_calendar') }}
           </button>
@@ -37,7 +37,7 @@
       </div>
     </div>
 
-    <div v-if="viewMode === 'list'" class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-wrap gap-4 items-end">
+    <div v-if="viewMode === 'list'" class="bg-white p-4 rounded-2xl shadow-xs border border-gray-100 flex flex-wrap gap-4 items-end">
 
       <div class="flex-1 min-w-[220px]">
         <label class="text-xs font-bold text-gray-500 uppercase mb-1 block">{{ t('appointments.search_label') }}</label>
@@ -56,7 +56,7 @@
 
       <div class="w-full md:w-48">
         <label class="text-xs font-bold text-gray-500 uppercase mb-1 block">{{ t('appointments.status_label') }}</label>
-        <select v-model="statusFilter" class="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm rounded-lg">
+        <select v-model="statusFilter" class="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-hidden focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm rounded-lg">
           <option value="ALL">{{ t('appointments.status_all') }}</option>
           <option v-for="s in appointmentStatuses" :key="s" :value="s">{{ t(`appointments.status_${s}`) }}</option>
         </select>
@@ -64,7 +64,7 @@
 
       <div class="w-full md:w-44">
         <label class="text-xs font-bold text-gray-500 uppercase mb-1 block">{{ t('appointments.date_label') }}</label>
-        <select v-model="dateMode" class="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm rounded-lg">
+        <select v-model="dateMode" class="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-hidden focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm rounded-lg">
           <option value="ALL">{{ t('appointments.date_all') }}</option>
           <option value="TODAY">{{ t('appointments.date_today') }}</option>
           <option value="CUSTOM">{{ t('appointments.date_custom') }}</option>
@@ -77,7 +77,7 @@
       </div>
     </div>
 
-    <div v-if="viewMode === 'list'" class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+    <div v-if="viewMode === 'list'" class="bg-white rounded-2xl shadow-xs border border-gray-100 overflow-hidden">
 
       <div class="p-4 border-b border-gray-100 flex items-center justify-between">
         <div class="text-sm text-gray-500">

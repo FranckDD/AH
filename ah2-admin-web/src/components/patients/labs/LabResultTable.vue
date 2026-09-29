@@ -16,7 +16,7 @@
                 <td class="px-4 py-3 font-medium text-gray-900">{{ res.examen_name }}</td>
                 <td class="px-4 py-3 text-sm font-mono text-gray-500">{{ res.code_lab }}</td>
                 <td class="px-4 py-3">
-                    <span :class="getStatusClass(res.status)" class="px-2 py-0.5 rounded text-xs font-bold uppercase">
+                    <span :class="getStatusClass(res.status)" class="px-2 py-0.5 rounded-sm text-xs font-bold uppercase">
                         {{ res.status }}
                     </span>
                 </td>

@@ -1,7 +1,7 @@
 <template>
   <div class="space-y-6 w-full">
     
-    <div class="flex flex-col md:flex-row justify-between items-center bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+    <div class="flex flex-col md:flex-row justify-between items-center bg-white p-6 rounded-2xl shadow-xs border border-gray-100">
       <div>
         <h1 class="text-2xl font-extrabold text-gray-800 tracking-tight">
           {{ t('tech.title') }}
@@ -49,7 +49,7 @@
       </nav>
     </div>
 
-    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+    <div class="bg-white rounded-2xl shadow-xs border border-gray-100 overflow-hidden">
         
         <div v-if="auditStore.isLoading" class="p-10 text-center text-gray-500">
             <span class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mb-2"></span>
@@ -107,7 +107,7 @@
                             <td class="px-6 py-4 text-sm text-gray-600 font-mono">{{ formatDate(act.timestamp) }}</td>
                             <td class="px-6 py-4 font-medium text-gray-900">{{ act.user_name || act.username || 'N/A' }}</td>
                             <td class="px-6 py-4">
-                                <span class="bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs font-bold">{{ act.resource_type }}</span>
+                                <span class="bg-gray-100 text-gray-700 px-2 py-1 rounded-sm text-xs font-bold">{{ act.resource_type }}</span>
                             </td>
                             <td class="px-6 py-4">
                                 <span :class="getActionBadge(act.action_performed)" class="px-2 py-1 text-xs font-bold rounded-md border">

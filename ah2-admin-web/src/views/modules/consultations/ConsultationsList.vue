@@ -1,7 +1,7 @@
 <template>
   <div class="space-y-6 w-full">
 
-    <div class="flex flex-col md:flex-row justify-between items-center bg-white p-6 rounded-2xl shadow-sm border border-gray-100 gap-4">
+    <div class="flex flex-col md:flex-row justify-between items-center bg-white p-6 rounded-2xl shadow-xs border border-gray-100 gap-4">
       <div>
         <h1 class="text-2xl font-extrabold text-gray-800 tracking-tight">{{ t('consultations.title') }}</h1>
         <p class="text-sm text-gray-500">{{ t('consultations.subtitle') }}</p>
@@ -18,13 +18,13 @@
         <button @click="showExportModal = true" class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition">
           {{ t('export.confirm') }}
         </button>
-        <button @click="openModal(null)" class="flex-shrink-0 px-4 py-2.5 bg-teal-600 text-white rounded-xl hover:bg-teal-700 text-sm font-semibold">
+        <button @click="openModal(null)" class="shrink-0 px-4 py-2.5 bg-teal-600 text-white rounded-xl hover:bg-teal-700 text-sm font-semibold">
           {{ t('consultations.new_consultation') }}
         </button>
       </div>
     </div>
 
-    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+    <div class="bg-white rounded-2xl shadow-xs border border-gray-100 overflow-hidden">
       <div v-if="consultationStore.isLoading" class="p-10 text-center text-gray-500">
         {{ t('common.loading') }}
       </div>
@@ -62,13 +62,13 @@
         <button
           @click="consultationStore.setPage(consultationStore.pagination.page - 1)"
           :disabled="consultationStore.pagination.page === 1"
-          class="px-3 py-1 border rounded bg-white disabled:opacity-50"
+          class="px-3 py-1 border rounded-sm bg-white disabled:opacity-50"
         >&laquo;</button>
         <span class="text-sm text-gray-500">{{ consultationStore.pagination.page }}</span>
         <button
           @click="consultationStore.setPage(consultationStore.pagination.page + 1)"
           :disabled="!consultationStore.hasNextPage"
-          class="px-3 py-1 border rounded bg-white disabled:opacity-50"
+          class="px-3 py-1 border rounded-sm bg-white disabled:opacity-50"
         >&raquo;</button>
       </div>
     </div>

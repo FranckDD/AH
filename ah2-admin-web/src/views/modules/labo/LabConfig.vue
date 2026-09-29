@@ -10,13 +10,13 @@
       <button 
         v-if="isAdmin"
         @click="openModal()"
-        class="px-4 py-2 bg-indigo-600 text-white rounded-xl shadow hover:bg-indigo-700 transition flex items-center gap-2"
+        class="px-4 py-2 bg-indigo-600 text-white rounded-xl shadow-sm hover:bg-indigo-700 transition flex items-center gap-2"
       >
         <PlusIcon class="w-5 h-5" /> Nouvel Examen
       </button>
     </div>
 
-    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+    <div class="bg-white rounded-2xl shadow-xs border border-gray-100 overflow-hidden">
       <table class="w-full text-sm text-left">
         <thead class="bg-gray-50 text-gray-500 uppercase font-bold text-xs">
           <tr>

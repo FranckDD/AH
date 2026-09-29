@@ -7,7 +7,7 @@
         <p class="text-sm text-gray-500">Aperçu temps réel de l'activité du laboratoire</p>
       </div>
       
-      <div class="flex bg-white p-1 rounded-xl shadow-sm border border-gray-200">
+      <div class="flex bg-white p-1 rounded-xl shadow-xs border border-gray-200">
         <button 
           v-for="p in ['day', 'month', 'year']" :key="p"
           @click="changePeriod(p)"
@@ -69,7 +69,7 @@
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
-        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 lg:col-span-2 flex flex-col overflow-hidden">
+        <div class="bg-white rounded-2xl shadow-xs border border-gray-100 lg:col-span-2 flex flex-col overflow-hidden">
             <div class="p-5 border-b border-gray-100 flex justify-between items-center bg-white">
                 <h3 class="text-lg font-bold text-gray-800 flex items-center gap-2">
                     <ClockIcon class="w-5 h-5 text-indigo-500"/>
@@ -119,7 +119,7 @@
             </div>
         </div>
 
-        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col">
+        <div class="bg-white p-6 rounded-2xl shadow-xs border border-gray-100 flex flex-col">
             <h3 class="text-lg font-bold text-gray-800 mb-6 flex items-center gap-2">
                 <ArrowTrendingUpIcon class="w-5 h-5 text-indigo-500" />
                 Top Analyses
@@ -136,7 +136,7 @@
                         <span class="font-bold text-indigo-600">{{ count }}</span>
                     </div>
                     <div class="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
-                        <div class="bg-gradient-to-r from-indigo-400 to-indigo-600 h-2 rounded-full transition-all duration-1000 ease-out" 
+                        <div class="bg-linear-to-r from-indigo-400 to-indigo-600 h-2 rounded-full transition-all duration-1000 ease-out" 
                              :style="{ width: (count / (stats.max_exam_count || 1) * 100) + '%' }">
                         </div>
                     </div>
@@ -224,6 +224,10 @@ const goToTechnician = (item) => {
 </script>
 
 <style scoped>
+/* Tailwind v4 : @apply dans un bloc <style> scope necessite une reference
+   explicite au theme (plus d'injection implicite comme en v3). */
+@reference "../../style.css";
+
 /* Animations d'entrée */
 @keyframes fadeInUp {
   from { opacity: 0; transform: translateY(10px); }
@@ -235,7 +239,7 @@ const goToTechnician = (item) => {
 
 /* Classes utilitaires Tailwind (via @apply pour la lisibilité) */
 .card-stat {
-  @apply bg-white p-5 rounded-2xl shadow-sm border border-gray-100;
+  @apply bg-white p-5 rounded-2xl shadow-xs border border-gray-100;
 }
 .stat-label {
   @apply text-sm font-semibold text-gray-500 mb-1;
@@ -247,7 +251,7 @@ const goToTechnician = (item) => {
   @apply h-12 w-12 rounded-xl flex items-center justify-center;
 }
 .badge-exam {
-  @apply px-2.5 py-1 rounded-md bg-white border border-gray-200 text-xs font-semibold text-gray-700 shadow-sm whitespace-nowrap;
+  @apply px-2.5 py-1 rounded-md bg-white border border-gray-200 text-xs font-semibold text-gray-700 shadow-xs whitespace-nowrap;
 }
 .btn-saisir {
   @apply inline-flex items-center justify-center px-4 py-1.5 bg-indigo-50 text-indigo-700 hover:bg-indigo-600 hover:text-white text-xs font-bold rounded-lg transition-colors duration-200;

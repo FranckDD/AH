@@ -11,7 +11,7 @@
       <form @submit.prevent="handleSubmit" class="space-y-5">
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('retrait.modal.amount') }}</label>
-          <div class="relative rounded-md shadow-sm">
+          <div class="relative rounded-md shadow-xs">
             <input v-model.number="form.amount" type="number" min="1" step="0.01" required
                    class="block w-full pl-3 pr-12 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 sm:text-sm"
                    placeholder="0" />
@@ -50,13 +50,13 @@
                     class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-red-500 focus:border-red-500 sm:text-sm"></textarea>
         </div>
 
-        <div v-if="errorMessage" class="bg-red-50 border-l-4 border-red-500 p-3 rounded text-sm text-red-700">
+        <div v-if="errorMessage" class="bg-red-50 border-l-4 border-red-500 p-3 rounded-sm text-sm text-red-700">
           {{ errorMessage }}
         </div>
 
         <div class="flex justify-end space-x-3 mt-6 pt-4 border-t border-gray-100">
           <button type="button" @click="$emit('close')" :disabled="isSaving"
-                  class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition shadow-sm disabled:opacity-50">
+                  class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition shadow-xs disabled:opacity-50">
             {{ t('finance.modal.cancel') }}
           </button>
           <button type="submit" :disabled="isSaving || !isFormValid"

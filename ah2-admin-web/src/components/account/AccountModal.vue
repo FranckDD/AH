@@ -1,7 +1,7 @@
 <template>
-  <div class="fixed inset-0 bg-gray-900 bg-opacity-60 overflow-y-auto h-full w-full z-50 flex items-center justify-center backdrop-blur-sm">
+  <div class="fixed inset-0 bg-gray-900 bg-opacity-60 overflow-y-auto h-full w-full z-50 flex items-center justify-center backdrop-blur-xs">
     <div class="relative mx-auto w-full max-w-md bg-white shadow-xl rounded-2xl border border-gray-200 flex flex-col max-h-[90vh]">
-      <div class="px-6 py-4 border-b border-gray-100 bg-gray-700 rounded-t-2xl flex justify-between items-center flex-shrink-0">
+      <div class="px-6 py-4 border-b border-gray-100 bg-gray-700 rounded-t-2xl flex justify-between items-center shrink-0">
         <h3 class="text-lg font-bold text-white flex items-center">
           <UserCircleIcon class="h-6 w-6 mr-2" />
           {{ t('account.title') }}
@@ -11,7 +11,7 @@
         </button>
       </div>
 
-      <div class="border-b border-gray-100 flex flex-shrink-0">
+      <div class="border-b border-gray-100 flex shrink-0">
         <button
           @click="activeTab = 'profile'"
           class="flex-1 py-3 text-sm font-semibold transition"
@@ -49,16 +49,16 @@
                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-gray-500 focus:border-gray-500" />
           </div>
 
-          <div v-if="profileError" class="bg-red-50 border-l-4 border-red-500 p-3 rounded text-sm text-red-700">
+          <div v-if="profileError" class="bg-red-50 border-l-4 border-red-500 p-3 rounded-sm text-sm text-red-700">
             {{ profileError }}
           </div>
-          <div v-if="profileSuccess" class="bg-green-50 border-l-4 border-green-500 p-3 rounded text-sm text-green-700">
+          <div v-if="profileSuccess" class="bg-green-50 border-l-4 border-green-500 p-3 rounded-sm text-sm text-green-700">
             {{ t('account.profile_saved') }}
           </div>
 
           <div class="flex justify-end pt-2">
             <button type="submit" :disabled="isSavingProfile"
-                    class="px-6 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900 font-medium shadow-sm transition disabled:opacity-50">
+                    class="px-6 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900 font-medium shadow-xs transition disabled:opacity-50">
               {{ isSavingProfile ? t('account.saving') : t('account.save') }}
             </button>
           </div>
@@ -81,19 +81,19 @@
                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-gray-500 focus:border-gray-500" />
           </div>
 
-          <div v-if="passwordMismatch" class="bg-red-50 border-l-4 border-red-500 p-3 rounded text-sm text-red-700">
+          <div v-if="passwordMismatch" class="bg-red-50 border-l-4 border-red-500 p-3 rounded-sm text-sm text-red-700">
             {{ t('account.password_mismatch') }}
           </div>
-          <div v-if="passwordError" class="bg-red-50 border-l-4 border-red-500 p-3 rounded text-sm text-red-700">
+          <div v-if="passwordError" class="bg-red-50 border-l-4 border-red-500 p-3 rounded-sm text-sm text-red-700">
             {{ passwordError }}
           </div>
-          <div v-if="passwordSuccess" class="bg-green-50 border-l-4 border-green-500 p-3 rounded text-sm text-green-700">
+          <div v-if="passwordSuccess" class="bg-green-50 border-l-4 border-green-500 p-3 rounded-sm text-sm text-green-700">
             {{ t('account.password_saved') }}
           </div>
 
           <div class="flex justify-end pt-2">
             <button type="submit" :disabled="isSavingPassword"
-                    class="px-6 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900 font-medium shadow-sm transition disabled:opacity-50">
+                    class="px-6 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900 font-medium shadow-xs transition disabled:opacity-50">
               {{ isSavingPassword ? t('account.saving') : t('account.save') }}
             </button>
           </div>

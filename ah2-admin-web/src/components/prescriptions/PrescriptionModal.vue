@@ -37,7 +37,7 @@
             id="is_lab_order"
             v-model="form.isLabOrder"
             type="checkbox"
-            class="h-4 w-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+            class="h-4 w-4 text-purple-600 border-gray-300 rounded-sm focus:ring-purple-500"
           />
           <label for="is_lab_order" class="ml-2 block text-sm text-gray-700">
             {{ t('prescriptions.modal.is_lab_order') }}
@@ -116,7 +116,7 @@
                   type="checkbox"
                   :value="exam.nom"
                   v-model="form.labExamsList"
-                  class="h-4 w-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500 mr-2"
+                  class="h-4 w-4 text-purple-600 border-gray-300 rounded-sm focus:ring-purple-500 mr-2"
                 />
                 {{ exam.nom }}
               </label>
@@ -147,7 +147,7 @@
         </div>
 
         <div class="flex justify-end space-x-3 mt-6 pt-4 border-t border-gray-100">
-          <button type="button" @click="$emit('close')" class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition shadow-sm">
+          <button type="button" @click="$emit('close')" class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition shadow-xs">
             {{ t('prescriptions.modal.cancel') }}
           </button>
           <button type="submit" class="px-4 py-2 text-white rounded-lg shadow-md font-medium transition bg-purple-600 hover:bg-purple-700">

@@ -8,7 +8,7 @@
         </div>
         
         <div class="flex gap-3">
-            <div v-if="labStore.successMessage" class="bg-green-100 text-green-800 px-4 py-2 rounded-lg flex items-center shadow-sm">
+            <div v-if="labStore.successMessage" class="bg-green-100 text-green-800 px-4 py-2 rounded-lg flex items-center shadow-xs">
                 <CheckCircleIcon class="w-5 h-5 mr-2"/> {{ labStore.successMessage }}
             </div>
             <button v-if="labStore.lastResultId" @click="downloadPdf" class="bg-indigo-100 text-indigo-700 px-4 py-2 rounded-lg font-bold flex items-center hover:bg-indigo-200 transition">
@@ -21,7 +21,7 @@
         <ExclamationCircleIcon class="w-5 h-5 mr-2"/> {{ labStore.error }}
     </div>
 
-    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 relative z-20">
+    <div class="bg-white p-6 rounded-2xl shadow-xs border border-gray-100 relative z-20">
       <div class="flex justify-between items-center mb-4">
           <h3 class="text-lg font-bold text-gray-800 flex items-center gap-2">
             <UserIcon class="w-5 h-5 text-indigo-600"/> 
@@ -33,7 +33,7 @@
       </div>
 
       <div v-if="!selectedPatient" class="relative">
-        <input v-model="searchQuery" @input="handleSearch" type="text" placeholder="Rechercher (Nom, Prénom ou Code)..." class="w-full px-4 py-3 pl-10 border border-gray-300 rounded-xl focus:ring-indigo-500 focus:border-indigo-500 transition shadow-sm" autofocus />
+        <input v-model="searchQuery" @input="handleSearch" type="text" placeholder="Rechercher (Nom, Prénom ou Code)..." class="w-full px-4 py-3 pl-10 border border-gray-300 rounded-xl focus:ring-indigo-500 focus:border-indigo-500 transition shadow-xs" autofocus />
         <ArrowPathIcon v-if="labStore.loading" class="w-5 h-5 text-indigo-500 animate-spin absolute right-3 top-3.5"/>
         <MagnifyingGlassIcon v-else class="w-5 h-5 text-gray-400 absolute left-3 top-3.5"/>
         
@@ -43,14 +43,14 @@
                 <p class="font-bold text-gray-800">{{ p.first_name }} {{ p.last_name }}</p>
                 <p class="text-xs text-gray-500">{{ p.gender }} • Né(e) le: {{ formatDate(p.date_of_birth) }}</p>
             </div>
-            <span class="text-xs bg-gray-100 px-2 py-1 rounded text-gray-600 font-mono">ID: {{ p.patient_id }}</span>
+            <span class="text-xs bg-gray-100 px-2 py-1 rounded-sm text-gray-600 font-mono">ID: {{ p.patient_id }}</span>
           </div>
         </div>
       </div>
 
       <div v-else class="flex items-center justify-between p-4 bg-indigo-50 rounded-xl border border-indigo-100 animate-fade-in">
         <div class="flex items-center gap-4">
-            <div class="h-12 w-12 rounded-full flex items-center justify-center font-bold text-xl uppercase text-white shadow" :class="selectedPatient.is_external ? 'bg-orange-500' : 'bg-indigo-600'">
+            <div class="h-12 w-12 rounded-full flex items-center justify-center font-bold text-xl uppercase text-white shadow-sm" :class="selectedPatient.is_external ? 'bg-orange-500' : 'bg-indigo-600'">
                 {{ selectedPatient.first_name?.charAt(0) || '?' }}
             </div>
             <div>
@@ -68,7 +68,7 @@
       </div>
     </div>
 
-    <div v-if="selectedPatient" class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 animate-fade-in relative z-10">
+    <div v-if="selectedPatient" class="bg-white p-6 rounded-2xl shadow-xs border border-gray-100 animate-fade-in relative z-10">
         <label class="block text-sm font-medium text-gray-700 mb-2">Ajouter un examen à la liste</label>
         <div class="flex gap-4">
             <select v-model="examToAdd" class="flex-1 border-gray-300 rounded-xl focus:ring-indigo-500 focus:border-indigo-500 py-2.5">
@@ -82,10 +82,10 @@
     </div>
 
     <div v-if="addedExams.length > 0" class="space-y-6">
-        <div v-for="(examItem, index) in addedExams" :key="index" class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden animate-slide-up">
+        <div v-for="(examItem, index) in addedExams" :key="index" class="bg-white rounded-2xl shadow-xs border border-gray-200 overflow-hidden animate-slide-up">
             <div class="bg-gray-50 px-6 py-3 border-b border-gray-200 flex justify-between items-center">
                 <h3 class="font-bold text-gray-800 text-lg">{{ examItem.nom }}</h3>
-                <button @click="removeExam(index)" class="text-red-500 hover:text-red-700 p-1 hover:bg-red-50 rounded">
+                <button @click="removeExam(index)" class="text-red-500 hover:text-red-700 p-1 hover:bg-red-50 rounded-sm">
                     <TrashIcon class="w-5 h-5"/>
                 </button>
             </div>
@@ -133,7 +133,7 @@
         </div>
     </div>
 
-    <div v-if="showExternalModal" class="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+    <div v-if="showExternalModal" class="fixed inset-0 z-100 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-bounce-in">
             <div class="px-6 py-4 bg-orange-50 border-b border-orange-100 flex justify-between items-center">
                 <h3 class="font-bold text-orange-900">Nouveau Patient Externe</h3>
@@ -160,7 +160,7 @@
             </div>
             <div class="p-4 bg-gray-50 flex justify-end gap-3">
                 <button @click="showExternalModal = false" class="px-4 py-2 text-gray-600 font-medium hover:bg-gray-200 rounded-lg">Annuler</button>
-                <button @click="confirmExternalPatient" class="px-4 py-2 bg-orange-600 text-white font-bold rounded-lg hover:bg-orange-700 shadow">Confirmer</button>
+                <button @click="confirmExternalPatient" class="px-4 py-2 bg-orange-600 text-white font-bold rounded-lg hover:bg-orange-700 shadow-sm">Confirmer</button>
             </div>
         </div>
     </div>

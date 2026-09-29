@@ -35,7 +35,7 @@
                     {{ t('stock.modal.form') || 'Forme' }} </label>
                 <select 
                     v-model="form.forme" 
-                    class="w-full px-2 py-1.5 border border-blue-200 rounded text-sm focus:ring-blue-500 bg-white"
+                    class="w-full px-2 py-1.5 border border-blue-200 rounded-sm text-sm focus:ring-blue-500 bg-white"
                 >
                     <option 
                         v-for="opt in formOptions" 
@@ -48,7 +48,7 @@
             </div>
             <div>
                 <label class="block text-xs font-bold text-blue-700 mb-1 uppercase">Dosage (mg/ml)</label>
-                <input v-model="form.dosage" type="text" placeholder="Ex: 500mg" class="w-full px-2 py-1.5 border border-blue-200 rounded text-sm focus:ring-blue-500" />
+                <input v-model="form.dosage" type="text" placeholder="Ex: 500mg" class="w-full px-2 py-1.5 border border-blue-200 rounded-sm text-sm focus:ring-blue-500" />
             </div>
         </div>
 

@@ -1,14 +1,14 @@
 <template>
-  <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+  <div class="bg-white p-6 rounded-2xl shadow-xs border border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
     
     <div class="flex items-center gap-4">
-        <div class="h-16 w-16 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-2xl font-bold border-2 border-white shadow-sm">
+        <div class="h-16 w-16 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-2xl font-bold border-2 border-white shadow-xs">
             {{ getInitials(patient.full_name) }}
         </div>
         <div>
             <h2 class="text-2xl font-bold text-gray-900">{{ patient.full_name }}</h2>
             <div class="flex items-center text-gray-500 text-sm mt-1 space-x-3">
-                <span class="font-mono bg-gray-100 px-2 py-0.5 rounded text-gray-700">{{ patient.code }}</span>
+                <span class="font-mono bg-gray-100 px-2 py-0.5 rounded-sm text-gray-700">{{ patient.code }}</span>
                 <span>{{ patient.age }} ans</span>
                 <span>{{ patient.gender === 'M' ? 'Homme' : 'Femme' }}</span>
             </div>

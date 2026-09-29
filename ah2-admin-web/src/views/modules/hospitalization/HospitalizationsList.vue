@@ -1,12 +1,12 @@
 <template>
   <div class="space-y-6 w-full">
 
-    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+    <div class="bg-white p-6 rounded-2xl shadow-xs border border-gray-100">
       <h1 class="text-2xl font-extrabold text-gray-800 tracking-tight">{{ t('hospitalization.title') }}</h1>
       <p class="text-sm text-gray-500">{{ t('hospitalization.subtitle') }}</p>
     </div>
 
-    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+    <div class="bg-white rounded-2xl shadow-xs border border-gray-100 overflow-hidden">
       <div v-if="hospitalizationStore.isLoading" class="p-10 text-center">
         <span class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></span>
       </div>

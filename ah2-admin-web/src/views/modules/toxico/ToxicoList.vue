@@ -1,7 +1,7 @@
 <template>
   <div class="space-y-6 w-full">
     
-    <div class="flex flex-col md:flex-row justify-between items-center bg-white p-6 rounded-2xl shadow-sm border border-gray-100 gap-4">
+    <div class="flex flex-col md:flex-row justify-between items-center bg-white p-6 rounded-2xl shadow-xs border border-gray-100 gap-4">
       <div>
         <h1 class="text-2xl font-extrabold text-gray-800 tracking-tight">
           {{ t('toxico.title') }}
@@ -35,7 +35,7 @@
     </div>
 
     <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-        <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-between">
+        <div class="bg-white p-5 rounded-xl shadow-xs border border-gray-100 flex flex-col justify-between">
             <div class="flex justify-between items-start">
                 <div>
                     <p class="text-xs font-bold text-gray-500 uppercase tracking-wider">Patients Actifs</p>
@@ -51,7 +51,7 @@
             </div>
         </div>
 
-        <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-between">
+        <div class="bg-white p-5 rounded-xl shadow-xs border border-gray-100 flex flex-col justify-between">
             <div class="flex justify-between items-start">
                 <div>
                     <p class="text-xs font-bold text-gray-500 uppercase tracking-wider">Admissions (Mois)</p>
@@ -66,7 +66,7 @@
             <p class="mt-4 text-xs text-indigo-400">Dossiers créés ce mois-ci</p>
         </div>
 
-        <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-between">
+        <div class="bg-white p-5 rounded-xl shadow-xs border border-gray-100 flex flex-col justify-between">
             <div class="flex justify-between items-start">
                 <div>
                     <p class="text-xs font-bold text-gray-500 uppercase tracking-wider">Taux de Rechute</p>
@@ -81,7 +81,7 @@
             </div>
         </div>
 
-        <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-between">
+        <div class="bg-white p-5 rounded-xl shadow-xs border border-gray-100 flex flex-col justify-between">
             <div class="flex justify-between items-start">
                 <div>
                     <p class="text-xs font-bold text-gray-500 uppercase tracking-wider">En Sevrage (P1)</p>
@@ -95,7 +95,7 @@
         </div>
     </div>
 
-    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+    <div class="bg-white rounded-2xl shadow-xs border border-gray-100 overflow-hidden">
         <div v-if="toxicoStore.isLoading" class="p-10 text-center text-gray-500 flex flex-col items-center">
             <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mb-2"></div>
             {{ t('common.loading') }}
@@ -121,12 +121,12 @@
                         <td class="px-6 py-4">
                             <div class="font-medium text-gray-900">{{ p.patientName }}</div>
                             <div class="text-xs text-gray-500 font-mono mb-1">{{ p.code }}</div>
-                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600 border border-gray-200">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-gray-100 text-gray-600 border border-gray-200">
                                 {{ p.substance }}
                             </span>
                         </td>
                         <td class="px-6 py-4">
-                            <span :class="getPhaseColor(p.currentPhase)" class="px-3 py-1 text-xs font-bold rounded-full border shadow-sm">
+                            <span :class="getPhaseColor(p.currentPhase)" class="px-3 py-1 text-xs font-bold rounded-full border shadow-xs">
                                 {{ t(`toxico.phases.${p.currentPhase}`) }}
                             </span>
                             <div class="w-24 h-1.5 bg-gray-200 rounded-full mt-2 overflow-hidden">
@@ -192,13 +192,13 @@
              <button 
                 :disabled="toxicoStore.filters.page === 1"
                 @click="toxicoStore.setPage(toxicoStore.filters.page - 1)"
-                class="px-3 py-1 border rounded hover:bg-gray-50 disabled:opacity-50"
+                class="px-3 py-1 border rounded-sm hover:bg-gray-50 disabled:opacity-50"
              >
                 Précédent
              </button>
              <button 
                 @click="toxicoStore.setPage(toxicoStore.filters.page + 1)"
-                class="px-3 py-1 border rounded hover:bg-gray-50"
+                class="px-3 py-1 border rounded-sm hover:bg-gray-50"
              >
                 Suivant
              </button>
@@ -231,7 +231,7 @@
         @open-dossier="openDossierFromDetails"
     />
 
-    <div v-if="showDischargeConfirm" class="fixed inset-0 bg-gray-900 bg-opacity-60 overflow-y-auto h-full w-full z-50 flex items-center justify-center backdrop-blur-sm">
+    <div v-if="showDischargeConfirm" class="fixed inset-0 bg-gray-900 bg-opacity-60 overflow-y-auto h-full w-full z-50 flex items-center justify-center backdrop-blur-xs">
       <div class="relative mx-auto w-full max-w-md bg-white shadow-2xl rounded-2xl border border-gray-200">
         <div class="px-6 py-4 border-b border-gray-100 bg-red-50 rounded-t-2xl">
           <h3 class="text-lg font-bold text-red-800 flex items-center">

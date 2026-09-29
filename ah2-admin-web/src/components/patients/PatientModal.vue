@@ -1,5 +1,5 @@
 <template>
-  <div class="fixed inset-0 bg-gray-900 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center backdrop-blur-sm">
+  <div class="fixed inset-0 bg-gray-900 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center backdrop-blur-xs">
     <div class="relative mx-auto w-full max-w-2xl bg-white shadow-2xl rounded-2xl flex flex-col max-h-[90vh]">
 
       <div class="flex justify-between items-center p-6 border-b border-gray-100">
@@ -74,7 +74,7 @@
             </div>
           </div>
 
-          <div v-if="errorMessage" class="bg-red-50 border-l-4 border-red-500 p-4 rounded">
+          <div v-if="errorMessage" class="bg-red-50 border-l-4 border-red-500 p-4 rounded-sm">
             <p class="text-sm text-red-700">{{ errorMessage }}</p>
           </div>
 
@@ -82,7 +82,7 @@
       </div>
 
       <div class="p-6 border-t border-gray-100 flex justify-end gap-3 bg-gray-50 rounded-b-2xl">
-        <button type="button" @click="$emit('close')" :disabled="isSaving" class="px-5 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 font-medium transition shadow-sm disabled:opacity-50">
+        <button type="button" @click="$emit('close')" :disabled="isSaving" class="px-5 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 font-medium transition shadow-xs disabled:opacity-50">
           Annuler
         </button>
         <button type="submit" form="patientForm" :disabled="isSaving || !isFormValid" class="px-5 py-2.5 bg-green-600 text-white rounded-xl hover:bg-green-700 font-medium shadow-lg shadow-green-200 transition transform active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed flex items-center">

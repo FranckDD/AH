@@ -1,5 +1,5 @@
 <template>
-  <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+  <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
     <div class="bg-white w-full max-w-4xl max-h-[90vh] rounded-3xl shadow-2xl overflow-hidden flex flex-col animate-zoom-in">
       
       <div class="px-8 py-6 border-b border-gray-100 flex justify-between items-start bg-gray-50/50">
@@ -61,7 +61,7 @@
 
         <div class="space-y-4">
           <h3 class="text-xs font-bold text-indigo-600 uppercase tracking-wider">Résultats Biologiques</h3>
-          <div class="border border-gray-100 rounded-2xl overflow-hidden shadow-sm">
+          <div class="border border-gray-100 rounded-2xl overflow-hidden shadow-xs">
             <table class="w-full text-left border-collapse">
               <thead class="bg-gray-50 border-b border-gray-100 text-[10px] uppercase font-bold text-gray-500">
                 <tr>
@@ -93,7 +93,7 @@
                   </td>
                   
                   <td class="px-6 py-4 text-right">
-                    <span v-if="detail.interpretation" class="text-xs px-2 py-1 bg-gray-100 rounded text-gray-600 font-medium">
+                    <span v-if="detail.interpretation" class="text-xs px-2 py-1 bg-gray-100 rounded-sm text-gray-600 font-medium">
                         {{ detail.interpretation }}
                     </span>
                     <span v-else class="text-gray-300">-</span>

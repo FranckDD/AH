@@ -68,7 +68,7 @@
               <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('consultations.modal.presc_generic') }}</label>
               <div class="flex gap-4">
                 <label v-for="opt in ['Hony', 'Massage', 'Prayer']" :key="opt" class="flex items-center gap-1.5 text-sm">
-                  <input type="checkbox" :value="opt" v-model="form.prescGeneric" class="rounded border-gray-300" />
+                  <input type="checkbox" :value="opt" v-model="form.prescGeneric" class="rounded-sm border-gray-300" />
                   {{ opt }}
                 </label>
               </div>
@@ -78,7 +78,7 @@
               <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('consultations.modal.presc_med_spirituel') }}</label>
               <div class="flex gap-4">
                 <label v-for="opt in ['SE', 'TIS', 'AE']" :key="opt" class="flex items-center gap-1.5 text-sm">
-                  <input type="checkbox" :value="opt" v-model="form.prescMedSpirituel" class="rounded border-gray-300" />
+                  <input type="checkbox" :value="opt" v-model="form.prescMedSpirituel" class="rounded-sm border-gray-300" />
                   {{ opt }}
                 </label>
               </div>

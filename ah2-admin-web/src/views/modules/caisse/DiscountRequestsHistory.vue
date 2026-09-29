@@ -1,7 +1,7 @@
 <!-- src/views/modules/caisse/DiscountRequestsHistory.vue -->
 <template>
   <div class="space-y-6 w-full">
-    <div class="flex flex-col md:flex-row justify-between items-center bg-white p-6 rounded-2xl shadow-sm border border-gray-100 gap-4">
+    <div class="flex flex-col md:flex-row justify-between items-center bg-white p-6 rounded-2xl shadow-xs border border-gray-100 gap-4">
       <div>
         <h1 class="text-2xl font-extrabold text-gray-800 tracking-tight">{{ t('discount_history.title') }}</h1>
         <p class="text-sm text-gray-500">{{ pagination.total }} {{ t('discount_history.results') }}</p>
@@ -9,25 +9,25 @@
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-      <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+      <div class="bg-white p-5 rounded-2xl shadow-xs border border-gray-100">
         <p class="text-xs text-gray-500 font-medium uppercase">{{ t('discount_history.kpi.approved') }}</p>
         <p class="text-2xl font-bold text-green-700 mt-1">{{ kpi.approved_count }}</p>
       </div>
-      <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+      <div class="bg-white p-5 rounded-2xl shadow-xs border border-gray-100">
         <p class="text-xs text-gray-500 font-medium uppercase">{{ t('discount_history.kpi.refused') }}</p>
         <p class="text-2xl font-bold text-red-600 mt-1">{{ kpi.refused_count }}</p>
       </div>
-      <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+      <div class="bg-white p-5 rounded-2xl shadow-xs border border-gray-100">
         <p class="text-xs text-gray-500 font-medium uppercase">{{ t('discount_history.kpi.pending') }}</p>
         <p class="text-2xl font-bold text-amber-600 mt-1">{{ kpi.pending_count }}</p>
       </div>
-      <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+      <div class="bg-white p-5 rounded-2xl shadow-xs border border-gray-100">
         <p class="text-xs text-gray-500 font-medium uppercase">{{ t('discount_history.kpi.total_reduced') }}</p>
         <p class="text-2xl font-bold text-gray-900 mt-1">{{ formatCurrency(kpi.total_reduced_amount) }}</p>
       </div>
     </div>
 
-    <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-wrap gap-3 items-end">
+    <div class="bg-white p-4 rounded-2xl shadow-xs border border-gray-100 flex flex-wrap gap-3 items-end">
       <div class="flex gap-2">
         <button v-for="preset in periodPresets" :key="preset.key" @click="applyPreset(preset.key)"
                 :class="activePreset === preset.key ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
@@ -58,7 +58,7 @@
       </div>
     </div>
 
-    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+    <div class="bg-white rounded-2xl shadow-xs border border-gray-100 overflow-hidden">
       <div v-if="isLoading" class="p-10 text-center">
         <span class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></span>
       </div>
@@ -86,7 +86,7 @@
               <td class="px-6 py-4 text-right text-sm">{{ r.decision_percent ? `${r.decision_percent}%` : '—' }}</td>
               <td class="px-6 py-4 text-right text-sm font-semibold text-green-700">{{ r.reduced_amount ? formatCurrency(r.reduced_amount) : '—' }}</td>
               <td class="px-6 py-4">
-                <span :class="statusBadgeClass(r.status)" class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium">
+                <span :class="statusBadgeClass(r.status)" class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium">
                   {{ t(`discount_history.status.${r.status}`) }}
                 </span>
               </td>
@@ -101,10 +101,10 @@
       <div v-if="pagination.total_pages > 1" class="p-4 flex justify-between items-center border-t border-gray-100 bg-gray-50">
         <p class="text-sm text-gray-700">Page {{ pagination.page }} / {{ pagination.total_pages }}</p>
         <div class="flex space-x-2">
-          <button @click="goToPage(pagination.page - 1)" :disabled="pagination.page === 1" class="px-3 py-1 border rounded bg-white disabled:opacity-50">
+          <button @click="goToPage(pagination.page - 1)" :disabled="pagination.page === 1" class="px-3 py-1 border rounded-sm bg-white disabled:opacity-50">
             <ChevronLeftIcon class="h-5 w-5" />
           </button>
-          <button @click="goToPage(pagination.page + 1)" :disabled="pagination.page === pagination.total_pages" class="px-3 py-1 border rounded bg-white disabled:opacity-50">
+          <button @click="goToPage(pagination.page + 1)" :disabled="pagination.page === pagination.total_pages" class="px-3 py-1 border rounded-sm bg-white disabled:opacity-50">
             <ChevronRightIcon class="h-5 w-5" />
           </button>
         </div>

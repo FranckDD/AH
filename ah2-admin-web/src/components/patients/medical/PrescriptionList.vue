@@ -1,10 +1,10 @@
 <template>
   <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-    <div v-for="presc in prescriptions" :key="presc.id" class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex flex-col justify-between">
+    <div v-for="presc in prescriptions" :key="presc.id" class="bg-white p-4 rounded-xl border border-gray-200 shadow-xs flex flex-col justify-between">
         <div>
             <div class="flex justify-between items-start">
                 <h4 class="font-bold text-gray-900">{{ presc.medication }}</h4>
-                <span :class="presc.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'" class="px-2 py-0.5 rounded text-[10px] font-bold uppercase">
+                <span :class="presc.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'" class="px-2 py-0.5 rounded-sm text-[10px] font-bold uppercase">
                     {{ presc.status }}
                 </span>
             </div>

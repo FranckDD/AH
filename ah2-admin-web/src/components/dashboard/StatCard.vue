@@ -1,5 +1,5 @@
 <template>
-  <div class="relative bg-white overflow-hidden rounded-2xl shadow-sm border border-gray-100 group hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
+  <div class="relative bg-white overflow-hidden rounded-2xl shadow-xs border border-gray-100 group hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
     
     <div class="p-6">
       <div class="flex items-center justify-between">
@@ -21,7 +21,7 @@
     </div>
 
     <div v-if="trend" class="bg-gray-50 px-6 py-2 border-t border-gray-100 flex items-center">
-      <span :class="trendIsPositive ? 'text-green-600 bg-green-100' : 'text-red-600 bg-red-100'" class="px-2 py-0.5 rounded text-xs font-bold mr-2">
+      <span :class="trendIsPositive ? 'text-green-600 bg-green-100' : 'text-red-600 bg-red-100'" class="px-2 py-0.5 rounded-sm text-xs font-bold mr-2">
         {{ trend }}
       </span>
       <span class="text-xs text-gray-400 font-medium">vs mois dernier</span>

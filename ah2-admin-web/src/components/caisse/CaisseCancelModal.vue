@@ -1,5 +1,5 @@
 <template>
-  <div class="fixed inset-0 bg-gray-900 bg-opacity-60 overflow-y-auto h-full w-full z-50 flex items-center justify-center backdrop-blur-sm">
+  <div class="fixed inset-0 bg-gray-900 bg-opacity-60 overflow-y-auto h-full w-full z-50 flex items-center justify-center backdrop-blur-xs">
     <div class="relative mx-auto w-full max-w-md bg-white shadow-xl rounded-2xl border border-gray-200">
       <div class="px-6 py-4 border-b border-gray-100 bg-red-600 rounded-t-2xl flex justify-between items-center">
         <h3 class="text-lg font-bold text-white flex items-center">
@@ -27,7 +27,7 @@
           ></textarea>
         </div>
 
-        <div v-if="errorMessage" class="bg-red-50 border-l-4 border-red-500 p-3 rounded text-sm text-red-700">
+        <div v-if="errorMessage" class="bg-red-50 border-l-4 border-red-500 p-3 rounded-sm text-sm text-red-700">
           {{ errorMessage }}
         </div>
 
@@ -37,7 +37,7 @@
             {{ t('caisse.cancel_modal.cancel') }}
           </button>
           <button type="submit" :disabled="isSaving || !justification.trim()"
-                  class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium shadow-sm transition disabled:opacity-50">
+                  class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium shadow-xs transition disabled:opacity-50">
             {{ isSaving ? t('caisse.cancel_modal.saving') : t('caisse.cancel_modal.confirm') }}
           </button>
         </div>

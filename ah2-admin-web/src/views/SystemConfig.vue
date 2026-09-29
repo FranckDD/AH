@@ -1,7 +1,7 @@
 <template>
   <div class="space-y-8 w-full max-w-7xl mx-auto pb-12">
     
-    <div class="flex flex-col md:flex-row justify-between items-center bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+    <div class="flex flex-col md:flex-row justify-between items-center bg-white p-6 rounded-2xl shadow-xs border border-gray-100">
       <div>
         <h1 class="text-2xl font-extrabold text-gray-800 tracking-tight">
           {{ t('config.title') }}
@@ -10,7 +10,7 @@
       </div>
     </div>
 
-    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden transition-all">
+    <div class="bg-white rounded-2xl shadow-xs border border-gray-100 overflow-hidden transition-all">
       <div 
         @click="openSections.structure = !openSections.structure"
         class="p-6 border-b border-gray-100 bg-gray-50/80 cursor-pointer hover:bg-gray-100 transition flex justify-between items-center"
@@ -40,7 +40,7 @@
                     <div class="relative group cursor-pointer w-40 h-40 mb-4">
                         <img 
                             :src="previewLogo || resolveAssetUrl(configStore.structureInfo.logo_url) || '/placeholder-logo.png'"
-                            class="w-full h-full object-contain rounded-lg bg-white shadow-sm border p-2"
+                            class="w-full h-full object-contain rounded-lg bg-white shadow-xs border p-2"
                             alt="Aperçu Logo"
                         />
                         <div class="absolute inset-0 bg-black/50 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
@@ -58,7 +58,7 @@
                     <div class="relative group cursor-pointer w-40 h-40 mb-4">
                         <img
                             :src="previewTicketLogo || resolveAssetUrl(configStore.structureInfo.ticket_logo_url) || '/placeholder-logo.png'"
-                            class="w-full h-full object-contain rounded-lg bg-white shadow-sm border p-2"
+                            class="w-full h-full object-contain rounded-lg bg-white shadow-xs border p-2"
                             alt="Aperçu Logo Ticket"
                         />
                         <div class="absolute inset-0 bg-black/50 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
@@ -84,44 +84,44 @@
                     
                     <div class="md:col-span-2">
                         <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Dénomination Sociale</label>
-                        <input v-model="formStructure.name" type="text" placeholder="Ex: Clinique Saint-Luc" class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm p-2.5 border" required />
+                        <input v-model="formStructure.name" type="text" placeholder="Ex: Clinique Saint-Luc" class="w-full border-gray-300 rounded-lg shadow-xs focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm p-2.5 border" required />
                     </div>
 
                     <div class="md:col-span-2">
                         <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Slogan / Devise (Apparaît sous le nom)</label>
-                        <input v-model="formStructure.slogan" type="text" placeholder="Ex: Votre santé, notre priorité" class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm p-2.5 border" />
+                        <input v-model="formStructure.slogan" type="text" placeholder="Ex: Votre santé, notre priorité" class="w-full border-gray-300 rounded-lg shadow-xs focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm p-2.5 border" />
                     </div>
 
                     <div>
                         <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Téléphone Principal</label>
-                        <input v-model="formStructure.phone" type="tel" class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm p-2.5 border" />
+                        <input v-model="formStructure.phone" type="tel" class="w-full border-gray-300 rounded-lg shadow-xs focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm p-2.5 border" />
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Téléphone Secondaire</label>
-                        <input v-model="formStructure.phone2" type="tel" class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm p-2.5 border" />
+                        <input v-model="formStructure.phone2" type="tel" class="w-full border-gray-300 rounded-lg shadow-xs focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm p-2.5 border" />
                     </div>
 
                     <div>
                         <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Adresse Email</label>
-                        <input v-model="formStructure.email" type="email" class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm p-2.5 border" />
+                        <input v-model="formStructure.email" type="email" class="w-full border-gray-300 rounded-lg shadow-xs focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm p-2.5 border" />
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Site Web</label>
-                        <input v-model="formStructure.website" type="text" placeholder="www.exemple.com" class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm p-2.5 border" />
+                        <input v-model="formStructure.website" type="text" placeholder="www.exemple.com" class="w-full border-gray-300 rounded-lg shadow-xs focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm p-2.5 border" />
                     </div>
 
                     <div class="md:col-span-2">
                         <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Adresse Physique / Localisation</label>
-                        <input v-model="formStructure.address" type="text" placeholder="Quartier, Avenue, Ville" class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm p-2.5 border" />
+                        <input v-model="formStructure.address" type="text" placeholder="Quartier, Avenue, Ville" class="w-full border-gray-300 rounded-lg shadow-xs focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm p-2.5 border" />
                     </div>
                     
                     <div>
                         <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Ville</label>
-                        <input v-model="formStructure.city" type="text" class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm p-2.5 border" />
+                        <input v-model="formStructure.city" type="text" class="w-full border-gray-300 rounded-lg shadow-xs focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm p-2.5 border" />
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Boite Postale (BP)</label>
-                        <input v-model="formStructure.po_box" type="text" class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm p-2.5 border" />
+                        <input v-model="formStructure.po_box" type="text" class="w-full border-gray-300 rounded-lg shadow-xs focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm p-2.5 border" />
                     </div>
 
                     <div class="md:col-span-2 border-t pt-4 mt-2">
@@ -130,11 +130,11 @@
 
                     <div>
                         <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Numéro Contribuable (NIU)</label>
-                        <input v-model="formStructure.niu" type="text" class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm p-2.5 border bg-gray-50" />
+                        <input v-model="formStructure.niu" type="text" class="w-full border-gray-300 rounded-lg shadow-xs focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm p-2.5 border bg-gray-50" />
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Registre Commerce (RCCM)</label>
-                        <input v-model="formStructure.rccm" type="text" class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm p-2.5 border bg-gray-50" />
+                        <input v-model="formStructure.rccm" type="text" class="w-full border-gray-300 rounded-lg shadow-xs focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm p-2.5 border bg-gray-50" />
                     </div>
                 </div>
             </div>
@@ -159,7 +159,7 @@
       </div>
     </div>
 
-    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden transition-all">
+    <div class="bg-white rounded-2xl shadow-xs border border-gray-100 overflow-hidden transition-all">
       <div 
         @click="openSections.exams = !openSections.exams"
         class="p-6 border-b border-gray-100 flex flex-col md:flex-row md:items-center justify-between gap-4 cursor-pointer hover:bg-gray-50 transition"
@@ -262,7 +262,7 @@
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
         
-        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden transition-all h-fit">
+        <div class="bg-white rounded-2xl shadow-xs border border-gray-100 overflow-hidden transition-all h-fit">
             <div 
                 @click="openSections.prayers = !openSections.prayers"
                 class="p-6 border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition flex justify-between items-center"
@@ -296,7 +296,7 @@
             </div>
         </div>
         
-        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 transition-all h-fit">
+        <div class="bg-white rounded-2xl shadow-xs border border-gray-100 transition-all h-fit">
             <div 
                 @click="openSections.general = !openSections.general"
                 class="p-6 border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition flex justify-between items-center"

@@ -1,7 +1,7 @@
 <template>
   <div class="space-y-6 w-full">
     
-    <div class="flex items-center justify-between bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+    <div class="flex items-center justify-between bg-white p-6 rounded-2xl shadow-xs border border-gray-100">
         <div>
             <h1 class="text-2xl font-extrabold text-gray-800 tracking-tight">
                 {{ t('toxico.dashboard.title') }}
@@ -17,7 +17,7 @@
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between">
+        <div class="bg-white p-6 rounded-2xl shadow-xs border border-gray-100 flex flex-col justify-between">
             <div class="flex justify-between items-start">
                 <div>
                     <p class="text-sm font-medium text-gray-500 uppercase">{{ t('toxico.dashboard.active_patients') }}</p>
@@ -32,7 +32,7 @@
             </div>
         </div>
 
-        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between">
+        <div class="bg-white p-6 rounded-2xl shadow-xs border border-gray-100 flex flex-col justify-between">
             <div class="flex justify-between items-start">
                 <div>
                     <p class="text-sm font-medium text-gray-500 uppercase">{{ t('toxico.dashboard.relapse_rate') }}</p>
@@ -47,7 +47,7 @@
             </div>
         </div>
 
-        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between">
+        <div class="bg-white p-6 rounded-2xl shadow-xs border border-gray-100 flex flex-col justify-between">
             <div class="flex justify-between items-start">
                 <div>
                     <p class="text-sm font-medium text-gray-500 uppercase">En Sevrage (Phase 1)</p>
@@ -60,7 +60,7 @@
             <p class="text-xs text-gray-400 mt-4">Nécessitent une surveillance accrue</p>
         </div>
 
-        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between">
+        <div class="bg-white p-6 rounded-2xl shadow-xs border border-gray-100 flex flex-col justify-between">
         <div class="flex justify-between items-start">
             <div>
                 <p class="text-sm font-medium text-gray-500 uppercase">{{ t('toxico.dashboard.new_this_month') }}</p>
@@ -75,7 +75,7 @@
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
-        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 lg:col-span-2">
+        <div class="bg-white p-6 rounded-2xl shadow-xs border border-gray-100 lg:col-span-2">
             <h3 class="text-lg font-bold text-gray-800 mb-6">{{ t('toxico.dashboard.phase_dist') }}</h3>
             
             <div class="space-y-5">
@@ -95,7 +95,7 @@
             </div>
         </div>
 
-        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+        <div class="bg-white p-6 rounded-2xl shadow-xs border border-gray-100">
             <h3 class="text-lg font-bold text-gray-800 mb-6">{{ t('toxico.dashboard.substance_dist') }}</h3>
             
             <div class="space-y-4">
@@ -104,7 +104,7 @@
                         <div class="w-2 h-8 rounded-l bg-indigo-500 mr-3"></div>
                         <span class="font-medium text-gray-700">{{ substance }}</span>
                     </div>
-                    <span class="font-bold text-gray-900 bg-white px-3 py-1 rounded-lg shadow-sm border border-gray-100">{{ count }}</span>
+                    <span class="font-bold text-gray-900 bg-white px-3 py-1 rounded-lg shadow-xs border border-gray-100">{{ count }}</span>
                 </div>
             </div>
         </div>
@@ -112,7 +112,7 @@
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
-        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+        <div class="bg-white p-6 rounded-2xl shadow-xs border border-gray-100">
             <h3 class="text-lg font-bold text-gray-800 mb-4">{{ t('toxico.dashboard.psy_workload') }}</h3>
             <div class="overflow-x-auto">
                 <table class="w-full text-sm text-left">
@@ -136,7 +136,7 @@
             </div>
         </div>
 
-        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+        <div class="bg-white p-6 rounded-2xl shadow-xs border border-gray-100">
             <h3 class="text-lg font-bold text-gray-800 mb-4">{{ t('toxico.dashboard.alerts') }}</h3>
             <div class="space-y-3">
                 

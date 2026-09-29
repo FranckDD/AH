@@ -4,7 +4,7 @@
 
     <div v-if="store.loading" class="text-center py-10">Chargement...</div>
 
-    <div v-else class="bg-white shadow rounded-lg overflow-hidden">
+    <div v-else class="bg-white shadow-sm rounded-lg overflow-hidden">
       <table class="min-w-full divide-y divide-gray-200">
         <thead class="bg-gray-50">
           <tr>

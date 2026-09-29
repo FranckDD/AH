@@ -24,7 +24,7 @@
             type="text"
             required
             placeholder="Votre nom d'utilisateur"
-            class="w-full px-4 py-3 border border-gray-300 rounded-xl shadow-sm placeholder-gray-400 focus:ring-green-500 focus:border-green-500 transition duration-150 ease-in-out"
+            class="w-full px-4 py-3 border border-gray-300 rounded-xl shadow-xs placeholder-gray-400 focus:ring-green-500 focus:border-green-500 transition duration-150 ease-in-out"
           />
         </div>
 
@@ -36,14 +36,14 @@
             type="password"
             required
             placeholder="Mot de passe sécurisé"
-            class="w-full px-4 py-3 border border-gray-300 rounded-xl shadow-sm placeholder-gray-400 focus:ring-green-500 focus:border-green-500 transition duration-150 ease-in-out"
+            class="w-full px-4 py-3 border border-gray-300 rounded-xl shadow-xs placeholder-gray-400 focus:ring-green-500 focus:border-green-500 transition duration-150 ease-in-out"
           />
         </div>
 
         <button
           type="submit"
           :disabled="isLoading"
-          class="w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-md text-base font-semibold text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-70 disabled:cursor-not-allowed transition duration-150 ease-in-out"
+          class="w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-md text-base font-semibold text-white bg-green-600 hover:bg-green-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-70 disabled:cursor-not-allowed transition duration-150 ease-in-out"
         >
           <span v-if="!isLoading">Se connecter</span>
           <span v-else>Connexion en cours...</span>

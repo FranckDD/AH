@@ -1,5 +1,5 @@
 <template>
-  <div class="fixed inset-0 bg-gray-900 bg-opacity-75 overflow-y-auto h-full w-full z-50 flex items-center justify-center backdrop-blur-sm">
+  <div class="fixed inset-0 bg-gray-900 bg-opacity-75 overflow-y-auto h-full w-full z-50 flex items-center justify-center backdrop-blur-xs">
     
     <div class="relative mx-auto w-full max-w-4xl bg-white shadow-2xl rounded-2xl border border-gray-200 flex flex-col max-h-[90vh]">
       
@@ -13,7 +13,7 @@
       </div>
 
       <div v-else class="flex flex-col h-full">
-          <div class="px-6 py-5 border-b border-gray-100 bg-indigo-50 rounded-t-2xl flex justify-between items-start flex-shrink-0">
+          <div class="px-6 py-5 border-b border-gray-100 bg-indigo-50 rounded-t-2xl flex justify-between items-start shrink-0">
             <div class="flex items-center">
                 <div class="h-12 w-12 rounded-full bg-indigo-200 flex items-center justify-center text-indigo-700 font-bold text-xl mr-4 uppercase">
                     {{ (patient.firstName ? patient.firstName.charAt(0) : '?') }}
@@ -27,12 +27,12 @@
                     </p>
                 </div>
             </div>
-            <button @click="$emit('close')" class="text-gray-400 hover:text-gray-600 bg-white p-2 rounded-full shadow-sm transition">
+            <button @click="$emit('close')" class="text-gray-400 hover:text-gray-600 bg-white p-2 rounded-full shadow-xs transition">
                 <span class="text-2xl font-bold">&times;</span>
             </button>
           </div>
 
-          <div class="bg-white border-b border-gray-200 px-6 flex-shrink-0">
+          <div class="bg-white border-b border-gray-200 px-6 shrink-0">
               <nav class="-mb-px flex space-x-8">
                   <button 
                     v-for="tab in tabs" 
@@ -54,10 +54,10 @@
           <div class="p-6 overflow-y-auto bg-gray-50 flex-1">
             
             <div v-if="currentTab === 'history'" class="space-y-6">
-                <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
+                <div class="bg-white p-5 rounded-xl shadow-xs border border-gray-100">
                     <h4 class="text-sm font-bold text-gray-700 uppercase mb-4">Progression</h4>
                     <div class="relative pt-1">
-                        <div class="overflow-hidden h-4 mb-4 text-xs flex rounded bg-indigo-100">
+                        <div class="overflow-hidden h-4 mb-4 text-xs flex rounded-sm bg-indigo-100">
                             <div :style="{ width: ((patient.currentPhase || 1) / 4) * 100 + '%' }" class="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-indigo-500 transition-all duration-500"></div>
                         </div>
                         <div class="flex justify-between text-xs text-gray-500 font-medium">
@@ -66,7 +66,7 @@
                     </div>
                 </div>
 
-                <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
+                <div class="bg-white p-5 rounded-xl shadow-xs border border-gray-100">
                     <h4 class="text-sm font-bold text-gray-700 uppercase mb-4">{{ t('toxico.dossier.tabs.history') }}</h4>
                     
                     <div v-if="patient.phaseHistory && patient.phaseHistory.length > 0" class="relative border-l-2 border-indigo-200 ml-3 space-y-6">
@@ -92,14 +92,14 @@
             </div>
 
             <div v-if="currentTab === 'medical'" class="space-y-6">
-                <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
+                <div class="bg-white p-5 rounded-xl shadow-xs border border-gray-100">
                     <h4 class="text-sm font-bold text-gray-700 uppercase mb-4">{{ t('toxico.dossier.tabs.medical') }}</h4>
                     <p class="text-gray-500 text-center py-4">Intégration du dossier médical complet en cours...</p>
                 </div>
             </div>
 
             <div v-if="currentTab === 'prescriptions'" class="space-y-6">
-                <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
+                <div class="bg-white p-5 rounded-xl shadow-xs border border-gray-100">
                     <h4 class="text-sm font-bold text-gray-700 uppercase mb-4">{{ t('toxico.dossier.tabs.prescriptions') }}</h4>
                     <p class="text-gray-500 text-center py-4">Intégration des prescriptions en cours...</p>
                 </div>
@@ -107,7 +107,7 @@
 
           </div>
 
-          <div class="px-6 py-4 border-t border-gray-100 bg-gray-50 rounded-b-2xl flex justify-end flex-shrink-0">
+          <div class="px-6 py-4 border-t border-gray-100 bg-gray-50 rounded-b-2xl flex justify-end shrink-0">
             <button @click="$emit('close')" class="px-5 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium transition shadow-md">
                 Fermer le dossier
             </button>

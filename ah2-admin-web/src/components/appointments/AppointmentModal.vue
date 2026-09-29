@@ -78,7 +78,7 @@
         </div>
 
         <div class="flex justify-end space-x-3 mt-6 pt-4 border-t border-gray-100">
-          <button type="button" @click="$emit('close')" class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition shadow-sm">
+          <button type="button" @click="$emit('close')" class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition shadow-xs">
             {{ t('appointments.modal.cancel') }}
           </button>
           <button type="submit" class="px-4 py-2 text-white rounded-lg shadow-md font-medium transition bg-emerald-600 hover:bg-emerald-700">

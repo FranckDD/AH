@@ -3,7 +3,7 @@
 
     <aside 
       :class="[
-        'bg-gray-800 text-white flex-shrink-0 transition-all duration-300 ease-in-out flex flex-col z-20',
+        'bg-gray-800 text-white shrink-0 transition-all duration-300 ease-in-out flex flex-col z-20',
         isSidebarOpen ? 'w-64' : 'w-20'
       ]"
     >
@@ -12,10 +12,10 @@
            <img 
             v-if="configStore.structureInfo.logo_url"
             :src="resolveAssetUrl(configStore.structureInfo.logo_url)"
-            class="h-8 w-8 object-contain bg-white rounded-full p-0.5 flex-shrink-0" 
+            class="h-8 w-8 object-contain bg-white rounded-full p-0.5 shrink-0" 
             alt="Logo"
           />
-          <div v-else class="h-8 w-8 rounded-full bg-green-600 flex items-center justify-center font-bold text-xs flex-shrink-0">
+          <div v-else class="h-8 w-8 rounded-full bg-green-600 flex items-center justify-center font-bold text-xs shrink-0">
             {{ (configStore.structureInfo.name || 'AH').substring(0,2).toUpperCase() }}
           </div>
           
@@ -25,7 +25,7 @@
         <button 
           @click="toggleSidebar" 
           :class="[
-            'p-1 rounded hover:bg-gray-700 text-gray-400 hover:text-white transition-colors',
+            'p-1 rounded-sm hover:bg-gray-700 text-gray-400 hover:text-white transition-colors',
             isSidebarOpen ? 'ml-auto' : 'mx-auto'
           ]"
         >
@@ -43,7 +43,7 @@
             <router-link 
               :to="item.path" 
               :class="[
-                'flex items-center py-2 px-3 rounded transition duration-150 group',
+                'flex items-center py-2 px-3 rounded-sm transition duration-150 group',
                 isActive(item.path)
                   ? 'bg-gray-700 font-semibold text-white' 
                   : 'text-gray-400 hover:bg-gray-700 hover:text-white'
@@ -52,7 +52,7 @@
             >
               <component 
                 :is="item.icon" 
-                class="h-6 w-6 flex-shrink-0" 
+                class="h-6 w-6 shrink-0" 
                 :class="isSidebarOpen ? 'mr-3' : 'mx-auto'" 
               />
               
@@ -79,12 +79,12 @@
           <div class="flex bg-gray-100 rounded-lg p-1">
             <button 
               @click="changeLanguage('fr')"
-              :class="locale === 'fr' ? 'bg-white shadow text-gray-900' : 'text-gray-500 hover:text-gray-700'"
+              :class="locale === 'fr' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'"
               class="px-3 py-1 rounded-md text-sm font-medium transition-all duration-200"
             >FR</button>
             <button 
               @click="changeLanguage('en')"
-              :class="locale === 'en' ? 'bg-white shadow text-gray-900' : 'text-gray-500 hover:text-gray-700'"
+              :class="locale === 'en' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'"
               class="px-3 py-1 rounded-md text-sm font-medium transition-all duration-200"
             >EN</button>
           </div>
@@ -101,7 +101,7 @@
 
           <button
             @click="handleLogout"
-            class="bg-red-500 hover:bg-red-600 text-white text-sm font-semibold py-2 px-4 rounded transition duration-150"
+            class="bg-red-500 hover:bg-red-600 text-white text-sm font-semibold py-2 px-4 rounded-sm transition duration-150"
           >
             {{ $t('common.logout') }}
           </button>

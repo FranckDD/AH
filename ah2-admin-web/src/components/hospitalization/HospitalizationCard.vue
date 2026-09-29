@@ -1,5 +1,5 @@
 <template>
-  <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+  <div class="bg-white rounded-2xl shadow-xs border border-gray-100 p-6">
     <div class="flex items-center justify-between mb-4">
       <h3 class="text-lg font-bold text-gray-800">{{ t('hospitalization.card_title') }}</h3>
       <button
@@ -53,9 +53,9 @@
         <h4 class="text-xs font-bold text-gray-500 uppercase mb-2">{{ t('hospitalization.evolution_title') }}</h4>
         <div class="space-y-1.5 max-h-48 overflow-y-auto pr-1">
           <div v-for="u in openStay.status_updates" :key="u.id" class="text-xs flex items-start gap-2">
-            <span class="font-semibold flex-shrink-0" :class="statusColorClass(u.status)">{{ t(`hospitalization.status.${u.status}`) }}</span>
-            <span class="text-gray-400 flex-shrink-0">{{ formatDate(u.created_at) }}</span>
-            <span class="text-gray-400 flex-shrink-0">{{ t('hospitalization.recorded_by') }} {{ u.created_by_name || t('hospitalization.unknown_user') }}</span>
+            <span class="font-semibold shrink-0" :class="statusColorClass(u.status)">{{ t(`hospitalization.status.${u.status}`) }}</span>
+            <span class="text-gray-400 shrink-0">{{ formatDate(u.created_at) }}</span>
+            <span class="text-gray-400 shrink-0">{{ t('hospitalization.recorded_by') }} {{ u.created_by_name || t('hospitalization.unknown_user') }}</span>
             <span v-if="u.note" class="text-gray-600 italic truncate">— {{ u.note }}</span>
           </div>
         </div>
@@ -108,7 +108,7 @@
                 v-if="stay.discharge_disposition"
                 @click="downloadLetter(stay.id)"
                 :disabled="downloadingLetterId === stay.id"
-                class="px-2 py-0.5 text-xs font-medium rounded bg-gray-100 text-gray-700 hover:bg-gray-200 transition disabled:opacity-40"
+                class="px-2 py-0.5 text-xs font-medium rounded-sm bg-gray-100 text-gray-700 hover:bg-gray-200 transition disabled:opacity-40"
               >
                 {{ t('hospitalization.download_letter') }}
               </button>
@@ -119,8 +119,8 @@
           </div>
           <div v-if="stay.status_updates?.length" class="mt-1 pl-3 border-l-2 border-gray-100 space-y-1">
             <div v-for="u in stay.status_updates" :key="u.id" class="flex items-start gap-2">
-              <span class="font-medium flex-shrink-0" :class="statusColorClass(u.status)">{{ t(`hospitalization.status.${u.status}`) }}</span>
-              <span class="text-gray-400 flex-shrink-0">{{ formatDate(u.created_at) }}</span>
+              <span class="font-medium shrink-0" :class="statusColorClass(u.status)">{{ t(`hospitalization.status.${u.status}`) }}</span>
+              <span class="text-gray-400 shrink-0">{{ formatDate(u.created_at) }}</span>
               <span v-if="u.note" class="text-gray-500 italic truncate">— {{ u.note }}</span>
             </div>
           </div>

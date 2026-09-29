@@ -1,5 +1,5 @@
 <template>
-  <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-start justify-between hover:shadow-md transition-shadow duration-200">
+  <div class="bg-white p-5 rounded-2xl shadow-xs border border-gray-100 flex items-start justify-between hover:shadow-md transition-shadow duration-200">
     
     <div>
       <p class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">

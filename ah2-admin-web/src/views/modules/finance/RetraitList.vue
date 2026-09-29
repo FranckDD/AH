@@ -1,6 +1,6 @@
 <template>
   <div class="space-y-6 w-full">
-    <div class="flex flex-col md:flex-row justify-between items-center bg-white p-6 rounded-2xl shadow-sm border border-gray-100 gap-4">
+    <div class="flex flex-col md:flex-row justify-between items-center bg-white p-6 rounded-2xl shadow-xs border border-gray-100 gap-4">
       <div>
         <h1 class="text-2xl font-extrabold text-gray-800 tracking-tight">{{ t('retrait.title') }}</h1>
         <p class="text-sm text-gray-500">{{ retraitStore.pagination.total }} retraits</p>
@@ -12,7 +12,7 @@
       </button>
     </div>
 
-    <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-wrap gap-4 items-end">
+    <div class="bg-white p-4 rounded-2xl shadow-xs border border-gray-100 flex flex-wrap gap-4 items-end">
       <div class="flex-1 min-w-[200px]">
         <label class="text-xs font-bold text-gray-500 uppercase mb-1 block">Recherche</label>
         <input v-model="searchQuery" type="text" :placeholder="t('retrait.search_placeholder')"
@@ -36,7 +36,7 @@
       </div>
     </div>
 
-    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+    <div class="bg-white rounded-2xl shadow-xs border border-gray-100 overflow-hidden">
       <div v-if="retraitStore.isLoading" class="p-10 text-center">
         <span class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-red-600"></span>
       </div>
@@ -66,17 +66,17 @@
               <td class="px-6 py-4 text-sm text-gray-600">{{ r.payment_method }}</td>
               <td class="px-6 py-4 text-right font-bold text-sm text-red-600">- {{ formatCurrency(r.amount) }}</td>
               <td class="px-6 py-4">
-                <span v-if="r.status === 'active'" class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                <span v-if="r.status === 'active'" class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-green-100 text-green-800">
                   {{ t('caisse.status.active') }}
                 </span>
-                <span v-else class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-200 text-gray-600">
+                <span v-else class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-gray-200 text-gray-600">
                   {{ t('caisse.status.cancelled') }}
                 </span>
               </td>
               <td class="px-6 py-4 text-right">
                 <button v-if="r.status === 'active'" @click="openCancelModal(r)"
                         :disabled="!r.retrait_id"
-                        class="p-2 bg-white border border-gray-200 rounded-lg text-red-500 hover:bg-red-50 hover:border-red-200 transition shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
+                        class="p-2 bg-white border border-gray-200 rounded-lg text-red-500 hover:bg-red-50 hover:border-red-200 transition shadow-xs disabled:opacity-40 disabled:cursor-not-allowed"
                         :title="r.retrait_id ? t('caisse.actions.cancel') : 'En attente de synchronisation'">
                   <XCircleIcon class="h-4 w-4" />
                 </button>
@@ -92,10 +92,10 @@
       <div v-if="retraitStore.pagination.total_pages > 1" class="p-4 flex justify-between items-center border-t border-gray-100 bg-gray-50">
         <p class="text-sm text-gray-700">Page {{ retraitStore.pagination.page }} sur {{ retraitStore.pagination.total_pages }}</p>
         <div class="flex space-x-2">
-          <button @click="goToPage(retraitStore.pagination.page - 1)" :disabled="retraitStore.pagination.page === 1" class="px-3 py-1 border rounded bg-white disabled:opacity-50">
+          <button @click="goToPage(retraitStore.pagination.page - 1)" :disabled="retraitStore.pagination.page === 1" class="px-3 py-1 border rounded-sm bg-white disabled:opacity-50">
             <ChevronLeftIcon class="h-5 w-5" />
           </button>
-          <button @click="goToPage(retraitStore.pagination.page + 1)" :disabled="retraitStore.pagination.page === retraitStore.pagination.total_pages" class="px-3 py-1 border rounded bg-white disabled:opacity-50">
+          <button @click="goToPage(retraitStore.pagination.page + 1)" :disabled="retraitStore.pagination.page === retraitStore.pagination.total_pages" class="px-3 py-1 border rounded-sm bg-white disabled:opacity-50">
             <ChevronRightIcon class="h-5 w-5" />
           </button>
         </div>

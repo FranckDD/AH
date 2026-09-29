@@ -9,14 +9,14 @@
         </div>
         
         <transition name="fade">
-          <div v-if="labStore.successMessage" class="bg-green-100 text-green-800 px-4 py-2 rounded-lg flex items-center shadow-sm border border-green-200">
+          <div v-if="labStore.successMessage" class="bg-green-100 text-green-800 px-4 py-2 rounded-lg flex items-center shadow-xs border border-green-200">
              <CheckCircleIcon class="w-5 h-5 mr-2"/> 
              <span class="font-medium">{{ labStore.successMessage || $t('lab.reception.success_message') }}</span>
           </div>
         </transition>
       </div>
   
-      <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-visible relative z-30">
+      <div class="bg-white rounded-2xl shadow-xs border border-gray-200 overflow-visible relative z-30">
         <div class="bg-gray-50 border-b border-gray-200 px-6 py-3 flex justify-between items-center">
           <h2 class="font-bold text-gray-700 flex items-center gap-2">
             <UserIcon class="w-5 h-5"/> {{ $t('lab.reception.section1_title') }}
@@ -25,14 +25,14 @@
           <div class="bg-gray-200 p-1 rounded-lg flex text-sm font-medium">
             <button  
               @click="setMode('internal')"
-              :class="mode === 'internal' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'"
+              :class="mode === 'internal' ? 'bg-white text-indigo-600 shadow-xs' : 'text-gray-500 hover:text-gray-700'"
               class="px-4 py-1.5 rounded-md transition-all"
             >
               {{ $t('lab.reception.mode_internal') }}
             </button>
             <button  
               @click="setMode('external')"
-              :class="mode === 'external' ? 'bg-white text-orange-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'"
+              :class="mode === 'external' ? 'bg-white text-orange-600 shadow-xs' : 'text-gray-500 hover:text-gray-700'"
               class="px-4 py-1.5 rounded-md transition-all"
             >
               {{ $t('lab.reception.mode_external') }}
@@ -78,7 +78,7 @@
                             <span v-else>Prescription vide</span>
                         </div>
                       </div>
-                      <span class="bg-gray-100 group-hover:bg-white text-gray-600 text-[10px] font-mono uppercase px-2 py-1 rounded border border-gray-200">
+                      <span class="bg-gray-100 group-hover:bg-white text-gray-600 text-[10px] font-mono uppercase px-2 py-1 rounded-sm border border-gray-200">
                         {{ p.patient_code }}
                       </span>
                     </div>
@@ -133,15 +133,15 @@
                  </div>
               </div>
             </div>
-            <div class="bg-orange-50 text-orange-800 text-xs p-3 rounded border border-orange-100 flex items-start gap-2">
-              <ExclamationCircleIcon class="w-4 h-4 mt-0.5 flex-shrink-0"/>
+            <div class="bg-orange-50 text-orange-800 text-xs p-3 rounded-sm border border-orange-100 flex items-start gap-2">
+              <ExclamationCircleIcon class="w-4 h-4 mt-0.5 shrink-0"/>
               <p>{{ $t('lab.reception.ext_warning') }}</p>
             </div>
           </div>
         </div>
       </div>
 
-      <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-visible relative z-20">
+      <div class="bg-white rounded-2xl shadow-xs border border-gray-200 overflow-visible relative z-20">
         <div class="bg-gray-50 border-b border-gray-200 px-6 py-3">
           <h2 class="font-bold text-gray-700 flex items-center gap-2">
             <IdentificationIcon class="w-5 h-5"/> {{ $t('lab.reception.prescriber_info') || 'Information Prescription' }}
@@ -168,7 +168,7 @@
         </div>
       </div>
   
-      <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden relative z-0">
+      <div class="bg-white rounded-2xl shadow-xs border border-gray-200 overflow-hidden relative z-0">
         <div class="bg-gray-50 border-b border-gray-200 px-6 py-3">
           <h2 class="font-bold text-gray-700 flex items-center gap-2">
             <BeakerIcon class="w-5 h-5"/> {{ $t('lab.reception.section2_title') }}

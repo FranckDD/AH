@@ -7,7 +7,7 @@
       {{ $t('discount_review.empty') }}
     </div>
 
-    <div v-for="req in pending" :key="req.id" class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 mb-4">
+    <div v-for="req in pending" :key="req.id" class="bg-white rounded-xl shadow-xs border border-gray-200 p-5 mb-4">
       <div class="flex justify-between items-center mb-1">
         <span class="font-bold text-gray-800">{{ formatCurrency(req.original_amount) }}</span>
         <span class="text-xs text-gray-400">{{ formatDate(req.created_at) }}</span>

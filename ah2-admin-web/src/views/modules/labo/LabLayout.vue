@@ -1,6 +1,6 @@
 <template>
   <div class="flex flex-col h-full bg-gray-50">
-    <div class="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between sticky top-0 z-10 shadow-sm">
+    <div class="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between sticky top-0 z-10 shadow-xs">
       <div class="flex items-center gap-3">
         <div class="p-2 bg-indigo-100 rounded-lg">
            <beaker-icon class="w-6 h-6 text-indigo-600" />
@@ -83,6 +83,10 @@ const canConfigure = computed(() => authStore.hasRole(['admin', 'manager', 'biol
 </script>
 
 <style scoped>
+/* Tailwind v4 : @apply dans un bloc <style> scope necessite une reference
+   explicite au theme (plus d'injection implicite comme en v3). */
+@reference "../../../style.css";
+
 .nav-btn {
   @apply px-4 py-2 rounded-lg text-sm font-bold transition-all duration-200 flex items-center gap-2;
 }

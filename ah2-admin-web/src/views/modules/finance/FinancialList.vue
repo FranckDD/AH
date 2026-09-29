@@ -1,7 +1,7 @@
 <template>
   <div class="space-y-6 w-full">
     
-    <div class="flex flex-col md:flex-row justify-between items-center bg-white p-6 rounded-2xl shadow-sm border border-gray-100 gap-4">
+    <div class="flex flex-col md:flex-row justify-between items-center bg-white p-6 rounded-2xl shadow-xs border border-gray-100 gap-4">
       <div>
         <h1 class="text-2xl font-extrabold text-gray-800 tracking-tight">
           {{ t('finance.title') }}
@@ -18,7 +18,7 @@
       </button>
     </div>
 
-    <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-wrap gap-4 items-end">
+    <div class="bg-white p-4 rounded-2xl shadow-xs border border-gray-100 flex flex-wrap gap-4 items-end">
         
         <div class="flex-1 min-w-[200px]">
             <label class="text-xs font-bold text-gray-500 uppercase mb-1 block">Recherche</label>
@@ -37,7 +37,7 @@
 
         <div class="w-full md:w-48">
             <label class="text-xs font-bold text-gray-500 uppercase mb-1 block">{{ t('finance.modal.category') }}</label>
-            <select v-model="categoryFilter" class="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm rounded-lg">
+            <select v-model="categoryFilter" class="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-hidden focus:ring-green-500 focus:border-green-500 sm:text-sm rounded-lg">
                 <option value="">Toutes les catégories</option>
                 <option v-for="cat in availableCategories" :key="cat" :value="cat">{{ cat }}</option>
             </select>
@@ -61,7 +61,7 @@
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center">
+        <div class="bg-white p-6 rounded-2xl shadow-xs border border-gray-100 flex items-center">
             <div class="p-3 bg-green-50 rounded-full mr-4">
                 <ArrowTrendingUpIcon class="h-8 w-8 text-green-600" />
             </div>
@@ -71,7 +71,7 @@
             </div>
         </div>
 
-        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center">
+        <div class="bg-white p-6 rounded-2xl shadow-xs border border-gray-100 flex items-center">
             <div class="p-3 bg-red-50 rounded-full mr-4">
                 <ArrowTrendingDownIcon class="h-8 w-8 text-red-600" />
             </div>
@@ -81,7 +81,7 @@
             </div>
         </div>
 
-        <div class="bg-gradient-to-r from-gray-800 to-gray-900 p-6 rounded-2xl shadow-lg text-white flex items-center justify-between">
+        <div class="bg-linear-to-r from-gray-800 to-gray-900 p-6 rounded-2xl shadow-lg text-white flex items-center justify-between">
             <div>
                 <p class="text-sm text-gray-400 font-medium uppercase">{{ t('finance.balance') }}</p>
                 <p class="text-3xl font-bold text-white">{{ kpiAffiche(formatCurrency(financialStore.currentBalance)) }}</p>
@@ -90,7 +90,7 @@
         </div>
     </div>
 
-    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+    <div class="bg-white rounded-2xl shadow-xs border border-gray-100 overflow-hidden">
         
         <div class="p-4 border-b border-gray-100 flex items-center justify-between">
             <div class="flex space-x-2">
@@ -138,10 +138,10 @@
                             </span>
                         </td>
                         <td class="px-6 py-4">
-                            <span v-if="tx.status === 'Validé'" class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                            <span v-if="tx.status === 'Validé'" class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-green-100 text-green-800">
                                 <CheckCircleIcon class="h-3 w-3 mr-1" /> Validé
                             </span>
-                            <span v-else class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
+                            <span v-else class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-yellow-100 text-yellow-800">
                                 <ClockIcon class="h-3 w-3 mr-1" /> {{ tx.status }}
                             </span>
                         </td>
@@ -160,10 +160,10 @@
                 Page {{ financialStore.pagination.page }} sur {{ financialStore.pagination.total_pages }}
             </p>
             <div class="flex space-x-2">
-                <button @click="goToPage(financialStore.pagination.page - 1)" :disabled="financialStore.pagination.page === 1" class="px-3 py-1 border rounded bg-white disabled:opacity-50">
+                <button @click="goToPage(financialStore.pagination.page - 1)" :disabled="financialStore.pagination.page === 1" class="px-3 py-1 border rounded-sm bg-white disabled:opacity-50">
                     <ChevronLeftIcon class="h-5 w-5" />
                 </button>
-                <button @click="goToPage(financialStore.pagination.page + 1)" :disabled="financialStore.pagination.page === financialStore.pagination.total_pages" class="px-3 py-1 border rounded bg-white disabled:opacity-50">
+                <button @click="goToPage(financialStore.pagination.page + 1)" :disabled="financialStore.pagination.page === financialStore.pagination.total_pages" class="px-3 py-1 border rounded-sm bg-white disabled:opacity-50">
                     <ChevronRightIcon class="h-5 w-5" />
                 </button>
             </div>

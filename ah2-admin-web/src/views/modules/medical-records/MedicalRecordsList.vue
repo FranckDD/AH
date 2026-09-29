@@ -1,7 +1,7 @@
 <template>
   <div class="space-y-6 w-full">
 
-    <div class="flex flex-col md:flex-row justify-between items-center bg-white p-6 rounded-2xl shadow-sm border border-gray-100 gap-4">
+    <div class="flex flex-col md:flex-row justify-between items-center bg-white p-6 rounded-2xl shadow-xs border border-gray-100 gap-4">
       <div>
         <h1 class="text-2xl font-extrabold text-gray-800 tracking-tight">
           {{ t('medicalRecords.title') }}
@@ -18,7 +18,7 @@
       </button>
     </div>
 
-    <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-wrap gap-4 items-end">
+    <div class="bg-white p-4 rounded-2xl shadow-xs border border-gray-100 flex flex-wrap gap-4 items-end">
 
       <div class="flex-1 min-w-[220px]">
         <label class="text-xs font-bold text-gray-500 uppercase mb-1 block">{{ t('medicalRecords.search_label') }}</label>
@@ -37,7 +37,7 @@
 
       <div class="w-full md:w-44">
         <label class="text-xs font-bold text-gray-500 uppercase mb-1 block">{{ t('medicalRecords.motif_label') }}</label>
-        <select v-model="motifFilter" class="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-teal-500 focus:border-teal-500 sm:text-sm rounded-lg">
+        <select v-model="motifFilter" class="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-hidden focus:ring-teal-500 focus:border-teal-500 sm:text-sm rounded-lg">
           <option value="">{{ t('medicalRecords.motif_all') }}</option>
           <option v-for="m in medicalRecordStore.motifs" :key="m.code" :value="m.code">{{ m.label_fr }}</option>
         </select>
@@ -45,7 +45,7 @@
 
       <div class="w-full md:w-40">
         <label class="text-xs font-bold text-gray-500 uppercase mb-1 block">{{ t('medicalRecords.severity_label') }}</label>
-        <select v-model="severityFilter" class="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-teal-500 focus:border-teal-500 sm:text-sm rounded-lg">
+        <select v-model="severityFilter" class="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-hidden focus:ring-teal-500 focus:border-teal-500 sm:text-sm rounded-lg">
           <option value="">{{ t('medicalRecords.severity_all') }}</option>
           <option value="low">{{ t('medicalRecords.severity_low') }}</option>
           <option value="medium">{{ t('medicalRecords.severity_medium') }}</option>
@@ -64,7 +64,7 @@
       </div>
     </div>
 
-    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+    <div class="bg-white rounded-2xl shadow-xs border border-gray-100 overflow-hidden">
 
       <div class="p-4 border-b border-gray-100 flex items-center justify-between">
         <div class="text-sm text-gray-500">
@@ -99,7 +99,7 @@
               <td class="px-6 py-4 text-sm text-gray-600 font-mono">{{ (rec.consultation_date || '').substring(0, 10) }}</td>
               <td class="px-6 py-4 text-sm text-gray-600">{{ motifLabel(rec.motif_code) }}</td>
               <td class="px-6 py-4">
-                <span class="px-2 py-1 rounded text-xs font-semibold" :class="severityClass(rec.severity)">
+                <span class="px-2 py-1 rounded-sm text-xs font-semibold" :class="severityClass(rec.severity)">
                   {{ severityLabel(rec.severity) }}
                 </span>
               </td>
@@ -140,10 +140,10 @@
           {{ t('common.page') }} {{ medicalRecordStore.pagination.page }} / {{ medicalRecordStore.pagination.total_pages }}
         </p>
         <div class="flex space-x-2">
-          <button @click="goToPage(medicalRecordStore.pagination.page - 1)" :disabled="medicalRecordStore.pagination.page === 1" class="px-3 py-1 border rounded bg-white disabled:opacity-50">
+          <button @click="goToPage(medicalRecordStore.pagination.page - 1)" :disabled="medicalRecordStore.pagination.page === 1" class="px-3 py-1 border rounded-sm bg-white disabled:opacity-50">
             <ChevronLeftIcon class="h-5 w-5" />
           </button>
-          <button @click="goToPage(medicalRecordStore.pagination.page + 1)" :disabled="medicalRecordStore.pagination.page === medicalRecordStore.pagination.total_pages" class="px-3 py-1 border rounded bg-white disabled:opacity-50">
+          <button @click="goToPage(medicalRecordStore.pagination.page + 1)" :disabled="medicalRecordStore.pagination.page === medicalRecordStore.pagination.total_pages" class="px-3 py-1 border rounded-sm bg-white disabled:opacity-50">
             <ChevronRightIcon class="h-5 w-5" />
           </button>
         </div>

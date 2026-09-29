@@ -1,7 +1,7 @@
 <template>
   <div class="space-y-6 w-full">
     
-    <div class="flex flex-col md:flex-row justify-between items-center bg-white p-6 rounded-2xl shadow-sm border border-gray-100 gap-4">
+    <div class="flex flex-col md:flex-row justify-between items-center bg-white p-6 rounded-2xl shadow-xs border border-gray-100 gap-4">
       <div>
         <h1 class="text-2xl font-extrabold text-gray-800 tracking-tight">
           {{ t('patients.title') }}
@@ -18,7 +18,7 @@
         <button
             v-if="canManagePatients"
             @click="openCreateModal"
-            class="flex items-center gap-2 bg-green-600 text-white px-4 py-2.5 rounded-xl hover:bg-green-700 font-medium shadow-sm transition"
+            class="flex items-center gap-2 bg-green-600 text-white px-4 py-2.5 rounded-xl hover:bg-green-700 font-medium shadow-xs transition"
         >
             <PlusIcon class="h-5 w-5" />
             Ajouter un patient
@@ -61,7 +61,7 @@
       </nav>
     </div>
 
-    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+    <div class="bg-white rounded-2xl shadow-xs border border-gray-100 overflow-hidden">
       
       <div v-if="patientStore.isLoading" class="p-10 text-center">
         <span class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></span>
@@ -101,12 +101,12 @@
               <td class="px-6 py-4 text-right">
                 <div class="flex items-center justify-end gap-2">
                     <button v-if="canManagePatients" @click="openEditModal(patient)" :disabled="patient.pending"
-                            class="p-2 bg-white border border-gray-200 rounded-lg text-indigo-600 hover:bg-indigo-50 hover:border-indigo-200 transition shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
+                            class="p-2 bg-white border border-gray-200 rounded-lg text-indigo-600 hover:bg-indigo-50 hover:border-indigo-200 transition shadow-xs disabled:opacity-40 disabled:cursor-not-allowed"
                             :title="patient.pending ? 'En attente de synchronisation' : 'Modifier'">
                         <PencilSquareIcon class="h-4 w-4" />
                     </button>
                     <button v-if="canManagePatients" @click="confirmDelete(patient)" :disabled="patient.pending"
-                            class="p-2 bg-white border border-gray-200 rounded-lg text-red-500 hover:bg-red-50 hover:border-red-200 transition shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
+                            class="p-2 bg-white border border-gray-200 rounded-lg text-red-500 hover:bg-red-50 hover:border-red-200 transition shadow-xs disabled:opacity-40 disabled:cursor-not-allowed"
                             :title="patient.pending ? 'En attente de synchronisation' : 'Supprimer'">
                         <TrashIcon class="h-4 w-4" />
                     </button>

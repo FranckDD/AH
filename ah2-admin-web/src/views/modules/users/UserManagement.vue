@@ -1,7 +1,7 @@
 <template>
   <div class="space-y-6 w-full animate-fade-in">
     
-    <div class="flex flex-col lg:flex-row justify-between items-center bg-white p-6 rounded-2xl shadow-sm border border-gray-100 gap-6">
+    <div class="flex flex-col lg:flex-row justify-between items-center bg-white p-6 rounded-2xl shadow-xs border border-gray-100 gap-6">
       
       <div class="w-full lg:w-auto text-center lg:text-left">
         <h1 class="text-2xl font-extrabold text-gray-800 tracking-tight flex items-center gap-3 justify-center lg:justify-start">
@@ -22,7 +22,7 @@
               v-model="searchQuery"
               type="text"
               :placeholder="t('users.search_placeholder')"
-              class="block w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-xl leading-5 bg-gray-50 placeholder-gray-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-green-500 focus:border-green-500 transition duration-150"
+              class="block w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-xl leading-5 bg-gray-50 placeholder-gray-400 focus:outline-hidden focus:bg-white focus:ring-2 focus:ring-green-500 focus:border-green-500 transition duration-150"
             />
           </div>
           
@@ -36,7 +36,7 @@
       </div>
     </div>
 
-    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+    <div class="bg-white rounded-2xl shadow-xs border border-gray-100 overflow-hidden">
       
       <div v-if="userStore.isLoading" class="p-12 text-center text-gray-500 flex flex-col items-center">
          <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-green-600 mb-3"></div>
@@ -59,7 +59,7 @@
               
               <td class="px-6 py-4 pl-8">
                 <div class="flex items-center">
-                  <div class="h-10 w-10 flex-shrink-0 bg-gradient-to-br from-green-100 to-green-200 rounded-full flex items-center justify-center text-green-700 font-bold text-sm shadow-sm">
+                  <div class="h-10 w-10 shrink-0 bg-linear-to-br from-green-100 to-green-200 rounded-full flex items-center justify-center text-green-700 font-bold text-sm shadow-xs">
                     {{ user.firstName.charAt(0) }}{{ user.lastName.charAt(0) }}
                   </div>
                   <div class="ml-4">
@@ -100,10 +100,10 @@
               </td>
 
               <td class="px-6 py-4 text-right space-x-2 pr-8">
-                <button @click="openEditModal(user)" class="p-2 bg-white border border-gray-200 rounded-lg text-indigo-600 hover:bg-indigo-50 hover:border-indigo-200 transition shadow-sm" :title="t('users.modal.edit_title')">
+                <button @click="openEditModal(user)" class="p-2 bg-white border border-gray-200 rounded-lg text-indigo-600 hover:bg-indigo-50 hover:border-indigo-200 transition shadow-xs" :title="t('users.modal.edit_title')">
                   <PencilSquareIcon class="h-4 w-4" />
                 </button>
-                <button @click="confirmDelete(user)" class="p-2 bg-white border border-gray-200 rounded-lg text-red-500 hover:bg-red-50 hover:border-red-200 transition shadow-sm" :title="t('common.delete')">
+                <button @click="confirmDelete(user)" class="p-2 bg-white border border-gray-200 rounded-lg text-red-500 hover:bg-red-50 hover:border-red-200 transition shadow-xs" :title="t('common.delete')">
                   <TrashIcon class="h-4 w-4" />
                 </button>
               </td>
@@ -125,10 +125,10 @@
             Page <span class="font-semibold text-gray-900">{{ userStore.pagination.page }}</span> sur {{ userStore.pagination.total_pages }}
         </p>
         <div class="flex space-x-2">
-            <button @click="goToPage(userStore.pagination.page - 1)" :disabled="userStore.pagination.page === 1" class="px-3 py-1.5 border border-gray-300 rounded-lg bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition shadow-sm">
+            <button @click="goToPage(userStore.pagination.page - 1)" :disabled="userStore.pagination.page === 1" class="px-3 py-1.5 border border-gray-300 rounded-lg bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition shadow-xs">
                 <ChevronLeftIcon class="h-4 w-4" />
             </button>
-            <button @click="goToPage(userStore.pagination.page + 1)" :disabled="userStore.pagination.page === userStore.pagination.total_pages" class="px-3 py-1.5 border border-gray-300 rounded-lg bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition shadow-sm">
+            <button @click="goToPage(userStore.pagination.page + 1)" :disabled="userStore.pagination.page === userStore.pagination.total_pages" class="px-3 py-1.5 border border-gray-300 rounded-lg bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition shadow-xs">
                 <ChevronRightIcon class="h-4 w-4" />
             </button>
         </div>

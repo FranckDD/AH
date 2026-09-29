@@ -1,9 +1,9 @@
 <template>
-  <div class="fixed inset-0 bg-gray-900 bg-opacity-60 overflow-y-auto h-full w-full z-50 flex items-center justify-center backdrop-blur-sm">
+  <div class="fixed inset-0 bg-gray-900 bg-opacity-60 overflow-y-auto h-full w-full z-50 flex items-center justify-center backdrop-blur-xs">
     
     <div class="relative mx-auto w-full max-w-2xl bg-white shadow-2xl rounded-2xl border border-gray-200 flex flex-col max-h-[90vh]">
       
-      <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50 rounded-t-2xl flex-shrink-0">
+      <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50 rounded-t-2xl shrink-0">
         <div>
             <h3 class="text-lg font-bold text-gray-800 flex items-center">
                 <span class="bg-indigo-100 text-indigo-700 p-1.5 rounded-lg mr-3">
@@ -16,7 +16,7 @@
                 Phase actuelle: <span class="font-semibold text-indigo-600">{{ t(`toxico.phases.${patient.currentPhase}`) }}</span>
             </p>
         </div>
-        <button @click="$emit('close')" class="text-gray-400 hover:text-gray-600 bg-white p-2 rounded-full shadow-sm border border-gray-200 transition">
+        <button @click="$emit('close')" class="text-gray-400 hover:text-gray-600 bg-white p-2 rounded-full shadow-xs border border-gray-200 transition">
           <span class="text-xl font-bold">&times;</span>
         </button>
       </div>
@@ -106,9 +106,9 @@
             </div>
 
             <!-- Résumé de la décision -->
-            <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
+            <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-sm">
                 <div class="flex">
-                    <div class="flex-shrink-0">
+                    <div class="shrink-0">
                         <InformationCircleIcon class="h-5 w-5 text-blue-400" />
                     </div>
                     <div class="ml-3">
@@ -121,9 +121,9 @@
             </div>
 
             <!-- Message d'erreur -->
-            <div v-if="errorMessage" class="bg-red-50 border-l-4 border-red-500 p-4 rounded">
+            <div v-if="errorMessage" class="bg-red-50 border-l-4 border-red-500 p-4 rounded-sm">
                 <div class="flex">
-                    <div class="flex-shrink-0">
+                    <div class="shrink-0">
                         <ExclamationCircleIcon class="h-5 w-5 text-red-400" />
                     </div>
                     <div class="ml-3">
@@ -135,7 +135,7 @@
         </form>
       </div>
 
-      <div class="px-6 py-4 border-t border-gray-100 bg-gray-50 rounded-b-2xl flex justify-end space-x-3 flex-shrink-0">
+      <div class="px-6 py-4 border-t border-gray-100 bg-gray-50 rounded-b-2xl flex justify-end space-x-3 shrink-0">
         <button @click="$emit('close')" :disabled="isLoading" 
                 class="px-5 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 font-medium transition disabled:opacity-50">
             {{ t('common.cancel') || 'Annuler' }}

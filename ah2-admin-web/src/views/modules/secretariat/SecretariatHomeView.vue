@@ -1,7 +1,7 @@
 <template>
   <div class="space-y-8 w-full">
 
-    <div class="flex flex-col md:flex-row md:items-center md:justify-between bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between bg-white p-6 rounded-2xl shadow-xs border border-gray-100">
       <h1 class="text-3xl font-extrabold text-gray-800 tracking-tight">{{ t('secretariat.home.title') }}</h1>
 
       <div class="mt-4 md:mt-0 flex flex-col md:flex-row space-y-3 md:space-y-0 md:space-x-3 items-end">
@@ -32,7 +32,7 @@
         <StatCard :title="t('secretariat.home.consultations_period')" :value="homeStore.stats.consultationsCount" :icon="SparklesIcon" colorClass="bg-teal-50" iconColor="text-teal-600" />
       </div>
 
-      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+      <div class="bg-white rounded-2xl shadow-xs border border-gray-100 overflow-hidden">
         <div class="px-6 py-4 border-b border-gray-100 flex items-center gap-2">
           <CubeIcon class="h-5 w-5 text-red-600" />
           <h3 class="text-sm font-bold text-gray-700 uppercase tracking-wide">{{ t('secretariat.home.critical_stock_table_title') }}</h3>

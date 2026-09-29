@@ -2,7 +2,7 @@
 <template>
   <div class="space-y-6 w-full">
 
-    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+    <div class="bg-white p-6 rounded-2xl shadow-xs border border-gray-100">
       <h1 class="text-2xl font-extrabold text-gray-800 tracking-tight">{{ t('nurseShift.title') }}</h1>
       <p class="text-sm text-gray-500">{{ t('nurseShift.subtitle') }}</p>
     </div>

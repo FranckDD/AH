@@ -119,7 +119,7 @@
           <h4 class="text-sm font-bold text-gray-500 uppercase mb-3">{{ t('medicalRecords.modal.section_triage') }}</h4>
           <label class="inline-flex items-center cursor-pointer mb-3">
             <input type="checkbox" v-model="form.needsDoctorReview" class="sr-only peer">
-            <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-teal-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-teal-600"></div>
+            <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-hidden peer-focus:ring-4 peer-focus:ring-teal-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:inset-s-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-teal-600"></div>
             <span class="ms-3 text-sm font-medium text-gray-900">{{ t('medicalRecords.modal.needs_doctor_review') }}</span>
           </label>
           <p v-if="!form.needsDoctorReview" class="text-xs text-gray-400 mb-1">{{ t('medicalRecords.modal.needs_doctor_review_hint') }}</p>
@@ -134,7 +134,7 @@
         </div>
 
         <div class="flex justify-end space-x-3 mt-6 pt-4 border-t border-gray-100">
-          <button type="button" @click="$emit('close')" class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition shadow-sm">
+          <button type="button" @click="$emit('close')" class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition shadow-xs">
             {{ t('medicalRecords.modal.cancel') }}
           </button>
           <button type="submit" class="px-4 py-2 text-white rounded-lg shadow-md font-medium transition bg-teal-600 hover:bg-teal-700">

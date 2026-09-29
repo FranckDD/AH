@@ -1,7 +1,7 @@
 <template>
-  <div class="fixed inset-0 bg-gray-900 bg-opacity-60 overflow-y-auto h-full w-full z-50 flex items-center justify-center backdrop-blur-sm">
+  <div class="fixed inset-0 bg-gray-900 bg-opacity-60 overflow-y-auto h-full w-full z-50 flex items-center justify-center backdrop-blur-xs">
     <div class="relative mx-auto w-full max-w-3xl bg-white shadow-xl rounded-2xl border border-gray-200 flex flex-col max-h-[90vh]">
-      <div class="px-6 py-4 border-b border-gray-100 bg-green-600 rounded-t-2xl flex justify-between items-center flex-shrink-0">
+      <div class="px-6 py-4 border-b border-gray-100 bg-green-600 rounded-t-2xl flex justify-between items-center shrink-0">
         <h3 class="text-lg font-bold text-white">{{ t('caisse.invoice_modal.title') }}</h3>
         <button @click="$emit('close')" class="text-green-100 hover:text-white transition">
           <span class="text-2xl font-bold">&times;</span>
@@ -46,16 +46,16 @@
           <div class="flex justify-between items-center mb-3">
             <h4 class="text-xs font-bold text-gray-500 uppercase tracking-wider">{{ t('caisse.invoice_modal.section_items') }}</h4>
             <div class="flex gap-2">
-              <button type="button" @click="addLine('Médicament')" class="text-xs px-2 py-1 bg-white border border-gray-300 rounded hover:bg-gray-100">
+              <button type="button" @click="addLine('Médicament')" class="text-xs px-2 py-1 bg-white border border-gray-300 rounded-sm hover:bg-gray-100">
                 + {{ t('caisse.invoice_modal.line_type_pharmacy') }}
               </button>
-              <button type="button" @click="addLine('Consultation')" class="text-xs px-2 py-1 bg-white border border-gray-300 rounded hover:bg-gray-100">
+              <button type="button" @click="addLine('Consultation')" class="text-xs px-2 py-1 bg-white border border-gray-300 rounded-sm hover:bg-gray-100">
                 + {{ t('caisse.invoice_modal.line_type_consultation') }}
               </button>
-              <button type="button" @click="addLine('Examen')" class="text-xs px-2 py-1 bg-white border border-gray-300 rounded hover:bg-gray-100">
+              <button type="button" @click="addLine('Examen')" class="text-xs px-2 py-1 bg-white border border-gray-300 rounded-sm hover:bg-gray-100">
                 + {{ t('caisse.invoice_modal.line_type_exam') }}
               </button>
-              <button type="button" @click="addLine('Service')" class="text-xs px-2 py-1 bg-white border border-gray-300 rounded hover:bg-gray-100">
+              <button type="button" @click="addLine('Service')" class="text-xs px-2 py-1 bg-white border border-gray-300 rounded-sm hover:bg-gray-100">
                 + {{ t('caisse.invoice_modal.line_type_service') }}
               </button>
             </div>
@@ -83,8 +83,8 @@
               <div v-if="!line.refLabel" class="space-y-1">
                 <input v-model="line.searchQuery" @input="onLineSearchInput(line, 'product')" type="text"
                        :placeholder="t('caisse.invoice_modal.search_product_placeholder')"
-                       class="w-full px-3 py-1.5 border border-gray-300 rounded text-sm" />
-                <ul v-if="line.searchResults.length" class="border border-gray-200 rounded divide-y divide-gray-100 max-h-32 overflow-y-auto">
+                       class="w-full px-3 py-1.5 border border-gray-300 rounded-sm text-sm" />
+                <ul v-if="line.searchResults.length" class="border border-gray-200 rounded-sm divide-y divide-gray-100 max-h-32 overflow-y-auto">
                   <li v-for="prod in line.searchResults" :key="prod.medication_id" @click="selectProductLine(line, prod)"
                       class="px-2 py-1 hover:bg-green-50 cursor-pointer text-sm flex justify-between">
                     <span>{{ prod.drug_name }}</span>
@@ -100,8 +100,8 @@
               <div v-if="!line.refLabel" class="space-y-1">
                 <input v-model="line.searchQuery" @input="onLineSearchInput(line, 'consultation')" type="text"
                        :placeholder="t('caisse.invoice_modal.search_consultation_placeholder')"
-                       class="w-full px-3 py-1.5 border border-gray-300 rounded text-sm" />
-                <ul v-if="line.searchResults.length" class="border border-gray-200 rounded divide-y divide-gray-100 max-h-32 overflow-y-auto">
+                       class="w-full px-3 py-1.5 border border-gray-300 rounded-sm text-sm" />
+                <ul v-if="line.searchResults.length" class="border border-gray-200 rounded-sm divide-y divide-gray-100 max-h-32 overflow-y-auto">
                   <li v-for="cons in line.searchResults" :key="cons.consultation_id" @click="selectConsultationLine(line, cons)"
                       class="px-2 py-1 hover:bg-green-50 cursor-pointer text-sm">
                     #{{ cons.consultation_id }} — {{ cons.type_consultation || t('caisse.invoice_modal.line_type_consultation') }}
@@ -116,8 +116,8 @@
               <div v-if="!line.refLabel" class="space-y-1">
                 <input v-model="line.searchQuery" type="text"
                        :placeholder="t('caisse.invoice_modal.search_exam_placeholder')"
-                       class="w-full px-3 py-1.5 border border-gray-300 rounded text-sm" />
-                <ul v-if="examSearchResults(line).length" class="border border-gray-200 rounded divide-y divide-gray-100 max-h-32 overflow-y-auto">
+                       class="w-full px-3 py-1.5 border border-gray-300 rounded-sm text-sm" />
+                <ul v-if="examSearchResults(line).length" class="border border-gray-200 rounded-sm divide-y divide-gray-100 max-h-32 overflow-y-auto">
                   <li v-for="exam in examSearchResults(line)" :key="exam.id" @click="selectExamLine(line, exam)"
                       class="px-2 py-1 hover:bg-green-50 cursor-pointer text-sm flex justify-between">
                     <span>{{ exam.nom }}</span>
@@ -131,7 +131,7 @@
             <!-- Service libre -->
             <div v-if="line.itemType === 'Service'">
               <input v-model="line.label" type="text" :placeholder="t('caisse.invoice_modal.service_label_placeholder')"
-                     class="w-full px-3 py-1.5 border border-gray-300 rounded text-sm" />
+                     class="w-full px-3 py-1.5 border border-gray-300 rounded-sm text-sm" />
             </div>
 
             <div class="grid grid-cols-3 gap-2">
@@ -139,12 +139,12 @@
                 <label class="text-xs text-gray-500">{{ t('caisse.invoice_modal.quantity') }}</label>
                 <input v-model.number="line.quantity" type="number" min="1" step="1"
                        :disabled="line.itemType === 'Consultation'"
-                       class="w-full px-2 py-1 border border-gray-300 rounded text-sm disabled:bg-gray-100" />
+                       class="w-full px-2 py-1 border border-gray-300 rounded-sm text-sm disabled:bg-gray-100" />
               </div>
               <div>
                 <label class="text-xs text-gray-500">{{ t('caisse.invoice_modal.unit_price') }}</label>
                 <input v-model.number="line.unitPrice" type="number" min="0" step="0.01"
-                       class="w-full px-2 py-1 border border-gray-300 rounded text-sm" />
+                       class="w-full px-2 py-1 border border-gray-300 rounded-sm text-sm" />
               </div>
               <div>
                 <label class="text-xs text-gray-500">{{ t('caisse.invoice_modal.line_total') }}</label>
@@ -152,7 +152,7 @@
               </div>
             </div>
             <div v-if="line.itemType === 'Médicament' && line.knownStock !== null && Number(line.quantity) > line.knownStock"
-                 class="mt-1 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1">
+                 class="mt-1 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-sm px-2 py-1">
               Quantité ({{ line.quantity }}) supérieure au stock connu ({{ line.knownStock }}) — la vente reste possible, le serveur vérifiera le stock réel à la synchronisation.
             </div>
           </div>
@@ -199,7 +199,7 @@
           <textarea v-model="note" rows="2" class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500 sm:text-sm"></textarea>
         </div>
 
-        <div v-if="errorMessage" class="bg-red-50 border-l-4 border-red-500 p-3 rounded text-sm text-red-700">
+        <div v-if="errorMessage" class="bg-red-50 border-l-4 border-red-500 p-3 rounded-sm text-sm text-red-700">
           {{ errorMessage }}
         </div>
 
@@ -211,12 +211,12 @@
           </select>
         </div>
 
-        <div v-if="pendingDiscountRequest" class="bg-amber-50 border-l-4 border-amber-500 p-3 rounded text-sm text-amber-800">
+        <div v-if="pendingDiscountRequest" class="bg-amber-50 border-l-4 border-amber-500 p-3 rounded-sm text-sm text-amber-800">
           <div class="flex items-center justify-between mb-2">
             <span>{{ t('caisse.invoice_modal.pending_approval', { name: pendingDiscountRequest.managerName }) }}</span>
           </div>
           <div class="flex items-center gap-2">
-            <select v-model="selectedManagerId" class="flex-1 border border-amber-300 rounded px-2 py-1 text-xs">
+            <select v-model="selectedManagerId" class="flex-1 border border-amber-300 rounded-sm px-2 py-1 text-xs">
               <option v-for="m in managers" :key="m.user_id" :value="m.user_id">{{ m.full_name || m.username }}</option>
             </select>
             <button type="button" @click="cancelAndReassign"
@@ -227,12 +227,12 @@
           </div>
         </div>
 
-        <div v-if="discountRequestError" class="bg-red-50 border-l-4 border-red-500 p-3 rounded text-sm text-red-700">
+        <div v-if="discountRequestError" class="bg-red-50 border-l-4 border-red-500 p-3 rounded-sm text-sm text-red-700">
           {{ discountRequestError }}
         </div>
       </div>
 
-      <div class="px-6 py-4 border-t border-gray-100 flex justify-end space-x-3 flex-shrink-0">
+      <div class="px-6 py-4 border-t border-gray-100 flex justify-end space-x-3 shrink-0">
         <button type="button" @click="$emit('close')" :disabled="isSaving"
                 class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition disabled:opacity-50">
           {{ t('finance.modal.cancel') }}

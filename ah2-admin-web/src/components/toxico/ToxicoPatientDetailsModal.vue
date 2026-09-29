@@ -1,10 +1,10 @@
 <template>
-  <div class="fixed inset-0 bg-gray-900 bg-opacity-60 overflow-y-auto h-full w-full z-50 flex items-center justify-center backdrop-blur-sm">
+  <div class="fixed inset-0 bg-gray-900 bg-opacity-60 overflow-y-auto h-full w-full z-50 flex items-center justify-center backdrop-blur-xs">
     
     <div class="relative mx-auto w-full max-w-2xl bg-white shadow-2xl rounded-2xl border border-gray-200 flex flex-col max-h-[90vh]">
       
       <!-- En-tête -->
-      <div class="px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-t-2xl flex justify-between items-center flex-shrink-0">
+      <div class="px-6 py-4 border-b border-gray-100 bg-linear-to-r from-blue-50 to-indigo-50 rounded-t-2xl flex justify-between items-center shrink-0">
         <div class="flex items-center">
           <div class="bg-blue-100 p-2 rounded-lg mr-3">
             <UserCircleIcon class="h-6 w-6 text-blue-700" />
@@ -14,7 +14,7 @@
             <p class="text-sm text-gray-600">Informations d'admission et contact</p>
           </div>
         </div>
-        <button @click="$emit('close')" class="text-gray-400 hover:text-gray-600 bg-white p-2 rounded-full shadow-sm border border-gray-200 transition">
+        <button @click="$emit('close')" class="text-gray-400 hover:text-gray-600 bg-white p-2 rounded-full shadow-xs border border-gray-200 transition">
           <span class="text-xl font-bold">&times;</span>
         </button>
       </div>
@@ -99,7 +99,7 @@
               <div class="col-span-2">
                 <label class="block text-xs font-medium text-gray-500 uppercase mb-1">Statut actuel</label>
                 <div class="flex items-center space-x-3">
-                  <span :class="getPhaseColor(patient.currentPhase || 1)" class="px-3 py-1 text-xs font-bold rounded-full border shadow-sm">
+                  <span :class="getPhaseColor(patient.currentPhase || 1)" class="px-3 py-1 text-xs font-bold rounded-full border shadow-xs">
                     Phase {{ patient.currentPhase || 1 }}
                   </span>
                   <span v-if="patient.relapseCount > 0" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-red-100 text-red-700">
@@ -164,7 +164,7 @@
       </div>
 
       <!-- Pied de page -->
-      <div class="px-6 py-4 border-t border-gray-100 bg-gray-50 rounded-b-2xl flex justify-between items-center flex-shrink-0">
+      <div class="px-6 py-4 border-t border-gray-100 bg-gray-50 rounded-b-2xl flex justify-between items-center shrink-0">
         <div class="text-sm text-gray-500">
           Dossier créé le {{ formatDate(patient?.createdAt || new Date().toISOString()) }}
         </div>

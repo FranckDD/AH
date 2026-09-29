@@ -31,7 +31,7 @@
     </div>
 
     <!-- Popup bloquant pour une nouvelle demande de reduction -->
-    <div v-if="activePopup" class="fixed inset-0 bg-black/30 flex items-center justify-center z-[100]" @click.self="dismissPopup">
+    <div v-if="activePopup" class="fixed inset-0 bg-black/30 flex items-center justify-center z-100" @click.self="dismissPopup">
       <div class="bg-white rounded-xl shadow-2xl p-6 max-w-sm w-full">
         <h3 class="font-bold text-gray-800 mb-2">{{ labelFor(activePopup) }}</h3>
         <button @click="dismissPopup" class="mt-4 w-full bg-indigo-600 text-white rounded-lg py-2 font-medium hover:bg-indigo-700">

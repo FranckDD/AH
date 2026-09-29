@@ -1,5 +1,5 @@
 <template>
-  <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+  <div class="bg-white rounded-2xl shadow-xs border border-gray-100 overflow-hidden">
 
     <div class="p-4 border-b border-gray-100 flex items-center justify-between">
       <div class="flex items-center gap-2">
@@ -41,7 +41,7 @@
         :key="day.dateStr"
         type="button"
         @click="$emit('day-click', day.dateStr)"
-        class="min-h-[6.5rem] border-b border-r border-gray-100 p-2 text-left align-top hover:bg-gray-50 transition focus:outline-none focus:bg-emerald-50/50"
+        class="min-h-26 border-b border-r border-gray-100 p-2 text-left align-top hover:bg-gray-50 transition focus:outline-hidden focus:bg-emerald-50/50"
         :class="{
           'bg-gray-50/60 text-gray-400': !day.inCurrentMonth,
           'ring-2 ring-inset ring-emerald-500': day.isToday,
@@ -54,7 +54,7 @@
           <div
             v-for="appt in day.visibleAppointments"
             :key="appt.id"
-            class="text-[11px] leading-tight px-1.5 py-0.5 rounded truncate"
+            class="text-[11px] leading-tight px-1.5 py-0.5 rounded-sm truncate"
             :class="chipClass(appt.status)"
             :title="`${(appt.appointment_time || '').substring(0, 5)} — ${patientLabel(appt)}`"
           >

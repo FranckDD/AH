@@ -1,7 +1,7 @@
 <template>
   <div class="space-y-8 w-full">
     
-    <div class="flex flex-col md:flex-row md:items-center md:justify-between bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between bg-white p-6 rounded-2xl shadow-xs border border-gray-100">
       <div>
         <h1 class="text-3xl font-extrabold text-gray-800 tracking-tight">
           {{ $t('dashboard.title') }}
@@ -80,7 +80,7 @@
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
       
-      <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex items-center justify-between">
+      <div class="bg-white rounded-2xl p-6 shadow-xs border border-gray-100 flex items-center justify-between">
         <div class="flex items-center">
           <div class="p-3 bg-indigo-50 rounded-xl mr-4">
              <SignalIcon class="h-6 w-6 text-indigo-600" />
@@ -92,7 +92,7 @@
         </div>
       </div>
 
-       <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex items-center justify-between cursor-pointer hover:bg-gray-50 transition" @click="$router.push('/dashboard/toxico')">
+       <div class="bg-white rounded-2xl p-6 shadow-xs border border-gray-100 flex items-center justify-between cursor-pointer hover:bg-gray-50 transition" @click="$router.push('/dashboard/toxico')">
         <div class="flex items-center">
           <div class="p-3 bg-red-50 rounded-xl mr-4">
              <ExclamationTriangleIcon class="h-6 w-6 text-red-600" />
@@ -104,7 +104,7 @@
         </div>
       </div>
 
-       <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex items-center justify-between">
+       <div class="bg-white rounded-2xl p-6 shadow-xs border border-gray-100 flex items-center justify-between">
         <div class="flex items-center">
           <div class="p-3 bg-purple-50 rounded-xl mr-4">
              <HomeModernIcon class="h-6 w-6 text-purple-600" />
@@ -119,7 +119,7 @@
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
       
-      <div class="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+      <div class="lg:col-span-2 bg-white rounded-2xl shadow-xs border border-gray-100 overflow-hidden">
         <div class="p-6 border-b border-gray-100 flex justify-between items-center">
           <h3 class="text-lg font-bold text-gray-900">
             {{ $t('dashboard.table_title', 'Dernières Activités Financières') }}
@@ -151,8 +151,8 @@
                 <td class="px-6 py-4 text-gray-500 text-sm">{{ formatDate(item.date) }}</td>
                 <td class="px-6 py-4 font-bold text-gray-900 text-right">{{ formatCurrency(item.amount) }}</td>
                 <td class="px-6 py-4 text-sm">
-                    <span v-if="item.type === 'INCOME'" class="text-green-600 bg-green-50 px-2 py-1 rounded text-xs font-bold">Entrée</span>
-                    <span v-else class="text-red-600 bg-red-50 px-2 py-1 rounded text-xs font-bold">Sortie</span>
+                    <span v-if="item.type === 'INCOME'" class="text-green-600 bg-green-50 px-2 py-1 rounded-sm text-xs font-bold">Entrée</span>
+                    <span v-else class="text-red-600 bg-red-50 px-2 py-1 rounded-sm text-xs font-bold">Sortie</span>
                 </td>
                 <td class="px-6 py-4">
                     <span class="h-2 w-2 rounded-full inline-block mr-2" :class="item.status === 'active' || item.status === 'Validé' ? 'bg-green-500' : 'bg-gray-400'"></span>
@@ -170,23 +170,23 @@
         </div>
       </div>
 
-      <div class="bg-gradient-to-br from-green-600 to-emerald-800 rounded-2xl shadow-lg p-6 text-white flex flex-col justify-between">
+      <div class="bg-linear-to-br from-green-600 to-emerald-800 rounded-2xl shadow-lg p-6 text-white flex flex-col justify-between">
         <div>
           <h3 class="text-xl font-bold mb-2">Actions Rapides</h3>
           <p class="text-green-100 text-sm mb-6">Accès direct aux fonctions clés.</p>
           
           <div class="space-y-3">
-            <button @click="$router.push('/dashboard/users')" class="w-full flex items-center p-3 bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-xl transition border border-white/10">
+            <button @click="$router.push('/dashboard/users')" class="w-full flex items-center p-3 bg-white/10 hover:bg-white/20 backdrop-blur-xs rounded-xl transition border border-white/10">
               <UserGroupIcon class="h-5 w-5 mr-3 text-green-200" />
               <span class="font-medium">{{ $t('dashboard.actions.manage_staff') }}</span>
             </button>
             
-            <button @click="showAdmissionModal = true" class="w-full flex items-center p-3 bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-xl transition border border-white/10">
+            <button @click="showAdmissionModal = true" class="w-full flex items-center p-3 bg-white/10 hover:bg-white/20 backdrop-blur-xs rounded-xl transition border border-white/10">
               <PlusCircleIcon class="h-5 w-5 mr-3 text-green-200" />
               <span class="font-medium">{{ $t('dashboard.actions.new_admission') }}</span>
             </button>
 
-            <button @click="showFinanceModal = true" class="w-full flex items-center p-3 bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-xl transition border border-white/10">
+            <button @click="showFinanceModal = true" class="w-full flex items-center p-3 bg-white/10 hover:bg-white/20 backdrop-blur-xs rounded-xl transition border border-white/10">
               <BanknotesIcon class="h-5 w-5 mr-3 text-green-200" />
               <span class="font-medium">{{ $t('dashboard.actions.payment') }}</span>
             </button>

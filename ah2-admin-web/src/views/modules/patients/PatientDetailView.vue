@@ -23,8 +23,8 @@
             <VitalsCard :label="t('medical.vitals.weight')" :value="dossierStore.patientSummary?.last_weight" unit="kg" :icon="ScaleIcon" colorClass="bg-blue-500" iconColor="text-blue-600" />
             <VitalsCard :label="t('medical.vitals.temperature')" :value="dossierStore.patientSummary?.last_temp" unit="°C" :icon="FireIcon" colorClass="bg-orange-500" iconColor="text-orange-600" />
 
-            <div class="bg-red-50 p-4 rounded-xl border border-red-100 flex items-start shadow-sm">
-                <ExclamationTriangleIcon class="h-6 w-6 text-red-600 mr-3 mt-1 flex-shrink-0" />
+            <div class="bg-red-50 p-4 rounded-xl border border-red-100 flex items-start shadow-xs">
+                <ExclamationTriangleIcon class="h-6 w-6 text-red-600 mr-3 mt-1 shrink-0" />
                 <div>
                     <h4 class="text-xs font-bold text-red-700 uppercase tracking-wider">
                         {{ t('medical.alerts.allergies_title') }}
@@ -83,7 +83,7 @@
 
                 <div v-if="currentTab === 'PHARMA'">
                     <ul class="mt-4 space-y-2">
-                        <li v-for="p in dossierStore.prescriptionHistory" :key="p.prescription_id" class="p-3 bg-gray-50 rounded border border-purple-100 hover:shadow-md transition">
+                        <li v-for="p in dossierStore.prescriptionHistory" :key="p.prescription_id" class="p-3 bg-gray-50 rounded-sm border border-purple-100 hover:shadow-md transition">
                             <span class="font-semibold text-purple-800">{{ p.medication }}</span> - {{ p.dosage }} 
                             <span :class="['ml-2 text-xs font-medium px-2 py-0.5 rounded-full', p.status === 'Active' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800']">
                                 ({{ p.status }})

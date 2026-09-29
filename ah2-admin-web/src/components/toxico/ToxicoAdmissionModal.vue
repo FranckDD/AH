@@ -1,9 +1,9 @@
 <template>
-  <div class="fixed inset-0 bg-gray-900 bg-opacity-60 overflow-y-auto h-full w-full z-50 flex items-center justify-center backdrop-blur-sm">
+  <div class="fixed inset-0 bg-gray-900 bg-opacity-60 overflow-y-auto h-full w-full z-50 flex items-center justify-center backdrop-blur-xs">
     
     <div class="relative mx-auto w-full max-w-2xl bg-white shadow-xl rounded-2xl border border-gray-200 flex flex-col max-h-[90vh]">
       
-      <div class="px-6 py-4 border-b border-gray-100 bg-indigo-600 rounded-t-2xl flex justify-between items-center flex-shrink-0">
+      <div class="px-6 py-4 border-b border-gray-100 bg-indigo-600 rounded-t-2xl flex justify-between items-center shrink-0">
         <h3 class="text-lg font-bold text-white flex items-center">
             <UserPlusIcon class="h-6 w-6 mr-2" />
             {{ t('toxico.admission.title') }}
@@ -147,7 +147,7 @@
                             <div class="space-y-1 text-center">
                                 <PaperClipIcon class="mx-auto h-8 w-8 text-gray-400" />
                                 <div class="flex text-sm text-gray-600 justify-center">
-                                    <label for="file-upload" class="relative cursor-pointer bg-white rounded-md font-medium text-indigo-600 hover:text-indigo-500 focus-within:outline-none">
+                                    <label for="file-upload" class="relative cursor-pointer bg-white rounded-md font-medium text-indigo-600 hover:text-indigo-500 focus-within:outline-hidden">
                                         <span>{{ fileName || t('toxico.admission.upload_placeholder') }}</span>
                                         <input id="file-upload" name="file-upload" type="file" 
                                                class="sr-only" @change="handleFileUpload" accept=".pdf,.jpg,.png" />
@@ -168,9 +168,9 @@
             </div>
 
             <!-- Messages d'erreur -->
-            <div v-if="errorMessage" class="bg-red-50 border-l-4 border-red-500 p-4 rounded">
+            <div v-if="errorMessage" class="bg-red-50 border-l-4 border-red-500 p-4 rounded-sm">
                 <div class="flex">
-                    <div class="flex-shrink-0">
+                    <div class="shrink-0">
                         <ExclamationCircleIcon class="h-5 w-5 text-red-400" />
                     </div>
                     <div class="ml-3">
@@ -179,7 +179,7 @@
                 </div>
             </div>
 
-            <div class="pt-4 flex justify-end space-x-3 border-t border-gray-100 flex-shrink-0">
+            <div class="pt-4 flex justify-end space-x-3 border-t border-gray-100 shrink-0">
                 <button type="button" @click="$emit('close')" :disabled="isLoading" 
                         class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition disabled:opacity-50">
                     {{ t('toxico.admission.cancel') }}

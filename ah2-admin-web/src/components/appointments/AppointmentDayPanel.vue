@@ -1,5 +1,5 @@
 <template>
-  <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden h-fit">
+  <div class="bg-white rounded-2xl shadow-xs border border-gray-100 overflow-hidden h-fit">
     <div class="p-4 border-b border-gray-100 flex items-center justify-between">
       <h3 class="text-sm font-bold text-gray-700">
         {{ t('appointments.calendar.day_panel_title') }} {{ formattedDate }}

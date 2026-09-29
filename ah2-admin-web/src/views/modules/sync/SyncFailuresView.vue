@@ -1,6 +1,6 @@
 <template>
   <div class="space-y-6 w-full">
-    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+    <div class="bg-white p-6 rounded-2xl shadow-xs border border-gray-100">
       <h1 class="text-2xl font-extrabold text-gray-800 tracking-tight">Échecs de synchronisation</h1>
       <p class="text-sm text-gray-500 mt-1">
         Patients créés hors ligne refusés par le serveur (par exemple un numéro d'identité nationale déjà utilisé).
@@ -16,13 +16,13 @@
       Aucun échec de synchronisation.
     </div>
 
-    <div v-for="g in groups" :key="g.patientUuid" class="bg-white p-6 rounded-2xl shadow-sm border border-red-100 space-y-3">
+    <div v-for="g in groups" :key="g.patientUuid" class="bg-white p-6 rounded-2xl shadow-xs border border-red-100 space-y-3">
       <div class="flex flex-wrap justify-between gap-2">
         <div>
           <p class="text-lg font-semibold text-gray-900">{{ g.name }}</p>
           <p class="text-xs text-gray-500">Né(e) le {{ g.birthDate || '—' }} · N° d'identité : {{ g.nationalId || '—' }}</p>
         </div>
-        <span class="inline-flex items-center px-2 py-0.5 h-fit rounded text-xs font-medium bg-red-100 text-red-800">
+        <span class="inline-flex items-center px-2 py-0.5 h-fit rounded-sm text-xs font-medium bg-red-100 text-red-800">
           Échec de synchronisation
         </span>
       </div>
@@ -53,7 +53,7 @@
     <!-- Dossiers/valeurs labo refuses pour une raison propre au dossier
          (ex. examen retire du catalogue), sans patient en quarantaine :
          consultation seule, aucune action de resolution ici. -->
-    <div v-if="!isLoading && labOrphans.length" class="bg-white p-6 rounded-2xl shadow-sm border border-red-100 space-y-3">
+    <div v-if="!isLoading && labOrphans.length" class="bg-white p-6 rounded-2xl shadow-xs border border-red-100 space-y-3">
       <p class="text-lg font-semibold text-gray-900">Laboratoire : éléments refusés par le serveur</p>
       <ul class="divide-y divide-gray-100">
         <li v-for="l in labOrphans" :key="l.id" class="py-2 text-sm">

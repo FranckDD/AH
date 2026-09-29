@@ -1,7 +1,7 @@
 <template>
   <div class="max-w-7xl mx-auto p-6 space-y-6 animate-fade-in-up h-full flex flex-col">
 
-    <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col md:flex-row gap-4 items-center justify-between">
+    <div class="bg-white p-4 rounded-2xl shadow-xs border border-gray-100 flex flex-col md:flex-row gap-4 items-center justify-between">
       <div class="relative flex-1 max-w-md">
           <MagnifyingGlassIcon class="w-5 h-5 text-gray-400 absolute left-3 top-3"/>
           <input
@@ -18,7 +18,7 @@
       </button>
     </div>
 
-    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 flex-1 overflow-hidden flex flex-col">
+    <div class="bg-white rounded-2xl shadow-xs border border-gray-100 flex-1 overflow-hidden flex flex-col">
       <div class="overflow-y-auto flex-1">
         <table class="w-full text-sm text-left">
             <thead class="bg-gray-50 text-gray-500 uppercase font-bold text-xs border-b border-gray-100 sticky top-0 z-10">
@@ -40,7 +40,7 @@
                     <div class="font-bold text-gray-800">{{ res.patient_name }}</div>
                     <div class="flex gap-2 mt-1">
                         <span class="text-[10px] text-gray-500">{{ res.patient_age }} • {{ res.patient_sexe }}</span>
-                        <span v-if="res.is_external" class="text-[9px] bg-orange-50 text-orange-600 px-1.5 py-0.5 rounded font-black uppercase">Externe</span>
+                        <span v-if="res.is_external" class="text-[9px] bg-orange-50 text-orange-600 px-1.5 py-0.5 rounded-sm font-black uppercase">Externe</span>
                     </div>
                 </td>
 

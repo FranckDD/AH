@@ -2,9 +2,9 @@
   <div class="relative pl-4 border-l-2 border-gray-200 space-y-8">
     
     <div v-for="record in records" :key="record.record_id" class="relative">
-        <div class="absolute -left-[21px] top-1 h-4 w-4 rounded-full bg-emerald-500 border-2 border-white ring-2 ring-emerald-100"></div>
+        <div class="absolute left-[-21px] top-1 h-4 w-4 rounded-full bg-emerald-500 border-2 border-white ring-2 ring-emerald-100"></div>
         
-        <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition">
+        <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-xs hover:shadow-md transition">
             <div class="flex justify-between items-start mb-2">
                 <div>
                     <h4 class="font-bold text-gray-900 text-lg">{{ record.diagnosis || 'Consultation Générale' }}</h4>
@@ -20,7 +20,7 @@
                         </span>
                     </p>
                 </div>
-                <span class="px-2 py-1 text-xs font-bold rounded bg-gray-100 text-gray-600">
+                <span class="px-2 py-1 text-xs font-bold rounded-sm bg-gray-100 text-gray-600">
                     {{ record.motif_code }}
                 </span>
             </div>

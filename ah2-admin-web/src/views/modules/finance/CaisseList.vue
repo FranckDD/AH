@@ -1,6 +1,6 @@
 <template>
   <div class="space-y-6 w-full">
-    <div class="flex flex-col md:flex-row justify-between items-center bg-white p-6 rounded-2xl shadow-sm border border-gray-100 gap-4">
+    <div class="flex flex-col md:flex-row justify-between items-center bg-white p-6 rounded-2xl shadow-xs border border-gray-100 gap-4">
       <div>
         <h1 class="text-2xl font-extrabold text-gray-800 tracking-tight">{{ t('caisse.title') }}</h1>
         <p class="text-sm text-gray-500">{{ caisseStore.pagination.total }} transactions</p>
@@ -13,21 +13,21 @@
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-      <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center">
+      <div class="bg-white p-6 rounded-2xl shadow-xs border border-gray-100 flex items-center">
         <div class="p-3 bg-green-50 rounded-full mr-4"><ArrowTrendingUpIcon class="h-8 w-8 text-green-600" /></div>
         <div>
           <p class="text-sm text-gray-500 font-medium uppercase">{{ t('finance.income') }}</p>
           <p class="text-2xl font-bold text-gray-900">{{ kpiAffiche(formatCurrency(caisseStore.kpi.total_paid)) }}</p>
         </div>
       </div>
-      <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center">
+      <div class="bg-white p-6 rounded-2xl shadow-xs border border-gray-100 flex items-center">
         <div class="p-3 bg-amber-50 rounded-full mr-4"><ClockIcon class="h-8 w-8 text-amber-600" /></div>
         <div>
           <p class="text-sm text-gray-500 font-medium uppercase">{{ t('caisse.table.due') }}</p>
           <p class="text-2xl font-bold text-gray-900">{{ kpiAffiche(formatCurrency(caisseStore.kpi.remaining_due)) }}</p>
         </div>
       </div>
-      <div class="bg-gradient-to-r from-gray-800 to-gray-900 p-6 rounded-2xl shadow-lg text-white flex items-center justify-between">
+      <div class="bg-linear-to-r from-gray-800 to-gray-900 p-6 rounded-2xl shadow-lg text-white flex items-center justify-between">
         <div>
           <p class="text-sm text-gray-400 font-medium uppercase">Transactions</p>
           <p class="text-3xl font-bold text-white">{{ kpiAffiche(caisseStore.kpi.total_transactions) }}</p>
@@ -43,7 +43,7 @@
       <span class="text-xs text-amber-600 underline">{{ t('caisse.status.pending_approval') }}</span>
     </div>
 
-    <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-wrap gap-4 items-end">
+    <div class="bg-white p-4 rounded-2xl shadow-xs border border-gray-100 flex flex-wrap gap-4 items-end">
       <div class="flex-1 min-w-[200px]">
         <label class="text-xs font-bold text-gray-500 uppercase mb-1 block">Recherche</label>
         <input v-model="searchQuery" type="text" :placeholder="t('caisse.search_placeholder')"
@@ -69,7 +69,7 @@
       </div>
     </div>
 
-    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+    <div class="bg-white rounded-2xl shadow-xs border border-gray-100 overflow-hidden">
       <div v-if="caisseStore.isLoading" class="p-10 text-center">
         <span class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></span>
       </div>
@@ -103,20 +103,20 @@
                 {{ formatCurrency(tx.amount_due) }}
               </td>
               <td class="px-6 py-4">
-                <span v-if="tx.status === 'active'" class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                <span v-if="tx.status === 'active'" class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-green-100 text-green-800">
                   {{ t('caisse.status.active') }}
                 </span>
-                <span v-else-if="tx.status === 'pending_approval'" class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800">
+                <span v-else-if="tx.status === 'pending_approval'" class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-amber-100 text-amber-800">
                   {{ t('caisse.status.pending_approval') }}
                 </span>
-                <span v-else-if="tx.status === 'refunded'" class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                <span v-else-if="tx.status === 'refunded'" class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-blue-100 text-blue-800">
                   {{ t('caisse.status.refunded') }}
                 </span>
-                <span v-else class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-200 text-gray-600">
+                <span v-else class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-gray-200 text-gray-600">
                   {{ t('caisse.status.cancelled') }}
                 </span>
                 <span v-if="tx.upload_error" :title="tx.upload_error"
-                      class="ml-1 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
+                      class="ml-1 inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-red-100 text-red-800">
                   Échec de synchronisation
                 </span>
               </td>
@@ -124,37 +124,37 @@
                 <div class="flex items-center justify-end gap-1.5">
                   <button @click="openViewModal(tx)"
                           :disabled="!tx.transaction_id"
-                          class="p-2 bg-white border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-100 transition shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
+                          class="p-2 bg-white border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-100 transition shadow-xs disabled:opacity-40 disabled:cursor-not-allowed"
                           :title="tx.transaction_id ? t('caisse.actions.view') : 'En attente de synchronisation'">
                     <EyeIcon class="h-4 w-4" />
                   </button>
                   <button v-if="tx.status === 'active' && Number(tx.amount_due) > 0" @click="openInstallmentModal(tx)"
                           :disabled="!tx.transaction_id"
-                          class="p-2 bg-white border border-gray-200 rounded-lg text-green-600 hover:bg-green-50 hover:border-green-200 transition shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
+                          class="p-2 bg-white border border-gray-200 rounded-lg text-green-600 hover:bg-green-50 hover:border-green-200 transition shadow-xs disabled:opacity-40 disabled:cursor-not-allowed"
                           :title="tx.transaction_id ? t('caisse.actions.add_payment') : 'En attente de synchronisation'">
                     <CurrencyDollarIcon class="h-4 w-4" />
                   </button>
                   <button v-if="tx.status === 'active' && Number(tx.amount_due) > 0" @click="handleSettle(tx)"
                           :disabled="!tx.transaction_id"
-                          class="p-2 bg-white border border-gray-200 rounded-lg text-indigo-600 hover:bg-indigo-50 hover:border-indigo-200 transition shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
+                          class="p-2 bg-white border border-gray-200 rounded-lg text-indigo-600 hover:bg-indigo-50 hover:border-indigo-200 transition shadow-xs disabled:opacity-40 disabled:cursor-not-allowed"
                           :title="tx.transaction_id ? t('caisse.actions.settle') : 'En attente de synchronisation'">
                     <CheckBadgeIcon class="h-4 w-4" />
                   </button>
                   <button v-if="tx.status === 'active'" @click="openCancelModal(tx)"
                           :disabled="!tx.transaction_id"
-                          class="p-2 bg-white border border-gray-200 rounded-lg text-red-500 hover:bg-red-50 hover:border-red-200 transition shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
+                          class="p-2 bg-white border border-gray-200 rounded-lg text-red-500 hover:bg-red-50 hover:border-red-200 transition shadow-xs disabled:opacity-40 disabled:cursor-not-allowed"
                           :title="tx.transaction_id ? t('caisse.actions.cancel') : 'En attente de synchronisation'">
                     <XCircleIcon class="h-4 w-4" />
                   </button>
                   <button @click="downloadInvoice(tx)"
                           :disabled="!tx.transaction_id"
-                          class="p-2 bg-white border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-100 transition shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
+                          class="p-2 bg-white border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-100 transition shadow-xs disabled:opacity-40 disabled:cursor-not-allowed"
                           :title="tx.transaction_id ? t('caisse.actions.download') : 'En attente de synchronisation'">
                     <ArrowDownTrayIcon class="h-4 w-4" />
                   </button>
                   <button v-if="tx.status === 'active'" @click="printTicketForTransaction(tx.transaction_id)"
                           :disabled="!tx.transaction_id"
-                          class="p-2 bg-white border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-100 transition shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
+                          class="p-2 bg-white border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-100 transition shadow-xs disabled:opacity-40 disabled:cursor-not-allowed"
                           :title="tx.transaction_id ? t('caisse.actions.reprint_ticket') : 'En attente de synchronisation'">
                     <PrinterIcon class="h-4 w-4" />
                   </button>
@@ -171,10 +171,10 @@
       <div v-if="caisseStore.pagination.total_pages > 1" class="p-4 flex justify-between items-center border-t border-gray-100 bg-gray-50">
         <p class="text-sm text-gray-700">Page {{ caisseStore.pagination.page }} sur {{ caisseStore.pagination.total_pages }}</p>
         <div class="flex space-x-2">
-          <button @click="goToPage(caisseStore.pagination.page - 1)" :disabled="caisseStore.pagination.page === 1" class="px-3 py-1 border rounded bg-white disabled:opacity-50">
+          <button @click="goToPage(caisseStore.pagination.page - 1)" :disabled="caisseStore.pagination.page === 1" class="px-3 py-1 border rounded-sm bg-white disabled:opacity-50">
             <ChevronLeftIcon class="h-5 w-5" />
           </button>
-          <button @click="goToPage(caisseStore.pagination.page + 1)" :disabled="caisseStore.pagination.page === caisseStore.pagination.total_pages" class="px-3 py-1 border rounded bg-white disabled:opacity-50">
+          <button @click="goToPage(caisseStore.pagination.page + 1)" :disabled="caisseStore.pagination.page === caisseStore.pagination.total_pages" class="px-3 py-1 border rounded-sm bg-white disabled:opacity-50">
             <ChevronRightIcon class="h-5 w-5" />
           </button>
         </div>
@@ -201,9 +201,9 @@
                         :label="`Facture ${cancellingTx.transaction_id} — ${formatCurrency(cancellingTx.amount)}`"
                         @close="cancellingTx = null" @confirm="handleCancel" />
 
-    <div v-if="viewingTx" class="fixed inset-0 bg-gray-900 bg-opacity-60 overflow-y-auto h-full w-full z-50 flex items-center justify-center backdrop-blur-sm">
+    <div v-if="viewingTx" class="fixed inset-0 bg-gray-900 bg-opacity-60 overflow-y-auto h-full w-full z-50 flex items-center justify-center backdrop-blur-xs">
       <div class="relative mx-auto w-full max-w-2xl bg-white shadow-xl rounded-2xl border border-gray-200 flex flex-col max-h-[90vh]">
-        <div class="px-6 py-4 border-b border-gray-100 bg-gray-700 rounded-t-2xl flex justify-between items-center flex-shrink-0">
+        <div class="px-6 py-4 border-b border-gray-100 bg-gray-700 rounded-t-2xl flex justify-between items-center shrink-0">
           <h3 class="text-lg font-bold text-white">{{ t('caisse.actions.view') }} — {{ viewingTx.patient_name || viewingTx.transaction_id }}</h3>
           <button @click="viewingTx = null" class="text-gray-200 hover:text-white transition">
             <span class="text-2xl font-bold">&times;</span>
@@ -213,7 +213,7 @@
           <div v-if="viewLoading" class="text-center py-6">
             <span class="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-gray-600"></span>
           </div>
-          <div v-else-if="viewError" class="bg-red-50 border-l-4 border-red-500 p-3 rounded text-sm text-red-700">{{ viewError }}</div>
+          <div v-else-if="viewError" class="bg-red-50 border-l-4 border-red-500 p-3 rounded-sm text-sm text-red-700">{{ viewError }}</div>
           <div v-else>
             <h4 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">{{ t('caisse.invoice_modal.section_items') }}</h4>
             <table class="min-w-full text-left border-collapse text-sm">

@@ -17,7 +17,7 @@
         <!-- Sélecteur TYPE (Recette / Dépense) -->
         <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">{{ t('finance.modal.type') }}</label>
-            <div class="flex rounded-md shadow-sm" role="group">
+            <div class="flex rounded-md shadow-xs" role="group">
                 <button 
                     type="button" 
                     @click="setTransactionType('INCOME')"
@@ -41,13 +41,13 @@
         <div class="grid grid-cols-2 gap-4">
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('finance.modal.amount') }}</label>
-                <div class="relative rounded-md shadow-sm">
+                <div class="relative rounded-md shadow-xs">
                     <input 
                         v-model.number="form.amount" 
                         type="number" 
                         min="1" 
                         required 
-                        class="block w-full pl-3 pr-12 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:outline-none transition sm:text-sm"
+                        class="block w-full pl-3 pr-12 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:outline-hidden transition sm:text-sm"
                         :class="form.type === 'INCOME' ? 'focus:ring-green-500 focus:border-green-500' : 'focus:ring-red-500 focus:border-red-500'"
                         placeholder="0"
                     />
@@ -108,7 +108,7 @@
 
         <!-- Boutons -->
         <div class="flex justify-end space-x-3 mt-6 pt-4 border-t border-gray-100">
-          <button type="button" @click="$emit('close')" class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition shadow-sm">
+          <button type="button" @click="$emit('close')" class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition shadow-xs">
             {{ t('finance.modal.cancel') }}
           </button>
           <button 

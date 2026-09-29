@@ -28,7 +28,7 @@
           </select>
         </div>
 
-        <div v-if="errorMessage" class="bg-red-50 border-l-4 border-red-500 p-3 rounded text-sm text-red-700">
+        <div v-if="errorMessage" class="bg-red-50 border-l-4 border-red-500 p-3 rounded-sm text-sm text-red-700">
           {{ errorMessage }}
         </div>
 
@@ -38,7 +38,7 @@
             {{ t('finance.modal.cancel') }}
           </button>
           <button type="submit" :disabled="isSaving || !(paidAmount > 0)"
-                  class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium shadow-sm transition disabled:opacity-50">
+                  class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium shadow-xs transition disabled:opacity-50">
             {{ isSaving ? t('caisse.cancel_modal.saving') : t('finance.modal.save') }}
           </button>
         </div>

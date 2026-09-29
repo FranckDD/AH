@@ -1,7 +1,7 @@
 <template>
   <div class="space-y-6 w-full">
 
-    <div class="flex flex-col md:flex-row justify-between items-center bg-white p-6 rounded-2xl shadow-sm border border-gray-100 gap-4">
+    <div class="flex flex-col md:flex-row justify-between items-center bg-white p-6 rounded-2xl shadow-xs border border-gray-100 gap-4">
       <div>
         <h1 class="text-2xl font-extrabold text-gray-800 tracking-tight">
           {{ t('prescriptions.title') }}
@@ -18,7 +18,7 @@
       </button>
     </div>
 
-    <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-wrap gap-4 items-end">
+    <div class="bg-white p-4 rounded-2xl shadow-xs border border-gray-100 flex flex-wrap gap-4 items-end">
 
       <div class="flex-1 min-w-[220px]">
         <label class="text-xs font-bold text-gray-500 uppercase mb-1 block">{{ t('prescriptions.search_label') }}</label>
@@ -46,7 +46,7 @@
       </div>
     </div>
 
-    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+    <div class="bg-white rounded-2xl shadow-xs border border-gray-100 overflow-hidden">
 
       <div class="p-4 border-b border-gray-100 flex items-center justify-between">
         <div class="text-sm text-gray-500">
@@ -91,7 +91,7 @@
               <td class="px-6 py-4 text-sm text-gray-600">{{ presc.is_lab_order ? '—' : (presc.duration || '—') }}</td>
               <td class="px-6 py-4 text-sm text-gray-600 font-mono">{{ presc.start_date }}</td>
               <td class="px-6 py-4 text-sm font-mono">
-                <span v-if="!presc.is_lab_order && presc.end_date" class="px-2 py-1 rounded" :class="endDateUrgencyClass(presc)">
+                <span v-if="!presc.is_lab_order && presc.end_date" class="px-2 py-1 rounded-sm" :class="endDateUrgencyClass(presc)">
                   {{ presc.end_date }}
                 </span>
                 <span v-else class="text-gray-400">—</span>
@@ -132,10 +132,10 @@
           {{ t('common.page') }} {{ prescriptionStore.pagination.page }} / {{ prescriptionStore.pagination.total_pages }}
         </p>
         <div class="flex space-x-2">
-          <button @click="goToPage(prescriptionStore.pagination.page - 1)" :disabled="prescriptionStore.pagination.page === 1" class="px-3 py-1 border rounded bg-white disabled:opacity-50">
+          <button @click="goToPage(prescriptionStore.pagination.page - 1)" :disabled="prescriptionStore.pagination.page === 1" class="px-3 py-1 border rounded-sm bg-white disabled:opacity-50">
             <ChevronLeftIcon class="h-5 w-5" />
           </button>
-          <button @click="goToPage(prescriptionStore.pagination.page + 1)" :disabled="prescriptionStore.pagination.page === prescriptionStore.pagination.total_pages" class="px-3 py-1 border rounded bg-white disabled:opacity-50">
+          <button @click="goToPage(prescriptionStore.pagination.page + 1)" :disabled="prescriptionStore.pagination.page === prescriptionStore.pagination.total_pages" class="px-3 py-1 border rounded-sm bg-white disabled:opacity-50">
             <ChevronRightIcon class="h-5 w-5" />
           </button>
         </div>
