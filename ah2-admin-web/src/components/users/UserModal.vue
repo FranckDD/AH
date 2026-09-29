@@ -106,6 +106,14 @@
                     </option>
                 </select>
               </div>
+
+              <div v-if="showHeadNurseField" class="animate-fade-in-down">
+                <label class="inline-flex items-center cursor-pointer">
+                  <input type="checkbox" v-model="form.is_head_nurse" class="sr-only peer">
+                  <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+                  <span class="ms-3 text-sm font-medium text-gray-900">{{ t('users.modal.is_head_nurse') }}</span>
+                </label>
+              </div>
           </div>
 
           <div class="flex items-center">
@@ -166,7 +174,8 @@ const form = reactive({
   postgres_role: 'app_medical',
   role_id: null,
   specialty_id: null,
-  is_active: true
+  is_active: true,
+  is_head_nurse: false
 })
 
 // --- LOGIQUE METIER CORRIGÉE ---
@@ -200,6 +209,14 @@ const showSpecialtyField = computed(() => {
   return name === 'medecin';
 })
 
+const showHeadNurseField = computed(() => {
+  const selectedRole = props.applicationRoles.find(
+    (r) => (r.id === form.role_id) || (r.role_id === form.role_id)
+  )
+  if (!selectedRole) return false
+  return (selectedRole.role_name || '').toLowerCase().trim() === 'nurse'
+})
+
 // --- EVENEMENTS ---
 
 const handlePostgresRoleChange = () => {
@@ -210,6 +227,9 @@ const handlePostgresRoleChange = () => {
 const handleRoleChange = () => {
   if (!showSpecialtyField.value) {
     form.specialty_id = null
+  }
+  if (!showHeadNurseField.value) {
+    form.is_head_nurse = false
   }
 }
 
@@ -244,7 +264,8 @@ onMounted(() => {
       postgres_role: u.postgres_role,
       role_id: u.role_id,
       specialty_id: u.specialty_id,
-      is_active: u.isActive
+      is_active: u.isActive,
+      is_head_nurse: u.isHeadNurse || false
     })
   }
 })

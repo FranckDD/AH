@@ -63,7 +63,8 @@ export const useUserStore = defineStore('user', () => {
                     specialty_id: u.specialty_id, 
                     
                     isActive: u.is_active,
-                    originalData: u 
+                    isHeadNurse: u.is_head_nurse || false,
+                    originalData: u
                 };
             });
 
@@ -107,8 +108,9 @@ export const useUserStore = defineStore('user', () => {
                 postgres_role: formData.postgres_role,
                 role_id: formData.role_id, 
                 specialty_id: formData.specialty_id, // Peut être null
-                
-                is_active: formData.is_active
+
+                is_active: formData.is_active,
+                is_head_nurse: formData.is_head_nurse
             };
 
             await api.post('/users/', payload);
@@ -131,9 +133,10 @@ export const useUserStore = defineStore('user', () => {
                 postgres_role: formData.postgres_role,
                 role_id: formData.role_id,
                 specialty_id: formData.specialty_id,
-                is_active: formData.is_active
+                is_active: formData.is_active,
+                is_head_nurse: formData.is_head_nurse
             };
-            
+
             // On n'envoie le mot de passe que s'il est renseigné
             if (formData.password && formData.password.trim() !== '') {
                 payload.password = formData.password;
