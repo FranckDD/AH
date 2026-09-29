@@ -35,11 +35,13 @@ class DoctorDashboardController:
             return fn()
         except Exception:
             logger.exception("Echec composition tableau de bord medecin, champ=%s", field_name)
+            self._any_degraded = True
             return default
 
     def get_dashboard(self, start: date, end: date) -> dict:
         doctor_id = self._doctor_id()
         CACHE_KEY = f"doctor_dashboard:kpi:{doctor_id}:{start}:{end}"
+        self._any_degraded = False
 
         try:
             cached = redis_client.get(CACHE_KEY)
@@ -72,9 +74,10 @@ class DoctorDashboardController:
             ),
         }
 
-        try:
-            redis_client.setex(CACHE_KEY, 300, json.dumps(result))
-        except Exception:
-            pass
+        if not self._any_degraded:
+            try:
+                redis_client.setex(CACHE_KEY, 300, json.dumps(result))
+            except Exception:
+                pass
 
         return result

@@ -155,11 +155,10 @@ def test_dashboard_uses_cache_scoped_by_doctor_and_range(db_session, api_client)
     first = client.get(f"/doctor-dashboard/kpi?start={start}&end={end}", headers=headers)
     assert first.json()["total_appointments"] >= 1
 
-    # Ajout d'un second RDV APRES le premier appel : si le cache etait mal
-    # scope (ou trop long), ce nouvel appel identique renverrait quand
-    # meme la valeur mise en cache - teste ici seulement que le second
-    # appel reste coherent avec le meme resultat (comportement de cache
-    # attendu sur la meme fenetre de 5 minutes), pas une invalidation.
+    # Second appel identique (memes medecin+dates) : verifie que le
+    # resultat reste stable sur un re-fetch dans la meme fenetre de
+    # cache de 5 minutes (comportement de cache attendu), pas une
+    # invalidation.
     second = client.get(f"/doctor-dashboard/kpi?start={start}&end={end}", headers=headers)
     assert second.json()["total_appointments"] == first.json()["total_appointments"]
 

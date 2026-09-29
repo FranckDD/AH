@@ -236,9 +236,9 @@ class MedicalRecordRepository:
     def breakdown_by_motif_for_doctor(self, doctor_id: int, start_date: Optional[date]=None, end_date: Optional[date]=None) -> Dict[str,int]:
         q = self.session.query(self.model.motif_code, func.count(self.model.record_id)).filter(self.model.created_by == doctor_id)
         if start_date:
-            q = q.filter(self.model.consultation_date >= start_date)
+            q = q.filter(func.date(self.model.consultation_date) >= start_date)
         if end_date:
-            q = q.filter(self.model.consultation_date <= end_date)
+            q = q.filter(func.date(self.model.consultation_date) <= end_date)
         rows = q.group_by(self.model.motif_code).all()
         return { (motif or "Non spécifié"): int(cnt) for motif, cnt in rows }
 

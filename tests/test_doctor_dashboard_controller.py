@@ -57,6 +57,10 @@ def test_get_dashboard_composes_all_sources(monkeypatch):
     medical_ctrl.count_records_for_doctor.assert_called_once_with(7, date(2026, 9, 1), date(2026, 9, 30))
     prescription_ctrl.count_prescriptions.assert_called_once_with(doctor_id=7, start=date(2026, 9, 1), end=date(2026, 9, 30))
     hospitalization_ctrl.count_current.assert_called_once_with()
+    # Review Focus : aucune degradation -> le resultat compose DOIT etre
+    # mis en cache (cas nominal, symetrique du test de degradation).
+    from controller.doctor_dashboard_controller import redis_client
+    redis_client.setex.assert_called_once()
 
 
 def test_get_dashboard_degrades_single_failing_source(monkeypatch):
@@ -83,6 +87,30 @@ def test_get_dashboard_degrades_single_failing_source(monkeypatch):
     assert result["consultation_distribution"] == {"suivi": 15}
     assert result["prescriptions_count"] == 3
     assert result["hospitalizations_current_count"] == 2
+
+
+def test_get_dashboard_does_not_cache_when_a_source_degrades(monkeypatch):
+    """Review Focus : un resultat degrade (une source tombee sur sa
+    valeur par defaut suite a une exception) ne doit JAMAIS etre mis en
+    cache - sinon une panne transitoire fige un 0 errone pendant 5
+    minutes, ce qui annule l'interet meme de la degradation par carte."""
+    monkeypatch.setattr("controller.doctor_dashboard_controller.redis_client.get", MagicMock(return_value=None))
+    setex_mock = MagicMock()
+    monkeypatch.setattr("controller.doctor_dashboard_controller.redis_client.setex", setex_mock)
+
+    appointment_ctrl, medical_ctrl, prescription_ctrl, hospitalization_ctrl = _make_ctrls()
+    appointment_ctrl.total_appointments.return_value = 12
+    appointment_ctrl.count_by_status.return_value = {"pending": 5}
+    appointment_ctrl.distinct_patients_count.return_value = 9
+    medical_ctrl.count_records_for_doctor.side_effect = Exception("DB down")
+    medical_ctrl.consultation_type_distribution.return_value = {"suivi": 15}
+    prescription_ctrl.count_prescriptions.return_value = 3
+    hospitalization_ctrl.count_current.return_value = 2
+
+    ctrl = _make_controller(appointment_ctrl, medical_ctrl, prescription_ctrl, hospitalization_ctrl)
+    ctrl.get_dashboard(date(2026, 9, 1), date(2026, 9, 30))
+
+    setex_mock.assert_not_called()
 
 
 def test_get_dashboard_degrades_dict_field_to_empty_dict(monkeypatch):
