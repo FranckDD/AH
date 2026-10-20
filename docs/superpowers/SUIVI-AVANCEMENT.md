@@ -1109,3 +1109,11 @@ Vérifié : 6 nouveaux tests (`tests/test_lab_dashboard_flags.py`) + suites labo
 
 **Retours du test navigateur (même jour)** : (1) « Saisir » du dashboard ouvre désormais directement le dossier (`?open=<id>` lu par `LabTechnician`) ; (2) la date d'examen manquait dans le modal de détail (`test_date` absent de `get_result_detail`) et le prescripteur était vide sur le PDF (`result_info.prescripteur` jamais renseigné) — corrigés ; (3) l'historique paginé renvoyait `JJ/MM/AAAA HH:MM`, illisible par `dayjs` (« Invalid Date », ou jour/mois inversés) → ISO ; (4) titre du menu : clé `labo.title` inexistante → `lab.title` ; (5) la carte « Pathologiques » mène à l'historique filtré sur les cas anormaux (`GET /labo/history/paginated?abnormal=true&period=…`, pastille amovible), même fenêtre de période que la carte.
 
+### Dossier toxico : onglets Dossier médical / Prescriptions (2026-10-20) — ✅ livré, non commité, test navigateur en attente
+
+Item 9 du backlog pré-déploiement. Les deux onglets de `ToxicoDossierModal.vue`, jusque-là des textes provisoires, affichent les 3 derniers dossiers médicaux / 3 dernières prescriptions du patient + un bouton « Voir tout l'historique » vers `/patients/:id?tab=MEDICAL|PHARMA` (`PatientDetailView` lit désormais `?tab=`). L'onglet Historique toxico n'a pas été touché (demande explicite).
+
+**Backend** : nouvel endpoint léger `GET /patients/{id}/dossier/recent` (`PatientDossierController.get_recent_activity`, journalisé `VIEW_DOSSIER_RECENT`, tolérant aux pannes par domaine) — les endpoints existants `/prescriptions/patient/{id}` et `/medical-records/patient/{id}/history` sont réservés medecin/nurse/admin/manager et auraient renvoyé 403 aux rôles toxico, et le dossier consolidé charge 6 domaines pour 3 lignes. **Décision utilisateur sur les droits** : admin, ToxicoManager et Psychologist voient les 3 lignes ; **accompagnateur spirituel et assistant n'ont aucun accès** (403 côté serveur, onglets masqués dans la modal) ; le bouton « Voir tout l'historique » est réservé admin + ToxicoManager (`/patients/:id` leur est déjà limité).
+
+Vérifié : 4 nouveaux tests (`tests/test_patient_dossier_recent.py`) + `test_patient_dossier.py` (9 passed), `vite build` OK.
+

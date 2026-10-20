@@ -33,6 +33,11 @@ export const ToxicoGateway = {
         return api.get(`/toxico/patients/${patientId}`);
     },
 
+    // 3 derniers dossiers medicaux + 3 dernieres prescriptions (modal dossier toxico)
+    async getRecentActivity(patientId) {
+        return api.get(`/patients/${patientId}/dossier/recent`);
+    },
+
     async searchPatients(query) {
         if (!query || query.trim().length < 2) return { data: { data: [], total: 0 } };
         return api.get('/patients/', { params: { search: query.trim(), per_page: 8 } });

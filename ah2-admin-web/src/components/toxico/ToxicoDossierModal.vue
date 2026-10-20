@@ -35,7 +35,7 @@
           <div class="bg-white border-b border-gray-200 px-6 shrink-0">
               <nav class="-mb-px flex space-x-8">
                   <button 
-                    v-for="tab in tabs" 
+                    v-for="tab in visibleTabs" 
                     :key="tab.id"
                     @click="currentTab = tab.id"
                     :class="[
@@ -93,15 +93,49 @@
 
             <div v-if="currentTab === 'medical'" class="space-y-6">
                 <div class="bg-white p-5 rounded-xl shadow-xs border border-gray-100">
-                    <h4 class="text-sm font-bold text-gray-700 uppercase mb-4">{{ t('toxico.dossier.tabs.medical') }}</h4>
-                    <p class="text-gray-500 text-center py-4">Intégration du dossier médical complet en cours...</p>
+                    <div class="flex items-center justify-between mb-4">
+                        <h4 class="text-sm font-bold text-gray-700 uppercase">{{ t('toxico.dossier.recent.medical_title') }}</h4>
+                        <button v-if="canOpenFullHistory" @click="openFullHistory('MEDICAL')"
+                                class="text-xs font-bold text-indigo-600 hover:text-indigo-800 transition">
+                            {{ t('toxico.dossier.recent.see_all') }} &rarr;
+                        </button>
+                    </div>
+                    <p v-if="recentLoading" class="text-gray-400 text-center py-4 italic">{{ t('toxico.dossier.recent.loading') }}</p>
+                    <p v-else-if="recentError || recent?.historique_medical === null" class="text-red-500 text-center py-4">{{ t('toxico.dossier.recent.error') }}</p>
+                    <p v-else-if="!recent?.historique_medical?.length" class="text-gray-500 text-center py-4 italic">{{ t('toxico.dossier.recent.empty_medical') }}</p>
+                    <ul v-else class="divide-y divide-gray-100">
+                        <li v-for="r in recent.historique_medical" :key="r.record_id" class="py-3 flex justify-between gap-4">
+                            <div class="min-w-0">
+                                <p class="text-sm font-semibold text-gray-800 truncate">{{ r.diagnosis || r.motif_code }}</p>
+                                <p v-if="r.symptoms" class="text-xs text-gray-500 truncate">{{ r.symptoms }}</p>
+                            </div>
+                            <span class="text-xs text-gray-400 whitespace-nowrap">{{ formatDate(r.consultation_date) }}</span>
+                        </li>
+                    </ul>
                 </div>
             </div>
 
             <div v-if="currentTab === 'prescriptions'" class="space-y-6">
                 <div class="bg-white p-5 rounded-xl shadow-xs border border-gray-100">
-                    <h4 class="text-sm font-bold text-gray-700 uppercase mb-4">{{ t('toxico.dossier.tabs.prescriptions') }}</h4>
-                    <p class="text-gray-500 text-center py-4">Intégration des prescriptions en cours...</p>
+                    <div class="flex items-center justify-between mb-4">
+                        <h4 class="text-sm font-bold text-gray-700 uppercase">{{ t('toxico.dossier.recent.prescriptions_title') }}</h4>
+                        <button v-if="canOpenFullHistory" @click="openFullHistory('PHARMA')"
+                                class="text-xs font-bold text-indigo-600 hover:text-indigo-800 transition">
+                            {{ t('toxico.dossier.recent.see_all') }} &rarr;
+                        </button>
+                    </div>
+                    <p v-if="recentLoading" class="text-gray-400 text-center py-4 italic">{{ t('toxico.dossier.recent.loading') }}</p>
+                    <p v-else-if="recentError || recent?.prescriptions === null" class="text-red-500 text-center py-4">{{ t('toxico.dossier.recent.error') }}</p>
+                    <p v-else-if="!recent?.prescriptions?.length" class="text-gray-500 text-center py-4 italic">{{ t('toxico.dossier.recent.empty_prescriptions') }}</p>
+                    <ul v-else class="divide-y divide-gray-100">
+                        <li v-for="p in recent.prescriptions" :key="p.prescription_id" class="py-3 flex justify-between gap-4">
+                            <div class="min-w-0">
+                                <p class="text-sm font-semibold text-gray-800 truncate">{{ prescriptionLabel(p) }}</p>
+                                <p v-if="p.dosage || p.frequency" class="text-xs text-gray-500 truncate">{{ [p.dosage, p.frequency].filter(Boolean).join(' · ') }}</p>
+                            </div>
+                            <span class="text-xs text-gray-400 whitespace-nowrap">{{ formatDate(p.start_date) }}</span>
+                        </li>
+                    </ul>
                 </div>
             </div>
 
@@ -119,13 +153,18 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useRouter } from 'vue-router';
 import { useToxicoStore } from '@/stores/toxicoStore';
+import { useAuthStore } from '@/stores/auth';
+import { ToxicoGateway } from '@/services/ToxicoGateway';
 import { ClockIcon, HeartIcon, BeakerIcon } from '@heroicons/vue/24/outline';
 
 const { t } = useI18n();
 const toxicoStore = useToxicoStore();
+const authStore = useAuthStore();
+const router = useRouter();
 
 const props = defineProps({
   patientId: { type: Number, required: true }
@@ -144,6 +183,49 @@ const tabs = [
     { id: 'medical', label: 'toxico.dossier.tabs.medical', icon: HeartIcon },
     { id: 'prescriptions', label: 'toxico.dossier.tabs.prescriptions', icon: BeakerIcon },
 ];
+
+// Dossier medical / prescriptions : admin, responsable toxico et psychologue
+// seulement (accompagnateur spirituel et assistant n'y ont pas droit - le
+// backend refuse aussi GET /patients/{id}/dossier/recent pour eux).
+const canSeeClinical = computed(() => authStore.hasRole(['admin', 'ToxicoManager', 'Psychologist']));
+// L'historique complet vit sur /patients/:id, reserve admin + responsable toxico.
+const canOpenFullHistory = computed(() => authStore.hasRole(['admin', 'ToxicoManager']));
+const visibleTabs = computed(() =>
+    tabs.filter((tab) => canSeeClinical.value || !['medical', 'prescriptions'].includes(tab.id))
+);
+
+// Activite recente (3 derniers de chaque), chargee a la premiere ouverture
+// d'un des deux onglets - jamais avant, pour ne rien consommer inutilement.
+const recent = ref(null);
+const recentLoading = ref(false);
+const recentError = ref(false);
+
+const loadRecent = async () => {
+    if (recent.value || recentLoading.value) return;
+    recentLoading.value = true;
+    recentError.value = false;
+    try {
+        const res = await ToxicoGateway.getRecentActivity(props.patientId);
+        recent.value = res.data;
+    } catch (e) {
+        console.error('Erreur activite recente:', e);
+        recentError.value = true;
+    } finally {
+        recentLoading.value = false;
+    }
+};
+
+watch(currentTab, (tab) => {
+    if (canSeeClinical.value && (tab === 'medical' || tab === 'prescriptions')) loadRecent();
+});
+
+const prescriptionLabel = (p) =>
+    p.medication || (p.lab_exams_list && p.lab_exams_list.length ? p.lab_exams_list.join(', ') : p.lab_exams) || '-';
+
+const openFullHistory = (tab) => {
+    emit('close');
+    router.push({ name: 'PatientDetail', params: { id: props.patientId }, query: { tab } });
+};
 
 const formatDate = (dateStr) => {
     if (!dateStr) return '';

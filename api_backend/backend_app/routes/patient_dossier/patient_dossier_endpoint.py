@@ -96,6 +96,26 @@ def get_patient_dossier(
 
 
 @router.get(
+    "/{patient_id}/dossier/recent",
+    response_model=Any,
+    # Perimetre volontairement plus etroit que le dossier consolide : alimente
+    # les onglets "Dossier medical" / "Prescriptions" du modal toxico, hors
+    # de portee de l'accompagnateur spirituel et de l'assistant.
+    dependencies=[Depends(role_required("admin", "toxicomanager", "psychologist"))],
+)
+def get_patient_dossier_recent(
+    patient_id: int,
+    limit: int = Query(3, ge=1, le=10),
+    ctrl: PatientDossierController = Depends(get_patient_dossier_controller),
+):
+    """3 derniers dossiers medicaux + 3 dernieres prescriptions (vue legere)."""
+    try:
+        return ctrl.get_recent_activity(patient_id, limit=limit)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+@router.get(
     "/{patient_id}/dossier/export",
     dependencies=[Depends(role_required(
         "medecin", "nurse", "psychologist", "spiritualcounsellor",

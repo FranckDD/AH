@@ -659,6 +659,15 @@ const messages = {
           medical: "Dossier Médical",
           prescriptions: "Prescriptions"
         },
+        recent: {
+          medical_title: "3 derniers dossiers médicaux",
+          prescriptions_title: "3 dernières prescriptions",
+          see_all: "Voir tout l'historique",
+          loading: "Chargement...",
+          error: "Impossible de charger ces données.",
+          empty_medical: "Aucun dossier médical.",
+          empty_prescriptions: "Aucune prescription."
+        },
         timeline: {
           phase: "Phase",
           duration: "Période",
@@ -1819,6 +1828,15 @@ const messages = {
           history: "Toxico History",
           medical: "Medical Record",
           prescriptions: "Prescriptions"
+        },
+        recent: {
+          medical_title: "Last 3 medical records",
+          prescriptions_title: "Last 3 prescriptions",
+          see_all: "See full history",
+          loading: "Loading...",
+          error: "Unable to load this data.",
+          empty_medical: "No medical record.",
+          empty_prescriptions: "No prescription."
         },
         timeline: {
           phase: "Phase",

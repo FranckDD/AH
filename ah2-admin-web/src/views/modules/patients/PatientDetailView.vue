@@ -358,6 +358,12 @@ onMounted(async () => {
     const id = route.params.id;
     if (id) await dossierStore.fetchDossierComplete(id);
 
+    // Venu du modal dossier toxico ("Voir tout l'historique") : ouvrir
+    // directement l'onglet cible.
+    if (['MEDICAL', 'PHARMA'].includes(route.query.tab)) {
+        currentTab.value = route.query.tab;
+    }
+
     const appointmentId = route.query.appointmentId ? Number(route.query.appointmentId) : null;
     if (appointmentId && canCreateConsultation.value) {
         openConsultationModal(appointmentId);

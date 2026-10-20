@@ -130,3 +130,51 @@ class PatientDossierController:
             reponse.pop("dossier_toxico", None)
             reponse.pop("historique_spirituel", None)
         return reponse
+
+    def get_recent_activity(self, patient_id: int, limit: int = 3) -> Dict[str, Any]:
+        """Les `limit` derniers dossiers medicaux et prescriptions du patient.
+
+        Vue legere pour le modal du dossier toxico : evite de charger les 6
+        domaines du dossier consolide pour afficher 3 lignes. Meme tolerance
+        aux pannes par domaine et meme tracabilite que get_full_dossier.
+        """
+        if not self.patient_ctrl.get_patient(patient_id):
+            raise ValueError(f"Patient {patient_id} introuvable")
+
+        def _recent_prescriptions():
+            items = sorted(
+                self.prescription_ctrl.get_patient_prescriptions(patient_id),
+                key=lambda p: p.prescription_id, reverse=True,
+            )[:limit]
+            return [
+                PrescriptionResponse.model_validate(jsonable_encoder(p)).model_dump(mode="json")
+                for p in items
+            ]
+
+        resultats: Dict[str, Any] = {}
+        echecs = []
+        for cle, appel in [
+            # get_patient_history() est deja trie du plus recent au plus ancien.
+            ("historique_medical", lambda: [
+                MedicalRecordResponse.model_validate(jsonable_encoder(r)).model_dump(mode="json")
+                for r in self.medical_ctrl.get_patient_history(patient_id)[:limit]
+            ]),
+            ("prescriptions", _recent_prescriptions),
+        ]:
+            try:
+                resultats[cle] = appel()
+            except Exception:
+                echecs.append(cle)
+                resultats[cle] = None
+                logger.exception(f"Echec chargement '{cle}' (activite recente) pour le patient {patient_id}")
+                self.session.rollback()
+
+        self.audit_repo.log_user_action(
+            current_user=self.current_user,
+            resource_type="Patient",
+            resource_id=patient_id,
+            action_performed="VIEW_DOSSIER_RECENT",
+            new_values={"domaines_en_echec": echecs} if echecs else None,
+        )
+        self.session.commit()
+        return {**resultats, "domaines_indisponibles": echecs}
