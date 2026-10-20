@@ -6,8 +6,8 @@
            <beaker-icon class="w-6 h-6 text-indigo-600" />
         </div>
         <div>
-            <h2 class="text-xl font-bold text-gray-800 leading-tight">Laboratoire</h2>
-            <p class="text-xs text-gray-500">Gestion des analyses médicales</p>
+            <h2 class="text-xl font-bold text-gray-800 leading-tight">{{ t('lab.title') }}</h2>
+            <p class="text-xs text-gray-500">{{ t('lab.layout.subtitle') }}</p>
         </div>
       </div>
       
@@ -16,14 +16,14 @@
         <router-link v-if="canSeeReception" :to="{ name: 'lab-reception' }" custom v-slot="{ navigate, isActive }">
           <button @click="navigate" class="nav-btn" :class="isActive ? 'active' : 'inactive'">
             <UserGroupIcon class="w-4 h-4" />
-            Réception
+            {{ t('lab.nav.reception') }}
           </button>
         </router-link>
 
         <router-link v-if="canSeePaillasse" :to="{ name: 'lab-technician' }" custom v-slot="{ navigate, isActive }">
           <button @click="navigate" class="nav-btn" :class="isActive ? 'active' : 'inactive'">
             <BeakerIcon class="w-4 h-4" />
-            Paillasse
+            {{ t('lab.nav.bench') }}
           </button>
         </router-link>
 
@@ -32,21 +32,21 @@
         <router-link v-if="canSeeHistory" :to="{ name: 'lab-history' }" custom v-slot="{ navigate, isActive }">
           <button @click="navigate" class="nav-btn" :class="isActive ? 'active' : 'inactive'">
             <ClockIcon class="w-4 h-4" />
-            Historique
+            {{ t('lab.nav.history') }}
           </button>
         </router-link>
 
         <router-link v-if="canSeeSyncFailures" :to="{ name: 'lab-sync-failures' }" custom v-slot="{ navigate, isActive }">
           <button @click="navigate" class="nav-btn" :class="isActive ? 'active' : 'inactive'">
             <ExclamationTriangleIcon class="w-4 h-4" />
-            Échecs sync
+            {{ t('lab.nav.sync_failures') }}
           </button>
         </router-link>
 
         <router-link v-if="canConfigure" :to="{ name: 'lab-config' }" custom v-slot="{ navigate, isActive }">
           <button @click="navigate" class="nav-btn" :class="isActive ? 'active-purple' : 'inactive'">
             <CogIcon class="w-4 h-4" />
-            Config
+            {{ t('lab.nav.config_short') }}
           </button>
         </router-link>
       </nav>
@@ -64,12 +64,14 @@
 
 <script setup>
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '@/stores/auth';
 import { 
   BeakerIcon, UserGroupIcon, ClipboardDocumentCheckIcon, ClockIcon, CogIcon, ExclamationTriangleIcon
 } from '@heroicons/vue/24/outline';
 
 const authStore = useAuthStore();
+const { t } = useI18n();
 // Chaque onglet reflete exactement les meta.roles de sa route reelle
 // (router/index.js) - avant ce correctif, Reception et Paillasse
 // s'affichaient sans condition pour tout role atteignant ce shell,

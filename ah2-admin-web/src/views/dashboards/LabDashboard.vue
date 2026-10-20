@@ -3,8 +3,8 @@
     
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-2">
       <div>
-        <h1 class="text-2xl font-black text-gray-800 tracking-tight">Tableau de Bord</h1>
-        <p class="text-sm text-gray-500">Aperçu temps réel de l'activité du laboratoire</p>
+        <h1 class="text-2xl font-black text-gray-800 tracking-tight">{{ t('lab.dashboard.title') }}</h1>
+        <p class="text-sm text-gray-500">{{ t('lab.dashboard.subtitle') }}</p>
       </div>
       
       <div class="flex bg-white p-1 rounded-xl shadow-xs border border-gray-200">
@@ -14,7 +14,7 @@
           :class="currentPeriod === p ? 'bg-indigo-600 text-white shadow-md' : 'text-gray-500 hover:bg-gray-50'"
           class="px-4 py-1.5 rounded-lg text-xs font-bold transition-all duration-200 capitalize"
         >
-          {{ p === 'day' ? 'Aujourd\'hui' : p === 'month' ? 'Ce mois' : 'Cette année' }}
+          {{ t(`lab.dashboard.period_${p}`) }}
         </button>
       </div>
     </div>
@@ -23,47 +23,45 @@
         <div @click="$router.push({name: 'lab-technician'})" class="card-stat border-l-4 border-l-yellow-400 cursor-pointer hover:scale-105 transition-transform">
             <div class="flex justify-between">
                 <div>
-                    <p class="stat-label">En attente (Paillasse)</p>
+                    <p class="stat-label">{{ t('lab.dashboard.pending') }}</p>
                     <h3 class="stat-value">{{ stats?.pending ?? 0 }}</h3>
                 </div>
                 <div class="stat-icon bg-yellow-50"><ClockIcon class="text-yellow-600 h-6 w-6" /></div>
             </div>
-            <p class="mt-4 text-xs text-gray-400 font-medium">À traiter prioritairement</p>
+            <p class="mt-4 text-xs text-gray-400 font-medium">{{ t('lab.dashboard.pending_hint') }}</p>
         </div>
 
         <div class="card-stat border-l-4 border-l-green-500">
             <div class="flex justify-between">
                 <div>
-                    <p class="stat-label">Réalisés (Période)</p>
+                    <p class="stat-label">{{ t('lab.dashboard.completed') }}</p>
                     <h3 class="stat-value">{{ stats?.completed_today ?? 0 }}</h3>
                 </div>
                 <div class="stat-icon bg-green-50"><CheckBadgeIcon class="text-green-600 h-6 w-6" /></div>
             </div>
-            <div class="mt-4 text-xs text-green-600 font-medium flex items-center">
-                <ArrowTrendingUpIcon class="h-3 w-3 mr-1" /> Productivité stable
-            </div>
+            <p class="mt-4 text-xs text-gray-400 font-medium">{{ t('lab.dashboard.completed_hint') }}</p>
         </div>
 
-        <div @click="$router.push({name: 'lab-technician'})" class="card-stat border-l-4 border-l-red-500 cursor-pointer hover:scale-105 transition-transform">
+        <div @click="$router.push({name: 'lab-history', query: { abnormal: '1', period: currentPeriod }})" class="card-stat border-l-4 border-l-red-500 cursor-pointer hover:scale-105 transition-transform">
             <div class="flex justify-between">
                 <div>
-                    <p class="stat-label">Pathologiques</p>
+                    <p class="stat-label">{{ t('lab.dashboard.critical') }}</p>
                     <h3 class="stat-value text-red-600">{{ stats?.critical ?? 0 }}</h3>
                 </div>
                 <div class="stat-icon bg-red-50"><ExclamationTriangleIcon class="text-red-600 h-6 w-6" /></div>
             </div>
-            <p class="mt-4 text-xs text-red-400 font-medium">Alertes à valider</p>
+            <p class="mt-4 text-xs text-red-400 font-medium">{{ t('lab.dashboard.critical_hint') }}</p>
         </div>
 
         <div class="card-stat border-l-4 border-l-blue-500">
             <div class="flex justify-between">
                 <div>
-                    <p class="stat-label">Activité Totale</p>
+                    <p class="stat-label">{{ t('lab.dashboard.total') }}</p>
                     <h3 class="stat-value">{{ stats?.total_month ?? 0 }}</h3>
                 </div>
                 <div class="stat-icon bg-blue-50"><ClipboardDocumentListIcon class="text-blue-600 h-6 w-6" /></div>
             </div>
-             <p class="mt-4 text-xs text-gray-400 font-medium">Dossiers créés</p>
+             <p class="mt-4 text-xs text-gray-400 font-medium">{{ t('lab.dashboard.total_hint') }}</p>
         </div>
     </div>
 
@@ -73,10 +71,10 @@
             <div class="p-5 border-b border-gray-100 flex justify-between items-center bg-white">
                 <h3 class="text-lg font-bold text-gray-800 flex items-center gap-2">
                     <ClockIcon class="w-5 h-5 text-indigo-500"/>
-                    Dernières entrées (Paillasse)
+                    {{ t('lab.dashboard.recent') }}
                 </h3>
                 <button @click="$router.push({name: 'lab-technician'})" class="text-xs text-indigo-600 font-bold hover:text-indigo-800 transition">
-                    Voir toute la paillasse &rarr;
+                    {{ t('lab.dashboard.see_bench') }} &rarr;
                 </button>
             </div>
             
@@ -84,15 +82,15 @@
                 <table class="w-full text-sm text-left">
                     <thead class="bg-gray-50/50 text-gray-500 text-xs uppercase tracking-wider">
                         <tr>
-                            <th class="px-5 py-4 font-semibold">Patient</th>
-                            <th class="px-5 py-4 font-semibold">Examen</th>
-                            <th class="px-5 py-4 font-semibold text-right">Action</th>
+                            <th class="px-5 py-4 font-semibold">{{ t('lab.dashboard.col_patient') }}</th>
+                            <th class="px-5 py-4 font-semibold">{{ t('lab.dashboard.col_exam') }}</th>
+                            <th class="px-5 py-4 font-semibold text-right">{{ t('lab.dashboard.col_action') }}</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100">
                         <tr v-if="!stats?.recent_pending?.length">
                             <td colspan="3" class="px-5 py-8 text-center text-gray-400 italic">
-                                Aucun dossier en attente de traitement.
+                                {{ t('lab.dashboard.no_pending') }}
                             </td>
                         </tr>
                         <tr v-for="item in stats.recent_pending" :key="item.id" class="hover:bg-indigo-50/30 transition group">
@@ -102,16 +100,16 @@
                                         {{ item.patient_name?.charAt(0) || '?' }}
                                     </div>
                                     <div>
-                                        <div class="font-bold text-gray-900">{{ item.patient_name || 'Patient Inconnu' }}</div>
+                                        <div class="font-bold text-gray-900">{{ item.patient_name || t('lab.dashboard.unknown_patient') }}</div>
                                         <div class="text-[10px] uppercase tracking-widest text-gray-400">{{ item.code_patient || 'N/A' }}</div>
                                     </div>
                                 </div>
                             </td>
                             <td class="px-5 py-3">
-                                <span class="badge-exam">{{ item.test_type || 'Examen' }}</span>
+                                <span class="badge-exam">{{ item.test_type || t('lab.dashboard.col_exam') }}</span>
                             </td>
                             <td class="px-5 py-3 text-right">
-                                <button @click="goToTechnician(item)" class="btn-saisir">Saisir</button>
+                                <button @click="goToTechnician(item)" class="btn-saisir">{{ t('lab.dashboard.enter') }}</button>
                             </td>
                         </tr>
                     </tbody>
@@ -122,11 +120,11 @@
         <div class="bg-white p-6 rounded-2xl shadow-xs border border-gray-100 flex flex-col">
             <h3 class="text-lg font-bold text-gray-800 mb-6 flex items-center gap-2">
                 <ArrowTrendingUpIcon class="w-5 h-5 text-indigo-500" />
-                Top Analyses
+                {{ t('lab.dashboard.top_exams') }}
             </h3>
             
             <div v-if="!stats?.top_exams || Object.keys(stats.top_exams).length === 0" class="text-sm text-gray-400 italic text-center py-4">
-                Pas de données pour cette période.
+                {{ t('lab.dashboard.no_data') }}
             </div>
 
             <div v-else class="space-y-5 flex-1">
@@ -150,6 +148,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 import { useLabStore } from '@/stores/labStore'; 
 import { 
     ClockIcon, CheckBadgeIcon, ExclamationTriangleIcon, 
@@ -157,6 +156,7 @@ import {
 } from '@heroicons/vue/24/outline';
 
 const router = useRouter();
+const { t } = useI18n();
 const labStore = useLabStore();
 
 const currentPeriod = ref('month');
@@ -214,11 +214,8 @@ onUnmounted(() => {
  * Navigation vers la paillasse avec filtre auto
  */
 const goToTechnician = (item) => {
-    if (item?.code_patient) {
-        router.push({ 
-            name: 'lab-technician', 
-            query: { search: item.code_patient } 
-        });
+    if (item?.id) {
+        router.push({ name: 'lab-technician', query: { open: String(item.id) } });
     }
 };
 </script>

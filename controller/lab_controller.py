@@ -197,7 +197,8 @@ class LabController:
     # 🔬 GESTION DES RÉSULTATS (Création, Lecture, Saisie)
     # ====================================================================
 
-    def get_paginated_results(self, page: int = 1, limit: int = 20, search: Optional[str] = None, status: Optional[str] = None) -> Dict[str, Any]:
+    def get_paginated_results(self, page: int = 1, limit: int = 20, search: Optional[str] = None, status: Optional[str] = None,
+                              abnormal_only: bool = False, period: Optional[str] = None) -> Dict[str, Any]:
         """
         Récupère l'historique paginé et formaté pour le frontend.
         """
@@ -221,7 +222,9 @@ class LabController:
             skip=skip, 
             limit=limit, 
             search_query=search, 
-            status=status
+            status=status,
+            abnormal_only=abnormal_only,
+            period=period
         )
         
         # 2. Formatage des résultats (réutilisation de ta logique existante)
@@ -236,7 +239,7 @@ class LabController:
                 'patient_age': p_infos['age'],
                 'is_external': p_infos['is_external'],
                 'examen_nom': r.examen.nom if r.examen else 'Inconnu',
-                'test_date': r.test_date.strftime("%d/%m/%Y %H:%M") if r.test_date else "",
+                'test_date': r.test_date.isoformat() if r.test_date else "",
                 'status': r.status,
                 'batch_id': str(r.batch_id) if r.batch_id else None
             })
@@ -338,6 +341,7 @@ class LabController:
             "result_info": {
                 "date_test": r.test_date.strftime("%d/%m/%Y %H:%M") if r.test_date else "",
                 "status": r.status or "Complété",
+                "prescripteur": r.prescribed_by_name or "-",
                 "note": r.note # Utilisé pour la conclusion en bas
             },
             "details": details_format_list,
@@ -416,6 +420,8 @@ class LabController:
             "code": r.code_lab_patient,
             "status": r.status,
             "note": r.note,
+            "test_date": r.test_date.isoformat() if r.test_date else None,
+            "medecin_prescripteur": r.prescribed_by_name or None,
             "patient_info": self._format_patient_info(r),
             "examen_nom": r.examen.nom if r.examen else "Inconnu",
             "details": details_out
@@ -666,13 +672,15 @@ class LabController:
         results = self.repo.list_results_for_patient(patient_id)
         if self._est_medical_lecture_seule():
             results = [r for r in results if r.status == "completed"]
+        flagged_counts = self.repo.count_flagged_by_result([r.result_id for r in results])
         return [{
             'result_id': r.result_id,
             'code_lab': r.code_lab_patient,
             'test_date': r.test_date.strftime('%Y-%m-%d %H:%M') if r.test_date else '-',
             'examen_name': r.examen.nom if r.examen else 'Inconnu',
             'status': r.status,
-            'prescribed_by': r.prescribed_by or "N/A"
+            'prescribed_by': r.prescribed_by or "N/A",
+            'nb_anormaux': flagged_counts.get(r.result_id, 0),
         } for r in results]
 
     def get_dashboard_stats(self, period: str = "month") -> Dict:

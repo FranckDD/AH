@@ -139,7 +139,9 @@ export const useLabStore = defineStore('lab', {
                     page: params.page || 1,
                     limit: params.limit || 20,
                     search: params.search || null,
-                    status: params.status || null
+                    status: params.status || null,
+                    abnormal: params.abnormal || null,
+                    period: params.period || null
                 };
 
                 const response = await LabGateway.getPaginatedHistory(queryParams);

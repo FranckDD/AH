@@ -9,18 +9,27 @@
                 v-model="filters.query"
                 @input="handleSearch"
                 type="text" 
-                placeholder="Rechercher un patient ou un code..." 
+                :placeholder="t('lab.history_view.search_ph')" 
                 class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-xl focus:ring-indigo-500 focus:border-indigo-500 transition"
             >
         </div>
         <select v-model="filters.status" @change="handleFilterChange" class="border border-gray-300 rounded-xl px-4 py-2 bg-white text-gray-700">
-            <option value="">Tous les statuts</option>
-            <option value="pending">En attente</option>
-            <option value="completed">Terminé (Tech)</option>
+            <option value="">{{ t('lab.history_view.all_statuses') }}</option>
+            <option value="pending">{{ t('lab.status.pending') }}</option>
+            <option value="completed">{{ t('lab.history_view.completed_tech') }}</option>
         </select>
       </div>
       
-      <button @click="refresh" class="p-2 text-gray-500 hover:bg-gray-100 rounded-full transition" title="Actualiser">
+      <button v-if="filters.abnormal" @click="clearAbnormal"
+              class="flex items-center gap-2 bg-red-50 text-red-700 border border-red-200 px-3 py-1.5 rounded-full text-xs font-bold hover:bg-red-100 transition"
+              :title="t('lab.history_view.clear_abnormal')">
+        <ExclamationTriangleIcon class="w-4 h-4" />
+        {{ t('lab.history_view.abnormal_only') }}
+        <span v-if="filters.period" class="font-medium opacity-80">· {{ t(`lab.dashboard.period_${filters.period}`) }}</span>
+        <XMarkIcon class="w-4 h-4" />
+      </button>
+
+      <button @click="refresh" class="p-2 text-gray-500 hover:bg-gray-100 rounded-full transition" :title="t('lab.history_view.refresh')">
         <ArrowPathIcon class="w-5 h-5" :class="{'animate-spin': store.loading}"/>
       </button>
     </div>
@@ -30,11 +39,11 @@
         <table class="w-full text-sm text-left">
             <thead class="bg-gray-50 text-gray-500 uppercase font-bold text-xs border-b border-gray-100 sticky top-0 z-10">
             <tr>
-                <th class="px-6 py-4">Date & ID</th>
-                <th class="px-6 py-4">Patient</th>
-                <th class="px-6 py-4">Examen</th>
-                <th class="px-6 py-4">Statut</th>
-                <th class="px-6 py-4 text-center">Actions</th>
+                <th class="px-6 py-4">{{ t('lab.history_view.col_date') }}</th>
+                <th class="px-6 py-4">{{ t('lab.history_view.col_patient') }}</th>
+                <th class="px-6 py-4">{{ t('lab.history_view.col_exam') }}</th>
+                <th class="px-6 py-4">{{ t('lab.history_view.col_status') }}</th>
+                <th class="px-6 py-4 text-center">{{ t('lab.history_view.col_actions') }}</th>
             </tr>
             </thead>
             <tbody class="divide-y divide-gray-100">
@@ -48,7 +57,7 @@
                     <div class="font-bold text-gray-800">{{ res.patient_name }}</div>
                     <div class="flex gap-2 mt-1">
                         <span class="text-[10px] text-gray-500">{{ res.patient_age }} • {{ res.patient_sexe }}</span>
-                        <span v-if="res.is_external" class="text-[9px] bg-orange-50 text-orange-600 px-1.5 py-0.5 rounded-sm font-black uppercase">Externe</span>
+                        <span v-if="res.is_external" class="text-[9px] bg-orange-50 text-orange-600 px-1.5 py-0.5 rounded-sm font-black uppercase">{{ t('lab.result_modal.external') }}</span>
                     </div>
                 </td>
 
@@ -67,7 +76,7 @@
                         <button 
                             @click="openView(res)"
                             class="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition border border-transparent hover:border-indigo-100"
-                            title="Voir les détails"
+                            :title="t('lab.history_view.view_details')"
                         >
                             <EyeIcon class="w-5 h-5"/>
                         </button>
@@ -76,7 +85,7 @@
                             v-if="res.status !== 'pending'"
                             @click="downloadPdf(res)" 
                             class="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition border border-transparent hover:border-red-100"
-                            title="Télécharger PDF"
+                            :title="t('lab.history_view.download_pdf')"
                         >
                             <PrinterIcon class="w-5 h-5"/>
                         </button>
@@ -89,14 +98,14 @@
         
         <div v-if="store.paginatedHistory.items.length === 0 && !store.loading" class="flex flex-col items-center justify-center h-64 text-gray-400">
             <DocumentMagnifyingGlassIcon class="w-16 h-16 mb-2 opacity-20"/>
-            <p class="font-medium">Aucun examen trouvé.</p>
-            <p class="text-xs">Essayez de modifier vos filtres ou votre recherche.</p>
+            <p class="font-medium">{{ t('lab.history_view.empty') }}</p>
+            <p class="text-xs">{{ t('lab.history_view.empty_hint') }}</p>
         </div>
       </div>
 
       <div v-if="store.paginatedHistory.total_pages > 0" class="border-t border-gray-100 bg-gray-50 px-6 py-3 flex items-center justify-between">
           <div class="text-sm text-gray-500">
-              Affichage de <span class="font-medium">{{ store.paginatedHistory.items.length }}</span> sur <span class="font-medium">{{ store.paginatedHistory.total_items }}</span> résultats
+              {{ t('lab.history_view.showing', { n: store.paginatedHistory.items.length, total: store.paginatedHistory.total_items }) }}
           </div>
           <div class="flex items-center space-x-2 text-sm">
               <button 
@@ -104,17 +113,17 @@
                   :disabled="filters.page === 1"
                   class="px-3 py-1 rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition"
               >
-                  Précédent
+                  {{ t('lab.history_view.prev') }}
               </button>
               <span class="px-3 py-1 text-gray-600 font-medium">
-                  Page {{ store.paginatedHistory.current_page }} / {{ store.paginatedHistory.total_pages }}
+                  {{ t('lab.history_view.page', { current: store.paginatedHistory.current_page, total: store.paginatedHistory.total_pages }) }}
               </span>
               <button 
                   @click="nextPage" 
                   :disabled="filters.page >= store.paginatedHistory.total_pages"
                   class="px-3 py-1 rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition"
               >
-                  Suivant
+                  {{ t('lab.history_view.next') }}
               </button>
           </div>
       </div>
@@ -131,22 +140,30 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
+import { useRoute } from 'vue-router';
 import { useLabStore } from '@/stores/labStore';
+import { useI18n } from 'vue-i18n';
 import ResultDetailModal from '@/components/lab/ResultDetailModal.vue';
 import dayjs from 'dayjs';
 import debounce from 'lodash/debounce';
 import { 
     MagnifyingGlassIcon, ArrowPathIcon, PrinterIcon, 
-    DocumentMagnifyingGlassIcon, EyeIcon 
+    DocumentMagnifyingGlassIcon, EyeIcon, ExclamationTriangleIcon, XMarkIcon
 } from '@heroicons/vue/24/outline';
 
 // --- INIT ---
 const store = useLabStore();
+const { t } = useI18n();
 const selectedResult = ref(null);
+const route = useRoute();
 
+// Arrivee depuis la carte "Pathologiques" du dashboard : ?abnormal=1&period=month
+const PERIODS = ['day', 'month', 'year'];
 const filters = ref({
     query: '',
     status: '',
+    abnormal: route.query.abnormal === '1',
+    period: PERIODS.includes(route.query.period) ? route.query.period : null,
     page: 1,
     limit: 15 // Tu peux ajuster le nombre d'éléments par page ici
 });
@@ -163,8 +180,17 @@ const fetchData = async () => {
         page: filters.value.page,
         limit: filters.value.limit,
         search: q.length >= 2 ? q : null,
-        status: filters.value.status || null
+        status: filters.value.status || null,
+        abnormal: filters.value.abnormal ? true : null,
+        period: filters.value.abnormal ? filters.value.period : null
     });
+};
+
+const clearAbnormal = () => {
+    filters.value.abnormal = false;
+    filters.value.period = null;
+    filters.value.page = 1;
+    fetchData();
 };
 
 // Réinitialise la page à 1 quand on fait une nouvelle recherche
@@ -218,17 +244,17 @@ const downloadPdf = async (item) => {
 
 // --- HELPERS ---
 const formatDate = (d) => {
-    if (!d) return 'N/A';
+    if (!d) return t('lab.history_view.na');
     return dayjs(d).format('DD/MM/YYYY HH:mm');
 };
 
 const translateStatus = (status) => {
     const map = {
-        'pending': 'En attente',
-        'completed': 'Terminé',
-        'validated': 'Validé'
+        'pending': t('lab.status.pending'),
+        'completed': t('lab.status.completed'),
+        'validated': t('lab.status.validated')
     };
-    return map[status] || status || 'Inconnu';
+    return map[status] || status || t('lab.result_modal.unknown');
 };
 
 const getStatusColor = (status) => {

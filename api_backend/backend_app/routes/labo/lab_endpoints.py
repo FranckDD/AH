@@ -147,13 +147,16 @@ def get_paginated_history(
     limit: int = Query(20, ge=1, le=100, description="Nombre d'éléments par page"),
     search: Optional[str] = Query(None, description="Recherche par nom ou code"),
     status: Optional[str] = Query(None, description="Filtre par statut (pending, completed, etc.)"),
+    abnormal: bool = Query(False, description="Seulement les dossiers avec au moins un parametre anormal"),
+    period: Optional[str] = Query(None, pattern="^(day|month|year)$", description="Limite a la periode du dashboard"),
     ctrl: LabController = Depends(get_lab_controller)
 ):
     """
     📚 HISTORIQUE PAGINÉ : Récupère la liste globale des résultats avec pagination et filtres.
     Idéal pour le tableau principal du frontend.
     """
-    return ctrl.get_paginated_results(page=page, limit=limit, search=search, status=status)
+    return ctrl.get_paginated_results(page=page, limit=limit, search=search, status=status,
+                                      abnormal_only=abnormal, period=period)
 
 # Lecture de donnees d'analyses : soignants + admin uniquement, meme jeu de
 # roles que les autres routes de lecture de ce module (lignes 66 et 141).

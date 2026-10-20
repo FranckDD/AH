@@ -1,6 +1,6 @@
 # Suivi d'avancement — AH2 / Glostone-Kare
 
-**Dernière mise à jour :** 2026-09-29 (triage infirmière → médecin + assignation RDV livrés et poussés sur `AH2_V3-1`)
+**Dernière mise à jour :** 2026-10-20 (backlog pré-déploiement consigné ; Groupe 4 en cours : Tailwind v4 et vue-router v5 faits ; KPI patients hospitalisés livré)
 **But de ce document :** état d'avancement des chantiers de remise en service et de sécurisation, et registre des découvertes faites en cours de route mais non encore traitées. Pour le contexte général du projet, voir `docs/superpowers/CONTEXTE-PROJET.md`. Pour le détail d'un chantier, voir les fichiers correspondants dans `docs/superpowers/specs/` et `docs/superpowers/plans/`.
 
 ## Feuille de route
@@ -1074,3 +1074,38 @@ Signalé juste après la livraison du tableau de bord médecin/infirmier : une c
 **2 défauts supplémentaires trouvés par la même revue finale, corrigés dans le même correctif** : `claim()` (prise en charge) n'était pas atomique — deux médecins cliquant en même temps pouvaient tous les deux passer la vérification avant que l'un des deux ne committe, le second écrasant silencieusement le premier sans erreur — corrigé en une seule requête `UPDATE` conditionnelle atomique (le centre n'a qu'un médecin aujourd'hui, mais la conception devait anticiper plusieurs médecins concurrents) ; le bouton "Prendre en charge" était visible pour `nurse`, toujours refusé côté serveur (403) sans aucun message.
 
 Vérifié : 397 passing sur la suite complète après le correctif final (mêmes 9 échecs pré-existants documentés, aucune régression). Build frontend production : succès. Poussé sur `origin/AH2_V3-1`.
+
+### Backlog pré-déploiement — fonctionnalités à ajouter avant l'UX et le chantier 8 (2026-10-20) — ⬜ à brainstormer
+
+**Ordre décidé par l'utilisateur** : terminer ce backlog → refonte UX → déploiement (chantier 8). Rien de ce qui suit n'est spécifié ni commencé ; chaque point passera par sa propre brainstorm avant plan.
+
+**Contexte déploiement (chantier 8, décalé)** : cible = VPS auto-hébergé + Docker. Dimensionnement retenu : 4 vCPU / 8 Go RAM / ~100 Go SSD / port 100-200 Mbit/s suffisent (RAM = facteur limitant : PowerSync + 2 Postgres). Candidat : **Contabo Cloud VPS 4** (5,28 $/mois, UE, **latence ~236 ms** — point de vigilance, atténuer par HTTP/2, compression, cache long des assets, éviter les appels API en cascade). OVH n'a plus de VPS disponible pour l'instant ; l'utilisateur observe OVH cette semaine et prendra Contabo si rien ne revient. À prévoir au chantier 8 : Dockerfile API (libs système WeasyPrint), Postgres conteneurisé avec `wal_level=logical` (PowerSync pointe aujourd'hui sur le Postgres natif Windows via `host.docker.internal`), reverse proxy HTTPS, sauvegardes `pg_dump` hors VPS ; le `printer_bridge` reste sur le poste de caisse.
+
+**Fonctionnalités demandées :**
+
+1. **Fenêtre de fabrication** — certains produits (ex. le « MIEL ») sont produits par le centre. Fenêtre dédiée : quantité produite, date de production, date de livraison au centre, + autres champs nécessaires (à définir en brainstorm : lot, produit, responsable, statut…).
+2. **Stockage / pharmacie : réception et avaries** — gérer la réception et les avaries : nombre d'unités endommagées, pertes, défectueuses.
+3. **Stockage du labo** — prendre en compte la gestion de stock du laboratoire (réactifs/consommables), aujourd'hui non gérée comme le stock pharmacie.
+4. **Labo — flags des résultats** — les flags (hors normes) existent déjà ; ils doivent être récupérés et affichés sur les résultats du patient (dossier patient / vues résultats).
+5. **Labo — vérifier la logique du dashboard labo.**
+6. **Labo — traductions manquantes** (i18n incomplet).
+7. **Réduction personnel** — gérer la réduction de prix sur médicaments et soins pour le personnel : type de produit concerné, montant minimal de facture, taux réduit. **Gérée uniquement par l'admin et le manager.** (À articuler avec le workflow existant de validation des réductions caisse — voir « Notifications + validation des réductions caisse ».)
+8. **Onglet Rapports** — nouvel onglet présentant KPI, évaluations et graphes de croissance/décroissance (patients, chiffre d'affaires, etc.). Inclut le KPI **nombre de produits vendus**. Recoupe le KPI « patients actifs » clinique encore à définir.
+9. **Suivi toxico — dossier patient** : les onglets *Prescriptions* et *Historique médical* ne doivent plus afficher de liste (économie de ressources) mais un **bouton renvoyant vers l'historique correspondant** là où il se trouve déjà.
+
+**Questions à trancher en brainstorm** : périmètre exact des champs de fabrication et lien avec le stock/la caisse (produit fabriqué = produit vendu ?) ; avaries : par lot ou par mouvement de stock ; qui peut déclarer une avarie ; réduction personnel : comment identifier un « membre du personnel » (compte utilisateur ? rôle ?) et cumul avec les réductions existantes ; périmètre des rapports par rôle.
+
+### Correctifs labo : flags, dashboard, traductions (2026-10-20) — ✅ livré, testé par l'utilisateur dans le navigateur (flags OK)
+
+Items 4, 5 et 6 du backlog pré-déploiement ci-dessus. Chemin « bounded » (design validé en chat, pas de spec écrite).
+
+**Flags** — cause racine : `GET /labo/results/{id}` renvoie `is_abnormal` par paramètre, mais `ResultDetailModal.vue` lisait `flag`/`flagged` → aucune valeur anormale n'était jamais rouge. Même défaut dans `LabTechnician.vue` (lisait `d.flagged`) : à la réouverture d'un brouillon, le flag Haut/Bas/Anormal saisi disparaissait de la liste déroulante. Corrigé dans les deux. L'onglet Labo du dossier patient affiche désormais un badge « N anormal(aux) » (nouveau champ `nb_anormaux` de `get_patient_lab_history`, une seule requête groupée via `LabRepository.count_flagged_by_result`) et son bouton « Voir Résultats », jusque-là sans effet, ouvre le modal de détail. Limite connue : hors ligne, le badge est absent (`lab_result_details` non lu localement pour medecin/nurse) et le détail affiche un message d'indisponibilité.
+
+**Dashboard labo** (`LabRepository.get_advanced_stats`) : « Pathologiques » = dossiers de la période avec ≥1 paramètre flaggé, tous statuts (avant : seulement non terminés, période ignorée) ; « En attente » inclut `analyzed` (aligné sur `get_stats_counts`) ; « Activité totale » = dossiers créés sur la période (avant : réalisés + en attente de tous les temps) ; « Dernières entrées » = 3 derniers dossiers *à traiter* avec nom complet (avant : tous statuts, nom de famille seul) ; texte en dur « Productivité stable » supprimé.
+
+**Traductions** : `LabDashboard`, `LabTechnician`, `LabLayout`, `LabConfig`, `LabHistory`, `MedicalLabResults`, `ResultDetailModal`, `LabResultTable` passés en `t()`, clés FR+EN ajoutées au bloc `lab:` de `i18n.js`. Non touchés car ni routés ni importés : `LabWorklist.vue`, `LabEntry.vue` (et `LabValidation.vue`, déjà signalé comme à nettoyer).
+
+Vérifié : 6 nouveaux tests (`tests/test_lab_dashboard_flags.py`) + suites labo et dossier patient existantes (32 passed) ; `vite build` OK ; clés i18n résolues FR/EN y compris pluriel. **Pas encore vérifié dans un navigateur réel** (rendu du badge, du modal rouge, de la bascule FR/EN). Non commité.
+
+**Retours du test navigateur (même jour)** : (1) « Saisir » du dashboard ouvre désormais directement le dossier (`?open=<id>` lu par `LabTechnician`) ; (2) la date d'examen manquait dans le modal de détail (`test_date` absent de `get_result_detail`) et le prescripteur était vide sur le PDF (`result_info.prescripteur` jamais renseigné) — corrigés ; (3) l'historique paginé renvoyait `JJ/MM/AAAA HH:MM`, illisible par `dayjs` (« Invalid Date », ou jour/mois inversés) → ISO ; (4) titre du menu : clé `labo.title` inexistante → `lab.title` ; (5) la carte « Pathologiques » mène à l'historique filtré sur les cas anormaux (`GET /labo/history/paginated?abnormal=true&period=…`, pastille amovible), même fenêtre de période que la carte.
+

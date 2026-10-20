@@ -3,8 +3,8 @@
     
     <div class="flex justify-between items-end">
       <div>
-        <h2 class="text-xl font-bold text-gray-800">Catalogue des Examens</h2>
-        <p class="text-sm text-gray-500">Liste de référence des analyses.</p>
+        <h2 class="text-xl font-bold text-gray-800">{{ t('lab.config.title') }}</h2>
+        <p class="text-sm text-gray-500">{{ t('lab.config.subtitle') }}</p>
       </div>
       
       <button 
@@ -12,7 +12,7 @@
         @click="openModal()"
         class="px-4 py-2 bg-indigo-600 text-white rounded-xl shadow-sm hover:bg-indigo-700 transition flex items-center gap-2"
       >
-        <PlusIcon class="w-5 h-5" /> Nouvel Examen
+        <PlusIcon class="w-5 h-5" /> {{ t('lab.config.new_exam') }}
       </button>
     </div>
 
@@ -20,10 +20,10 @@
       <table class="w-full text-sm text-left">
         <thead class="bg-gray-50 text-gray-500 uppercase font-bold text-xs">
           <tr>
-            <th class="px-6 py-4">Code</th>
-            <th class="px-6 py-4">Nom de l'examen</th>
-            <th class="px-6 py-4">Catégorie</th>
-            <th v-if="isAdmin" class="px-6 py-4 text-right">Actions</th>
+            <th class="px-6 py-4">{{ t('lab.config.col_code') }}</th>
+            <th class="px-6 py-4">{{ t('lab.config.col_name') }}</th>
+            <th class="px-6 py-4">{{ t('lab.config.col_category') }}</th>
+            <th v-if="isAdmin" class="px-6 py-4 text-right">{{ t('lab.config.col_actions') }}</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-100">
@@ -51,12 +51,14 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useLabStore } from '@/stores/labStore';
 import { useAuthStore } from '@/stores/auth';
 import { PlusIcon, TrashIcon } from '@heroicons/vue/24/outline';
 
 const labStore = useLabStore();
 const authStore = useAuthStore();
+const { t } = useI18n();
 
 // Vérification du rôle pour l'affichage conditionnel
 const isAdmin = computed(() => {

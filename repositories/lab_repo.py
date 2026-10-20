@@ -181,7 +181,18 @@ class LabRepository:
     # 3. GESTION DES RÉSULTATS (Cœur du métier Laborantin)
     # =========================================================================
 
-    def get_paginated_history(self, skip: int = 0, limit: int = 20, search_query: Optional[str] = None, status: Optional[str] = None) -> Tuple[int, List[LabResult]]:
+    @staticmethod
+    def period_start(filter_type: str = "month") -> datetime:
+        """Debut de la periode du dashboard ('day' | 'month' | 'year')."""
+        now = datetime.now()
+        if filter_type == "day":
+            return now.replace(hour=0, minute=0, second=0, microsecond=0)
+        if filter_type == "year":
+            return now.replace(month=1, day=1, hour=0, minute=0, second=0)
+        return now.replace(day=1, hour=0, minute=0, second=0)
+
+    def get_paginated_history(self, skip: int = 0, limit: int = 20, search_query: Optional[str] = None, status: Optional[str] = None,
+                              abnormal_only: bool = False, period: Optional[str] = None) -> Tuple[int, List[LabResult]]:
         """
         Récupère l'historique des résultats de laboratoire avec pagination.
         Retourne le nombre total d'éléments (pour le front) et la liste de la page demandée.
@@ -206,6 +217,14 @@ class LabRepository:
         # 2. Filtre par statut (ex: 'completed', 'pending')
         if status:
             query = query.filter(LabResult.status == status)
+
+        # 2b. Cas anormaux : au moins un parametre flagge. `period` reprend
+        # exactement la fenetre du dashboard (carte "Pathologiques") pour que
+        # le total affiche ici soit celui de la carte cliquee.
+        if abnormal_only:
+            query = query.filter(LabResult.details.any(LabResultDetail.flagged == True))
+        if period:
+            query = query.filter(LabResult.test_date >= self.period_start(period))
 
         # 3. Compter le total d'éléments correspondant aux filtres (AVANT la pagination)
         total_count = query.count()
@@ -608,14 +627,26 @@ class LabRepository:
             start_date = now.replace(day=1, hour=0, minute=0, second=0)
 
         # --- 2. Comptes de base (KPIs) ---
-        pending = self.session.query(func.count(LabResult.result_id))\
-            .filter(LabResult.status.in_(['pending', 'partial'])).scalar() or 0
-        
-        completed = self.session.query(func.count(LabResult.result_id))\
-            .filter(and_(LabResult.status == 'completed', LabResult.test_date >= start_date)).scalar() or 0
+        # "En attente" = meme definition que get_stats_counts (inclut
+        # 'analyzed') et reste sans filtre de periode : c'est un stock a
+        # traiter, pas un flux.
+        pending_statuses = ['pending', 'partial', 'analyzed']
+        pending = (self.session.query(func.count(LabResult.result_id))
+            .filter(LabResult.status.in_(pending_statuses)).scalar() or 0)
 
-        critical = self.session.query(func.count(func.distinct(LabResultDetail.result_id))).join(LabResult)\
-            .filter(and_(LabResultDetail.flagged == True, LabResult.status != 'completed')).scalar() or 0
+        completed = (self.session.query(func.count(LabResult.result_id))
+            .filter(and_(LabResult.status == 'completed', LabResult.test_date >= start_date)).scalar() or 0)
+
+        # Pathologiques = dossiers de la periode avec au moins un parametre
+        # flagge, quel que soit leur statut (un resultat anormal valide reste
+        # pertinent a suivre).
+        critical = (self.session.query(func.count(func.distinct(LabResultDetail.result_id))).join(LabResult)
+            .filter(and_(LabResultDetail.flagged == True, LabResult.test_date >= start_date)).scalar() or 0)
+
+        # Activite totale = dossiers crees sur la periode (libelle UI :
+        # "Dossiers crees"), sans melanger avec le stock "en attente".
+        total_period = (self.session.query(func.count(LabResult.result_id))
+            .filter(LabResult.test_date >= start_date).scalar() or 0)
 
         # --- 3. Top 7 Examens (Group By) ---
         top_exams_query = (self.session.query(Examen.nom, func.count(LabResult.result_id).label('total'))
@@ -628,27 +659,44 @@ class LabRepository:
         top_exams = {name: count for name, count in top_exams_query}
         max_val = max(top_exams.values()) if top_exams else 1
 
-        # --- 4. Les 3 derniers prélèvements (La liste manquante) ---
+        # --- 4. Les 3 derniers dossiers encore a traiter ---
         recent = (self.session.query(LabResult)
+            .options(joinedload(LabResult.patient), joinedload(LabResult.examen))
+            .filter(LabResult.status.in_(pending_statuses))
             .order_by(LabResult.test_date.desc())
             .limit(3).all())
+
+        def _patient_name(r):
+            if not r.patient:
+                return "Patient Externe"
+            full = f"{r.patient.first_name or ''} {r.patient.last_name or ''}".strip()
+            return full or "Patient Externe"
 
         return {
             "pending": pending,
             "completed_today": completed, # Adapté selon le filtre
             "critical": critical,
-            "total_month": completed + pending, # Activité totale sur la période
+            "total_month": total_period,
             "top_exams": top_exams,
             "max_exam_count": max_val,
             "recent_pending": [
                 {
                     "id": r.result_id,
-                    "patient_name": r.patient.last_name if r.patient else "Patient Externe",
+                    "patient_name": _patient_name(r),
                     "code_patient": r.patient.code_patient if r.patient else "EXT",
-                    "test_type": r.examen.nom
+                    "test_type": r.examen.nom if r.examen else (r.test_type or "")
                 } for r in recent
             ]
         }
+
+    def count_flagged_by_result(self, result_ids: List[int]) -> Dict[int, int]:
+        """Nombre de parametres flagges par dossier, en une seule requete."""
+        if not result_ids:
+            return {}
+        rows = (self.session.query(LabResultDetail.result_id, func.count(LabResultDetail.detail_id))
+            .filter(and_(LabResultDetail.result_id.in_(result_ids), LabResultDetail.flagged == True))
+            .group_by(LabResultDetail.result_id).all())
+        return {rid: n for rid, n in rows}
     
     def delete_lab_result(self, result_id: int) -> bool:
         res = self.session.get(LabResult, result_id)

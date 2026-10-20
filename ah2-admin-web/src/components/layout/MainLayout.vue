@@ -177,7 +177,7 @@ const menuItems = [
   // 🟢 AJOUT MODULE LABORATOIRE 🟢
   {
     path: '/dashboard/labo', // Pointe vers le layout ou la page par défaut du labo
-    labelKey: 'labo.title',  // ⚠️ Pense à ajouter 'labo.title': 'Laboratoire' dans tes fichiers i18n
+    labelKey: 'lab.title',
     icon: BeakerIcon,        // L'icône "Tube à essai" convient parfaitement ici
     // Visible pour : Laborantin et ToxicoManager (en plus de l'Admin implicite)
     roles: [ROLES.LABORANTIN, ROLES.TOXICO_MANAGER]
