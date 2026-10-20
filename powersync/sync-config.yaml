@@ -51,7 +51,7 @@ streams:
       # trouve pendant le test navigateur : n_patients=0/n_doctors=0 alors
       # que le serveur envoyait bien les operations - voir progress.md).
       - SELECT patient_id::text AS id, patient_id, code_patient,
-          first_name, last_name, contact_phone
+          first_name, last_name, contact_phone, is_staff
         FROM patients AS patients_lookup
         WHERE is_deleted = false
 
@@ -86,7 +86,7 @@ streams:
           patients.code_patient, patients.first_name, patients.last_name,
           patients.birth_date::text AS birth_date, patients.gender,
           patients.contact_phone, patients.is_clinical, patients.is_toxicology,
-          patients.is_spiritual
+          patients.is_spiritual, patients.is_staff
         FROM patients
         JOIN medical_records ON medical_records.patient_id = patients.patient_id
         WHERE patients.is_deleted = false
@@ -151,7 +151,8 @@ streams:
       - SELECT uuid::text AS id, transaction_id AS server_id, patient_id,
           patient_label, amount::text AS amount, advance_amount::text AS advance_amount,
           paid_at::text AS paid_at, payment_method, transaction_type, note,
-          status, upload_error
+          status, upload_error,
+          staff_discount_amount::text AS staff_discount_amount
         FROM caisse
 
   secretariat_retraits:
@@ -194,6 +195,19 @@ streams:
       - SELECT id::text AS id, id AS server_id, code, nom, categorie,
           prix::text AS prix
         FROM examens AS exam_catalog
+
+  # Regles de reduction personnel, lecture seule (autorite serveur, jamais
+  # d'ecriture locale). Regles actives seulement. Pas d'alias FROM : le nom
+  # Postgres et le nom local (AppSchema.js) coincident deja (meme cas que
+  # lab_active_results). Booleen is_active -> entier 1/0 cote client.
+  reference_staff_discount_rules:
+    auto_subscribe: false
+    queries:
+      - SELECT id::text AS id, id AS server_id, category,
+          min_invoice_amount::text AS min_invoice_amount, rate_percent,
+          is_active
+        FROM staff_discount_rules
+        WHERE is_active = true
 
   reference_motifs:
     auto_subscribe: false

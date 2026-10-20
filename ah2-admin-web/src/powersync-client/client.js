@@ -112,6 +112,9 @@ async function openConnection(role) {
       streamHandles.push(db.syncStream('secretariat_retraits'));
       streamHandles.push(db.syncStream('secretariat_payments'));
       streamHandles.push(db.syncStream('secretariat_pharmacy_stock'));
+      // Regles de reduction personnel (lecture seule) - calcul hors ligne
+      // de la remise en caisse, memes roles que les streams caisse.
+      streamHandles.push(db.syncStream('reference_staff_discount_rules'));
     }
     // Catalogue d'examens : demandes d'examen (medecin/nurse) et facturation
     // d'un examen en caisse (secretaire). Motifs : consultation seulement.

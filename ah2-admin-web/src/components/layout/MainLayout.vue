@@ -132,7 +132,7 @@ import {
   HomeIcon, UsersIcon, ClipboardDocumentListIcon, BanknotesIcon,
   BeakerIcon, ChartBarIcon, CogIcon, ShieldCheckIcon, CubeIcon,
   Bars3Icon, Bars3CenterLeftIcon, ExclamationCircleIcon, UserCircleIcon,
-  CheckBadgeIcon, ClockIcon
+  CheckBadgeIcon, ClockIcon, ReceiptPercentIcon
 } from '@heroicons/vue/24/outline';
 
 const authStore = useAuthStore();
@@ -198,6 +198,12 @@ const menuItems = [
     path: '/dashboard/discount-history',
     labelKey: 'discount_history.title',
     icon: ClockIcon,
+    roles: [ROLES.ADMIN, ROLES.PROMOTEUR]
+  },
+  {
+    path: '/dashboard/reductions-personnel',
+    labelKey: 'staffDiscount.title',
+    icon: ReceiptPercentIcon,
     roles: [ROLES.ADMIN, ROLES.PROMOTEUR]
   },
   {

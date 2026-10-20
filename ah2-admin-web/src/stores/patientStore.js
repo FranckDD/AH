@@ -136,6 +136,7 @@ export const usePatientStore = defineStore('patient', () => {
                     admissionDate: p.birth_date,
                     phone: p.contact_phone,
                     type: displayType, 
+                    is_staff: !!p.is_staff,
                     flags: {
                         is_clinical: p.is_clinical,
                         is_toxicology: p.is_toxicology,

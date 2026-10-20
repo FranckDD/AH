@@ -1,6 +1,7 @@
 import api from '@/services/api';
 import { db } from '@/powersync-client/client';
 import { useAuthStore } from '@/stores/auth';
+import { buildPatientLookupQuery, mapLookupRow } from '@/utils/patientLookupQuery';
 
 const cleanParams = (params) => {
     const cleaned = {};
@@ -19,8 +20,21 @@ export const CaisseGateway = {
 
     async searchPatients(query) {
         if (!query || query.trim().length < 2) return { data: [] };
-        const resp = await api.get('/patients/', { params: { search: query.trim(), per_page: 8 } });
-        return resp.data;
+        try {
+            const resp = await api.get('/patients/', { params: { search: query.trim(), per_page: 8 } });
+            return resp.data;
+        } catch (err) {
+            // Secours hors ligne (secretaire uniquement) sur patients_lookup
+            // synchronise - meme garde que searchProducts ci-dessous, meme
+            // forme que la reponse REST (is_staff lu par CaisseInvoiceModal).
+            const authStore = useAuthStore();
+            if (!err.response && authStore.hasRole(['secretaire'])) {
+                const { sql, params } = buildPatientLookupQuery(query);
+                const rows = await db.getAll(sql, params);
+                return { data: rows.map(mapLookupRow) };
+            }
+            throw err;
+        }
     },
 
     async searchProducts(query) {

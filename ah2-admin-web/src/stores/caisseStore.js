@@ -3,6 +3,7 @@ import { ref, computed } from 'vue';
 import { CaisseGateway } from '@/services/CaisseGateway';
 import { db } from '@/powersync-client/client';
 import { useAuthStore } from '@/stores/auth';
+import { resolvePatientName } from '@/utils/patientDisplayName';
 
 export const useCaisseStore = defineStore('caisse', () => {
 
@@ -71,14 +72,24 @@ export const useCaisseStore = defineStore('caisse', () => {
     // deja un champ saisi par la secretaire pour un patient sans dossier.
     async function refreshTransactionsLocal() {
         const rows = await db.getAll('SELECT * FROM caisse ORDER BY paid_at DESC');
+        // Nom du patient enregistre : patients_lookup est synchronise (le
+        // nom n'est pas une colonne de caisse). Echec = repli sur patient_label.
+        const lookup = new Map();
+        try {
+            const pats = await db.getAll('SELECT patient_id, first_name, last_name FROM patients_lookup');
+            for (const p of pats) lookup.set(p.patient_id, p);
+        } catch (e) {
+            console.warn('patients_lookup indisponible pour les noms de factures', e);
+        }
         transactions.value = rows.map((r) => ({
             ...r,
             transaction_id: r.server_id,
             amount: Number(r.amount),
+            staff_discount_amount: Number(r.staff_discount_amount || 0),
             advance_amount: Number(r.advance_amount),
             amount_paid: Number(r.advance_amount),
             amount_due: Number(r.amount) - Number(r.advance_amount),
-            patient_name: r.patient_label,
+            patient_name: resolvePatientName(r, lookup.get(r.patient_id)),
             items: r.items ? JSON.parse(r.items) : [],
         }));
         totalItems.value = rows.length;
@@ -130,13 +141,15 @@ export const useCaisseStore = defineStore('caisse', () => {
             await db.execute(
                 `INSERT INTO caisse (
                     id, patient_id, patient_label, items, amount, advance_amount,
-                    paid_at, payment_method, transaction_type, note, status
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active')`,
+                    paid_at, payment_method, transaction_type, note, status,
+                    staff_discount_amount
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?)`,
                 [
                     uuid, payload.patient_id || null, payload.patient_label || null,
                     JSON.stringify(payload.items || []), String(payload.amount),
                     String(payload.advance_amount || 0), new Date().toISOString(),
                     payload.payment_method, payload.transaction_type, payload.note || null,
+                    String(payload.staff_discount_amount || 0),
                 ]
             );
             await refreshTransactionsLocal();

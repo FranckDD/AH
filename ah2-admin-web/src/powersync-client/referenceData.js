@@ -14,3 +14,15 @@ export async function getExamCatalogLocal() {
     prix: Number(r.prix) || 0,
   }));
 }
+
+// Regles de reduction personnel en local, meme forme que GET
+// /staff-discount-rules : [{category, min_invoice_amount, rate_percent, is_active}].
+export async function getStaffDiscountRulesLocal() {
+  const rows = await db.getAll('SELECT * FROM staff_discount_rules ORDER BY category');
+  return rows.map((r) => ({
+    category: r.category,
+    min_invoice_amount: Number(r.min_invoice_amount) || 0,
+    rate_percent: Number(r.rate_percent) || 0,
+    is_active: Boolean(Number(r.is_active)),
+  }));
+}

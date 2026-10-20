@@ -30,6 +30,7 @@ const patients_lookup = new Table({
   first_name: column.text,
   last_name: column.text,
   contact_phone: column.text,
+  is_staff: column.integer,
 });
 
 const doctors_lookup = new Table({
@@ -55,6 +56,9 @@ const patients = new Table({
   is_clinical: column.integer,
   is_toxicology: column.integer,
   is_spiritual: column.integer,
+  // Lecture seule (stream clinical_patients) - jamais ecrit localement
+  // ni remonte par DossierConnector.js.
+  is_staff: column.integer,
   // Champs du formulaire de creation (patient cree hors ligne, chantier 4
   // sous-projet 4) - jamais descendus par clinical_patients, remplis
   // uniquement par une ecriture locale et relus par le connecteur.
@@ -250,6 +254,10 @@ const caisse = new Table(
     // serveur pour une ligne saine, rempli seulement si l'upload a
     // definitivement echoue.
     upload_error: column.text,
+    // Reduction personnel (montant seul ; les details sont produits par le
+    // serveur uniquement). Les 4 couches : ici, INSERT de
+    // caisseStore.createInvoice, DossierConnector caisse:PUT, sync-config.
+    staff_discount_amount: column.text,
   },
   { indexes: { by_patient: ['patient_id'] } }
 );
@@ -308,6 +316,18 @@ const exam_catalog = new Table({
   prix: column.text,
 });
 
+// Regles de reduction personnel, lecture seule (stream
+// reference_staff_discount_rules, regles actives seulement). Autorite
+// serveur : JAMAIS de handler staff_discount_rules:PUT/PATCH/DELETE dans
+// DossierConnector.js.
+const staff_discount_rules = new Table({
+  server_id: column.integer,
+  category: column.text,
+  min_invoice_amount: column.text,
+  rate_percent: column.integer,
+  is_active: column.integer,
+});
+
 const motifs = new Table({
   code: column.text,
   label_fr: column.text,
@@ -347,6 +367,7 @@ export const AppSchema = new Schema({
   paiement_echelonne,
   pharmacy_stock,
   exam_catalog,
+  staff_discount_rules,
   motifs,
   sync_quarantine,
 });

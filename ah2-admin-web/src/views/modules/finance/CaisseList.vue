@@ -97,7 +97,12 @@
                   {{ tx.transaction_type }}
                 </span>
               </td>
-              <td class="px-6 py-4 text-right font-bold text-sm">{{ formatCurrency(tx.amount) }}</td>
+              <td class="px-6 py-4 text-right font-bold text-sm">
+                {{ formatCurrency(tx.amount) }}
+                <div v-if="Number(tx.staff_discount_amount) > 0" class="text-xs font-semibold text-emerald-700">
+                  {{ t('staffDiscount.invoice_line') }} −{{ formatCurrency(tx.staff_discount_amount) }}
+                </div>
+              </td>
               <td class="px-6 py-4 text-right text-sm text-green-700">{{ formatCurrency(tx.amount_paid) }}</td>
               <td class="px-6 py-4 text-right text-sm" :class="Number(tx.amount_due) > 0 ? 'text-red-600 font-semibold' : 'text-gray-400'">
                 {{ formatCurrency(tx.amount_due) }}
@@ -426,6 +431,12 @@ const buildLocalTicketData = (localTransactionId, payload, patientDisplayName) =
     line_total: i.line_total,
   })),
   discount: null,
+  // payload.amount est deja le NET (reduction personnel deduite, voir
+  // CaisseInvoiceModal.vue) : remaining ci-dessus reste coherent.
+  // details: null - le detail par categorie n'est fourni qu'en ligne.
+  staff_discount: payload.staff_discount_amount > 0
+    ? { amount: payload.staff_discount_amount, details: null }
+    : null,
   header: {
     structure_name: configStore.structureInfo.name,
     slogan: configStore.structureInfo.slogan,

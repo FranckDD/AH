@@ -185,13 +185,30 @@
         <div class="grid grid-cols-2 gap-4">
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('caisse.invoice_modal.advance_amount') }}</label>
-            <input v-model.number="advanceAmount" type="number" min="0" :max="totalAmount" step="0.01"
+            <input v-model.number="advanceAmount" type="number" min="0" :max="invoiceTotals.net" step="0.01"
                    class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500 sm:text-sm" />
           </div>
           <div class="flex flex-col justify-end">
-            <span class="text-xs text-gray-500 uppercase font-bold">{{ t('caisse.invoice_modal.total') }}</span>
-            <span class="text-2xl font-bold text-gray-900">{{ formatCurrency(totalAmount) }}</span>
+            <template v-if="invoiceTotals.staffDiscountAmount > 0">
+              <span class="text-xs text-gray-500">{{ t('staffDiscount.gross_total') }} : {{ formatCurrency(invoiceTotals.gross) }}</span>
+              <span class="text-xs text-emerald-700 font-semibold">{{ t('staffDiscount.invoice_line') }} −{{ formatCurrency(invoiceTotals.staffDiscountAmount) }}</span>
+              <span class="text-xs text-gray-500 uppercase font-bold">{{ t('staffDiscount.net_total') }}</span>
+            </template>
+            <span v-else class="text-xs text-gray-500 uppercase font-bold">{{ t('caisse.invoice_modal.total') }}</span>
+            <span class="text-2xl font-bold text-gray-900">{{ formatCurrency(invoiceTotals.net) }}</span>
           </div>
+        </div>
+
+        <div v-if="staffStatusUnknown" class="bg-red-50 border-l-4 border-red-500 p-3 rounded-sm text-sm text-red-700">
+          {{ t('staffDiscount.status_unknown') }}
+        </div>
+
+        <div v-if="showRulesUnavailable" class="bg-red-50 border-l-4 border-red-500 p-3 rounded-sm text-sm text-red-700">
+          {{ t('staffDiscount.rules_unavailable') }}
+        </div>
+
+        <div v-if="showNoRuleApplies" class="bg-amber-50 border-l-4 border-amber-500 p-3 rounded-sm text-sm text-amber-800">
+          {{ t('staffDiscount.no_rule_applies') }}
         </div>
 
         <div>
@@ -204,6 +221,9 @@
         </div>
 
         <div v-if="authStore.hasRole(['secretaire']) && !pendingDiscountRequest" class="border-t pt-4">
+          <p v-if="invoiceTotals.staffDiscountAmount > 0" class="mb-2 text-xs text-amber-800 bg-amber-50 border-l-4 border-amber-500 p-2 rounded-sm">
+            {{ t('staffDiscount.manual_replaces_warning') }}
+          </p>
           <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('caisse.invoice_modal.discount_recipient') }}</label>
           <select v-model="selectedManagerId" class="block w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
             <option :value="null">{{ t('caisse.invoice_modal.discount_select_placeholder') }}</option>
@@ -262,6 +282,8 @@ import { useI18n } from 'vue-i18n';
 import { CaisseGateway } from '@/services/CaisseGateway';
 import { LabGateway } from '@/services/labGateway';
 import { DiscountRequestGateway } from '@/services/DiscountRequestGateway';
+import { StaffDiscountGateway } from '@/services/StaffDiscountGateway';
+import { computeInvoiceTotals } from '@/utils/invoiceTotals';
 import { useAuthStore } from '@/stores/auth';
 import { TrashIcon } from '@heroicons/vue/24/outline';
 
@@ -309,6 +331,22 @@ onMounted(async () => {
     } catch (err) {
       console.error('Chargement des managers échoué :', err);
     }
+  }
+});
+
+// --- Reduction personnel : regles chargees a l'ouverture. null = non
+// chargees (hors ligne sans copie locale / erreur) -> un patient Personnel
+// ne peut pas etre facture (le serveur rejetterait la remise manquante).
+const staffRules = ref(null);
+const staffRulesLoading = ref(true);
+onMounted(async () => {
+  try {
+    const rows = await StaffDiscountGateway.list();
+    staffRules.value = Array.isArray(rows) ? rows.filter((r) => r.is_active) : null;
+  } catch (err) {
+    console.error('Chargement des regles de reduction personnel echoue :', err);
+  } finally {
+    staffRulesLoading.value = false;
   }
 });
 
@@ -396,22 +434,46 @@ const paymentMethod = ref('Espèces');
 const advanceAmount = ref(0);
 const note = ref('');
 
+// Brut / reduction personnel / net (invariant serveur, voir invoiceTotals.js).
+// Patient de passage (sans patient_id) : jamais de reduction.
+const invoiceTotals = computed(() => computeInvoiceTotals({
+  grossRaw: totalAmount.value,
+  lines: lines.value.map((l) => ({ item_type: l.itemType, line_total: lineTotal(l) })),
+  isStaff: selectedPatient.value?.is_staff === true,
+  rules: staffRules.value,
+  advance: advanceAmount.value,
+}));
+// null = statut Personnel pas encore replique (secours hors ligne) : inconnu,
+// jamais traite comme "pas personnel" -> validation bloquee.
+const staffStatusUnknown = computed(() => selectedPatient.value?.is_staff === null);
+const showRulesUnavailable = computed(() => invoiceTotals.value.rulesMissing && !staffRulesLoading.value);
+
 const isLineComplete = (line) => {
   const qtyOk = Number.isInteger(Number(line.quantity)) && Number(line.quantity) > 0;
   if (line.itemType === 'Service') return line.label.trim().length > 0 && lineTotal(line) > 0 && qtyOk;
   return line.refId !== null && lineTotal(line) > 0 && qtyOk;
 };
 
+// Info non bloquante : patient Personnel, regles chargees, mais aucune ne
+// s'applique aux articles -> pas de reduction (evite l'impression de bug).
+const showNoRuleApplies = computed(() =>
+  selectedPatient.value?.is_staff === true
+  && !invoiceTotals.value.rulesMissing
+  && !staffRulesLoading.value
+  && lines.value.some((l) => isLineComplete(l) && lineTotal(l) > 0)
+  && invoiceTotals.value.staffDiscountAmount === 0);
+
 const isFormValid = computed(() => {
   const patientOk = selectedPatient.value || patientLabel.value.trim().length > 0;
   const linesOk = lines.value.length > 0 && lines.value.every(isLineComplete);
-  const advanceOk = Number(advanceAmount.value) >= 0 && Number(advanceAmount.value) <= totalAmount.value;
-  return patientOk && linesOk && totalAmount.value > 0 && advanceOk;
+  const advanceOk = invoiceTotals.value.advanceOk;
+  return patientOk && linesOk && totalAmount.value > 0 && advanceOk && !invoiceTotals.value.rulesMissing && !staffStatusUnknown.value;
 });
 
 const buildInvoiceData = () => {
   const payload = {
-    amount: totalAmount.value,
+    amount: invoiceTotals.value.net,
+    staff_discount_amount: invoiceTotals.value.staffDiscountAmount,
     advance_amount: Number(advanceAmount.value) || 0,
     payment_method: paymentMethod.value,
     transaction_type: transactionType.value,

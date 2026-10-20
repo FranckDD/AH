@@ -304,6 +304,9 @@ export class DossierConnector {
               transaction_type: op.opData.transaction_type,
               note: op.opData.note,
               items: op.opData.items ? JSON.parse(op.opData.items) : [],
+              // Reduction personnel : recalculee et verifiee par le serveur
+              // (rejet si ecart). Jamais de details envoyes (serveur seul).
+              staff_discount_amount: Number(op.opData.staff_discount_amount || 0),
               uuid: op.id,
             });
             break;

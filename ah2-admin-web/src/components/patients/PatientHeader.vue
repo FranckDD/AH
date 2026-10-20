@@ -25,6 +25,9 @@
         <span v-if="patient.flags?.is_spiritual" class="px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200">
             SPIRITUEL
         </span>
+        <span v-if="patient.is_staff" class="px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+            {{ t('staffDiscount.badge') }}
+        </span>
     </div>
 
     <button @click="$emit('back')" class="text-gray-400 hover:text-gray-600">
@@ -34,10 +37,13 @@
 </template>
 
 <script setup>
+import { useI18n } from 'vue-i18n';
+
 defineProps({
     patient: { type: Object, required: true }
 });
 defineEmits(['back']);
+const { t } = useI18n();
 
 const getInitials = (name) => {
     if (!name) return '?';

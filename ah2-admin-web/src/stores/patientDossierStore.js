@@ -88,6 +88,7 @@ export const usePatientDossierStore = defineStore('patientDossier', () => {
                     is_toxicology: !!p.is_toxicology,
                     is_spiritual: !!p.is_spiritual,
                 },
+                is_staff: !!p.is_staff,
                 last_consultation_date: null,
                 last_bp: null,
                 last_weight: null,
@@ -188,6 +189,9 @@ export const usePatientDossierStore = defineStore('patientDossier', () => {
             if (data.resume_clinique) {
                 patientSummary.value = data.resume_clinique;
                 patientSummary.value.flags = data.flags;
+                // Badge "Personnel" (PatientHeader) : resume_clinique ne
+                // porte pas is_staff, seul data.patient (get_by_id) l'a.
+                patientSummary.value.is_staff = !!data.patient?.is_staff;
             } else if (data.patient) {
                 // Finding 2 (revue finale chantier 6) : si le domaine
                 // resume_clinique echoue seul, le backend renvoie quand
@@ -208,6 +212,7 @@ export const usePatientDossierStore = defineStore('patientDossier', () => {
                     age: calculerAge(p.birth_date),
                     gender: p.gender,
                     flags: data.flags,
+                    is_staff: !!p.is_staff,
                     last_consultation_date: null,
                     last_bp: null,
                     last_weight: null,

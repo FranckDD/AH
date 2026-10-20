@@ -218,6 +218,14 @@ const routes = [
         meta: { requiresAuth: true, roles: [ROLES.ADMIN, ROLES.PROMOTEUR] }
       },
 
+      // 7d. Regles de reduction personnel + gestion des membres "Personnel"
+      {
+        path: 'reductions-personnel',
+        name: 'staff-discount-rules',
+        component: () => import('@/views/modules/caisse/StaffDiscountRules.vue'),
+        meta: { requiresAuth: true, roles: [ROLES.ADMIN, ROLES.PROMOTEUR] }
+      },
+
       // 8. Configuration & Logs
       {
         path: 'configuration',

@@ -88,6 +88,7 @@
                 <div class="flex flex-col">
                     <span class="text-xs font-bold text-gray-400 uppercase tracking-wide">{{ patient.code }}</span>
                     <span class="text-sm font-medium text-gray-900">{{ patient.firstName }} {{ patient.lastName }}</span>
+                    <span v-if="patient.is_staff" class="px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200 self-start mt-1">{{ t('staffDiscount.badge') }}</span>
                 </div>
               </td>
               <td class="px-6 py-4">
