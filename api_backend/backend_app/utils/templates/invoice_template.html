@@ -63,6 +63,16 @@
     </table>
 
     <table class="totals">
+        {% if transaction.staff_discount_amount and transaction.staff_discount_amount > 0 %}
+        <tr>
+            <td class="label">Prix normal :</td>
+            <td class="value">{{ "%.2f"|format(transaction.gross_amount) }} CFA</td>
+        </tr>
+        <tr>
+            <td class="label">Réduction personnel :</td>
+            <td class="value">&minus;{{ "%.2f"|format(transaction.staff_discount_amount) }} CFA</td>
+        </tr>
+        {% endif %}
         <tr>
             <td class="label">TOTAL FACTURE :</td>
             <td class="value">{{ "%.2f"|format(transaction.amount) }} CFA</td>

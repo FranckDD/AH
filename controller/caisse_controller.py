@@ -14,6 +14,10 @@ from models.caisse import Caisse
 from repositories.caisse_repo import CaisseRepository
 from repositories.audit_repo import AuditRepository
 from models.consultation_spirituelle import ConsultationSpirituel
+from models.patient import Patient
+from repositories.staff_discount_repo import StaffDiscountRepository
+from utils.staff_discount import compute_staff_discount
+from decimal import Decimal, ROUND_HALF_UP
 
 # --- Imports Optimisation ---
 # On suppose l'existence d'un fichier de tâches pour la finance
@@ -31,6 +35,85 @@ REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 redis_client = redis.Redis.from_url(REDIS_URL, decode_responses=True)
 
 logger = logging.getLogger(__name__)
+
+
+STAFF_MSG = "Réduction personnel incohérente avec les règles en vigueur."
+_CENTS = Decimal("0.01")
+
+
+def _q(v) -> Decimal:
+    return Decimal(str(v)).quantize(_CENTS, rounding=ROUND_HALF_UP)
+
+
+def _gross(items) -> Decimal:
+    """Σ line_total des lignes actives ; line_total absent/None -> ValueError (400)."""
+    total = Decimal("0")
+    for line in items or []:
+        lt = line.get("line_total") if isinstance(line, dict) else line
+        if lt is None:
+            raise ValueError("Ligne de facture sans montant (line_total manquant).")
+        if isinstance(line, dict) and line.get("status") == "cancelled":
+            continue
+        total += Decimal(str(lt))
+    return _q(total)
+
+
+def _details_to_json(details):
+    """Decimal -> float pour stockage JSONB (None conserve)."""
+    if not details:
+        return None
+    return [
+        {k: (float(v) if isinstance(v, Decimal) else v) for k, v in d.items()}
+        for d in details
+    ]
+
+
+def compute_staff_discount_for(session, data: dict) -> dict:
+    """is_staff lu en base via patient_id (patient de passage -> non
+    personnel) ; regles actives lues en base au moment de la sync."""
+    patient_id = data.get("patient_id")
+    is_staff = False
+    if patient_id:
+        patient = session.get(Patient, patient_id)
+        is_staff = bool(patient and patient.is_staff)
+    if not is_staff:
+        return compute_staff_discount([], False, [])
+    rules = StaffDiscountRepository(session).list_active_rules()
+    lines = [
+        {
+            "item_type": l.get("item_type"),
+            "line_total": l.get("line_total"),
+            "status": l.get("status") or "active",
+        }
+        for l in data["items"]
+    ]
+    return compute_staff_discount(lines, True, rules)
+
+
+def check_invoice_amounts(data: dict) -> tuple:
+    """Invariant net : Σ lignes - reduction personnel == amount (montant du),
+    en arrondi 2 decimales. Retourne (staff_sent, amount) Decimal ;
+    ValueError sinon."""
+    gross = _gross(data["items"])
+    staff_sent = _q(data.get("staff_discount_amount") or 0)
+    amount = _q(data["amount"])
+    if _q(gross - staff_sent) != amount:
+        raise ValueError(
+            f"Incohérence montant: Lignes({gross}) - Réduction personnel({staff_sent}) "
+            f"!= Total({amount})."
+        )
+    return staff_sent, amount
+
+
+def validate_staff_discount(session, data: dict, sent) -> tuple:
+    """Recalcule la reduction personnel cote serveur (le client ne fait pas
+    foi) et la compare a la valeur envoyee (0 si absente). Retourne
+    (montant Decimal, details JSON) ; ValueError(STAFF_MSG) si incoherent."""
+    sent_q = _q(sent or 0)
+    calc = compute_staff_discount_for(session, data)
+    if _q(calc["amount"]) != sent_q:
+        raise ValueError(STAFF_MSG)
+    return sent_q, _details_to_json(calc["details"])
 
 
 class CaisseController:
@@ -189,9 +272,17 @@ class CaisseController:
                 if not cs:
                     raise ValueError(f"Aucune consultation pour l'ID = {line['item_ref_id']}")
 
-        total_calc = sum(line["line_total"] for line in data["items"])
-        if total_calc != data["amount"]:
-            raise ValueError(f"Incohérence montant: Lignes({total_calc}) != Total({data['amount']}).")
+        # Invariant net : Σ lignes − reduction personnel == amount (montant du)
+        staff_sent, amount = check_invoice_amounts(data)
+
+        # Recalcul serveur de la reduction personnel (le client ne fait pas foi)
+        staff_sent, staff_details = validate_staff_discount(self.repo.session, data, staff_sent)
+        data = {
+            **data,
+            "amount": amount,
+            "staff_discount_amount": staff_sent,
+            "staff_discount_details": staff_details,
+        }
 
         # 2. Création DB (Action bloquante)
         tx = self.repo.create_transaction(data, self.user)
@@ -219,6 +310,9 @@ class CaisseController:
                 print(f"⚠️ [CELERY] Erreur tâche: {e}")
 
         return tx
+
+    def _compute_staff_discount_for(self, data: dict) -> dict:
+        return compute_staff_discount_for(self.repo.session, data)
 
     def add_installment_payment(self, transaction_id: int, data: dict):
         """
@@ -263,14 +357,60 @@ class CaisseController:
         if tx.status == "pending_approval":
             raise ValueError("Facture en attente de validation d'une réduction - action impossible.")
 
+        stored_details = getattr(tx, "staff_discount_details", None)
+        locked = isinstance(stored_details, dict) and "replaced_by_discount_request" in stored_details
+        if not locked and self.discount_repo is not None and any(k in data for k in ("items", "patient_id", "amount")):
+            approved = self.discount_repo.get_approved_for_transaction(transaction_id)
+            locked = bool(approved and approved.decision_percent)
+        if locked and any(k in data for k in ("items", "patient_id", "amount")):
+            raise ValueError("Facture avec réduction manuelle validée : modification des lignes, "
+                             "du patient ou du montant impossible.")
+
+        if (tx.staff_discount_amount or 0) > 0 and any(k in data for k in ("items", "patient_id", "amount")):
+            raise ValueError("Facture avec réduction personnel : modification des lignes, du patient "
+                             "ou du montant impossible. Annulez la facture puis créez-en une nouvelle.")
+
         if "items" in data:
             if not data["items"] and data.get("advance_amount", 0) == 0:
                 raise ValueError("La liste d'items ne peut pas être vide ET advance_amount = 0.")
-            total_calc = sum(line["line_total"] for line in data["items"])
-            if "amount" in data and total_calc != data["amount"]:
-                raise ValueError(f"Incohérence montant.")
-            
-            # Validation consultation items... (inchangé)
+
+        # La reduction personnel n'est jamais fournie par le client sur PUT.
+        data = {k: v for k, v in data.items()
+                if k not in ("staff_discount_amount", "staff_discount_details")}
+
+        if any(k in data for k in ("items", "patient_id", "amount")):
+            # Etat fusionne : valeur du payload, sinon valeur stockee.
+            if "items" in data:
+                lines = data["items"]
+            else:
+                lines = [
+                    {"item_type": i.item_type, "line_total": i.line_total, "status": i.status}
+                    for i in tx.items if (i.status or "active") != "cancelled"
+                ]
+            merged = {
+                "patient_id": data["patient_id"] if "patient_id" in data else tx.patient_id,
+                "items": lines,
+            }
+            gross = _gross(lines)
+            staff_calc = self._compute_staff_discount_for(merged)
+            staff_amount = _q(staff_calc["amount"])
+            net = _q(gross - staff_amount)
+            stored_discount = _q(tx.staff_discount_amount or 0)
+            if staff_amount == 0 and stored_discount == 0:
+                # Aucune reduction en jeu : comportement historique inchange
+                if "items" in data and "amount" in data and gross != _q(data["amount"]):
+                    raise ValueError(
+                        f"Incohérence montant: Lignes({gross}) - Réduction personnel(0.00) "
+                        f"!= Total({_q(data['amount'])})."
+                    )
+                if "amount" in data:
+                    data["amount"] = _q(data["amount"])
+            else:
+                if "amount" in data and _q(data["amount"]) != net:
+                    raise ValueError(STAFF_MSG)
+                data["amount"] = net
+                data["staff_discount_amount"] = staff_amount
+                data["staff_discount_details"] = _details_to_json(staff_calc["details"])
 
         updated_tx = self.repo.update_transaction(transaction_id, data, self.user)
         
@@ -362,5 +502,11 @@ class CaisseController:
                     "decision_percent": approved.decision_percent,
                     "decided_by_name": (approved.decider.full_name or approved.decider.username) if approved.decider else None,
                 }
+
+        staff_amount = float(getattr(tx, "staff_discount_amount", 0) or 0)
+        data["staff_discount"] = (
+            {"amount": staff_amount, "details": getattr(tx, "staff_discount_details", None) or []}
+            if staff_amount > 0 else None
+        )
 
         return data

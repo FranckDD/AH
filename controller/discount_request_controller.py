@@ -1,19 +1,22 @@
 # controller/discount_request_controller.py
 import os
 import redis
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 from typing import Dict, Any
 from dotenv import load_dotenv
+from controller.caisse_controller import check_invoice_amounts, validate_staff_discount
 from repositories.discount_request_repo import DiscountRequestRepository
 from repositories.caisse_repo import CaisseRepository
 from repositories.notification_repo import NotificationRepository
 from models.discount_request import DiscountRequest
 from models.user import User
+from utils.patient_display import resolve_patient_display_name
 from models.application_role import ApplicationRole
 
 # Les seuls pourcentages proposes par l'UI (DiscountDecisionModal) - toute
 # autre valeur (150 -> montant negatif, -10 -> montant majore) est refusee.
 ALLOWED_DECISION_PERCENTS = (10, 20, 50, 100)
+_CENTS = Decimal("0.01")
 MANAGER_ROLE_NAMES = ["admin", "promoteur"]
 
 load_dotenv()
@@ -70,17 +73,20 @@ class DiscountRequestController:
             raise ValueError("Aucune avance ne peut être encaissée sur une facture en attente de validation d'une réduction.")
         if not invoice_data["items"] and invoice_data.get("advance_amount", 0) == 0:
             raise ValueError("La transaction doit contenir au moins une ligne ou indiquer une avance.")
-        total_calc = sum(line["line_total"] for line in invoice_data["items"])
-        if total_calc != invoice_data["amount"]:
-            raise ValueError(f"Incohérence montant: Lignes({total_calc}) != Total({invoice_data['amount']}).")
+        # Meme invariant et memes arrondis que la facturation directe.
+        staff_sent, amount = check_invoice_amounts(invoice_data)
+        staff_sent, staff_details = validate_staff_discount(self.repo.session, invoice_data, staff_sent)
+        invoice_data = {**invoice_data, "amount": amount, "staff_discount_amount": staff_sent,
+                        "staff_discount_details": staff_details}
 
         tx = self.caisse_repo.create_transaction(invoice_data, self.user, initial_status="pending_approval")
 
+        # Base de la remise manuelle = BRUT (net du + reduction personnel eventuelle).
         req = self.repo.create(
             transaction_id=tx.transaction_id,
             requested_by=self.user.user_id,
             requested_to=requested_to,
-            original_amount=Decimal(str(invoice_data["amount"])),
+            original_amount=amount + staff_sent,
         )
 
         self.notification_repo.create(
@@ -89,13 +95,17 @@ class DiscountRequestController:
             payload={
                 "discount_request_id": req.id,
                 "transaction_id": tx.transaction_id,
-                "patient_label": tx.patient_label,
+                "patient_label": resolve_patient_display_name(tx.patient_by_id, tx.patient_label),
                 "amount": float(req.original_amount),
                 "requested_by_name": getattr(self.user, "full_name", self.user.username),
             },
         )
         self.repo.session.commit()
         return req
+
+    def _patient_label_for(self, transaction_id: int):
+        tx = self.caisse_repo.get_by_id(transaction_id)
+        return resolve_patient_display_name(tx.patient_by_id, tx.patient_label) if tx else None
 
     def cancel_and_reassign(self, request_id: int, new_requested_to: int) -> DiscountRequest:
         old_req = self.repo.get_by_id(request_id)
@@ -121,6 +131,7 @@ class DiscountRequestController:
             payload={
                 "discount_request_id": new_req.id,
                 "transaction_id": new_req.transaction_id,
+                "patient_label": self._patient_label_for(new_req.transaction_id),
                 "amount": float(new_req.original_amount),
                 "requested_by_name": getattr(self.user, "full_name", self.user.username),
             },
@@ -175,23 +186,37 @@ class DiscountRequestController:
         self.repo.decide(req, self.user.user_id, refuse, decision_percent, decision_echelonne_deadline)
 
         tx = self.caisse_repo.get_by_id(req.transaction_id)
+        replaced_staff = Decimal("0")
         if not refuse and decision_percent:
-            tx.amount = float(req.original_amount) * (1 - decision_percent / 100)
+            # La remise manuelle remplace la reduction personnel : base = brut
+            # (original_amount), jamais le net deja reduit.
+            replaced_staff = Decimal(str(tx.staff_discount_amount or 0))
+            tx.amount = (Decimal(str(req.original_amount)) * (Decimal(100) - Decimal(decision_percent)) / Decimal(100)
+                         ).quantize(_CENTS, rounding=ROUND_HALF_UP)
+            if replaced_staff > 0:
+                tx.staff_discount_details = {
+                    "replaced_by_discount_request": req.id,
+                    "previous": tx.staff_discount_details,
+                }
+                tx.staff_discount_amount = 0
         tx.status = "active"
 
         if self.audit_repo:
+            audit_values = {
+                "transaction_id": req.transaction_id,
+                "decision_percent": decision_percent,
+                "decision_echelonne_deadline": str(decision_echelonne_deadline) if decision_echelonne_deadline else None,
+                "original_amount": float(req.original_amount),
+                "final_amount": float(tx.amount),
+            }
+            if replaced_staff > 0:
+                audit_values["replaced_staff_discount_amount"] = float(replaced_staff)
             self.audit_repo.log_user_action(
                 current_user=self.user,
                 resource_type="DiscountRequest",
                 action_performed="REFUSE" if refuse else "APPROVE",
                 resource_id=req.id,
-                new_values={
-                    "transaction_id": req.transaction_id,
-                    "decision_percent": decision_percent,
-                    "decision_echelonne_deadline": str(decision_echelonne_deadline) if decision_echelonne_deadline else None,
-                    "original_amount": float(req.original_amount),
-                    "final_amount": float(tx.amount),
-                },
+                new_values=audit_values,
             )
 
         self.notification_repo.create(

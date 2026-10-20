@@ -29,6 +29,7 @@ from .routes.labo import lab_endpoints  # <--- AJOUT ICI
 # --- AJOUT IMPORT NOTIFICATIONS ---
 from .routes.notifications import notification_endpoints
 from .routes.discount import discount_endpoints
+from .routes.staff_discount import staff_discount_endpoints
 from .routes.audit import audit_endpoint
 from .routes.pharmacy import pharmacy_endpoints
 from .routes.admin import users_endpoint,config_endpoints
@@ -38,6 +39,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi import Request
 import json
+import math
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
@@ -89,6 +91,19 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     # l'objet en cause (registre E1).
     error_details = json.loads(json.dumps(exc.errors(), default=str))
 
+    # NaN/Infinity (acceptes par le parseur JSON) survivent a l'aller-retour
+    # mais JSONResponse (allow_nan=False) planterait en 500 : on les
+    # remplace par leur representation texte.
+    def _finite(o):
+        if isinstance(o, float) and not math.isfinite(o):
+            return str(o)
+        if isinstance(o, dict):
+            return {k: _finite(v) for k, v in o.items()}
+        if isinstance(o, list):
+            return [_finite(v) for v in o]
+        return o
+    error_details = _finite(error_details)
+
     print("\n" + "="*50)
     print(f"🛑 ERREUR DE VALIDATION (422) SUR : {request.method} {request.url}")
     print("="*50)
@@ -138,6 +153,9 @@ app.add_middleware(
 
 # Inclusion des routers
 app.include_router(auth_endpoints.router, prefix="", tags=["Auth"])
+# staff_router AVANT router : GET /patients/staff-lookup serait sinon capte par
+# GET /patients/{patient_id} (int -> 422). admin/promoteur seulement.
+app.include_router(patients_endpoints.staff_router)  # staff-lookup + PUT /patients/{id}/staff
 app.include_router(patients_endpoints.router)  # sans prefix et sans tags
 app.include_router(medical_records_endpoint.router)
 app.include_router(hospitalization_endpoint.router)
@@ -157,6 +175,7 @@ app.include_router(lab_endpoints.router) # <--- AJOUT ICI (Le préfixe "/labo" e
 # --- AJOUT ROUTER NOTIFICATIONS ---
 app.include_router(notification_endpoints.router)
 app.include_router(discount_endpoints.router)
+app.include_router(staff_discount_endpoints.router)
 app.include_router(audit_endpoint.router)
 app.include_router(pharmacy_endpoints.router)
 app.include_router(users_endpoint.router)

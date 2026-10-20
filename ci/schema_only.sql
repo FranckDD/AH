@@ -1497,6 +1497,8 @@ CREATE TABLE public.caisse (
     cancel_justification text,
     uuid uuid DEFAULT gen_random_uuid() NOT NULL,
     upload_error text,
+    staff_discount_amount numeric(10,2) DEFAULT 0 NOT NULL,
+    staff_discount_details jsonb,
     CONSTRAINT ck_caisse_status CHECK (((status)::text = ANY ((ARRAY['active'::character varying, 'cancelled'::character varying, 'refunded'::character varying, 'pending_approval'::character varying])::text[])))
 );
 
@@ -2142,6 +2144,46 @@ ALTER SEQUENCE public.nurse_shifts_id_seq OWNED BY public.nurse_shifts.id;
 
 
 --
+-- Name: staff_discount_rules; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.staff_discount_rules (
+    id integer NOT NULL,
+    category character varying(30) NOT NULL,
+    min_invoice_amount numeric(10,2) DEFAULT 0 NOT NULL,
+    rate_percent integer NOT NULL,
+    is_active boolean DEFAULT true NOT NULL,
+    created_by integer,
+    created_at timestamp without time zone DEFAULT now() NOT NULL,
+    updated_by integer,
+    updated_at timestamp without time zone DEFAULT now() NOT NULL,
+    CONSTRAINT staff_discount_rules_category_check CHECK (((category)::text = ANY ((ARRAY['medicament'::character varying, 'examen'::character varying, 'consultation'::character varying, 'carnet'::character varying, 'autre_soin'::character varying])::text[]))),
+    CONSTRAINT staff_discount_rules_min_amount_check CHECK ((min_invoice_amount >= (0)::numeric)),
+    CONSTRAINT staff_discount_rules_rate_check CHECK (((rate_percent >= 1) AND (rate_percent <= 100)))
+);
+
+
+--
+-- Name: staff_discount_rules_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.staff_discount_rules_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: staff_discount_rules_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.staff_discount_rules_id_seq OWNED BY public.staff_discount_rules.id;
+
+
+--
 -- Name: organization_config; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -2321,7 +2363,8 @@ CREATE TABLE public.patients (
     is_spiritual boolean DEFAULT false,
     is_deleted boolean DEFAULT false,
     deleted_at timestamp without time zone,
-    deleted_by integer
+    deleted_by integer,
+    is_staff boolean DEFAULT false NOT NULL
 );
 
 
@@ -3226,6 +3269,13 @@ ALTER TABLE ONLY public.nurse_shifts ALTER COLUMN id SET DEFAULT nextval('public
 
 
 --
+-- Name: staff_discount_rules id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.staff_discount_rules ALTER COLUMN id SET DEFAULT nextval('public.staff_discount_rules_id_seq'::regclass);
+
+
+--
 -- Name: organization_config id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -3570,6 +3620,14 @@ ALTER TABLE ONLY public.nurse
 
 ALTER TABLE ONLY public.nurse_shifts
     ADD CONSTRAINT nurse_shifts_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: staff_discount_rules staff_discount_rules_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.staff_discount_rules
+    ADD CONSTRAINT staff_discount_rules_pkey PRIMARY KEY (id);
 
 
 --
@@ -4085,6 +4143,13 @@ CREATE UNIQUE INDEX ux_hospitalizations_one_open_per_patient ON public.hospitali
 --
 
 CREATE UNIQUE INDEX ux_nurse_shifts_no_duplicate ON public.nurse_shifts USING btree (shift_date, shift_type, nurse_id);
+
+
+--
+-- Name: uq_staff_discount_rules_active_category; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX uq_staff_discount_rules_active_category ON public.staff_discount_rules USING btree (category) WHERE is_active;
 
 
 --
@@ -4611,6 +4676,22 @@ ALTER TABLE ONLY public.nurse_shifts
 
 ALTER TABLE ONLY public.nurse_shifts
     ADD CONSTRAINT nurse_shifts_nurse_id_fkey FOREIGN KEY (nurse_id) REFERENCES public.users(user_id);
+
+
+--
+-- Name: staff_discount_rules staff_discount_rules_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.staff_discount_rules
+    ADD CONSTRAINT staff_discount_rules_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(user_id);
+
+
+--
+-- Name: staff_discount_rules staff_discount_rules_updated_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.staff_discount_rules
+    ADD CONSTRAINT staff_discount_rules_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES public.users(user_id);
 
 
 --

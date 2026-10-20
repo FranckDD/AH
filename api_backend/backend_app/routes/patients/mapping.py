@@ -65,6 +65,7 @@ def model_to_dict(obj: Any) -> Dict[str, Any]:
             "is_clinical": getattr(obj, "is_clinical", False),
             "is_toxicology": getattr(obj, "is_toxicology", False),
             "is_spiritual": getattr(obj, "is_spiritual", False),
+            "is_staff": bool(getattr(obj, "is_staff", False)),
         }
     return base
 
@@ -84,5 +85,6 @@ def normalize_patient_data(raw_obj: Any) -> Dict[str, Any]:
     d.setdefault("is_clinical", False)
     d.setdefault("is_toxicology", False)
     d.setdefault("is_spiritual", False)
-    
+    d.setdefault("is_staff", False)
+
     return d

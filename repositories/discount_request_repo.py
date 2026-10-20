@@ -57,6 +57,7 @@ class DiscountRequestRepository:
             self.session.query(DiscountRequest)
             .options(
                 joinedload(DiscountRequest.transaction).joinedload(Caisse.items),
+                joinedload(DiscountRequest.transaction).joinedload(Caisse.patient_by_id),
                 joinedload(DiscountRequest.requester),
             )
             .filter(DiscountRequest.requested_to == requested_to, DiscountRequest.status == "pending")
@@ -88,7 +89,7 @@ class DiscountRequestRepository:
         demande, pas de la decision - une demande encore en attente n'a pas
         de decided_at)."""
         query = self.session.query(DiscountRequest).options(
-            joinedload(DiscountRequest.transaction),
+            joinedload(DiscountRequest.transaction).joinedload(Caisse.patient_by_id),
             joinedload(DiscountRequest.requester),
             joinedload(DiscountRequest.recipient),
             joinedload(DiscountRequest.decider),

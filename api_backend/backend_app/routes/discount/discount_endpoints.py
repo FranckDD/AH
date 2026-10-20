@@ -15,6 +15,8 @@ from repositories.audit_repo import AuditRepository
 from controller.discount_request_controller import DiscountRequestController
 from .discount_schemas import DiscountRequestCreate, DiscountRequestCancel, DiscountRequestDecide
 
+from utils.patient_display import resolve_patient_display_name
+
 router = APIRouter(prefix="/discount-requests", tags=["discount-requests"])
 
 
@@ -59,6 +61,13 @@ def cancel_discount_request(request_id: int, payload: DiscountRequestCancel, ctr
         raise HTTPException(status_code=403, detail=str(pe))
 
 
+def _patient_name(tx):
+    """Nom du patient enregistre, sinon libelle libre (cle API: patient_label)."""
+    if not tx:
+        return None
+    return resolve_patient_display_name(tx.patient_by_id, tx.patient_label)
+
+
 def _items_summary(tx) -> str:
     """Resume court des lignes de facture (pas de nom produit/examen en base
     cote CaisseItem, seulement type+quantite) - suffisant pour que le manager
@@ -75,7 +84,8 @@ def list_pending_discount_requests(ctrl: DiscountRequestController = Depends(get
         {
             "id": r.id, "transaction_id": r.transaction_id, "original_amount": float(r.original_amount),
             "requested_by": r.requested_by, "created_at": r.created_at.isoformat() if r.created_at else None,
-            "patient_label": r.transaction.patient_label if r.transaction else None,
+            "patient_id": r.transaction.patient_id if r.transaction else None,
+            "patient_label": _patient_name(r.transaction),
             "items_summary": _items_summary(r.transaction),
             "requested_by_name": (r.requester.full_name or r.requester.username) if r.requester else None,
         }
@@ -100,7 +110,8 @@ def _request_to_history_dict(r: DiscountRequest) -> Dict[str, Any]:
         "created_at": r.created_at.isoformat() if r.created_at else None,
         "decided_at": r.decided_at.isoformat() if r.decided_at else None,
         "status": r.status,
-        "patient_label": r.transaction.patient_label if r.transaction else None,
+        "patient_id": r.transaction.patient_id if r.transaction else None,
+        "patient_label": _patient_name(r.transaction),
         "requested_by_name": (r.requester.full_name or r.requester.username) if r.requester else None,
         "requested_to_name": (r.recipient.full_name or r.recipient.username) if r.recipient else None,
         "decided_by_name": (r.decider.full_name or r.decider.username) if r.decider else None,

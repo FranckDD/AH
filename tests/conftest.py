@@ -58,6 +58,20 @@ def db_session():
     connection.close()
 
 
+@pytest.fixture
+def clean_staff_rules(db_session):
+    """Vide staff_discount_rules et son audit DANS la transaction du test (annule au rollback).
+
+    A utiliser par les tests qui creent/comptent des regles : la base de dev
+    peut contenir de vraies regles saisies a la main.
+    """
+    from models.staff_discount_rule import StaffDiscountRule
+    from models.audit import AuditUserAction
+    db_session.query(StaffDiscountRule).delete()
+    db_session.query(AuditUserAction).filter_by(resource_type="StaffDiscountRule").delete()
+    db_session.flush()
+
+
 def override_get_db(app, module, session):
     """
     Branche la session transactionnelle de test a la place du get_db()

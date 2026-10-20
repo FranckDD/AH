@@ -118,7 +118,15 @@ def render_ticket(printer, ticket_data: dict) -> None:
 
     printer.text("-" * PAPER_WIDTH_CHARS + "\n")
     printer.set(align="right")
-    printer.text(f"TOTAL: {float(ticket_data.get('amount') or 0):.0f}\n")
+    net_amount = float(ticket_data.get('amount') or 0)
+    staff_discount = ticket_data.get("staff_discount")
+    if staff_discount:
+        staff_amount = float(staff_discount.get('amount') or 0)
+        printer.text(f"Prix normal: {net_amount + staff_amount:.0f}\n")
+        printer.text(f"Reduction personnel: -{staff_amount:.0f}\n")
+        printer.text(f"Montant du: {net_amount:.0f}\n")
+    else:
+        printer.text(f"TOTAL: {net_amount:.0f}\n")
 
     discount = ticket_data.get("discount")
     if discount:

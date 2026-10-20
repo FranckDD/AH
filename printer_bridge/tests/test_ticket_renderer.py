@@ -73,6 +73,21 @@ def test_render_ticket_omits_discount_block_when_none():
     assert "Réduction" not in output
 
 
+def test_render_ticket_shows_staff_discount_line_before_paye():
+    printer = Dummy()
+    render_ticket(printer, _sample_ticket(staff_discount={"amount": 1500.0, "details": []}))
+    output = printer.output.decode("latin-1", errors="ignore")
+    assert "Reduction personnel: -1500" in output
+    assert output.index("Reduction personnel") < output.index("Paye:")
+
+
+def test_render_ticket_omits_staff_discount_line_when_absent():
+    printer = Dummy()
+    render_ticket(printer, _sample_ticket(staff_discount=None))
+    output = printer.output.decode("latin-1", errors="ignore")
+    assert "Reduction personnel" not in output
+
+
 def test_render_ticket_includes_slogan_and_contacts():
     """Retour terrain 2026-09-28 : slogan, second telephone et site web
     manquaient completement du ticket alors que la config systeme les
@@ -145,3 +160,22 @@ def test_render_ticket_truncates_long_item_name_without_crashing():
     for line in output.split("\n"):
         printable = "".join(ch for ch in line if ch.isprintable())
         assert len(printable) <= 48
+
+
+def test_render_ticket_staff_discount_prints_normal_price_discount_due_in_order():
+    printer = Dummy()
+    render_ticket(printer, _sample_ticket(amount=5500.0, staff_discount={"amount": 1500.0, "details": []}))
+    output = printer.output.decode("latin-1", errors="ignore")
+    i1 = output.index("Prix normal: 7000")
+    i2 = output.index("Reduction personnel: -1500")
+    i3 = output.index("Montant du: 5500")
+    assert i1 < i2 < i3 < output.index("Paye:")
+    assert "TOTAL:" not in output
+
+
+def test_render_ticket_without_staff_discount_keeps_total_line():
+    printer = Dummy()
+    render_ticket(printer, _sample_ticket(staff_discount=None))
+    output = printer.output.decode("latin-1", errors="ignore")
+    assert "TOTAL: 10000" in output
+    assert "Prix normal" not in output and "Montant du" not in output

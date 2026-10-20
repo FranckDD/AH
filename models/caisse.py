@@ -11,7 +11,8 @@ from sqlalchemy import (
     DateTime,
     ForeignKey,
 )
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import text
+from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import relationship
 from .database import Base
 
@@ -36,6 +37,8 @@ class Caisse(Base):
     cancel_justification = Column(Text, nullable=True)
     uuid = Column(UUID(as_uuid=True), unique=True, nullable=False, default=uuid.uuid4)
     upload_error = Column(Text, nullable=True)
+    staff_discount_amount = Column(Numeric(10, 2), nullable=False, default=0, server_default=text('0'))
+    staff_discount_details = Column(JSONB, nullable=True)
 
     # Relations
 

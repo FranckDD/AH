@@ -1,6 +1,6 @@
 # models/patient.py
 import uuid
-from sqlalchemy import Column, Integer, String, Date, Text, Sequence, ForeignKey, TIMESTAMP, Boolean # ⬅️ Import de Boolean
+from sqlalchemy import Column, Integer, String, Date, Text, Sequence, ForeignKey, TIMESTAMP, Boolean, text # ⬅️ Import de Boolean
 from sqlalchemy.sql import func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
@@ -28,6 +28,7 @@ class Patient(Base):
     is_clinical     = Column(Boolean, default=False)
     is_toxicology   = Column(Boolean, default=False)
     is_spiritual    = Column(Boolean, default=False)
+    is_staff        = Column(Boolean, nullable=False, default=False, server_default=text('false'))
 
     # 🟢 CHAMPS DE SUPPRESSION LOGIQUE
     is_deleted = Column(Boolean, default=False)

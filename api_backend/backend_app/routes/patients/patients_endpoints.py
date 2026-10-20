@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Response
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
-from pydantic import ValidationError
+from pydantic import ValidationError, BaseModel
 import logging
 from typing import List, Any, Optional
 from datetime import date
@@ -37,6 +37,28 @@ router = APIRouter(
     # lui donne deja une entree de menu vers /dashboard/patients.
     dependencies=[Depends(role_required("medecin", "nurse","secretaire","admin","manager","assistant","ToxicoManager"))]
 )
+
+# Routeur separe : le routeur principal (ci-dessus) n'autorise pas
+# "promoteur", or l'ecriture de is_staff est reservee a admin + promoteur.
+# Inclus dans main.py a cote de `router`.
+staff_router = APIRouter(
+    prefix="/patients",
+    tags=["Patients"],
+    dependencies=[Depends(role_required("admin", "promoteur"))],
+)
+
+
+class PatientStaffUpdate(BaseModel):
+    is_staff: bool
+
+
+class StaffLookupItem(BaseModel):
+    patient_id: int
+    code_patient: str
+    first_name: str
+    last_name: str
+    is_staff: bool
+
 
 def get_db():
     db = SessionLocal()
@@ -207,6 +229,35 @@ def update_patient(
     
     except SQLAlchemyError as e:
         logger.exception("SQLAlchemyError updating patient (after Controller rollback): %s", e)
+        raise HTTPException(status_code=500, detail="Erreur serveur lors de la mise à jour")
+
+@staff_router.get("/staff-lookup", response_model=List[StaffLookupItem])
+def staff_lookup(
+    q: Optional[str] = Query(None, min_length=2),
+    only_staff: bool = False,
+    limit: int = Query(20, ge=1, le=50),
+    patient_ctrl: PatientController = Depends(get_patient_controller)
+):
+    if not q and not only_staff:
+        raise HTTPException(status_code=422, detail="Parametre 'q' requis (ou only_staff=true)")
+    try:
+        return patient_ctrl.staff_lookup(q, only_staff, limit)
+    except SQLAlchemyError:
+        logger.exception("Erreur DB staff_lookup")
+        raise HTTPException(status_code=500, detail="Erreur serveur lors de la recherche")
+
+@staff_router.put("/{patient_id}/staff")
+def set_patient_staff(
+    patient_id: int,
+    data: PatientStaffUpdate,
+    patient_ctrl: PatientController = Depends(get_patient_controller)
+):
+    try:
+        return patient_ctrl.set_staff(patient_id, data.is_staff)
+    except ValueError as ve:
+        raise HTTPException(status_code=404, detail=str(ve))
+    except SQLAlchemyError:
+        logger.exception("Erreur DB set_patient_staff")
         raise HTTPException(status_code=500, detail="Erreur serveur lors de la mise à jour")
 
 @router.delete(

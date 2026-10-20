@@ -21,6 +21,34 @@ from sqlalchemy.engine import Result
 from typing import Optional, Tuple, Dict, Any, List
 
 class PatientRepository:
+    def staff_lookup(self, q: Optional[str], only_staff: bool, limit: int) -> List[Dict[str, Any]]:
+        """Recherche minimale pour le marquage 'personnel' : 5 colonnes
+        seulement (minimisation des donnees, le promoteur n'a pas acces au
+        dossier patient). Patients supprimes exclus."""
+        query = self.session.query(
+            Patient.patient_id, Patient.code_patient, Patient.first_name,
+            Patient.last_name, Patient.is_staff,
+        ).filter(Patient.is_deleted == False)  # noqa: E712
+        if only_staff:
+            query = query.filter(Patient.is_staff == True)  # noqa: E712
+        if q:
+            term = q.strip().replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+            pattern = f"%{term}%"
+            query = query.filter(or_(
+                Patient.first_name.ilike(pattern, escape="\\"),
+                Patient.last_name.ilike(pattern, escape="\\"),
+                Patient.code_patient.ilike(pattern, escape="\\"),
+            ))
+        query = query.order_by(Patient.last_name, Patient.first_name, Patient.patient_id).limit(limit)
+        return [
+            {
+                "patient_id": r.patient_id, "code_patient": r.code_patient,
+                "first_name": r.first_name, "last_name": r.last_name,
+                "is_staff": bool(r.is_staff),
+            }
+            for r in query.all()
+        ]
+
     def __init__(self, session: Session):
         self.session = session
 
@@ -254,7 +282,8 @@ class PatientRepository:
             # 🟢
             'is_clinical': p.is_clinical,
             'is_toxicology': p.is_toxicology,
-            'is_spiritual': p.is_spiritual
+            'is_spiritual': p.is_spiritual,
+            'is_staff': p.is_staff,
         }
 
     def get_by_id_any_status(self, patient_id: int) -> Optional[Dict[str, Any]]:
@@ -283,7 +312,8 @@ class PatientRepository:
             'mother_name': p.mother_name,
             'is_clinical': p.is_clinical,
             'is_toxicology': p.is_toxicology,
-            'is_spiritual': p.is_spiritual
+            'is_spiritual': p.is_spiritual,
+            'is_staff': p.is_staff,
         }
 
     def compute_domain_flags(self, patient_id: int) -> dict:

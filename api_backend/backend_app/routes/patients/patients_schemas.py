@@ -151,6 +151,9 @@ class PatientResponse(BaseModel):
     is_clinical: bool
     is_toxicology: bool
     is_spiritual: bool
+    # Personnel de la structure (reduction caisse) - lecture seule ici,
+    # ecriture uniquement via PUT /patients/{id}/staff.
+    is_staff: bool = False
 
     @field_validator("gender", mode="before")
     @classmethod

@@ -1,3 +1,4 @@
+from utils.patient_display import resolve_patient_display_name
 from ...utils.mapping_general import normalize_data, parse_datetime, parse_decimal, get_field
 
 def normalize_caisse_data(raw):
@@ -30,7 +31,7 @@ def normalize_caisse_data(raw):
         # Patient
         "patient_id": "patient_id",
         "patient_label": "patient_label",
-        "patient_name": lambda r: get_field(getattr(r, "patient_by_id", None), "full_name") or get_field(r, "patient_label"),
+        "patient_name": lambda r: resolve_patient_display_name(getattr(r, "patient_by_id", None), get_field(r, "patient_label")),
         "patient_contact": lambda r: get_field(getattr(r, "patient_by_id", None), "contact_phone"),
         
         # Montants
@@ -38,6 +39,8 @@ def normalize_caisse_data(raw):
         "advance_amount": lambda r: parse_decimal(get_field(r, "advance_amount")),
         "amount_due": lambda r: parse_decimal(get_field(r, "amount") - get_field(r, "advance_amount")),
         "amount_paid": lambda r: parse_decimal(get_field(r, "advance_amount")),
+        "staff_discount_amount": lambda r: parse_decimal(get_field(r, "staff_discount_amount") or 0),
+        "staff_discount_details": lambda r: get_field(r, "staff_discount_details"),
         
         # Dates
         "paid_at": lambda r: parse_datetime(get_field(r, "paid_at")),

@@ -309,6 +309,37 @@ class PatientController:
             self._invalidate_patient_stats()
         return success
 
+    def set_staff(self, patient_id: int, is_staff: bool) -> dict:
+        """Marque/demarque un patient comme personnel (reduction caisse).
+        Ecriture ORM directe de la colonne (pas la procedure stockee
+        update_patient), auditee, commit ici comme les autres ecritures."""
+        from models.patient import Patient
+        patient = self.session.query(Patient).filter(
+            Patient.patient_id == patient_id, Patient.is_deleted == False  # noqa: E712
+        ).first()
+        if not patient:
+            raise ValueError("Patient introuvable")
+        old_value = bool(patient.is_staff)
+        try:
+            patient.is_staff = bool(is_staff)
+            if self.audit_repo and self.user:
+                self.audit_repo.log_user_action(
+                    current_user=self.user,
+                    resource_type="Patient",
+                    action_performed="SET_STAFF",
+                    resource_id=patient_id,
+                    old_values={"is_staff": old_value},
+                    new_values={"is_staff": bool(is_staff)},
+                )
+            self.session.commit()
+        except Exception:
+            self.session.rollback()
+            raise
+        return {"patient_id": patient_id, "is_staff": bool(is_staff)}
+
+    def staff_lookup(self, q: Optional[str], only_staff: bool, limit: int) -> List[Dict[str, Any]]:
+        return self.repo.staff_lookup(q, only_staff, limit)
+
     def get_patient(self, patient_id: int) -> dict:
         return self.repo.get_by_id(patient_id)
 

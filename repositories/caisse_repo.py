@@ -102,7 +102,7 @@ class CaisseRepository:
         Recherche avec filtres (Terme, Paiement, Statut, Dates) ET pagination SQL.
         Retourne un tuple : (liste_des_items, total_count)
         """
-        query = self.session.query(Caisse)
+        query = self.session.query(Caisse).options(joinedload(Caisse.patient_by_id))
 
         # --- 1. Application des Filtres ---
         
@@ -205,7 +205,10 @@ class CaisseRepository:
             payment_method   = data["payment_method"], # Méthode préférée (sera utilisée pour le 1er paiement)
             transaction_type = data["transaction_type"],
             note             = data.get("note"),
-            status           = initial_status
+            status           = initial_status,
+            # Reduction personnel : montant verifie et details construits par le controller
+            staff_discount_amount  = data.get("staff_discount_amount") or 0,
+            staff_discount_details = data.get("staff_discount_details"),
         )
         if data.get("uuid"):
             import uuid
@@ -365,6 +368,10 @@ class CaisseRepository:
             tx.amount = data["amount"]
         if "advance_amount" in data:
             tx.advance_amount = data["advance_amount"]
+        # Reduction personnel : uniquement le resultat recalcule par le controller
+        if "staff_discount_amount" in data:
+            tx.staff_discount_amount = data["staff_discount_amount"]
+            tx.staff_discount_details = data.get("staff_discount_details")
         if "payment_method" in data:
             tx.payment_method = data["payment_method"]
         if "transaction_type" in data:
@@ -571,6 +578,8 @@ class CaisseRepository:
             "paid_at": tx.paid_at.isoformat() if tx.paid_at else None,
             "status": tx.status,
             "items": items_list,
+            "staff_discount_amount": float(tx.staff_discount_amount or 0),
+            "staff_discount_details": tx.staff_discount_details,
         }
     
     # Dans repositories/caisse_repo.py
@@ -610,6 +619,7 @@ class CaisseRepository:
 
         amount = float(transaction_data.get('amount', 0) or 0)
         advance = float(transaction_data.get('advance_amount', 0) or 0)
+        staff_discount = float(transaction_data.get('staff_discount_amount', 0) or 0)
         items = []
         for item in transaction_data.get('items', []):
             try:
@@ -638,6 +648,9 @@ class CaisseRepository:
                 "amount": amount,
                 "advance_amount": advance,
                 "remaining": amount - advance,
+                # Reduction personnel : amount est le NET, prix normal = brut.
+                "staff_discount_amount": staff_discount,
+                "gross_amount": round(amount + staff_discount, 2),
             },
         }
 
