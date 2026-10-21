@@ -33,6 +33,16 @@ export const ToxicoGateway = {
         return api.get('/toxico/dossiers/discharged', { params });
     },
 
+    // Export PDF de la liste des patients sortis (params : buildDischargedExportQuery)
+    async exportDischargedPdf(params) {
+        return api.get('/toxico/dossiers/discharged/export', { params, responseType: 'blob' });
+    },
+
+    // Export PDF du dossier toxico (Psychologist / ToxicoManager / admin)
+    async exportDossierPdf(patientId) {
+        return api.get(`/toxico/patients/${patientId}/export`, { responseType: 'blob' });
+    },
+
     async getPatientDetails(patientId) {
        // console.log("[GATEWAY] getPatientDetails appelé pour patientId:", patientId);
         return api.get(`/toxico/patients/${patientId}`);

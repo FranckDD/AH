@@ -114,30 +114,40 @@ class ToxicoController:
         """Liste paginée des patients sortis (dossiers inactifs) + dernier séjour."""
         rows, total = self.repo.search_discharged_dossiers(
             search, reason, discharged_from, discharged_to, page, per_page)
-        data = []
-        for r in rows:
-            last = None
-            if r.stay_number is not None:
-                last = {
-                    "stay_number": r.stay_number,
-                    "admission_date": r.admission_date,
-                    "discharge_date": r.discharge_date,
-                    "discharge_reason": r.discharge_reason,
-                    "discharged_by_name": r.discharged_by_name,
-                    "psychologist_name": r.psychologist_name,
-                    "substance": r.substance,
-                }
-            data.append({
-                "dossier_id": r.dossier_id,
-                "patient_id": r.patient_id,
-                "patientName": f"{r.first_name or ''} {r.last_name or ''}".strip(),
-                "code": r.code_patient,
-                "stays_count": int(r.stays_count or 0),
-                "last_stay": last,
-            })
+        data = [self._map_discharged_row(r) for r in rows]
         total_pages = (total + per_page - 1) // per_page if total else 0
         return {"data": data, "total": total, "page": page, "per_page": per_page,
                 "total_pages": total_pages}
+
+    @staticmethod
+    def _map_discharged_row(r) -> Dict[str, Any]:
+        last = None
+        if r.stay_number is not None:
+            last = {
+                "stay_number": r.stay_number,
+                "admission_date": r.admission_date,
+                "discharge_date": r.discharge_date,
+                "discharge_reason": r.discharge_reason,
+                "discharged_by_name": r.discharged_by_name,
+                "psychologist_name": r.psychologist_name,
+                "substance": r.substance,
+            }
+        return {
+            "dossier_id": r.dossier_id,
+            "patient_id": r.patient_id,
+            "patientName": f"{r.first_name or ''} {r.last_name or ''}".strip(),
+            "code": r.code_patient,
+            "stays_count": int(r.stays_count or 0),
+            "last_stay": last,
+        }
+
+    def list_discharged_for_export(self, search=None, reason=None, discharged_from=None,
+                                   discharged_to=None, cap: int = 2000):
+        """Toutes les lignes filtrees (sans pagination), bornees a `cap`.
+        Retourne (lignes, total_reel) : total > len(lignes) => tronque."""
+        rows, total = self.repo.search_discharged_dossiers(
+            search, reason, discharged_from, discharged_to, 1, None, export_cap=cap)
+        return [self._map_discharged_row(r) for r in rows], total
 
     def get_dossier_details(self, patient_id: int):
         """Détail complet pour la modale dossier. Retourne l'objet ORM complet."""

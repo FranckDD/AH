@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Patients sortis - Toxicologie</title>
+    <style>
+        @page { size: A4 landscape; margin: 1.5cm; @bottom-right { content: "Page " counter(page) " sur " counter(pages); font-size: 9pt; color: #666; } }
+        body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333; font-size: 10pt; }
+        /* .header/.hospital-info/.logo/.logo-container : voir _pdf_header.html */
+        .export-title { text-align: center; font-size: 14pt; font-weight: bold; margin-bottom: 5px; color: #2c3e50; }
+        .export-meta { text-align: center; font-size: 9pt; color: #666; margin-bottom: 6px; }
+        .truncated { text-align: center; font-size: 9pt; color: #b03a2e; font-weight: bold; margin-bottom: 10px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+        th { background-color: #2c3e50; color: white; text-align: left; padding: 6px; font-size: 9pt; }
+        td { padding: 6px; border-bottom: 1px solid #ddd; font-size: 9pt; }
+        tr { page-break-inside: avoid; }
+        .empty { text-align: center; color: #888; padding: 20px; }
+    </style>
+</head>
+<body>
+
+    {% include '_pdf_header.html' %}
+
+    {# Pas d'autoescape global dans render_pdf_from_template : on l'active ici
+       pour toutes les donnees saisies (noms, filtres de recherche...). #}
+    {% autoescape true %}
+    <div class="export-title">Toxicologie — Patients sortis</div>
+    <div class="export-meta">Généré le {{ date_impression }} — {{ total }} patient(s)</div>
+    <div class="export-meta">Filtres : {{ filters_label }}</div>
+    {% if truncated %}
+    <div class="truncated">Export tronqué : seules les {{ cap }} premières lignes sur {{ total }} sont affichées. Affinez les filtres.</div>
+    {% endif %}
+
+    <table>
+        <thead>
+            <tr>
+                <th>Patient</th>
+                <th>Code</th>
+                <th>Admission (dernier séjour)</th>
+                <th>Sortie</th>
+                <th>Motif</th>
+                <th>Psychologue</th>
+                <th>Séjours</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in rows %}
+            <tr>
+                <td>{{ r.name }}</td>
+                <td>{{ r.code }}</td>
+                <td>{{ r.admission }}</td>
+                <td>{{ r.discharge }}</td>
+                <td>{{ r.reason }}</td>
+                <td>{{ r.psychologist }}</td>
+                <td>{{ r.stays_count }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="7" class="empty">Aucun patient sorti ne correspond aux filtres.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endautoescape %}
+
+</body>
+</html>

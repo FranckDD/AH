@@ -27,6 +27,13 @@
                class="mt-1 block w-full min-h-[44px] lg:min-h-0 px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-sm" />
       </label>
       <p v-if="dateError" role="alert" class="md:col-span-2 lg:col-span-4 text-sm text-red-600">{{ t(dateError) }}</p>
+      <div v-if="canExportList" class="md:col-span-2 lg:col-span-4 flex flex-col sm:flex-row sm:items-center sm:justify-end gap-2">
+        <p v-if="exportError" role="alert" class="text-sm text-red-600 sm:mr-auto">{{ t(exportError) }}</p>
+        <button type="button" @click="exportList" :disabled="listExporting || !!dateError"
+                class="min-h-[44px] lg:min-h-0 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-semibold hover:bg-indigo-700 disabled:opacity-50">
+          {{ listExporting ? t('toxico.export.exporting') : t('toxico.export.list_pdf') }}
+        </button>
+      </div>
     </div>
 
     <!-- Etats (periode invalide : resultats vides, pas d'ancienne periode appliquee en silence) -->
@@ -79,6 +86,11 @@
                         class="text-blue-600 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg text-xs font-semibold">
                   {{ t('toxico.discharged.view') }}
                 </button>
+                <button v-if="canExportDossier" type="button" @click="exportRow(row)" :disabled="rowExporting === row.patient_id"
+                        :title="t('toxico.export.dossier_pdf')"
+                        class="text-gray-700 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-lg text-xs font-semibold disabled:opacity-50">
+                  {{ rowExporting === row.patient_id ? t('toxico.export.exporting') : t('toxico.export.row_pdf') }}
+                </button>
                 <button v-if="canReadmit" type="button" @click="$emit('readmit', row)"
                         class="text-green-700 hover:text-green-900 bg-green-50 hover:bg-green-100 px-3 py-1.5 rounded-lg text-xs font-semibold">
                   {{ t('toxico.discharged.readmit') }}
@@ -110,6 +122,10 @@
             <button type="button" @click="$emit('view', row)"
                     class="flex-1 min-h-[44px] bg-blue-50 text-blue-700 rounded-lg text-sm font-semibold">
               {{ t('toxico.discharged.view') }}
+            </button>
+            <button v-if="canExportDossier" type="button" @click="exportRow(row)" :disabled="rowExporting === row.patient_id"
+                    class="flex-1 min-h-[44px] bg-gray-100 text-gray-700 rounded-lg text-sm font-semibold disabled:opacity-50">
+              {{ rowExporting === row.patient_id ? t('toxico.export.exporting') : t('toxico.export.row_pdf') }}
             </button>
             <button v-if="canReadmit" type="button" @click="$emit('readmit', row)"
                     class="flex-1 min-h-[44px] bg-green-50 text-green-700 rounded-lg text-sm font-semibold">
@@ -145,6 +161,12 @@ import { useI18n } from 'vue-i18n';
 import { useToxicoStore } from '@/stores/toxicoStore';
 import { DISCHARGE_REASONS, dischargeReasonLabelKey } from '@/utils/toxicoStays';
 import { dischargedDateRangeError } from '@/utils/toxicoDischarged';
+import { useAuthStore } from '@/stores/auth';
+import { ToxicoGateway } from '@/services/ToxicoGateway';
+import {
+    buildDischargedExportQuery, resolveExportSearch, downloadPdfBlob, dossierExportFilename, exportErrorKey,
+    DISCHARGED_EXPORT_FILENAME, TOXICO_DOSSIER_EXPORT_ROLES, TOXICO_LIST_EXPORT_ROLES,
+} from '@/utils/toxicoExport';
 
 defineProps({ canReadmit: { type: Boolean, default: false } });
 defineEmits(['view', 'readmit']);
@@ -152,6 +174,48 @@ defineEmits(['view', 'readmit']);
 const { t } = useI18n();
 const store = useToxicoStore();
 const page = computed(() => store.dischargedFilters.page);
+
+// --- Exports PDF ---
+const authStore = useAuthStore();
+const canExportList = computed(() => authStore.hasRole(TOXICO_LIST_EXPORT_ROLES));
+const canExportDossier = computed(() => authStore.hasRole(TOXICO_DOSSIER_EXPORT_ROLES));
+const listExporting = ref(false);
+const rowExporting = ref(null);
+const exportError = ref(null);
+const exportList = async () => {
+    listExporting.value = true;
+    exportError.value = null;
+    try {
+        // Memes filtres que l'ecran (dates locales validees), toutes les pages.
+        // Saisie en attente (debounce) : on l'applique d'abord (liste + export alignes).
+        const search = resolveExportSearch(pendingSearch, store.dischargedFilters.search);
+        if (pendingSearch !== null) {
+            clearTimeout(searchTimeout);
+            pendingSearch = null;
+            if (!dateError.value) store.setDischargedFilters({ search });
+            else store.dischargedFilters.search = search;
+        }
+        const params = buildDischargedExportQuery({ ...store.dischargedFilters, search, from: dateFrom.value, to: dateTo.value });
+        const res = await ToxicoGateway.exportDischargedPdf(params);
+        downloadPdfBlob(res.data, DISCHARGED_EXPORT_FILENAME);
+    } catch (e) {
+        exportError.value = exportErrorKey(e);
+    } finally {
+        listExporting.value = false;
+    }
+};
+const exportRow = async (row) => {
+    rowExporting.value = row.patient_id;
+    exportError.value = null;
+    try {
+        const res = await ToxicoGateway.exportDossierPdf(row.patient_id);
+        downloadPdfBlob(res.data, dossierExportFilename(row.patient_id));
+    } catch (e) {
+        exportError.value = exportErrorKey(e);
+    } finally {
+        rowExporting.value = null;
+    }
+};
 
 // Dates saisies localement : envoyees seulement si la periode est valide.
 const dateFrom = ref(store.dischargedFilters.from);
@@ -164,10 +228,13 @@ const onDate = (which, value) => {
 };
 
 let searchTimeout;
+let pendingSearch = null;
 const onSearch = (e) => {
     clearTimeout(searchTimeout);
     const value = e.target.value;
+    pendingSearch = value;
     searchTimeout = setTimeout(() => {
+        pendingSearch = null;
         if (dateError.value) store.dischargedFilters.search = value;
         else store.setDischargedFilters({ search: value });
     }, 400);

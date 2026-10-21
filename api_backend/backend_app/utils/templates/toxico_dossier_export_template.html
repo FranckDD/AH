@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Dossier toxicologie</title>
+    <style>
+        @page { size: A4; margin: 1.5cm; @bottom-right { content: "Page " counter(page) " sur " counter(pages); font-size: 9pt; color: #666; } }
+        body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333; font-size: 10pt; }
+        /* .header/.hospital-info/.logo/.logo-container : voir _pdf_header.html */
+        .export-title { text-align: center; font-size: 14pt; font-weight: bold; margin-bottom: 5px; color: #2c3e50; }
+        .export-meta { text-align: center; font-size: 9pt; color: #666; margin-bottom: 12px; }
+        h2 { font-size: 12pt; color: #2c3e50; border-bottom: 1px solid #2c3e50; padding-bottom: 3px; margin: 16px 0 6px; }
+        h3 { font-size: 10.5pt; color: #34495e; margin: 10px 0 4px; }
+        .grid td { border: none; padding: 2px 6px; }
+        .grid td.k { color: #666; width: 35%; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 6px; }
+        th { background-color: #2c3e50; color: white; text-align: left; padding: 5px; font-size: 8.5pt; }
+        td { padding: 5px; border-bottom: 1px solid #ddd; font-size: 8.5pt; vertical-align: top; }
+        .stay { page-break-inside: auto; margin-bottom: 10px; }
+        tr { page-break-inside: avoid; }
+        .muted { color: #888; font-style: italic; font-size: 9pt; }
+        .note { white-space: pre-wrap; }
+    </style>
+</head>
+<body>
+
+    {% include '_pdf_header.html' %}
+
+    {# Pas d'autoescape global dans render_pdf_from_template : active ici
+       pour toutes les donnees saisies (noms, notes, observations...). #}
+    {% autoescape true %}
+    {% macro details(phases, evaluations) %}
+        <p><strong>Phases</strong></p>
+        {% if phases %}
+        <table>
+            <thead><tr><th>Phase</th><th>Début</th><th>Fin</th><th>Statut</th><th>Commentaires</th></tr></thead>
+            <tbody>
+            {% for h in phases %}
+            <tr><td>{{ h.phase }}</td><td>{{ h.start }}</td><td>{{ h.end }}</td><td>{{ h.status }}</td><td class="note">{{ h.comments }}</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        {% else %}<p class="muted">Aucune phase.</p>{% endif %}
+        <p><strong>Évaluations</strong></p>
+        {% if evaluations %}
+        <table>
+            <thead><tr><th>Date</th><th>Décision</th><th>Phase</th><th>Observation</th><th>Recommandation</th><th>Auteur</th></tr></thead>
+            <tbody>
+            {% for e in evaluations %}
+            <tr><td>{{ e.date }}</td><td>{{ e.decision }}</td><td>{{ e.phase_before }} → {{ e.phase_after }}</td><td class="note">{{ e.observation }}</td><td class="note">{{ e.recommendation }}</td><td>{{ e.author }}</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        {% else %}<p class="muted">Aucune évaluation.</p>{% endif %}
+    {% endmacro %}
+    <div class="export-title">Dossier toxicologie</div>
+    <div class="export-meta">Généré le {{ date_impression }}</div>
+
+    <h2>Identité</h2>
+    <table class="grid">
+        <tr><td class="k">Patient</td><td>{{ patient.name }}</td></tr>
+        <tr><td class="k">Code patient</td><td>{{ patient.code }}</td></tr>
+        <tr><td class="k">Date de naissance</td><td>{{ patient.dob }}</td></tr>
+        <tr><td class="k">Statut</td><td>{{ status }}</td></tr>
+        <tr><td class="k">Phase courante</td><td>{{ current_phase if current_phase is not none else '-' }}</td></tr>
+        <tr><td class="k">Psychologue référent</td><td>{{ psychologist }}</td></tr>
+        {% if guardian_name or guardian_contact %}
+        <tr><td class="k">Tuteur / garant</td><td>{{ guardian_name or '-' }}{% if guardian_contact %} — {{ guardian_contact }}{% endif %}</td></tr>
+        {% endif %}
+    </table>
+
+    <h2>Séjours ({{ stays|length }})</h2>
+    {% if not stays %}<p class="muted">Aucun séjour enregistré.</p>{% endif %}
+    {% for s in stays %}
+    <div class="stay">
+        <h3>Séjour {{ s.number }} — du {{ s.admission }} au {{ s.discharge }}</h3>
+        <table class="grid">
+            <tr><td class="k">Substance</td><td>{{ s.substance }}</td></tr>
+            <tr><td class="k">Psychologue</td><td>{{ s.psychologist }}</td></tr>
+            {% if s.discharge != 'En cours' %}
+            <tr><td class="k">Motif de sortie</td><td>{{ s.reason }}{% if s.note %} — <span class="note">{{ s.note }}</span>{% endif %}</td></tr>
+            {% if s.discharged_by %}<tr><td class="k">Sortie validée par</td><td>{{ s.discharged_by }}</td></tr>{% endif %}
+            {% endif %}
+        </table>
+        {{ details(s.phases, s.evaluations) }}
+    </div>
+    {% endfor %}
+
+    {% if orphan %}
+    <div class="stay">
+        <h3>Historique non rattaché à un séjour</h3>
+        {{ details(orphan.phases, orphan.evaluations) }}
+    </div>
+    {% endif %}
+    {% endautoescape %}
+
+</body>
+</html>

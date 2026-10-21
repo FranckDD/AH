@@ -621,6 +621,18 @@ const messages = {
       },
     },
     toxico: {
+      export: {
+        list_pdf: "Exporter PDF",
+        dossier_pdf: "Exporter le dossier (PDF)",
+        row_pdf: "PDF",
+        exporting: "Export en cours...",
+        errors: {
+          forbidden: "Vous n'avez pas les droits pour cet export.",
+          not_found: "Dossier introuvable.",
+          invalid: "Filtres invalides : vérifiez la période.",
+          generic: "L'export PDF a échoué. Réessayez plus tard.",
+        },
+      },
       discharged: {
         tabs_label: "Liste des patients",
         tab_active: "Actifs",
@@ -2286,6 +2298,18 @@ const messages = {
       },
     },
     toxico: {
+      export: {
+        list_pdf: "Export PDF",
+        dossier_pdf: "Export record (PDF)",
+        row_pdf: "PDF",
+        exporting: "Exporting...",
+        errors: {
+          forbidden: "You are not allowed to perform this export.",
+          not_found: "Record not found.",
+          invalid: "Invalid filters: check the date range.",
+          generic: "PDF export failed. Please try again later.",
+        },
+      },
       discharged: {
         tabs_label: "Patient list",
         tab_active: "Active",

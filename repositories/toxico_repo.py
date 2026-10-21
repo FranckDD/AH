@@ -90,9 +90,12 @@ class ToxicoRepository:
         discharged_from: date = None,
         discharged_to: date = None,
         page: int = 1,
-        per_page: int = 20,
+        per_page: Optional[int] = 20,
+        export_cap: Optional[int] = None,
     ) -> Tuple[list, int]:
-        """Dossiers INACTIFS (patients sortis) avec leur dernier séjour, en une
+        """per_page=None : pas de pagination (export PDF) - toutes les lignes,
+        l'appelant borne via export_cap.
+        Dossiers INACTIFS (patients sortis) avec leur dernier séjour, en une
         seule requête agrégée (pas de N+1). Les filtres motif/dates portent sur
         le dernier séjour. Un dossier sans séjour reste listé (champs à None).
         Retourne (lignes, total) ; chaque ligne est un tuple nommé."""
@@ -149,13 +152,11 @@ class ToxicoRepository:
             query = query.filter(ToxicoStay.discharge_date <= discharged_to)
 
         total = query.order_by(None).count()
-        rows = (
-            query
-            .order_by(ToxicoStay.discharge_date.desc().nullslast(), ToxicoDossier.id.desc())
-            .offset((page - 1) * per_page)
-            .limit(per_page)
-            .all()
-        )
+        ordered = query.order_by(ToxicoStay.discharge_date.desc().nullslast(), ToxicoDossier.id.desc())
+        if per_page is None:
+            rows = ordered.limit(export_cap).all() if export_cap else ordered.all()
+        else:
+            rows = ordered.offset((page - 1) * per_page).limit(per_page).all()
         return rows, total
 
     def get_dossier_full(self, patient_id: int) -> Optional[ToxicoDossier]:

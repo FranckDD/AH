@@ -130,6 +130,11 @@
           </div>
 
           <div class="px-4 md:px-6 py-4 border-t border-gray-100 bg-gray-50 rounded-b-2xl flex flex-col-reverse sm:flex-row sm:justify-end gap-2 shrink-0">
+            <p v-if="exportError" role="alert" class="text-sm text-red-600 sm:mr-auto self-center">{{ t(exportError) }}</p>
+            <button v-if="canExportDossier" type="button" @click="exportPdf" :disabled="isExporting"
+                    class="min-h-[44px] lg:min-h-0 px-5 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-100 font-medium transition disabled:opacity-50">
+                {{ isExporting ? t('toxico.export.exporting') : t('toxico.export.dossier_pdf') }}
+            </button>
             <button v-if="canDischarge" type="button" @click="showDischarge = true"
                     class="min-h-[44px] lg:min-h-0 px-5 py-2 bg-red-50 text-red-700 border border-red-200 rounded-lg hover:bg-red-100 font-medium transition">
                 {{ t('toxico.stays.discharge_action') }}
@@ -158,6 +163,7 @@ import { ToxicoGateway } from '@/services/ToxicoGateway';
 import { ClockIcon, HeartIcon, BeakerIcon } from '@heroicons/vue/24/outline';
 import ToxicoStaysTimeline from '@/components/toxico/ToxicoStaysTimeline.vue';
 import ToxicoDischargeModal from '@/components/toxico/ToxicoDischargeModal.vue';
+import { TOXICO_DOSSIER_EXPORT_ROLES, downloadPdfBlob, dossierExportFilename, exportErrorKey } from '@/utils/toxicoExport';
 
 const { t } = useI18n();
 const toxicoStore = useToxicoStore();
@@ -191,6 +197,22 @@ const canOpenFullHistory = computed(() => authStore.hasRole(['admin', 'ToxicoMan
 // Sortie : responsable toxico et admin uniquement, et seulement sur un dossier actif.
 const canDischarge = computed(() => !!patient.value?.isActive && authStore.hasRole(['ToxicoManager', 'admin']));
 const showDischarge = ref(false);
+// Export PDF du dossier (actif ou sorti) : evaluations sensibles -> memes roles que le backend.
+const canExportDossier = computed(() => authStore.hasRole(TOXICO_DOSSIER_EXPORT_ROLES));
+const isExporting = ref(false);
+const exportError = ref(null);
+const exportPdf = async () => {
+    isExporting.value = true;
+    exportError.value = null;
+    try {
+        const res = await ToxicoGateway.exportDossierPdf(props.patientId);
+        downloadPdfBlob(res.data, dossierExportFilename(props.patientId));
+    } catch (e) {
+        exportError.value = exportErrorKey(e);
+    } finally {
+        isExporting.value = false;
+    }
+};
 const dischargeSuccess = ref(false);
 const loadDossier = async () => {
     const data = await toxicoStore.getPatientDetails(props.patientId);

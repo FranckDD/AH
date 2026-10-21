@@ -3,7 +3,13 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile, File, Form, Request
 from typing import List, Any, Dict, Optional, Literal
 from sqlalchemy.orm import Session
-from datetime import date
+from datetime import date, datetime
+from fastapi.responses import Response
+
+from api_backend.backend_app.utils.pdf_generator import render_pdf_from_template
+from api_backend.backend_app.utils.pdf_header import get_pdf_header_context
+from controller.config_controller import ConfigController
+from repositories.config_repo import ConfigRepository
 
 from api_backend.backend_app.database import SessionLocal
 from api_backend.backend_app.routes.auth.auth_endpoints import get_current_user, role_required
@@ -94,6 +100,165 @@ def list_discharged(
                             detail="La date de début doit précéder la date de fin.")
     return ctrl.list_discharged(search=search, reason=reason, discharged_from=discharged_from,
                                 discharged_to=discharged_to, page=page, per_page=per_page)
+
+# --- EXPORTS PDF (2026-10-22) ---
+
+# Plafond dur de l'export liste : au-dela, le PDF le signale (tronque).
+DISCHARGED_EXPORT_CAP = 2000
+
+REASON_LABELS = {"guerison": "Guérison", "abandon": "Abandon",
+                 "exclusion": "Exclusion", "autre": "Autre"}
+DECISION_LABELS = {"PROGRESS": "Progression", "REGRESS": "Régression",
+                   "MAINTAIN": "Maintien"}
+
+
+def _fmt_date(v) -> str:
+    if not v:
+        return "-"
+    if isinstance(v, datetime):
+        return v.strftime("%d/%m/%Y %H:%M")
+    if isinstance(v, date):
+        return v.strftime("%d/%m/%Y")
+    return str(v)
+
+
+def _discharged_filters_summary(search, reason, discharged_from, discharged_to) -> str:
+    parts = []
+    if search and search.strip():
+        parts.append(f"Recherche : « {search.strip()} »")
+    if reason:
+        parts.append(f"Motif : {REASON_LABELS.get(reason, reason)}")
+    if discharged_from:
+        parts.append(f"Sortie à partir du {_fmt_date(discharged_from)}")
+    if discharged_to:
+        parts.append(f"Sortie jusqu'au {_fmt_date(discharged_to)}")
+    return " — ".join(parts) if parts else "Aucun filtre"
+
+
+def _header_ctx(db: Session) -> dict:
+    return get_pdf_header_context(ConfigController(repo=ConfigRepository(db)))
+
+
+@router.get("/dossiers/discharged/export")
+def export_discharged(
+    search: Optional[str] = Query(None, max_length=100),
+    reason: Optional[Literal['guerison', 'abandon', 'exclusion', 'autre']] = Query(None),
+    discharged_from: Optional[date] = Query(None),
+    discharged_to: Optional[date] = Query(None),
+    ctrl: ToxicoController = Depends(get_toxico_controller),
+    db: Session = Depends(get_db),
+):
+    """PDF de la liste des patients sortis : memes filtres et memes roles
+    (garde du routeur) que GET /dossiers/discharged, toutes les lignes
+    (plafond DISCHARGED_EXPORT_CAP, signale sur le PDF)."""
+    if discharged_from and discharged_to and discharged_from > discharged_to:
+        raise HTTPException(status_code=422,
+                            detail="La date de début doit précéder la date de fin.")
+    rows, total = ctrl.list_discharged_for_export(
+        search=search, reason=reason, discharged_from=discharged_from,
+        discharged_to=discharged_to, cap=DISCHARGED_EXPORT_CAP)
+    items = []
+    for r in rows:
+        ls = r.get("last_stay") or {}
+        items.append({
+            "name": r["patientName"], "code": r.get("code") or "-",
+            "admission": _fmt_date(ls.get("admission_date")),
+            "discharge": _fmt_date(ls.get("discharge_date")),
+            "reason": REASON_LABELS.get(ls.get("discharge_reason"), ls.get("discharge_reason") or "-"),
+            "psychologist": ls.get("psychologist_name") or "-",
+            "stays_count": r["stays_count"],
+        })
+    pdf_bytes = render_pdf_from_template("toxico_discharged_export_template.html", {
+        **_header_ctx(db),
+        "rows": items,
+        "total": total,
+        "truncated": total > len(items),
+        "cap": DISCHARGED_EXPORT_CAP,
+        "filters_label": _discharged_filters_summary(search, reason, discharged_from, discharged_to),
+        "date_impression": datetime.now().strftime("%d/%m/%Y à %H:%M"),
+    })
+    return Response(content=pdf_bytes, media_type="application/pdf",
+                    headers={"Content-Disposition": "attachment; filename=toxico_patients_sortis.pdf"})
+
+
+def _build_dossier_pdf_context(d: dict) -> dict:
+    """Regroupe phases et evaluations (deja serialisees par
+    serialize_dossier_details) sous chaque sejour."""
+    stays, by_num = [], {}
+    for s in d.get("stays") or []:
+        entry = {
+            "number": s["stay_number"],
+            "admission": _fmt_date(s.get("admission_date")),
+            "discharge": _fmt_date(s.get("discharge_date")) if s.get("discharge_date") else "En cours",
+            "reason": REASON_LABELS.get(s.get("discharge_reason"), s.get("discharge_reason") or "-"),
+            "note": s.get("discharge_note") or "",
+            "psychologist": s.get("psychologist_name") or "-",
+            "substance": s.get("substance") or "-",
+            "discharged_by": s.get("discharged_by_name") or "",
+            "phases": [], "evaluations": [],
+        }
+        stays.append(entry)
+        by_num[s["stay_number"]] = entry
+
+    # Donnees historiques sans sejour rattache (avant migration 022).
+    orphan = {"number": None, "phases": [], "evaluations": []}
+
+    for h in sorted(d.get("phaseHistory") or [], key=lambda h: str(h.get("start_date") or "")):
+        by_num.get(h.get("stay_number"), orphan)["phases"].append({
+            "phase": h.get("phase"),
+            "start": _fmt_date(h.get("start_date")),
+            "end": _fmt_date(h.get("end_date")),
+            "status": h.get("status") or "-",
+            "comments": h.get("comments") or "",
+        })
+    for e in sorted(d.get("evaluations") or [],
+                    key=lambda e: (str(e.get("created_at") or ""), e.get("id") or 0)):
+        by_num.get(e.get("stay_number"), orphan)["evaluations"].append({
+            "date": _fmt_date(e.get("created_at")),
+            "decision": DECISION_LABELS.get(e.get("decision"), e.get("decision") or "-"),
+            "observation": e.get("observation") or "",
+            "recommendation": e.get("recommendation") or "",
+            "phase_before": e.get("phase_before") if e.get("phase_before") is not None else "-",
+            "phase_after": e.get("phase_after") if e.get("phase_after") is not None else "-",
+            "author": e.get("evaluator_name") or "-",
+        })
+
+    return {
+        "patient": {
+            "name": f"{d.get('firstName') or ''} {d.get('lastName') or ''}".strip(),
+            "code": d.get("code") or "-",
+            "dob": _fmt_date(d.get("dob")),
+        },
+        "status": "Actif (en séjour)" if d.get("isActive") else "Sorti (dossier inactif)",
+        "current_phase": d.get("currentPhase"),
+        "psychologist": d.get("psychologist") or "-",
+        "guardian_name": d.get("guardianName") or "",
+        "guardian_contact": d.get("guardianContact") or "",
+        "stays": stays,
+        "orphan": orphan if (orphan["phases"] or orphan["evaluations"]) else None,
+    }
+
+
+@router.get("/patients/{patient_id}/export",
+            # Evaluations = donnees sensibles : ni Assistant ni accompagnateur spirituel.
+            dependencies=[Depends(role_required("Psychologist", "ToxicoManager", "admin"))])
+def export_dossier(
+    patient_id: int,
+    ctrl: ToxicoController = Depends(get_toxico_controller),
+    db: Session = Depends(get_db),
+):
+    dossier = ctrl.get_dossier_details(patient_id)
+    if not dossier:
+        raise HTTPException(status_code=404, detail="Dossier Toxico introuvable")
+    data = ctrl.serialize_dossier_details(dossier)
+    pdf_bytes = render_pdf_from_template("toxico_dossier_export_template.html", {
+        **_header_ctx(db),
+        **_build_dossier_pdf_context(data),
+        "date_impression": datetime.now().strftime("%d/%m/%Y à %H:%M"),
+    })
+    return Response(content=pdf_bytes, media_type="application/pdf",
+                    headers={"Content-Disposition": f"attachment; filename=dossier_toxico_{patient_id}.pdf"})
+
 
 @router.get("/patients/{patient_id}", response_model=Any)
 def get_patient_detail(
