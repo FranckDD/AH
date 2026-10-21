@@ -1172,3 +1172,7 @@ Demande de l'utilisateur : produire une **documentation d'utilisation pour chaqu
 - **Source de vérité pour la couverture** : la liste des actions métier du bureau (application PyQt retirée) reste la checklist de couverture (voir la mémoire du projet), plus les chantiers listés dans ce document ; vérifier qu'aucune action n'est oubliée.
 - **À rédiger après la refonte UX** (pour que les captures et les libellés soient définitifs) et avant la mise en production ; prévoir une version imprimable (PDF) et une aide courte accessible depuis l'application.
 
+
+### Chantier 8 — hébergement : VPS acheté (2026-10-21)
+
+VPS **OVHcloud, Londres (Erith, Royaume-Uni)**, **Ubuntu 26.04 LTS** (l'utilisateur a vérifié que Docker CE la supporte). Mesure de latence depuis MTN Cameroun : ping 203 ms, gigue 10 ms (Contabo : 236 ms) ; débit de la ligne locale ~7 Mbps (limite côté client, pas côté serveur). Contabo abandonné. À prévoir à l'installation : IPv4 dédiée, sauvegardes/snapshots activés, pare-feu (22/80/443 seulement), Docker CE + Compose, aucune interface d'administration type Plesk. Rappel : refaire un test de latence à l'heure de pointe depuis la connexion réelle de l'hôpital.
