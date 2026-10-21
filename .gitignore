@@ -26,3 +26,6 @@ dist/*.log
 
 # Service pont impression POS - config locale avec token, jamais commitee
 printer_bridge/config.json
+
+# Scratch de la methode de travail (ledgers, briefs, rapports de revue)
+.superpowers/
