@@ -4927,6 +4927,7 @@ CREATE TABLE public.stock_adjustment_requests (
     decision_note text,
     stock_before integer,
     stock_after integer,
+    stock_at_request integer,
     CONSTRAINT stock_adjustment_requests_kind_check
         CHECK (kind IN ('reapprovisionnement','correction')),
     CONSTRAINT stock_adjustment_requests_quantity_check CHECK (quantity >= 0),

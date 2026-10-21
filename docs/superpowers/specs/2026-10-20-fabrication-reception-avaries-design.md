@@ -226,4 +226,6 @@ Non-régression : vente en caisse, annulation de vente, alertes de péremption e
 8. **Rôle `StockController` isolé côté serveur** : garde négative `deny_roles` sur `/appointments`, `/users/roles|specialties|doctors|managers` et `GET /labo/exams/{id}/params`.
 9. **CI** : le rôle est ajouté à `ci/seed_application_roles.sql` (la CI ne rejoue pas les migrations).
 10. **Notifications** : libellés par type, genre et statut (`refuse` pour les demandes d'ajustement, `rejete` pour les réceptions et avaries), repli sûr pour tout statut inconnu.
-
+11. **Correction = écart (2026-10-21)** : `stock_adjustment_requests.stock_at_request` (migration 020) mémorise le stock à la demande ; à l'approbation d'une `correction`, `delta = quantité comptée − stock_at_request` est appliqué au stock **actuel** (409 si < 0) ; demandes sans cette valeur : ancien comportement absolu.
+12. **Noms d'auteurs (2026-10-21)** : les dictionnaires portent `created_by_name`, `controlled_by_name`, `requested_by_name`, `decided_by_name` (une requête groupée par liste).
+13. **Règle de ligne de stock** : `utils/item_types.py::touches_stock` unique pour la vente, la modification et l'annulation.

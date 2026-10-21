@@ -128,17 +128,103 @@ def test_approve_correction_up_and_down(db_session, users):
     assert sorted(m.change_qty for m in mvs) == [-11, 4]
 
 
-def test_correction_delta_computed_at_approval_time(db_session, users):
+def test_correction_applies_gap_after_intermediate_sale(db_session, users):
+    # Converti (ex test_correction_delta_computed_at_approval_time, qui attendait 8 en absolu) :
+    # systeme 10, comptage 8 -> ecart -2 ; vente de 4 entre-temps -> 6 - 2 = 4.
     p = _product(db_session, qty=10)
     r = _req(db_session, users["sec"], p, kind="correction", qty=8)
+    assert r["stock_at_request"] == 10
     StockRepository(db_session).apply_stock_delta(p.medication_id, -4, "VENTE", "vente", users["sec"])
     db_session.commit()  # vente intermediaire validee
     assert _stock(db_session, p) == 6
     out = _ctrl(db_session, users["admin"]).approve_adjustment(r["id"])
-    assert (out["stock_before"], out["stock_after"]) == (6, 8)
-    assert _stock(db_session, p) == 8
+    assert (out["stock_before"], out["stock_after"]) == (6, 4)
+    assert _stock(db_session, p) == 4
+    mv = db_session.query(StockMovement).filter_by(medication_id=p.medication_id, movement_type="update").one()
+    assert mv.change_qty == -2
+
+
+def test_review_focus_scenario_three_sales(db_session, users):
+    # systeme 13, comptage 10 -> ecart -3 ; 3 ventes validees avant l'approbation -> 7.
+    p = _product(db_session, qty=13)
+    r = _req(db_session, users["sec"], p, kind="correction", qty=10)
+    for _ in range(3):
+        StockRepository(db_session).apply_stock_delta(p.medication_id, -1, "VENTE", "vente", users["sec"])
+        db_session.commit()
+    out = _ctrl(db_session, users["admin"]).approve_adjustment(r["id"])
+    assert (out["stock_before"], out["stock_after"]) == (10, 7)
+    assert out["stock_at_request"] == 13
+    assert _stock(db_session, p) == 7
+    mv = db_session.query(StockMovement).filter_by(medication_id=p.medication_id, movement_type="update").one()
+    assert mv.change_qty == -3
+
+
+def test_correction_no_intermediate_sale_sets_counted_value(db_session, users):
+    p = _product(db_session, qty=13)
+    r = _req(db_session, users["sec"], p, kind="correction", qty=10)
+    out = _ctrl(db_session, users["admin"]).approve_adjustment(r["id"])
+    assert (out["stock_before"], out["stock_after"]) == (13, 10) and _stock(db_session, p) == 10
+
+
+def test_correction_positive_gap_after_sale(db_session, users):
+    # systeme 10, comptage 12 -> +2 ; vente de 5 entre-temps -> 5 + 2 = 7.
+    p = _product(db_session, qty=10)
+    r = _req(db_session, users["sec"], p, kind="correction", qty=12)
+    StockRepository(db_session).apply_stock_delta(p.medication_id, -5, "VENTE", "vente", users["sec"])
+    db_session.commit()
+    out = _ctrl(db_session, users["admin"]).approve_adjustment(r["id"])
+    assert (out["stock_before"], out["stock_after"]) == (5, 7) and _stock(db_session, p) == 7
     mv = db_session.query(StockMovement).filter_by(medication_id=p.medication_id, movement_type="update").one()
     assert mv.change_qty == 2
+
+
+def test_correction_negative_result_conflicts_nothing_written(db_session, users):
+    # systeme 10, comptage 2 -> -8 ; vente de 5 -> 5 - 8 < 0 -> 409, rien d'ecrit.
+    p = _product(db_session, qty=10)
+    r = _req(db_session, users["sec"], p, kind="correction", qty=2)
+    StockRepository(db_session).apply_stock_delta(p.medication_id, -5, "VENTE", "vente", users["sec"])
+    db_session.commit()
+    with pytest.raises(StockConflictError):
+        _ctrl(db_session, users["admin"]).approve_adjustment(r["id"])
+    assert _stock(db_session, p) == 5
+    assert db_session.get(StockAdjustmentRequest, r["id"]).status == "en_attente"
+    assert db_session.query(StockMovement).filter_by(medication_id=p.medication_id,
+                                                     movement_type="update").count() == 0
+
+
+def test_legacy_null_stock_at_request_keeps_absolute(db_session, users):
+    p = _product(db_session, qty=10)
+    legacy = StockAdjustmentRequest(product_id=p.medication_id, kind="correction", quantity=8,
+                                    reason="ancienne", status="en_attente",
+                                    requested_by=users["sec"].user_id, stock_at_request=None)
+    db_session.add(legacy)
+    db_session.commit()
+    StockRepository(db_session).apply_stock_delta(p.medication_id, -4, "VENTE", "vente", users["sec"])
+    db_session.commit()
+    out = _ctrl(db_session, users["admin"]).approve_adjustment(legacy.id)
+    assert out["stock_at_request"] is None
+    assert (out["stock_before"], out["stock_after"]) == (6, 8) and _stock(db_session, p) == 8
+
+
+def test_reapprovisionnement_unaffected_by_stock_at_request(db_session, users):
+    p = _product(db_session, qty=10)
+    r = _req(db_session, users["sec"], p, qty=5)
+    assert r["stock_at_request"] == 10
+    StockRepository(db_session).apply_stock_delta(p.medication_id, -4, "VENTE", "vente", users["sec"])
+    db_session.commit()
+    out = _ctrl(db_session, users["admin"]).approve_adjustment(r["id"])
+    assert (out["stock_before"], out["stock_after"]) == (6, 11) and _stock(db_session, p) == 11
+
+
+def test_stock_at_request_read_fresh(db_session, users):
+    # Le stock change en base (UPDATE SQL hors ORM) apres le chargement du produit :
+    # la demande doit lire la valeur actuelle, pas l'objet en cache.
+    p = _product(db_session, qty=10)
+    db_session.commit()
+    db_session.execute(Pharmacy.__table__.update()
+                       .where(Pharmacy.medication_id == p.medication_id).values(quantity=7))
+    r = _req(db_session, users["sec"], p, kind="correction", qty=5)
+    assert r["stock_at_request"] == 7
 
 
 def test_correction_same_quantity_logs_zero_movement(db_session, users):

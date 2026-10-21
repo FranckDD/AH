@@ -15,6 +15,7 @@ from api_backend.backend_app.utils.pdf_generator import render_pdf_from_template
 from api_backend.backend_app.utils.pdf_header import get_pdf_header_context
 from controller.config_controller import ConfigController
 from repositories.config_repo import ConfigRepository
+from utils.item_types import touches_stock
 
 
 class CaisseRepository:
@@ -238,9 +239,8 @@ class CaisseRepository:
              # Sécurité si aucune ligne n'est envoyée
              pass 
 
-        _stock_types = ("médicament", "medication", "vente médicament", "carnet", "booklet", "vente carnet")
         self._lock_products_sorted(l["item_ref_id"] for l in items
-                                   if str(l["item_type"]).lower() in _stock_types)
+                                   if touches_stock(l["item_type"]))
         for line in items:
             item_type = line["item_type"]
             ref_id    = line["item_ref_id"]
@@ -248,7 +248,7 @@ class CaisseRepository:
             
             # A. GESTION DU STOCK (Uniquement pour Médicaments et Carnets)
             # Adapte les strings selon tes besoins ("médicament", "medication", etc.)
-            if item_type.lower() in ("médicament", "medication", "vente médicament", "carnet", "booklet", "vente carnet"):
+            if touches_stock(item_type):
                 
                 # 1. Récupérer le produit
                 product = self._lock_product(ref_id)
@@ -410,13 +410,12 @@ class CaisseRepository:
         # Absent = ne pas toucher ; present (meme []) = remplacer.
         if "items" in data:
             existing_items = list(tx.items)
-            _stock_types = ("médicament", "medication", "carnet", "booklet")
             # R7 : verrouiller anciens ET nouveaux produits, ordre croissant, avant toute ecriture
             self._lock_products_sorted(
-                [i.item_ref_id for i in existing_items if i.item_type.lower() in _stock_types]
-                + [l["item_ref_id"] for l in data.get("items", []) if str(l["item_type"]).lower() in _stock_types])
+                [i.item_ref_id for i in existing_items if touches_stock(i.item_type)]
+                + [l["item_ref_id"] for l in data.get("items", []) if touches_stock(l["item_type"])])
             for old_item in existing_items:
-                if old_item.item_type.lower() in ("médicament", "medication", "carnet", "booklet"):
+                if touches_stock(old_item.item_type):
                     med = self._lock_product(old_item.item_ref_id)
                     if med:
                         med.quantity += old_item.quantity
@@ -435,7 +434,7 @@ class CaisseRepository:
                 line_tot  = line["line_total"]
                 item_note = line.get("note")
 
-                if item_type.lower() in ("médicament", "medication", "carnet", "booklet"):
+                if touches_stock(item_type):
                     med = self._lock_product(ref_id)
                     if not med:
                         raise ValueError(f"Produit introuvable pour ID={ref_id}")
@@ -477,12 +476,10 @@ class CaisseRepository:
         if tx.status == 'cancelled':
             raise ValueError("Cette transaction est déjà annulée.")
 
-        keywords = ["médicament", "medicament", "carnet", "booklet"]
         self._lock_products_sorted(i.item_ref_id for i in tx.items
-                                   if any(k in str(i.item_type).lower().strip() for k in keywords))
+                                   if touches_stock(i.item_type))
         for item in tx.items:
-            t_type = str(item.item_type).lower().strip()
-            if any(k in t_type for k in keywords):
+            if touches_stock(item.item_type):
                 med = self._lock_product(item.item_ref_id)
                 if med:
                     med.quantity += item.quantity
@@ -503,10 +500,14 @@ class CaisseRepository:
                     )
                     self.session.add(movement)
 
-        tx.status = 'cancelled'
-        tx.cancelled_by = getattr(current_user, "user_id", None)
+        # Lire l'utilisateur AVANT de changer le statut : un objet expire declenche un
+        # SELECT, donc un autoflush qui ecrirait status='cancelled' seul, puis un 2e UPDATE
+        # (cancelled_by...) que le trigger fn_caisse_protect_cancelled refuse.
+        cancelled_by = getattr(current_user, "user_id", None)
+        tx.cancelled_by = cancelled_by
         tx.cancelled_at = datetime.utcnow()
         tx.cancel_justification = justification
+        tx.status = 'cancelled'
         self.session.add(tx)
 
         for item in tx.items:

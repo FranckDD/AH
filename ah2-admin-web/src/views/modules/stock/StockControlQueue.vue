@@ -45,6 +45,7 @@
             <div v-if="selected.supplier">{{ $t('stockOps.col_supplier') }} : {{ selected.supplier }}</div>
             <div v-if="selected.delivery_ref">{{ $t('stockOps.col_delivery_ref') }} : {{ selected.delivery_ref }}</div>
             <div>{{ $t('stockOps.col_received_date') }} : {{ selected.received_date }}</div>
+            <div>{{ $t('stockControl.entered_by') }} : {{ actorLabel(selected.created_by_name, selected.created_by) }}</div>
           </div>
 
           <div class="overflow-x-auto">
@@ -102,6 +103,7 @@
             <th class="py-2">{{ $t('stockOps.col_kind') }}</th>
             <th class="py-2">{{ $t('stockOps.col_quantity') }}</th>
             <th class="py-2">{{ $t('stockOps.col_reason') }}</th>
+            <th class="py-2">{{ $t('stockControl.entered_by') }}</th>
             <th class="py-2">{{ $t('stockOps.col_action') }}</th>
           </tr>
         </thead>
@@ -112,6 +114,7 @@
             <td class="py-2">{{ $t(`stockOps.kind.${inc.kind}`) }}</td>
             <td class="py-2">{{ inc.quantity }}</td>
             <td class="py-2 max-w-xs">{{ inc.reason }}</td>
+            <td class="py-2">{{ actorLabel(inc.created_by_name, inc.created_by) }}</td>
             <td class="py-2 whitespace-nowrap">
               <span v-if="isMine(inc)" class="text-xs text-amber-700">{{ $t('stockControl.own_entry') }}</span>
               <template v-else>
@@ -148,6 +151,7 @@ import { ref, computed, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '@/stores/auth';
 import { StockOpsGateway, describeStockError } from '@/services/StockOpsGateway';
+import { actorLabel } from '@/utils/actorName';
 import { QTY_FIELDS, lineTotal, validateReceiptLine } from '@/utils/receiptLines';
 
 const { t } = useI18n();

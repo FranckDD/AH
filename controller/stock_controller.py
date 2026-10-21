@@ -28,13 +28,15 @@ INCIDENT_KINDS = ("endommage", "perdu", "defectueux")
 ADJUSTMENT_KINDS = ("reapprovisionnement", "correction")
 
 
-def _lot_dict(lot: ProductionLot) -> Dict[str, Any]:
+def _lot_dict(lot: ProductionLot, names: Optional[Dict[int, str]] = None) -> Dict[str, Any]:
+    names = names or {}
     return {
         "id": lot.id, "lot_number": lot.lot_number, "product_id": lot.product_id,
         "product_name": lot.product.drug_name if lot.product else None,
         "quantity_produced": lot.quantity_produced, "production_date": lot.production_date,
         "delivery_date": lot.delivery_date, "expiry_date": lot.expiry_date, "producer": lot.producer,
         "status": lot.status, "created_by": lot.created_by, "created_at": lot.created_at,
+        "created_by_name": names.get(lot.created_by),
     }
 
 
@@ -47,28 +49,33 @@ def _line_dict(l: StockReceiptLine) -> Dict[str, Any]:
     }
 
 
-def _receipt_dict(r: StockReceipt) -> Dict[str, Any]:
+def _receipt_dict(r: StockReceipt, names: Optional[Dict[int, str]] = None) -> Dict[str, Any]:
+    names = names or {}
     return {
         "id": r.id, "receipt_number": r.receipt_number, "origin": r.origin,
         "production_lot_id": r.production_lot_id, "supplier": r.supplier, "delivery_ref": r.delivery_ref,
         "received_date": r.received_date, "status": r.status, "created_by": r.created_by,
         "created_at": r.created_at, "controlled_by": r.controlled_by, "controlled_at": r.controlled_at,
         "reject_reason": r.reject_reason,
+        "created_by_name": names.get(r.created_by), "controlled_by_name": names.get(r.controlled_by),
         "lines": [_line_dict(l) for l in sorted(r.lines, key=lambda x: x.id)],
     }
 
 
-def _incident_dict(i: StockIncident) -> Dict[str, Any]:
+def _incident_dict(i: StockIncident, names: Optional[Dict[int, str]] = None) -> Dict[str, Any]:
+    names = names or {}
     return {
         "id": i.id, "product_id": i.product_id,
         "product_name": i.product.drug_name if i.product else None,
         "kind": i.kind, "quantity": i.quantity, "reason": i.reason, "incident_date": i.incident_date,
         "status": i.status, "created_by": i.created_by, "created_at": i.created_at,
         "controlled_by": i.controlled_by, "controlled_at": i.controlled_at, "reject_reason": i.reject_reason,
+        "created_by_name": names.get(i.created_by), "controlled_by_name": names.get(i.controlled_by),
     }
 
 
-def _adjustment_dict(a: StockAdjustmentRequest) -> Dict[str, Any]:
+def _adjustment_dict(a: StockAdjustmentRequest, names: Optional[Dict[int, str]] = None) -> Dict[str, Any]:
+    names = names or {}
     return {
         "id": a.id, "product_id": a.product_id,
         "product_name": a.product.drug_name if a.product else None,
@@ -76,7 +83,9 @@ def _adjustment_dict(a: StockAdjustmentRequest) -> Dict[str, Any]:
         "requested_by": a.requested_by, "requested_at": a.requested_at,
         "decided_by": a.decided_by, "decided_at": a.decided_at, "decision_note": a.decision_note,
         "stock_before": a.stock_before, "stock_after": a.stock_after,
+        "stock_at_request": a.stock_at_request,
         "current_quantity": a.product.quantity if a.product else None,
+        "requested_by_name": names.get(a.requested_by), "decided_by_name": names.get(a.decided_by),
     }
 
 
@@ -155,15 +164,17 @@ class StockController:
                 producer=(data.get("producer") or None), status="produit", created_by=self.user.user_id))
             self.audit_repo.log_user_action(current_user=self.user, resource_type="ProductionLot",
                                             action_performed="CREATE", resource_id=lot.id,
-                                            new_values=_lot_dict(lot))
+                                            new_values=self._lot_d(lot))
             self.session.commit()
         except Exception:
             self.session.rollback()
             raise
-        return _lot_dict(lot)
+        return self._lot_d(lot)
 
     def list_lots(self, status: Optional[str] = None) -> List[Dict[str, Any]]:
-        return [_lot_dict(l) for l in self.repo.list_lots(status)]
+        lots = self.repo.list_lots(status)
+        names = self.repo.user_names(l.created_by for l in lots)
+        return [_lot_dict(l, names) for l in lots]
 
     def mark_lot_delivered(self, lot_id: int, delivery_date: Optional[date] = None) -> Dict[str, Any]:
         try:
@@ -172,18 +183,18 @@ class StockController:
                 raise StockNotFoundError("Lot introuvable.")
             if lot.status != "produit":
                 raise StockConflictError(f"Le lot est déjà « {lot.status} ».")
-            old = _lot_dict(lot)
+            old = self._lot_d(lot)
             lot.status = "livre"
             lot.delivery_date = _date(delivery_date, "La date de livraison") or date.today()
             self.session.flush()
             self.audit_repo.log_user_action(current_user=self.user, resource_type="ProductionLot",
                                             action_performed="DELIVER", resource_id=lot.id,
-                                            old_values=old, new_values=_lot_dict(lot))
+                                            old_values=old, new_values=self._lot_d(lot))
             self.session.commit()
         except Exception:
             self.session.rollback()
             raise
-        return _lot_dict(lot)
+        return self._lot_d(lot)
 
     def cancel_lot(self, lot_id: int) -> Dict[str, Any]:
         try:
@@ -196,17 +207,17 @@ class StockController:
                 raise StockConflictError(f"Un lot « {lot.status} » ne peut pas être annulé.")
             if self.repo.lot_has_active_receipt(lot.id):
                 raise StockConflictError("Une réception est liée à ce lot : annulation impossible.")
-            old = _lot_dict(lot)
+            old = self._lot_d(lot)
             lot.status = "annule"
             self.session.flush()
             self.audit_repo.log_user_action(current_user=self.user, resource_type="ProductionLot",
                                             action_performed="CANCEL", resource_id=lot.id,
-                                            old_values=old, new_values=_lot_dict(lot))
+                                            old_values=old, new_values=self._lot_d(lot))
             self.session.commit()
         except Exception:
             self.session.rollback()
             raise
-        return _lot_dict(lot)
+        return self._lot_d(lot)
 
     # ---------------- receptions ----------------
     def create_receipt(self, data: Dict[str, Any]) -> Dict[str, Any]:
@@ -263,7 +274,7 @@ class StockController:
                 supplier=(data.get("supplier") or None) if origin == "fournisseur" else None,
                 delivery_ref=data.get("delivery_ref") or None, received_date=received_date,
                 status="a_controler", created_by=self.user.user_id, lines=lines))
-            out = _receipt_dict(receipt)
+            out = self._receipt_d(receipt)
             self.audit_repo.log_user_action(current_user=self.user, resource_type="StockReceipt",
                                             action_performed="CREATE", resource_id=receipt.id, new_values=out)
             payload = {"receipt_id": receipt.id, "receipt_number": receipt.receipt_number,
@@ -277,14 +288,15 @@ class StockController:
         return out
 
     def list_receipts(self, status: Optional[str] = None, mine_only: bool = False) -> List[Dict[str, Any]]:
-        return [_receipt_dict(r) for r in
-                self.repo.list_receipts(status, self.user.user_id if mine_only else None)]
+        rows = self.repo.list_receipts(status, self.user.user_id if mine_only else None)
+        names = self.repo.user_names(i for r in rows for i in (r.created_by, r.controlled_by))
+        return [_receipt_dict(r, names) for r in rows]
 
     def get_receipt(self, receipt_id: int) -> Dict[str, Any]:
         r = self.repo.get_receipt(receipt_id)
         if r is None:
             raise StockNotFoundError("Réception introuvable.")
-        return _receipt_dict(r)
+        return self._receipt_d(r)
 
     def update_receipt_lines(self, receipt_id: int, lines: List[Dict[str, Any]]) -> Dict[str, Any]:
         try:
@@ -297,7 +309,7 @@ class StockController:
             if not lines:
                 raise ValueError("Aucune ligne à corriger.")
             by_id = {l.id: l for l in r.lines}
-            old = _receipt_dict(r)
+            old = self._receipt_d(r)
             for change in lines:
                 line = by_id.get(change.get("id"))
                 if line is None:
@@ -314,7 +326,7 @@ class StockController:
                 for f, v in qtys.items():
                     setattr(line, f, v)
             self.session.flush()
-            new = _receipt_dict(r)
+            new = self._receipt_d(r)
             self.audit_repo.log_user_action(current_user=self.user, resource_type="StockReceipt",
                                             action_performed="UPDATE_LINES", resource_id=r.id,
                                             old_values={"lines": old["lines"]}, new_values={"lines": new["lines"]})
@@ -360,7 +372,7 @@ class StockController:
             r.controlled_by = self.user.user_id
             r.controlled_at = datetime.utcnow()
             self.session.flush()
-            out = _receipt_dict(r)
+            out = self._receipt_d(r)
             self.audit_repo.log_user_action(current_user=self.user, resource_type="StockReceipt",
                                             action_performed="VALIDATE", resource_id=r.id,
                                             old_values={"status": old_status}, new_values=out)
@@ -422,7 +434,7 @@ class StockController:
             inc = self.repo.add(StockIncident(
                 product_id=product_id, kind=kind, quantity=qty, reason=reason,
                 incident_date=incident_date, status="a_controler", created_by=self.user.user_id))
-            out = _incident_dict(inc)
+            out = self._incident_d(inc)
             self.audit_repo.log_user_action(current_user=self.user, resource_type="StockIncident",
                                             action_performed="CREATE", resource_id=inc.id, new_values=out)
             payload = {"incident_id": inc.id, "kind": kind, "product_name": prod.drug_name,
@@ -436,8 +448,9 @@ class StockController:
         return out
 
     def list_incidents(self, status: Optional[str] = None, mine_only: bool = False) -> List[Dict[str, Any]]:
-        return [_incident_dict(i) for i in
-                self.repo.list_incidents(status, self.user.user_id if mine_only else None)]
+        rows = self.repo.list_incidents(status, self.user.user_id if mine_only else None)
+        names = self.repo.user_names(i for x in rows for i in (x.created_by, x.controlled_by))
+        return [_incident_dict(x, names) for x in rows]
 
     def validate_incident(self, incident_id: int) -> Dict[str, Any]:
         try:
@@ -456,7 +469,7 @@ class StockController:
             inc.controlled_by = self.user.user_id
             inc.controlled_at = datetime.utcnow()
             self.session.flush()
-            out = _incident_dict(inc)
+            out = self._incident_d(inc)
             self.audit_repo.log_user_action(current_user=self.user, resource_type="StockIncident",
                                             action_performed="VALIDATE", resource_id=inc.id,
                                             old_values={"status": old_status}, new_values=out)
@@ -511,7 +524,7 @@ class StockController:
         inc.controlled_by = self.user.user_id
         inc.controlled_at = datetime.utcnow()
         self.session.flush()
-        out = _incident_dict(inc)
+        out = self._incident_d(inc)
         self.audit_repo.log_user_action(current_user=self.user, resource_type="StockIncident",
                                         action_performed=action, resource_id=inc.id,
                                         old_values={"status": "a_controler"},
@@ -547,10 +560,13 @@ class StockController:
             reason = raw_reason.strip() if isinstance(raw_reason, str) else ""
             if not reason:
                 raise ValueError("Le motif est obligatoire.")
+            # lecture fraiche (pas l'objet du cache de session) du stock du systeme
+            self.session.refresh(prod)
             req = self.repo.add(StockAdjustmentRequest(
                 product_id=product_id, kind=kind, quantity=qty, reason=reason,
-                status="en_attente", requested_by=self.user.user_id))
-            out = _adjustment_dict(req)
+                status="en_attente", requested_by=self.user.user_id,
+                stock_at_request=prod.quantity or 0))
+            out = self._adjustment_d(req)
             self.audit_repo.log_user_action(current_user=self.user, resource_type="StockAdjustmentRequest",
                                             action_performed="CREATE", resource_id=req.id, new_values=out)
             payload = {"request_id": req.id, "product_name": prod.drug_name, "kind": kind,
@@ -568,8 +584,9 @@ class StockController:
         return [{"id": pid, "name": name} for pid, name in self.repo.list_products_lookup()]
 
     def list_adjustment_requests(self, status: Optional[str] = None, mine_only: bool = False) -> List[Dict[str, Any]]:
-        return [_adjustment_dict(a) for a in
-                self.repo.list_adjustments(status, self.user.user_id if mine_only else None)]
+        rows = self.repo.list_adjustments(status, self.user.user_id if mine_only else None)
+        names = self.repo.user_names(i for a in rows for i in (a.requested_by, a.decided_by))
+        return [_adjustment_dict(a, names) for a in rows]
 
     def approve_adjustment(self, request_id: int) -> Dict[str, Any]:
         try:
@@ -581,8 +598,15 @@ class StockController:
             if req.kind == "reapprovisionnement":
                 after = self.repo.apply_stock_delta(req.product_id, req.quantity, "renew", note, self.user)
                 before = after - req.quantity
+            elif req.stock_at_request is not None:
+                # ecart (compte - stock du systeme a la demande) applique au stock ACTUEL,
+                # sous le verrou produit pris par apply_stock_delta (409 si < 0, rien d'ecrit) :
+                # les ventes faites entre la demande et l'approbation ne sont pas ecrasees.
+                delta = req.quantity - req.stock_at_request
+                after = self.repo.apply_stock_delta(req.product_id, delta, "update", note, self.user)
+                before = after - delta
             else:
-                # delta calcule sous le verrou produit (stock au moment de l'approbation)
+                # demande anterieure a la migration 020 : valeur absolue, delta calcule sous verrou
                 before, after = self.repo.set_stock_quantity(req.product_id, req.quantity, "update", note, self.user)
             old_status = req.status
             req.status = "approuve"
@@ -591,7 +615,7 @@ class StockController:
             req.decided_by = self.user.user_id
             req.decided_at = datetime.utcnow()
             self.session.flush()
-            out = _adjustment_dict(req)
+            out = self._adjustment_d(req)
             self.audit_repo.log_user_action(current_user=self.user, resource_type="StockAdjustmentRequest",
                                             action_performed="APPROVE", resource_id=req.id,
                                             old_values={"status": old_status}, new_values=out)
@@ -649,7 +673,7 @@ class StockController:
         req.decided_by = self.user.user_id
         req.decided_at = datetime.utcnow()
         self.session.flush()
-        out = _adjustment_dict(req)
+        out = self._adjustment_d(req)
         self.audit_repo.log_user_action(current_user=self.user, resource_type="StockAdjustmentRequest",
                                         action_performed=action, resource_id=req.id,
                                         old_values={"status": "en_attente"},
@@ -684,6 +708,18 @@ class StockController:
         return {"items": items, "total": total, "page": page, "per_page": per_page}
 
     # ---------------- helpers ----------------
+    def _lot_d(self, lot):
+        return _lot_dict(lot, self.repo.user_names([lot.created_by]))
+
+    def _receipt_d(self, r):
+        return _receipt_dict(r, self.repo.user_names([r.created_by, r.controlled_by]))
+
+    def _incident_d(self, i):
+        return _incident_dict(i, self.repo.user_names([i.created_by, i.controlled_by]))
+
+    def _adjustment_d(self, a):
+        return _adjustment_dict(a, self.repo.user_names([a.requested_by, a.decided_by]))
+
     def _role_name(self) -> Optional[str]:
         role = getattr(self.user, "application_role", None)
         return role.role_name if role else None
@@ -713,7 +749,7 @@ class StockController:
         r.controlled_by = self.user.user_id
         r.controlled_at = datetime.utcnow()
         self.session.flush()
-        out = _receipt_dict(r)
+        out = self._receipt_d(r)
         self.audit_repo.log_user_action(current_user=self.user, resource_type="StockReceipt",
                                         action_performed=action, resource_id=r.id,
                                         old_values={"status": "a_controler"},

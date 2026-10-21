@@ -57,7 +57,7 @@
               {{ m.change_qty > 0 ? '+' : '' }}{{ m.change_qty }}
             </td>
             <td class="py-2 max-w-xs">{{ m.note }}</td>
-            <td class="py-2">{{ m.created_by != null ? '#' + m.created_by : '' }}</td>
+            <td class="py-2">{{ m.created_by || '' }}</td>
           </tr>
         </tbody>
       </table>

@@ -34,14 +34,17 @@
             <td class="py-2 whitespace-nowrap">{{ formatDateTime(r.requested_at) }}</td>
             <td class="py-2">
               {{ r.product_name }}
-              <div v-if="r.status === 'en_attente' && r.current_quantity !== null && r.current_quantity !== undefined" class="text-xs text-gray-500">
+              <div v-if="r.kind === 'correction' && r.stock_at_request !== null && r.stock_at_request !== undefined" class="text-xs text-gray-500">
+                {{ $t('stockAdjust.correction_detail', { n: r.quantity, m: r.stock_at_request, k: r.current_quantity ?? '—' }) }}
+              </div>
+              <div v-else-if="r.status === 'en_attente' && r.current_quantity !== null && r.current_quantity !== undefined" class="text-xs text-gray-500">
                 {{ $t('stockAdjust.current_stock_n', { n: r.current_quantity }) }}
               </div>
             </td>
             <td class="py-2">{{ $t(`stockAdjust.kind.${r.kind}`) }}</td>
             <td class="py-2">{{ r.kind === 'reapprovisionnement' ? '+' : '= ' }}{{ r.quantity }}</td>
             <td class="py-2 max-w-xs">{{ r.reason }}</td>
-            <td class="py-2">#{{ r.requested_by }}</td>
+            <td class="py-2">{{ actorLabel(r.requested_by_name, r.requested_by) }}</td>
             <td class="py-2">
               <span class="px-2 py-0.5 rounded-full text-xs font-medium" :class="badge(r.status)">{{ $t(`stockAdjust.status.${r.status}`) }}</span>
               <div v-if="r.decision_note" class="text-xs text-gray-600 mt-1">{{ $t('stockAdjust.decision_note') }} : {{ r.decision_note }}</div>
@@ -83,6 +86,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { actorLabel } from '@/utils/actorName';
 import { StockOpsGateway, describeStockError } from '@/services/StockOpsGateway';
 
 const { t } = useI18n();

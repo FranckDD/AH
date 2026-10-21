@@ -144,5 +144,7 @@ class StockAdjustmentRequest(Base):
     decision_note = Column(Text, nullable=True)
     stock_before = Column(Integer, nullable=True)
     stock_after = Column(Integer, nullable=True)
+    # stock du systeme lu a la creation (NULL = demande anterieure a la migration 020)
+    stock_at_request = Column(Integer, nullable=True)
 
     product = relationship('Pharmacy')
