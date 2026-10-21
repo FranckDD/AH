@@ -113,6 +113,11 @@ class PharmacyController:
         return prod
 
     def update_product(self, medication_id: int, data: dict):
+        roles = {str(r).strip().lower() for r in (getattr(self.user, "roles", None) or []) if r}
+        if "quantity" in data and "admin" not in roles:  # fail-closed : sans utilisateur => refuse
+            raise PermissionError(
+                "Seul l'admin peut modifier une quantité : passez par une réception, "
+                "une avarie ou une demande d'ajustement.")
         prod = self.repo.update(medication_id, data, self.user)
         self._invalidate_stats()
         self._trigger_stock_alert(prod)

@@ -20,7 +20,7 @@ from .labo_schemas import (
 
 # --- IMPORTS BACKEND ---
 from ...database import SessionLocal
-from api_backend.backend_app.routes.auth.auth_endpoints import get_current_user, role_required
+from api_backend.backend_app.routes.auth.auth_endpoints import get_current_user, role_required, deny_roles
 from api_backend.backend_app.utils.pdf_generator import build_medical_pdf
 from api_backend.backend_app.utils.patient_resolution import resolve_lab_result_id_from_path
 from fastapi.responses import StreamingResponse
@@ -116,7 +116,8 @@ def get_paillasse_list(ctrl: LabController = Depends(get_lab_controller)):
     # Assure-toi d'avoir ajouté get_paillasse_list dans ton Controller comme vu précédemment
     return ctrl.get_paillasse_list()
 
-@router.get("/exams/{examen_id}/params", response_model=List[Dict])
+@router.get("/exams/{examen_id}/params", response_model=List[Dict],
+            dependencies=[Depends(deny_roles("StockController"))])
 def list_parametres(examen_id: int, ctrl: LabController = Depends(get_lab_controller)):
     """Liste les paramètres configurés pour un examen."""
     return ctrl.list_parametres(examen_id)

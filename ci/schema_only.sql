@@ -4822,6 +4822,124 @@ CREATE POLICY medical_policy ON public.patients TO app_medical USING (true);
 
 
 --
+-- Migration 019: fabrication, reception et avaries du stock
+--
+
+CREATE TABLE public.production_lots (
+    id serial PRIMARY KEY,
+    lot_number varchar(30) NOT NULL,
+    product_id integer NOT NULL REFERENCES public.pharmacy(medication_id),
+    quantity_produced integer NOT NULL,
+    production_date date NOT NULL,
+    delivery_date date,
+    expiry_date date,
+    producer varchar(150),
+    status varchar(20) NOT NULL DEFAULT 'produit',
+    created_by integer NOT NULL REFERENCES public.users(user_id),
+    created_at timestamp NOT NULL DEFAULT now(),
+    CONSTRAINT production_lots_lot_number_key UNIQUE (lot_number),
+    CONSTRAINT production_lots_quantity_check CHECK (quantity_produced > 0),
+    CONSTRAINT production_lots_status_check
+        CHECK (status IN ('produit','livre','recu','annule'))
+);
+CREATE INDEX idx_production_lots_status
+    ON public.production_lots (status);
+
+CREATE TABLE public.stock_receipts (
+    id serial PRIMARY KEY,
+    receipt_number varchar(30) NOT NULL,
+    origin varchar(20) NOT NULL,
+    production_lot_id integer REFERENCES public.production_lots(id),
+    supplier varchar(150),
+    delivery_ref varchar(100),
+    received_date date NOT NULL,
+    status varchar(20) NOT NULL DEFAULT 'a_controler',
+    created_by integer NOT NULL REFERENCES public.users(user_id),
+    created_at timestamp NOT NULL DEFAULT now(),
+    controlled_by integer REFERENCES public.users(user_id),
+    controlled_at timestamp,
+    reject_reason text,
+    CONSTRAINT stock_receipts_receipt_number_key UNIQUE (receipt_number),
+    CONSTRAINT stock_receipts_origin_check
+        CHECK (origin IN ('fabrication','fournisseur')),
+    CONSTRAINT stock_receipts_status_check
+        CHECK (status IN ('a_controler','valide','rejete')),
+    CONSTRAINT stock_receipts_origin_lot_check CHECK (
+        (origin = 'fabrication' AND production_lot_id IS NOT NULL) OR
+        (origin = 'fournisseur' AND production_lot_id IS NULL))
+);
+CREATE INDEX idx_stock_receipts_status
+    ON public.stock_receipts (status);
+
+CREATE TABLE public.stock_receipt_lines (
+    id serial PRIMARY KEY,
+    receipt_id integer NOT NULL
+        REFERENCES public.stock_receipts(id) ON DELETE CASCADE,
+    product_id integer NOT NULL REFERENCES public.pharmacy(medication_id),
+    qty_expected integer,
+    qty_good integer NOT NULL DEFAULT 0,
+    qty_damaged integer NOT NULL DEFAULT 0,
+    qty_lost integer NOT NULL DEFAULT 0,
+    qty_defective integer NOT NULL DEFAULT 0,
+    lot_number varchar(30),
+    expiry_date date,
+    CONSTRAINT stock_receipt_lines_qty_good_check CHECK (qty_good >= 0),
+    CONSTRAINT stock_receipt_lines_qty_damaged_check CHECK (qty_damaged >= 0),
+    CONSTRAINT stock_receipt_lines_qty_lost_check CHECK (qty_lost >= 0),
+    CONSTRAINT stock_receipt_lines_qty_defective_check CHECK (qty_defective >= 0)
+);
+CREATE INDEX idx_stock_receipt_lines_receipt
+    ON public.stock_receipt_lines (receipt_id);
+
+CREATE TABLE public.stock_incidents (
+    id serial PRIMARY KEY,
+    product_id integer NOT NULL REFERENCES public.pharmacy(medication_id),
+    kind varchar(20) NOT NULL,
+    quantity integer NOT NULL,
+    reason text NOT NULL,
+    incident_date date NOT NULL,
+    status varchar(20) NOT NULL DEFAULT 'a_controler',
+    created_by integer NOT NULL REFERENCES public.users(user_id),
+    created_at timestamp NOT NULL DEFAULT now(),
+    controlled_by integer REFERENCES public.users(user_id),
+    controlled_at timestamp,
+    reject_reason text,
+    CONSTRAINT stock_incidents_kind_check
+        CHECK (kind IN ('endommage','perdu','defectueux')),
+    CONSTRAINT stock_incidents_quantity_check CHECK (quantity > 0),
+    CONSTRAINT stock_incidents_status_check
+        CHECK (status IN ('a_controler','valide','rejete'))
+);
+CREATE INDEX idx_stock_incidents_status
+    ON public.stock_incidents (status);
+
+CREATE TABLE public.stock_adjustment_requests (
+    id serial PRIMARY KEY,
+    product_id integer NOT NULL REFERENCES public.pharmacy(medication_id),
+    kind varchar(20) NOT NULL,
+    quantity integer NOT NULL,
+    reason text NOT NULL,
+    status varchar(20) NOT NULL DEFAULT 'en_attente',
+    requested_by integer NOT NULL REFERENCES public.users(user_id),
+    requested_at timestamp NOT NULL DEFAULT now(),
+    decided_by integer REFERENCES public.users(user_id),
+    decided_at timestamp,
+    decision_note text,
+    stock_before integer,
+    stock_after integer,
+    CONSTRAINT stock_adjustment_requests_kind_check
+        CHECK (kind IN ('reapprovisionnement','correction')),
+    CONSTRAINT stock_adjustment_requests_quantity_check CHECK (quantity >= 0),
+    CONSTRAINT stock_adjustment_requests_reappro_qty_check
+        CHECK (kind <> 'reapprovisionnement' OR quantity > 0),
+    CONSTRAINT stock_adjustment_requests_status_check
+        CHECK (status IN ('en_attente','approuve','refuse','annule'))
+);
+CREATE INDEX idx_stock_adjustment_requests_status
+    ON public.stock_adjustment_requests (status);
+
+
+--
 -- Name: powersync; Type: PUBLICATION; Schema: -; Owner: -
 --
 

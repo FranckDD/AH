@@ -21,5 +21,6 @@ from .pharmacy import Pharmacy
 from .prayer_book_type import PrayerBookType
 from .retrait import CaisseRetrait
 from .stock_movement import StockMovement
+from .stock_reception import ProductionLot, StockReceipt, StockReceiptLine, StockIncident, StockAdjustmentRequest
 from .toxico import ToxicoPhaseEnum, ToxicoDossier, ToxicoPhaseHistory, ToxicoEvaluation
 from .user import User

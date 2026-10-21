@@ -23,6 +23,14 @@ router = APIRouter(
     dependencies=[Depends(role_required("secretaire","admin","Assistant","ToxicoManager"))]
 )
 
+QTY_FORBIDDEN_MSG = ("Seul l'admin peut modifier une quantité : passez par une réception, "
+                     "une avarie ou une demande d'ajustement.")
+
+
+def _is_admin(user) -> bool:
+    return "admin" in {str(r).strip().lower() for r in (getattr(user, "roles", None) or []) if r}
+
+
 def get_db():
     db = SessionLocal()
     try:
@@ -135,13 +143,17 @@ def get_product(
         logger.exception(f"Error getting product {medication_id}")
         raise HTTPException(500, "Internal server error")
 
-@router.post("/", response_model=PharmacyResponse, status_code=201)
+@router.post("/", response_model=PharmacyResponse, status_code=201,
+             dependencies=[Depends(role_required("admin", "Assistant", "ToxicoManager"))])
 def create_product(
     data: PharmacyCreate,
     ctrl: PharmacyController = Depends(get_pharmacy_controller)
 ):
     try:
-        product = ctrl.create_product(data.model_dump())
+        payload = data.model_dump()
+        if not _is_admin(ctrl.user):
+            payload["quantity"] = 0  # le stock initial passe par une réception
+        product = ctrl.create_product(payload)
         return normalize_pharmacy_data(product)
     except ValueError as e:
         raise HTTPException(400, str(e))
@@ -151,15 +163,21 @@ def create_product(
         logger.exception("Error creating pharmacy product")
         raise HTTPException(500, "Internal server error")
 
-@router.put("/{medication_id}", response_model=PharmacyResponse)
+@router.put("/{medication_id}", response_model=PharmacyResponse,
+            dependencies=[Depends(role_required("admin", "Assistant", "ToxicoManager"))])
 def update_product(
     medication_id: int,
     data: PharmacyUpdate,
     ctrl: PharmacyController = Depends(get_pharmacy_controller)
 ):
+    payload = data.model_dump(exclude_unset=True)
+    if "quantity" in payload and not _is_admin(ctrl.user):
+        raise HTTPException(403, QTY_FORBIDDEN_MSG)
     try:
-        product = ctrl.update_product(medication_id, data.model_dump(exclude_unset=True))
+        product = ctrl.update_product(medication_id, payload)
         return normalize_pharmacy_data(product)
+    except PermissionError as e:
+        raise HTTPException(403, str(e))
     except ValueError as e:
         raise HTTPException(404, str(e))
     except IntegrityError:
@@ -168,7 +186,8 @@ def update_product(
         logger.exception(f"Error updating product {medication_id}")
         raise HTTPException(500, "Internal server error")
 
-@router.delete("/{medication_id}", status_code=204)
+@router.delete("/{medication_id}", status_code=204,
+               dependencies=[Depends(role_required("admin"))])
 def delete_product(
     medication_id: int,
     ctrl: PharmacyController = Depends(get_pharmacy_controller)
@@ -181,7 +200,8 @@ def delete_product(
         logger.exception(f"Error deleting product {medication_id}")
         raise HTTPException(500, "Internal server error")
 
-@router.post("/{medication_id}/renew", response_model=PharmacyResponse)
+@router.post("/{medication_id}/renew", response_model=PharmacyResponse,
+             dependencies=[Depends(role_required("admin"))])
 def renew_stock(
     medication_id: int,
     added_quantity: int = Query(..., gt=0, description="Quantité à ajouter"),

@@ -9,7 +9,7 @@ from api_backend.backend_app.database import SessionLocal
 from controller.user_controller import UserController
 from repositories.user_repo import UserRepository
 from repositories.role_repo import RoleRepository
-from api_backend.backend_app.routes.auth.auth_endpoints import get_current_user, role_required
+from api_backend.backend_app.routes.auth.auth_endpoints import get_current_user, role_required, deny_roles
 from api_backend.backend_app.exceptions import translate_integrity_error
 from .users_schemas import RoleOut, SpecialtyOut, UserCreate, UserUpdate, UserOut, UserListResponse
 from .mapping import normalize_user_data
@@ -51,7 +51,8 @@ def _safe_validate_user(raw: Any) -> UserOut:
 #  ZONE LECTURE (GET) - Accessible à tout utilisateur connecté
 # =========================================================================
 
-@router.get("/roles", response_model=List[RoleOut])
+@router.get("/roles", response_model=List[RoleOut],
+            dependencies=[Depends(deny_roles("StockController"))])
 def list_roles(controller: UserController = Depends(get_user_controller)):
     try:
         return controller.get_all_roles()
@@ -59,7 +60,8 @@ def list_roles(controller: UserController = Depends(get_user_controller)):
         logger.exception("Erreur DB list_roles")
         raise HTTPException(status_code=500, detail="Erreur serveur lecture rôles")
 
-@router.get("/specialties", response_model=List[SpecialtyOut])
+@router.get("/specialties", response_model=List[SpecialtyOut],
+            dependencies=[Depends(deny_roles("StockController"))])
 def list_specialties(controller: UserController = Depends(get_user_controller)):
     try:
         return controller.get_all_specialties()
@@ -89,7 +91,8 @@ def list_users(
     }
 
 
-@router.get("/doctors", response_model=List[UserOut])
+@router.get("/doctors", response_model=List[UserOut],
+            dependencies=[Depends(deny_roles("StockController"))])
 def list_doctors(user_ctrl: UserController = Depends(get_user_controller)):
     """Récupère la liste des médecins actifs pour les sélections (prescriptions)."""
     try:
@@ -100,7 +103,8 @@ def list_doctors(user_ctrl: UserController = Depends(get_user_controller)):
         raise HTTPException(status_code=500, detail=str(e)) 
 
 
-@router.get("/managers", response_model=List[UserOut])
+@router.get("/managers", response_model=List[UserOut],
+            dependencies=[Depends(deny_roles("StockController"))])
 def list_managers(user_ctrl: UserController = Depends(get_user_controller)):
     """Récupère les comptes admin/promoteur actifs pour le sélecteur de
     destinataire d'une demande de réduction (chantier notifications)."""

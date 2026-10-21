@@ -15,6 +15,12 @@ class PharmacyRepository:
 
     def get_by_id(self, medication_id: int) -> Pharmacy:
         return self.session.get(Pharmacy, medication_id)
+
+    def _lock_product(self, medication_id: int):
+        """Relecture FRAICHE sous verrou (regle R7) avant toute ecriture de quantity."""
+        return (self.session.query(Pharmacy)
+                .filter(Pharmacy.medication_id == medication_id)
+                .with_for_update().populate_existing().one_or_none())
     
     def search(
         self,
@@ -118,7 +124,7 @@ class PharmacyRepository:
         return prod
 
     def update(self, medication_id: int, data: dict, current_user=None) -> Pharmacy:
-        prod = self.get_by_id(medication_id)
+        prod = self._lock_product(medication_id) if 'quantity' in data else self.get_by_id(medication_id)
         if not prod:
             raise ValueError(f"Aucun produit trouvé pour l'ID {medication_id}")
 
@@ -165,7 +171,7 @@ class PharmacyRepository:
         if added_quantity <= 0:
             raise ValueError("La quantité ajoutée doit être strictement positive.")
 
-        prod = self.get_by_id(medication_id)
+        prod = self._lock_product(medication_id)
         if not prod:
             raise ValueError(f"Aucun produit trouvé pour l'ID {medication_id}")
 

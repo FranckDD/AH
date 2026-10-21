@@ -45,3 +45,10 @@ def test_unknown_role_returns_none():
 def test_normalize_roles_list_dedupes_and_drops_unknown():
     result = normalize_roles_list(["Psychologist", "psychologue", "biologiste", None, ""])
     assert result == ["psychologist"]
+
+
+def test_normalizes_the_stockcontroller_role():
+    assert normalize_role_name("StockController") == "stockcontroller"
+    assert normalize_role_name("stock_controller") == "stockcontroller"
+    assert normalize_role_name("controleur_stock") == "stockcontroller"
+    assert normalize_role_name("contrôleur de stock") == "stockcontroller"

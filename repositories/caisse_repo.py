@@ -18,6 +18,22 @@ from repositories.config_repo import ConfigRepository
 
 
 class CaisseRepository:
+    def _lock_product(self, product_id):
+        """Relecture FRAICHE et verrouillee d'un produit (regle R7).
+
+        Un simple session.get() rend la valeur de l'identity map : une validation
+        de reception/avarie commitee entre-temps par apply_stock_delta serait
+        ecrasee. FOR UPDATE + populate_existing() relit la ligne sous verrou."""
+        return (self.session.query(Pharmacy)
+                .filter(Pharmacy.medication_id == product_id)
+                .with_for_update().populate_existing().one_or_none())
+
+    def _lock_products_sorted(self, product_ids):
+        """Verrouille les produits en ordre croissant d'id (meme ordre que
+        apply_stock_delta / validation de reception : pas d'interblocage)."""
+        for pid in sorted({int(p) for p in product_ids if p is not None}):
+            self._lock_product(pid)
+
     def __init__(self, session: Session):
         self.session = session
 
@@ -222,6 +238,9 @@ class CaisseRepository:
              # Sécurité si aucune ligne n'est envoyée
              pass 
 
+        _stock_types = ("médicament", "medication", "vente médicament", "carnet", "booklet", "vente carnet")
+        self._lock_products_sorted(l["item_ref_id"] for l in items
+                                   if str(l["item_type"]).lower() in _stock_types)
         for line in items:
             item_type = line["item_type"]
             ref_id    = line["item_ref_id"]
@@ -232,7 +251,7 @@ class CaisseRepository:
             if item_type.lower() in ("médicament", "medication", "vente médicament", "carnet", "booklet", "vente carnet"):
                 
                 # 1. Récupérer le produit
-                product = self.session.get(Pharmacy, ref_id)
+                product = self._lock_product(ref_id)
                 if not product:
                     raise ValueError(f"Produit (ID: {ref_id}) introuvable dans le stock.")
 
@@ -391,9 +410,14 @@ class CaisseRepository:
         # Absent = ne pas toucher ; present (meme []) = remplacer.
         if "items" in data:
             existing_items = list(tx.items)
+            _stock_types = ("médicament", "medication", "carnet", "booklet")
+            # R7 : verrouiller anciens ET nouveaux produits, ordre croissant, avant toute ecriture
+            self._lock_products_sorted(
+                [i.item_ref_id for i in existing_items if i.item_type.lower() in _stock_types]
+                + [l["item_ref_id"] for l in data.get("items", []) if str(l["item_type"]).lower() in _stock_types])
             for old_item in existing_items:
                 if old_item.item_type.lower() in ("médicament", "medication", "carnet", "booklet"):
-                    med = self.session.get(Pharmacy, old_item.item_ref_id)
+                    med = self._lock_product(old_item.item_ref_id)
                     if med:
                         med.quantity += old_item.quantity
                         med.update_stock_status()
@@ -412,7 +436,7 @@ class CaisseRepository:
                 item_note = line.get("note")
 
                 if item_type.lower() in ("médicament", "medication", "carnet", "booklet"):
-                    med = self.session.get(Pharmacy, ref_id)
+                    med = self._lock_product(ref_id)
                     if not med:
                         raise ValueError(f"Produit introuvable pour ID={ref_id}")
                     if med.quantity < qty:
@@ -453,11 +477,13 @@ class CaisseRepository:
         if tx.status == 'cancelled':
             raise ValueError("Cette transaction est déjà annulée.")
 
+        keywords = ["médicament", "medicament", "carnet", "booklet"]
+        self._lock_products_sorted(i.item_ref_id for i in tx.items
+                                   if any(k in str(i.item_type).lower().strip() for k in keywords))
         for item in tx.items:
             t_type = str(item.item_type).lower().strip()
-            keywords = ["médicament", "medicament", "carnet", "booklet"]
             if any(k in t_type for k in keywords):
-                med = self.session.get(Pharmacy, item.item_ref_id)
+                med = self._lock_product(item.item_ref_id)
                 if med:
                     med.quantity += item.quantity
                     if med.threshold and med.quantity <= med.threshold:

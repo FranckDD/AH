@@ -232,6 +232,26 @@ def role_required(*allowed_roles: str):
         return user
     return wrapper
 
+def deny_roles(*denied_roles: str):
+    """
+    Garde NEGATIVE (regle R8) : Depends(deny_roles("StockController")).
+    Pour les routes "authentifie seulement" utilisees par de nombreux roles
+    (impossible a lister exhaustivement) mais hors du perimetre d'un role
+    restreint. Meme normalisation que role_required ; un utilisateur portant
+    un role refuse est rejete (403).
+    """
+    denied_canon = {c for c in (normalize_role_name(r) for r in denied_roles if r) if c}
+
+    def wrapper(user = Depends(get_current_user)):
+        user_roles = set([r.strip().lower() for r in getattr(user, "roles", []) if r])
+        if user_roles & denied_canon:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Accès refusé : cette fonctionnalité n'est pas ouverte à votre rôle"
+            )
+        return user
+    return wrapper
+
 @router.post("/auth/logout", status_code=status.HTTP_200_OK, tags=["Authentication"])
 def logout(db: Session = Depends(get_db), current_user = Depends(get_current_user)):
     """Révoque tous les tokens actuellement émis pour l'utilisateur courant."""

@@ -12,11 +12,11 @@ from .appointment_schemas import AppointmentCreate, AppointmentUpdate, Appointme
 from controller.appointment_controller import AppointmentController
 from controller.auth_controller import AuthController
 from repositories.appointment_repo import AppointmentRepository
-from api_backend.backend_app.routes.auth.auth_endpoints import get_current_user  # dépendance auth
+from api_backend.backend_app.routes.auth.auth_endpoints import get_current_user, deny_roles  # dépendance auth
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/appointments", tags=["Appointments"], dependencies=[Depends(get_current_user)])
+router = APIRouter(prefix="/appointments", tags=["Appointments"], dependencies=[Depends(get_current_user), Depends(deny_roles("StockController"))])
 
 
 def get_db():
