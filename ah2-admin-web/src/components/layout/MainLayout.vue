@@ -36,30 +36,69 @@
       
       <nav class="flex-1 overflow-y-auto py-4 space-y-2 px-2 custom-scrollbar">
         
-        <template v-for="item in filteredMenu" :key="item.path">
-            
-            <div v-if="item.separator" class="mt-8 pt-4 border-t border-gray-700 mx-2"></div>
+        <template v-for="entry in menuEntries" :key="entry.type === 'group' ? 'g-' + entry.key : entry.item.path">
 
-            <router-link 
-              :to="item.path" 
+            <div v-if="entry.type === 'link' && entry.item.separator" class="mt-8 pt-4 border-t border-gray-700 mx-2"></div>
+
+            <router-link
+              v-if="entry.type === 'link'"
+              :to="entry.item.path"
               :class="[
                 'flex items-center py-2 px-3 rounded-sm transition duration-150 group',
-                isActive(item.path)
-                  ? 'bg-gray-700 font-semibold text-white' 
+                isActive(entry.item.path)
+                  ? 'bg-gray-700 font-semibold text-white'
                   : 'text-gray-400 hover:bg-gray-700 hover:text-white'
               ]"
-              :title="!isSidebarOpen ? t(item.labelKey) : ''"
+              :title="!isSidebarOpen ? t(entry.item.labelKey) : ''"
             >
-              <component 
-                :is="item.icon" 
-                class="h-6 w-6 shrink-0" 
-                :class="isSidebarOpen ? 'mr-3' : 'mx-auto'" 
+              <component
+                :is="entry.item.icon"
+                class="h-6 w-6 shrink-0"
+                :class="isSidebarOpen ? 'mr-3' : 'mx-auto'"
               />
-              
               <span v-if="isSidebarOpen" class="whitespace-nowrap transition-opacity duration-200">
-                {{ t(item.labelKey) }}
+                {{ t(entry.item.labelKey) }}
               </span>
             </router-link>
+
+            <div v-else>
+              <button
+                type="button"
+                @click="onGroupClick(entry)"
+                :class="[
+                  'w-full flex items-center py-2 px-3 rounded-sm transition duration-150 group',
+                  groupActive(entry) ? 'text-white font-semibold' : 'text-gray-400 hover:bg-gray-700 hover:text-white'
+                ]"
+                :title="!isSidebarOpen ? t(entry.labelKey) : ''"
+                :aria-expanded="isGroupOpen(entry)"
+              >
+                <component
+                  :is="entry.icon"
+                  class="h-6 w-6 shrink-0"
+                  :class="isSidebarOpen ? 'mr-3' : 'mx-auto'"
+                />
+                <template v-if="isSidebarOpen">
+                  <span class="whitespace-nowrap flex-1 text-left">{{ t(entry.labelKey) }}</span>
+                  <ChevronDownIcon class="h-4 w-4 shrink-0 transition-transform" :class="isGroupOpen(entry) ? 'rotate-180' : ''" />
+                </template>
+              </button>
+              <ul v-if="isSidebarOpen && isGroupOpen(entry)" class="mt-1 ml-4 pl-2 border-l border-gray-700 space-y-1">
+                <li v-for="child in entry.children" :key="child.path">
+                  <router-link
+                    :to="child.path"
+                    :class="[
+                      'flex items-center py-1.5 px-3 rounded-sm text-sm transition duration-150',
+                      isActive(child.path)
+                        ? 'bg-gray-700 font-semibold text-white'
+                        : 'text-gray-400 hover:bg-gray-700 hover:text-white'
+                    ]"
+                  >
+                    <component :is="child.icon" class="h-5 w-5 shrink-0 mr-2" />
+                    <span class="whitespace-nowrap">{{ t(child.labelKey) }}</span>
+                  </router-link>
+                </li>
+              </ul>
+            </div>
 
         </template>
 
@@ -68,7 +107,7 @@
 
     <div class="flex-1 flex flex-col overflow-hidden w-full">
       
-      <header class="bg-white shadow-md p-4 flex justify-between items-center z-10">
+      <header class="bg-white shadow-md p-4 flex justify-between items-center relative z-40">
         
         <h1 class="text-lg font-semibold text-gray-800">
           {{ $t('common.welcome') }}, <span class="text-green-600">{{ authStore.user?.username || 'Utilisateur' }}</span>
@@ -89,7 +128,7 @@
             >EN</button>
           </div>
 
-          <NotificationBell v-if="authStore.hasRole(['admin', 'promoteur', 'secretaire', 'Assistant', 'StockController'])" />
+          <NotificationBell v-if="authStore.hasRole(['admin', 'promoteur', 'secretaire', 'Assistant', 'StockController', 'laborantin', 'ToxicoManager'])" />
 
           <button
             @click="showAccountModal = true"
@@ -119,6 +158,8 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue';
+import { useRouter } from 'vue-router';
+import { buildMenu, groupContainsPath } from '@/utils/sidebarMenu';
 import { useAuthStore } from '@/stores/auth';
 import { useRoute } from 'vue-router';
 import { useI18n } from 'vue-i18n'; 
@@ -133,12 +174,14 @@ import {
   BeakerIcon, ChartBarIcon, CogIcon, ShieldCheckIcon, CubeIcon,
   Bars3Icon, Bars3CenterLeftIcon, ExclamationCircleIcon, UserCircleIcon,
   CheckBadgeIcon, ClockIcon, ReceiptPercentIcon,
-  ClipboardDocumentCheckIcon, ArrowsRightLeftIcon, AdjustmentsHorizontalIcon
+  ClipboardDocumentCheckIcon, ArrowsRightLeftIcon, AdjustmentsHorizontalIcon,
+  ShoppingCartIcon, ChevronDownIcon
 } from '@heroicons/vue/24/outline';
 
 const authStore = useAuthStore();
 const configStore = useConfigStore();
 const route = useRoute();
+const router = useRouter();
 const { locale, t } = useI18n();
 
 const isSidebarOpen = ref(true);
@@ -222,45 +265,107 @@ const menuItems = [
   },
   {
     path: '/dashboard/stock',
+    group: 'stock',
     labelKey: 'stock.title',
     icon: CubeIcon,
     roles: [ROLES.TOXICO_MANAGER, ROLES.ASSISTANT]
   },
   {
     path: '/dashboard/stock-lots',
+    group: 'stock',
+    adminHidden: true,
     labelKey: 'stockOps.menu_lots',
     icon: BeakerIcon,
     roles: [ROLES.ADMIN, ROLES.ASSISTANT]
   },
   {
     path: '/dashboard/stock-receipts',
+    group: 'stock',
+    adminHidden: true,
     labelKey: 'stockOps.menu_receipts',
     icon: ClipboardDocumentListIcon,
     roles: [ROLES.ADMIN, ROLES.ASSISTANT]
   },
   {
     path: '/dashboard/stock-incidents',
+    group: 'stock',
+    adminHidden: true,
     labelKey: 'stockOps.menu_incidents',
     icon: ExclamationCircleIcon,
     roles: [ROLES.ADMIN, ROLES.ASSISTANT]
   },
   {
     path: '/dashboard/stock-control',
+    group: 'stock',
+    adminHidden: true,
     labelKey: 'stockControl.menu_control',
     icon: ClipboardDocumentCheckIcon,
     roles: [ROLES.STOCK_CONTROLLER, ROLES.ADMIN]
   },
   {
     path: '/dashboard/stock-movements',
+    group: 'stock',
     labelKey: 'stockControl.menu_movements',
     icon: ArrowsRightLeftIcon,
     roles: [ROLES.STOCK_CONTROLLER, ROLES.ADMIN, ROLES.ASSISTANT]
   },
   {
     path: '/dashboard/stock-adjustment-requests',
+    group: 'stock',
     labelKey: 'stockAdjust.menu_admin',
     icon: AdjustmentsHorizontalIcon,
     roles: [ROLES.ADMIN]
+  },
+  // Stock du laboratoire (admin voit tout via filteredMenu)
+  {
+    path: '/dashboard/lab-stock-products',
+    group: 'labstock',
+    labelKey: 'labStock.menu_products',
+    icon: BeakerIcon,
+    roles: [ROLES.LABORANTIN, ROLES.STOCK_CONTROLLER, ROLES.PROMOTEUR, ROLES.TOXICO_MANAGER]
+  },
+  {
+    path: '/dashboard/lab-stock-requests',
+    group: 'labstock',
+    labelKey: 'labStock.menu_requests',
+    icon: ShoppingCartIcon,
+    roles: [ROLES.LABORANTIN, ROLES.STOCK_CONTROLLER, ROLES.PROMOTEUR, ROLES.TOXICO_MANAGER]
+  },
+  {
+    path: '/dashboard/lab-stock-receipts',
+    group: 'labstock',
+    labelKey: 'labStock.menu_receipts',
+    icon: ClipboardDocumentCheckIcon,
+    roles: [ROLES.STOCK_CONTROLLER, ROLES.PROMOTEUR]
+  },
+  {
+    path: '/dashboard/lab-stock-count',
+    group: 'labstock',
+    adminHidden: true,
+    labelKey: 'labStock.menu_count',
+    icon: AdjustmentsHorizontalIcon,
+    roles: [ROLES.LABORANTIN]
+  },
+  {
+    path: '/dashboard/lab-stock-alerts',
+    group: 'labstock',
+    labelKey: 'labStock.menu_alerts',
+    icon: ExclamationCircleIcon,
+    roles: [ROLES.LABORANTIN, ROLES.PROMOTEUR, ROLES.TOXICO_MANAGER]
+  },
+  {
+    path: '/dashboard/lab-stock-movements',
+    group: 'labstock',
+    labelKey: 'labStock.menu_movements',
+    icon: ArrowsRightLeftIcon,
+    roles: [ROLES.STOCK_CONTROLLER, ROLES.PROMOTEUR, ROLES.TOXICO_MANAGER]
+  },
+  {
+    path: '/dashboard/lab-stock-expenses',
+    group: 'labstock',
+    labelKey: 'labStock.menu_expenses',
+    icon: BanknotesIcon,
+    roles: [ROLES.PROMOTEUR, ROLES.TOXICO_MANAGER]
   },
   {
     path: '/dashboard/logs',
@@ -277,20 +382,33 @@ const menuItems = [
   }
 ];
 
-// --- 3. FILTRAGE INTELLIGENT (Computed) ---
-const filteredMenu = computed(() => {
-    // Si ADMIN, on retourne tout (Super User)
-    if (authStore.isAdmin || authStore.hasRole([ROLES.ADMIN])) {
-        return menuItems;
-    }
+// --- 3. FILTRAGE + SOUS-MENUS (logique pure dans utils/sidebarMenu.js) ---
+const MENU_GROUPS = {
+  stock: { labelKey: 'stockOps.menu_group', icon: CubeIcon },
+  labstock: { labelKey: 'labStock.menu_group', icon: BeakerIcon }
+};
 
-    // Sinon, on filtre selon le tableau 'roles' de chaque item
-    return menuItems.filter(item => {
-        if (!item.roles) return false;
-        // La condition magique : est-ce que mon rôle est dans la liste autorisée ?
-        return authStore.hasRole(item.roles);
-    });
-});
+const menuEntries = computed(() => buildMenu(menuItems, {
+    isAdmin: authStore.isAdmin || authStore.hasRole([ROLES.ADMIN]),
+    hasRole: (roles) => authStore.hasRole(roles),
+    groups: MENU_GROUPS
+}));
+
+// Etat ouvert/ferme par groupe (manuel) ; un groupe est ouvert d'office
+// si la route courante est l'un de ses enfants.
+const openGroups = ref({});
+const groupActive = (g) => groupContainsPath(g, route.path);
+const isGroupOpen = (g) => groupActive(g) || !!openGroups.value[g.key];
+const onGroupClick = (g) => {
+    // Sidebar repliee : on navigue vers le premier enfant visible.
+    if (!isSidebarOpen.value) {
+        router.push(g.children[0].path);
+        return;
+    }
+    // Un groupe ouvert d'office par la route reste ouvert (pas de fermeture).
+    if (groupActive(g)) return;
+    openGroups.value = { ...openGroups.value, [g.key]: !openGroups.value[g.key] };
+};
 
 // --- HELPER FONCTIONS ---
 const toggleSidebar = () => {

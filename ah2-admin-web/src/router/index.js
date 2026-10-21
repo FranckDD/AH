@@ -15,6 +15,7 @@ const ROLES = {
   TOXICO_MANAGER: 'ToxicoManager',
   ASSISTANT: 'Assistant',
   STOCK_CONTROLLER: 'StockController',
+  LABORANTIN: 'laborantin',
   MEDECIN: 'medecin',
   NURSE: 'nurse',
   SECRETAIRE: 'secretaire'
@@ -221,6 +222,57 @@ const routes = [
         name: 'stock-movements',
         component: () => import('@/views/modules/stock/StockMovements.vue'),
         meta: { requiresAuth: true, roles: [ROLES.STOCK_CONTROLLER, ROLES.ADMIN, ROLES.ASSISTANT] }
+      },
+      // Stock du laboratoire : lecture = READERS du routeur /lab-stock (admin passe toujours)
+      {
+        path: 'lab-stock-products',
+        name: 'lab-stock-products',
+        component: () => import('@/views/modules/labstock/LabStockProducts.vue'),
+        meta: { requiresAuth: true, roles: [ROLES.LABORANTIN, ROLES.STOCK_CONTROLLER, ROLES.PROMOTEUR, ROLES.TOXICO_MANAGER, ROLES.ADMIN] }
+      },
+      {
+        path: 'lab-stock-requests',
+        name: 'lab-stock-requests',
+        component: () => import('@/views/modules/labstock/LabStockRequests.vue'),
+        meta: { requiresAuth: true, roles: [ROLES.LABORANTIN, ROLES.STOCK_CONTROLLER, ROLES.PROMOTEUR, ROLES.TOXICO_MANAGER, ROLES.ADMIN] }
+      },
+      // Receptions : RECEIVERS (StockController, promoteur, admin) ; comptage : COUNTERS
+      {
+        path: 'lab-stock-receipts',
+        name: 'lab-stock-receipts',
+        component: () => import('@/views/modules/labstock/LabStockReceipts.vue'),
+        meta: { requiresAuth: true, roles: [ROLES.STOCK_CONTROLLER, ROLES.PROMOTEUR, ROLES.ADMIN] }
+      },
+      {
+        path: 'lab-stock-receipts/new',
+        name: 'lab-stock-receipt-new',
+        component: () => import('@/views/modules/labstock/LabStockReceiptForm.vue'),
+        meta: { requiresAuth: true, roles: [ROLES.STOCK_CONTROLLER, ROLES.PROMOTEUR] }
+      },
+      {
+        path: 'lab-stock-count',
+        name: 'lab-stock-count',
+        component: () => import('@/views/modules/labstock/LabStockCount.vue'),
+        meta: { requiresAuth: true, roles: [ROLES.LABORANTIN, ROLES.ADMIN] }
+      },
+      // Alertes / historique : READERS ; depenses : SPENDERS (promoteur, ToxicoManager, admin)
+      {
+        path: 'lab-stock-alerts',
+        name: 'lab-stock-alerts',
+        component: () => import('@/views/modules/labstock/LabStockAlerts.vue'),
+        meta: { requiresAuth: true, roles: [ROLES.LABORANTIN, ROLES.STOCK_CONTROLLER, ROLES.PROMOTEUR, ROLES.TOXICO_MANAGER, ROLES.ADMIN] }
+      },
+      {
+        path: 'lab-stock-movements',
+        name: 'lab-stock-movements',
+        component: () => import('@/views/modules/labstock/LabStockMovements.vue'),
+        meta: { requiresAuth: true, roles: [ROLES.LABORANTIN, ROLES.STOCK_CONTROLLER, ROLES.PROMOTEUR, ROLES.TOXICO_MANAGER, ROLES.ADMIN] }
+      },
+      {
+        path: 'lab-stock-expenses',
+        name: 'lab-stock-expenses',
+        component: () => import('@/views/modules/labstock/LabStockExpenses.vue'),
+        meta: { requiresAuth: true, roles: [ROLES.PROMOTEUR, ROLES.TOXICO_MANAGER, ROLES.ADMIN] }
       },
       {
         path: 'stock-adjustment-requests',

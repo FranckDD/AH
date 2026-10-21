@@ -61,5 +61,13 @@ export const useNotificationStore = defineStore('notification', {
         popNextPopup() {
             return this.popupQueue.shift() || null;
         },
+
+        // Vide la file et renvoie TOUT ce qui est arrive : un seul avertissement
+        // groupe au lieu d'un popup par notification.
+        popAllPopups() {
+            const all = this.popupQueue;
+            this.popupQueue = [];
+            return all;
+        },
     },
 });

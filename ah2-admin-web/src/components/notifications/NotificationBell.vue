@@ -1,6 +1,6 @@
 <!-- src/components/notifications/NotificationBell.vue -->
 <template>
-  <div class="relative">
+  <div class="relative" ref="rootEl">
     <button
       @click="toggleOpen"
       class="relative flex items-center text-gray-600 hover:text-gray-900 transition"
@@ -30,20 +30,32 @@
       </div>
     </div>
 
-    <!-- Popup bloquant pour une nouvelle demande de reduction -->
-    <div v-if="activePopup" class="fixed inset-0 bg-black/30 flex items-center justify-center z-100" @click.self="dismissPopup">
-      <div class="bg-white rounded-xl shadow-2xl p-6 max-w-sm w-full">
-        <h3 class="font-bold text-gray-800 mb-2">{{ labelFor(activePopup) }}</h3>
-        <button @click="dismissPopup" class="mt-4 w-full bg-indigo-600 text-white rounded-lg py-2 font-medium hover:bg-indigo-700">
-          {{ $t('common.ok') }}
-        </button>
-      </div>
-    </div>
+    <!-- Avertissement discret et groupe (type toast Windows) : coin haut-droit,
+         se ferme seul, un clic ouvre la liste. -->
+    <Teleport to="body">
+      <transition name="notif-toast">
+        <div
+          v-if="toast"
+          class="fixed top-24 right-4 w-80 max-w-[calc(100vw-2rem)] bg-white rounded-lg shadow-xl border border-gray-200 border-l-4 border-l-indigo-600 p-3 flex items-start gap-3 cursor-pointer"
+          style="z-index: 9999"
+          role="status"
+          @click.stop="openFromToast"
+        >
+          <BellIcon class="h-5 w-5 text-indigo-600 shrink-0 mt-0.5" />
+          <div class="flex-1 text-sm text-gray-800 min-w-0 break-words">{{ toastText }}</div>
+          <button
+            class="text-gray-400 hover:text-gray-700 text-lg leading-none min-h-[32px] min-w-[32px]"
+            :aria-label="$t('notifications.toast_close')"
+            @click.stop="closeToast"
+          >&times;</button>
+        </div>
+      </transition>
+    </Teleport>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { BellIcon } from '@heroicons/vue/24/outline';
 import { useNotificationStore } from '@/stores/notificationStore';
 import { useAuthStore } from '@/stores/auth';
@@ -52,14 +64,18 @@ import { PrinterBridgeGateway } from '@/services/PrinterBridgeGateway';
 import router from '@/router';
 import { useI18n } from 'vue-i18n';
 import { stockDecidedLabel, adjustmentKindLabel } from '@/utils/stockNotificationLabels';
+import { labNotificationLabel } from '@/utils/labStockLabels';
 
 const { t } = useI18n();
 
 const notificationStore = useNotificationStore();
 const authStore = useAuthStore();
 const open = ref(false);
-const activePopup = ref(null);
+const rootEl = ref(null);
+const toast = ref(null); // { count, last }
+let toastTimer = null;
 let popupCheckTimer = null;
+const TOAST_MS = 7000;
 const printedDecisionIds = new Set(); // evite une double impression si la meme notification est relue
 
 const maybePrintApprovedDiscountTicket = async (n) => {
@@ -89,6 +105,29 @@ const maybePrintApprovedDiscountTicket = async (n) => {
 };
 
 const toggleOpen = () => { open.value = !open.value; };
+
+const onDocumentClick = (e) => {
+  if (open.value && rootEl.value && !rootEl.value.contains(e.target)) open.value = false;
+};
+const onKeydown = (e) => { if (e.key === 'Escape') { open.value = false; closeToast(); } };
+
+const closeToast = () => {
+  toast.value = null;
+  if (toastTimer) { clearTimeout(toastTimer); toastTimer = null; }
+};
+const showToast = (incoming) => {
+  const count = (toast.value ? toast.value.count : 0) + incoming.length;
+  toast.value = { count, last: incoming[incoming.length - 1] };
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(closeToast, TOAST_MS);
+};
+const openFromToast = () => { closeToast(); open.value = true; };
+const toastText = computed(() => {
+  if (!toast.value) return '';
+  return toast.value.count === 1
+    ? labelFor(toast.value.last)
+    : t('notifications.toast_many', { count: toast.value.count });
+});
 
 const labelFor = (n) => {
   if (n.type === 'discount_request') {
@@ -129,6 +168,10 @@ const labelFor = (n) => {
     const decision = t(d.key, d.params);
     return p.reason ? t('notifications.stock_decided_with_reason', { decision, reason: p.reason }) : decision;
   }
+  if (typeof n.type === 'string' && n.type.startsWith('lab_stock_')) {
+    const l = labNotificationLabel(n.type, n.payload);
+    return t(l.key, l.params);
+  }
   return n.type;
 };
 
@@ -160,6 +203,13 @@ const handleClick = async (n) => {
   if (n.type === 'stock_adjustment_request') {
     pushIfRoute('/dashboard/stock-adjustment-requests');
   }
+  if (typeof n.type === 'string' && n.type.startsWith('lab_stock_')) {
+    // Seules les pages existantes sont jointes (pushIfRoute ignore les autres).
+    if (n.type === 'lab_stock_signal' || n.type === 'lab_stock_low') pushIfRoute('/dashboard/lab-stock-requests');
+    else if (n.type === 'lab_stock_expiry') pushIfRoute('/dashboard/lab-stock-alerts');
+    else if (n.type === 'lab_stock_count_reminder') pushIfRoute('/dashboard/lab-stock-count');
+    else if (n.type === 'lab_stock_received') pushIfRoute('/dashboard/lab-stock-products');
+  }
   if (n.type === 'stock_decided') {
     const kind = n.payload?.kind;
     if (kind === 'receipt') pushIfRoute('/dashboard/stock-receipts');
@@ -168,15 +218,13 @@ const handleClick = async (n) => {
   }
 };
 
-const dismissPopup = () => { activePopup.value = null; };
-
 onMounted(() => {
+  document.addEventListener('click', onDocumentClick);
+  document.addEventListener('keydown', onKeydown);
   notificationStore.startPolling();
   popupCheckTimer = setInterval(() => {
-    if (!activePopup.value) {
-      const next = notificationStore.popNextPopup();
-      if (next) activePopup.value = next;
-    }
+    const incoming = notificationStore.popAllPopups();
+    if (incoming.length) showToast(incoming);
     // Verifie aussi les decisions de reduction fraichement recues,
     // independamment du popup (qui ne se declenche que pour discount_request,
     // jamais discount_decided - voir labelFor)
@@ -185,7 +233,15 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
+  document.removeEventListener('click', onDocumentClick);
+  document.removeEventListener('keydown', onKeydown);
+  closeToast();
   notificationStore.stopPolling();
   if (popupCheckTimer) clearInterval(popupCheckTimer);
 });
 </script>
+
+<style scoped>
+.notif-toast-enter-active, .notif-toast-leave-active { transition: transform 0.25s ease, opacity 0.25s ease; }
+.notif-toast-enter-from, .notif-toast-leave-to { transform: translateX(110%); opacity: 0; }
+</style>
