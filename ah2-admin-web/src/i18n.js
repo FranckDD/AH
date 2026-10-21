@@ -3195,6 +3195,8 @@ const messages = {
       my_requests: "My requests",
       refresh: "Refresh",
       no_requests: "No request.",
+      filter_open: "Open",
+      filter_all: "All",
       decision_note: "Decision reason",
       col_stock_change: "Stock before → after",
       requester: "Requester",
