@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import { useAuthStore } from '@/stores/auth'; 
+import { resolveRootPath } from '@/utils/postLoginRoute';
 
 // On garde uniquement les vues critiques en import statique pour que l'app se lance vite
 import LoginView from '@/views/LoginView.vue';
@@ -21,6 +22,14 @@ const ROLES = {
   SECRETAIRE: 'secretaire'
 };
 
+// Cible des redirections racine : depend du role connecte (admin -> overview,
+// medecin/nurse -> /medical/doctors...), jamais d'une route que le role ne peut
+// pas ouvrir. Non connecte -> /login.
+function rootTarget() {
+  const auth = useAuthStore();
+  return resolveRootPath(auth.userRole, !!(auth.token && auth.user));
+}
+
 const routes = [
   // --- ROUTES PUBLIQUES ---
   { path: '/login', component: LoginView },
@@ -36,7 +45,7 @@ const routes = [
       {
         path: '', 
         // Redirection par défaut (sera interceptée par le login intelligent, mais utile au cas où)
-        redirect: '/dashboard/overview' 
+        redirect: () => rootTarget()
       },
       
       // 1. Vue d'ensemble (Admin Principal)
@@ -143,7 +152,8 @@ const routes = [
         component: () => import('@/views/modules/toxico/ToxicoList.vue'),
         meta: { 
             requiresAuth: true, 
-            roles: [ROLES.ADMIN, ROLES.TOXICO_MANAGER, ROLES.PSYCHOLOGIST, ROLES.SPIRITUAL, ROLES.ASSISTANT] 
+            // promoteur (2026-10-22) : lecture + validation de sortie uniquement
+            roles: [ROLES.ADMIN, ROLES.TOXICO_MANAGER, ROLES.PSYCHOLOGIST, ROLES.SPIRITUAL, ROLES.ASSISTANT, ROLES.PROMOTEUR] 
         } 
       },
 
@@ -528,8 +538,8 @@ const routes = [
   },
 
   // Routes de secours
-  { path: '/', redirect: '/dashboard' },
-  { path: '/:pathMatch(.*)*', redirect: '/dashboard' }
+  { path: '/', redirect: () => rootTarget() },
+  { path: '/:pathMatch(.*)*', redirect: () => rootTarget() }
 ];
 
 const router = createRouter({
@@ -583,7 +593,7 @@ router.beforeEach((to, from, next) => {
   
   // Si on est déjà connecté et qu'on tente d'aller au login -> redirection intelligente
   if (to.path === '/login' && isAuthenticated) {
-      return next('/dashboard');
+      return next(resolveRootPath(authStore.userRole, true));
   }
 
   // 2. Vérification Autorisation (RBAC)

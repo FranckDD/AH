@@ -217,7 +217,8 @@ const menuItems = [
     path: '/dashboard/toxico',
     labelKey: 'toxico.title',
     icon: ExclamationCircleIcon, // 🔄 Changement d'icône pour éviter doublon avec Labo
-    roles: [ROLES.PSYCHOLOGIST, ROLES.SPIRITUAL, ROLES.TOXICO_MANAGER, ROLES.ASSISTANT]
+    // promoteur (2026-10-22) : lecture + validation de sortie uniquement
+    roles: [ROLES.PSYCHOLOGIST, ROLES.SPIRITUAL, ROLES.TOXICO_MANAGER, ROLES.ASSISTANT, ROLES.PROMOTEUR]
   },
   // 🟢 AJOUT MODULE LABORATOIRE 🟢
   {

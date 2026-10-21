@@ -80,6 +80,7 @@
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
+import { getPostLoginPath } from '@/utils/postLoginRoute';
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -90,58 +91,8 @@ const error = ref(null);
 const isLoading = ref(false);
 const showForgotPasswordModal = ref(false);
 
-// 🟢 FONCTION INTELLIGENTE DE REDIRECTION
-// C'est ici que tu définis la "Home Page" de chaque rôle
-const getRedirectPath = (role) => {
-    // Normalisation reelle (registre L4e, chantier L4b-e) - le switch
-    // comparait avant la casse exacte de la BD malgre ce commentaire.
-    const userRole = (role || '').toLowerCase();
-
-    switch (userRole) {
-        case 'admin':
-            // L'admin va sur la vue d'ensemble globale
-            return '/dashboard/overview';
-
-        case 'promoteur':
-            // Meme vue d'ensemble que l'admin (regard global sur
-            // l'activite), sans les actions d'administration - route
-            // MainLayout.vue gardee separement par role sur chaque item
-            return '/dashboard/overview';
-
-        case 'psychologist':
-        case 'spiritualcounsellor':
-            // Eux n'ont accès qu'à la partie Toxico
-            return '/dashboard/toxico-dashboard';
-
-        // ✅ NOUVEAU : Rôle LABO
-        case 'laborantin':
-        case 'biologiste': // Si tu as ce rôle
-            // On le redirige vers SON tableau de bord spécifique
-            return '/dashboard/labo/overviewlab';
-
-        case 'toxicomanager':
-        case 'assistant':
-            // Le manager Toxico a aussi intérêt à voir le dashboard Toxico en premier
-            return '/dashboard/toxico-dashboard';
-
-        case 'stockcontroller':
-            // Controleur de stock : page de controle (route creee avec le module stock)
-            return '/dashboard/stock-control';
-
-        case 'medecin':
-        case 'nurse':
-            // Fenetre medicale independante (chantier 3) - jamais le dashboard toxico
-            return '/medical/appointments';
-
-        case 'secretaire':
-            // Fenetre secretariat independante (chantier 3, sous-projet 2)
-            return '/secretariat/';
-
-        default:
-            // Par sécurité, si le rôle est inconnu, on tente une page neutre ou on laisse le router gérer
-            return '/dashboard/toxico-dashboard'; 
-    }
-};
+// Page d'accueil de chaque role : voir src/utils/postLoginRoute.js
+const getRedirectPath = getPostLoginPath;
 
 const handleLogin = async () => {
   error.value = null; 

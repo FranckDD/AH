@@ -39,6 +39,7 @@
     <template v-else>
       <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
         <StatCard
+          v-if="isDoctor"
           :title="t('doctorKpi.total_appointments')"
           :value="kpiStore.stats.totalAppointments"
           :icon="CalendarDaysIcon"
@@ -46,6 +47,7 @@
           iconColor="text-teal-600"
         />
         <StatCard
+          v-if="isDoctor"
           :title="t('doctorKpi.distinct_patients')"
           :value="kpiStore.stats.distinctPatients"
           :icon="UserGroupIcon"
@@ -62,6 +64,7 @@
           :trendIsPositive="true"
         />
         <StatCard
+          v-if="isDoctor"
           :title="t('doctorKpi.prescriptions_total')"
           :value="kpiStore.stats.prescriptionsCount"
           :icon="ClipboardDocumentListIcon"
@@ -105,7 +108,7 @@
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div class="bg-white rounded-2xl p-6 shadow-xs border border-gray-100">
+        <div v-if="isDoctor" class="bg-white rounded-2xl p-6 shadow-xs border border-gray-100">
           <h2 class="text-sm font-bold text-gray-700 uppercase tracking-wider mb-4">
             {{ t('doctorKpi.by_status') }}
           </h2>
@@ -169,6 +172,14 @@ const authStore = useAuthStore();
 // qui n'est pas medecin, meme pattern que
 // NurseShiftsView.vue::canManage / authStore.hasRole().
 const canClaim = computed(() => authStore.hasRole(['medecin']));
+
+// Les KPI RDV et prescriptions sont calcules pour l'utilisateur connecte en
+// tant que medecin assigne / prescripteur (DoctorDashboardController utilise
+// current_user.user_id). Une infirmiere n'est ni l'un ni l'autre : ces cartes
+// seraient toujours a 0, on les cache. Restent visibles pour elle : dossiers
+// crees par elle, repartition par motif, hospitalisations en cours (globale)
+// et la file d'attente.
+const isDoctor = computed(() => authStore.hasRole(['medecin']));
 
 // Apres une prise en charge reussie, on redirige vers le dossier
 // consolide du patient (chantier 6) : c'est de la que le medecin met a
