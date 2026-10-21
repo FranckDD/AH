@@ -4939,6 +4939,174 @@ CREATE TABLE public.stock_adjustment_requests (
 CREATE INDEX idx_stock_adjustment_requests_status
     ON public.stock_adjustment_requests (status);
 
+CREATE TABLE public.lab_stock_products (
+    id serial PRIMARY KEY,
+    name varchar(150) NOT NULL,
+    packaging varchar(100),
+    alert_threshold integer NOT NULL DEFAULT 0,
+    supplier varchar(150),
+    quantity integer NOT NULL DEFAULT 0,
+    last_counted_at timestamp,
+    is_active boolean NOT NULL DEFAULT true,
+    created_by integer NOT NULL REFERENCES public.users(user_id),
+    created_at timestamp NOT NULL DEFAULT now(),
+    CONSTRAINT lab_stock_products_threshold_check CHECK (alert_threshold >= 0),
+    CONSTRAINT lab_stock_products_quantity_check CHECK (quantity >= 0)
+);
+CREATE UNIQUE INDEX uq_lab_stock_products_name_active
+    ON public.lab_stock_products (lower(name)) WHERE is_active;
+
+CREATE TABLE public.lab_stock_receipts (
+    id serial PRIMARY KEY,
+    invoice_number varchar(100) NOT NULL,
+    supplier varchar(150) NOT NULL,
+    delivery_date date NOT NULL,
+    total_amount numeric(10,2) NOT NULL DEFAULT 0,
+    status varchar(20) NOT NULL DEFAULT 'valide',
+    cancel_reason text,
+    created_by integer NOT NULL REFERENCES public.users(user_id),
+    created_at timestamp NOT NULL DEFAULT now(),
+    cancelled_by integer REFERENCES public.users(user_id),
+    cancelled_at timestamp,
+    CONSTRAINT lab_stock_receipts_total_check CHECK (total_amount >= 0),
+    CONSTRAINT lab_stock_receipts_status_check
+        CHECK (status IN ('valide','annule'))
+);
+CREATE UNIQUE INDEX uq_lab_stock_receipts_supplier_invoice
+    ON public.lab_stock_receipts (lower(supplier), lower(invoice_number))
+    WHERE status = 'valide';
+
+CREATE TABLE public.lab_stock_receipt_lines (
+    id serial PRIMARY KEY,
+    receipt_id integer NOT NULL
+        REFERENCES public.lab_stock_receipts(id) ON DELETE CASCADE,
+    product_id integer NOT NULL REFERENCES public.lab_stock_products(id),
+    ordered_qty integer,
+    received_qty integer NOT NULL,
+    unit_price numeric(10,2) NOT NULL DEFAULT 0,
+    line_total numeric(10,2) NOT NULL DEFAULT 0,
+    lot_number varchar(50) NOT NULL,
+    expiry_date date NOT NULL,
+    note text,
+    CONSTRAINT lab_stock_receipt_lines_ordered_check
+        CHECK (ordered_qty IS NULL OR ordered_qty >= 0),
+    CONSTRAINT lab_stock_receipt_lines_received_check CHECK (received_qty > 0),
+    CONSTRAINT lab_stock_receipt_lines_price_check CHECK (unit_price >= 0),
+    CONSTRAINT lab_stock_receipt_lines_total_check CHECK (line_total >= 0)
+);
+CREATE INDEX idx_lab_stock_receipt_lines_receipt
+    ON public.lab_stock_receipt_lines (receipt_id);
+
+CREATE TABLE public.lab_stock_counts (
+    id serial PRIMARY KEY,
+    counted_by integer NOT NULL REFERENCES public.users(user_id),
+    counted_at timestamp NOT NULL DEFAULT now()
+);
+
+CREATE TABLE public.lab_stock_count_lines (
+    id serial PRIMARY KEY,
+    count_id integer NOT NULL
+        REFERENCES public.lab_stock_counts(id) ON DELETE CASCADE,
+    product_id integer NOT NULL REFERENCES public.lab_stock_products(id),
+    previous_qty integer NOT NULL,
+    counted_qty integer NOT NULL,
+    CONSTRAINT lab_stock_count_lines_previous_check CHECK (previous_qty >= 0),
+    CONSTRAINT lab_stock_count_lines_counted_check CHECK (counted_qty >= 0)
+);
+CREATE INDEX idx_lab_stock_count_lines_count
+    ON public.lab_stock_count_lines (count_id);
+
+CREATE TABLE public.lab_stock_movements (
+    id serial PRIMARY KEY,
+    product_id integer NOT NULL REFERENCES public.lab_stock_products(id),
+    change_qty integer NOT NULL,
+    movement_type varchar(30) NOT NULL,
+    ref_type varchar(30),
+    ref_id integer,
+    quantity_after integer NOT NULL,
+    created_by integer NOT NULL REFERENCES public.users(user_id),
+    created_at timestamp NOT NULL DEFAULT now(),
+    CONSTRAINT lab_stock_movements_type_check
+        CHECK (movement_type IN ('reception','comptage','annulation_reception')),
+    CONSTRAINT lab_stock_movements_after_check CHECK (quantity_after >= 0)
+);
+CREATE INDEX idx_lab_stock_movements_product_date
+    ON public.lab_stock_movements (product_id, created_at);
+
+CREATE TABLE public.lab_stock_requests (
+    id serial PRIMARY KEY,
+    product_id integer NOT NULL REFERENCES public.lab_stock_products(id),
+    origin varchar(20) NOT NULL,
+    level varchar(20),
+    status varchar(20) NOT NULL DEFAULT 'a_commander',
+    requested_by integer REFERENCES public.users(user_id),
+    ordered_by integer REFERENCES public.users(user_id),
+    expected_date date,
+    closed_by_receipt_id integer REFERENCES public.lab_stock_receipts(id),
+    cancel_reason text,
+    created_at timestamp NOT NULL DEFAULT now(),
+    ordered_at timestamp,
+    closed_at timestamp,
+    CONSTRAINT lab_stock_requests_origin_check
+        CHECK (origin IN ('signalement','seuil','peremption')),
+    CONSTRAINT lab_stock_requests_level_check
+        CHECK (level IS NULL OR level IN ('bientot_fini','fini')),
+    CONSTRAINT lab_stock_requests_status_check
+        CHECK (status IN ('a_commander','commande','recu','annule'))
+);
+CREATE UNIQUE INDEX uq_lab_stock_requests_open_product
+    ON public.lab_stock_requests (product_id)
+    WHERE status IN ('a_commander','commande');
+
+CREATE INDEX idx_lab_stock_receipt_lines_product
+    ON public.lab_stock_receipt_lines (product_id);
+CREATE INDEX idx_lab_stock_receipts_delivery_date
+    ON public.lab_stock_receipts (delivery_date);
+CREATE INDEX idx_lab_stock_requests_status
+    ON public.lab_stock_requests (status);
+CREATE INDEX idx_lab_stock_requests_product
+    ON public.lab_stock_requests (product_id);
+CREATE INDEX idx_lab_stock_requests_closed_receipt
+    ON public.lab_stock_requests (closed_by_receipt_id);
+CREATE INDEX idx_lab_stock_count_lines_product
+    ON public.lab_stock_count_lines (product_id);
+
+CREATE TABLE public.toxico_stays (
+    id serial PRIMARY KEY,
+    dossier_id integer NOT NULL
+        REFERENCES public.toxico_dossiers(id) ON DELETE CASCADE,
+    stay_number integer NOT NULL,
+    admission_date date NOT NULL,
+    psychologist_id integer REFERENCES public.users(user_id) ON DELETE SET NULL,
+    substance varchar(100) NOT NULL,
+    discharge_date date,
+    discharge_reason varchar(20),
+    discharge_note text,
+    discharged_by integer REFERENCES public.users(user_id) ON DELETE SET NULL,
+    created_at timestamp NOT NULL DEFAULT now(),
+    CONSTRAINT toxico_stays_number_check CHECK (stay_number >= 1),
+    CONSTRAINT toxico_stays_reason_check
+        CHECK (discharge_reason IS NULL
+               OR discharge_reason IN ('guerison','abandon','exclusion','autre')),
+    CONSTRAINT toxico_stays_discharge_consistency_check
+        CHECK ((discharge_date IS NULL) = (discharge_reason IS NULL)),
+    CONSTRAINT toxico_stays_dates_check
+        CHECK (discharge_date IS NULL OR discharge_date >= admission_date),
+    CONSTRAINT uq_toxico_stays_dossier_number UNIQUE (dossier_id, stay_number)
+);
+CREATE UNIQUE INDEX uq_toxico_stays_one_open
+    ON public.toxico_stays (dossier_id) WHERE discharge_date IS NULL;
+CREATE INDEX idx_toxico_stays_psychologist
+    ON public.toxico_stays (psychologist_id);
+
+ALTER TABLE public.toxico_phase_history
+    ADD COLUMN stay_id integer REFERENCES public.toxico_stays(id);
+ALTER TABLE public.toxico_evaluations
+    ADD COLUMN stay_id integer REFERENCES public.toxico_stays(id);
+CREATE INDEX idx_toxico_phase_history_stay
+    ON public.toxico_phase_history (stay_id);
+CREATE INDEX idx_toxico_evaluations_stay
+    ON public.toxico_evaluations (stay_id);
 
 --
 -- Name: powersync; Type: PUBLICATION; Schema: -; Owner: -
