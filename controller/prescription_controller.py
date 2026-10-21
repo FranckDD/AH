@@ -14,6 +14,9 @@ from sqlalchemy import text # 🟢 Required for the DB Context Fix
 # --- Imports App ---
 from repositories.prescription_repo import PrescriptionRepository
 from repositories.audit_repo import AuditRepository
+from repositories.consultation_lock import assert_consultation_writable, assert_consultations_writable, annotate_prescriptions, is_noop_update
+from models.prescription import Prescription as _Presc
+from repositories.consultation_lock import as_uuid as _as_uuid
 
 # --- Optimisation ---
 try:
@@ -137,8 +140,22 @@ class PrescriptionController:
             except Exception as e:
                 self.logger.warning(f"⚠️ Failed to set DB audit context: {e}")
 
+        # Rejeu idempotent (meme uuid deja cree) : renvoie l'existante AVANT
+        # la regle - sinon un rejeu PowerSync d'une creation deja commitee
+        # recevrait 409 si une consultation plus recente est apparue depuis.
+        if data.get('uuid'):
+            existing = self.repo.session.query(_Presc).filter(_Presc.uuid == _as_uuid(data['uuid'])).first()
+            if existing is not None:
+                annotate_prescriptions(self.repo.session, [existing])
+                return existing
+
+        # Regle lecture seule (2026-10-21) : pas de nouvelle prescription sur
+        # une consultation qui n'est plus la plus recente du patient.
+        assert_consultation_writable(self.repo.session, data.get('medical_record_id'))
+
         # 3. Execute DB Creation
         presc = self.repo.create(data)
+        annotate_prescriptions(self.repo.session, [presc])
         
         # 4. Invalidation Cache
         try:
@@ -188,7 +205,26 @@ class PrescriptionController:
             
         return presc
 
+    def _assert_prescription_writable(self, prescription_id: int, target_record_id=None):
+        """Consultation d'origine ET consultation cible (si la prescription
+        est rattachee a une autre) doivent etre les plus recentes."""
+        current = self.repo.get(prescription_id)
+        # Source ET cible verifiees ensemble (patients verrouilles en ordre
+        # croissant). Detacher (medical_record_id -> None) reste soumis a la
+        # verification de la source : impossible d'echapper a la regle.
+        ids = [current.medical_record_id if current is not None else None]
+        if target_record_id is not None:
+            ids.append(target_record_id)
+        assert_consultations_writable(self.repo.session, ids)
+
     def update_prescription(self, prescription_id: int, data: dict):
+        current = self.repo.get(prescription_id)
+        # Rejeu identique d'une modification deja appliquee : no-op accepte,
+        # verifie AVANT la regle (et avant l'ajout de prescribed_by ci-dessous).
+        if is_noop_update(current, data, ignore=("uuid", "prescribed_by", "prescribed_by_name")):
+            annotate_prescriptions(self.repo.session, [current])
+            return current
+        self._assert_prescription_writable(prescription_id, data.get('medical_record_id'))
         if self.current_user:
             data['prescribed_by'] = self.current_user.user_id
             data['prescribed_by_name'] = self.current_user.username
@@ -222,6 +258,7 @@ class PrescriptionController:
         return presc
 
     def delete_prescription(self, prescription_id: int):
+        self._assert_prescription_writable(prescription_id)
         # 🟢 FIX: Set Context for Delete
         if self.current_user and hasattr(self.repo, 'session'):
             try:
@@ -266,6 +303,7 @@ class PrescriptionController:
         )
         if status:
             items = [p for p in items if p.status == status]
+        annotate_prescriptions(self.repo.session, items)
         return items
 
     def list_prescriptions(self, page: int = 1, per_page: int = 20,
@@ -289,13 +327,16 @@ class PrescriptionController:
                 patient_id=patient_id,
                 search=search
             )
+            annotate_prescriptions(self.repo.session, items)
             return {"data": items, "total": total}
         except Exception as e:
             self.logger.error(f"Erreur list_prescriptions: {e}", exc_info=True)
             raise
 
     def get_prescription(self, prescription_id: int):
-        return self.repo.get(prescription_id)
+        p = self.repo.get(prescription_id)
+        annotate_prescriptions(self.repo.session, [p])
+        return p
     
     def get_by_day(self, target_date: date) -> list:
         return self.repo.find_by_date_range(target_date, target_date)
@@ -305,7 +346,9 @@ class PrescriptionController:
         d = doctor_id or getattr(self.current_user, 'user_id', None)
         if d is None:
             raise RuntimeError("Doctor id non disponible")
-        return self.repo.find_renewals_for_doctor(d, within_days)
+        items = self.repo.find_renewals_for_doctor(d, within_days)
+        annotate_prescriptions(self.repo.session, items)
+        return items
 
     def count_renewals_for_doctor(self, doctor_id: Optional[int] = None, within_days: int = 14) -> int:
         d = doctor_id or getattr(self.current_user, 'user_id', None)

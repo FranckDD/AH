@@ -12,7 +12,7 @@
       <span class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600"></span>
     </div>
 
-    <div v-else-if="groups.length === 0 && labOrphans.length === 0" class="bg-white p-10 rounded-2xl border border-gray-100 text-center text-gray-500">
+    <div v-else-if="groups.length === 0 && labOrphans.length === 0 && lockedRejections.length === 0" class="bg-white p-10 rounded-2xl border border-gray-100 text-center text-gray-500">
       Aucun échec de synchronisation.
     </div>
 
@@ -64,13 +64,51 @@
         </li>
       </ul>
     </div>
+
+    <!-- Ecritures hors ligne refusees par la regle « consultation passee =
+         lecture seule » : texte clinique conserve pour relecture. -->
+    <div v-if="!isLoading && lockedRejections.length" class="bg-white p-6 rounded-2xl shadow-xs border border-amber-200 space-y-3">
+      <p class="text-lg font-semibold text-gray-900">{{ t('medical.readonly.quarantine_title') }}</p>
+      <p class="text-sm text-gray-600">{{ t('medical.readonly.quarantine_intro') }}</p>
+      <ul class="divide-y divide-gray-100">
+        <li v-for="l in lockedRejections" :key="l.id" class="py-3 text-sm space-y-1">
+          <div class="flex justify-between gap-2">
+            <span class="font-medium text-gray-800">
+              {{ l.kind === 'medical_record_locked' ? t('medical.readonly.quarantine_record') : t('medical.readonly.quarantine_prescription') }}
+              <span class="text-gray-400 font-normal"> · {{ l.createdAt }}</span>
+            </span>
+            <button type="button" @click="handleDismiss(l)" class="px-3 py-1 text-xs rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50">
+              {{ t('medical.readonly.quarantine_dismiss') }}
+            </button>
+          </div>
+          <p class="text-red-700">{{ l.error || '—' }}</p>
+          <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-4 text-gray-700">
+            <template v-for="f in l.fields" :key="f.key">
+              <dt class="text-xs font-bold text-gray-500 uppercase">{{ f.key }}</dt>
+              <dd class="whitespace-pre-line">{{ f.value }}</dd>
+            </template>
+          </dl>
+        </li>
+      </ul>
+    </div>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue';
 import api from '@/services/api';
-import { listQuarantine, reattachToExistingPatient } from '@/powersync-client/syncQuarantine';
+import { useI18n } from 'vue-i18n';
+import { listQuarantine, reattachToExistingPatient, dismissQuarantineEntry } from '@/powersync-client/syncQuarantine';
+
+const { t } = useI18n();
+const lockedRejections = ref([]);
+const LOCKED_FIELDS = ['consultation_date', 'motif_code', 'symptoms', 'diagnosis', 'treatment', 'notes', 'medical_history',
+  'allergies', 'bp', 'temperature', 'weight', 'height', 'medication', 'dosage', 'frequency', 'duration', 'start_date', 'end_date'];
+
+async function handleDismiss(l) {
+  await dismissQuarantineEntry(l.id);
+  await load();
+}
 
 const isLoading = ref(false);
 const groups = ref([]);
@@ -112,6 +150,19 @@ async function load() {
           examenId: payload.examen_id || null,
           error: r.error,
           createdAt: r.created_at,
+        };
+      });
+    lockedRejections.value = rows
+      .filter((r) => r.kind === 'medical_record_locked' || r.kind === 'prescription_locked')
+      .map((r) => {
+        let payload = {};
+        try { payload = JSON.parse(r.payload || '{}'); } catch { payload = {}; }
+        return {
+          id: r.id,
+          kind: r.kind,
+          error: r.error,
+          createdAt: r.created_at,
+          fields: LOCKED_FIELDS.filter((k) => payload[k] != null && payload[k] !== '').map((k) => ({ key: k, value: String(payload[k]) })),
         };
       });
   } finally {

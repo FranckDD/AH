@@ -19,6 +19,11 @@
                             {{ record.reviewed_at ? 'Pris en charge' : (record.assigned_doctor_id ? 'À transmettre — assigné' : 'À transmettre — file d\'attente') }}
                         </span>
                     </p>
+                    <p v-if="!editable(record)" class="mt-1">
+                        <span class="inline-block px-2 py-0.5 text-[11px] font-semibold rounded-full bg-gray-200 text-gray-700">
+                            {{ t('medical.readonly.badge') }}
+                        </span>
+                    </p>
                 </div>
                 <span class="px-2 py-1 text-xs font-bold rounded-sm bg-gray-100 text-gray-600">
                     {{ record.motif_code }}
@@ -58,7 +63,7 @@
                 <p class="text-sm text-gray-800">{{ record.treatment }}</p>
             </div>
 
-            <div v-if="canManage" class="mt-3 pt-3 border-t border-gray-100 flex gap-2">
+            <div v-if="canManage && editable(record)" class="mt-3 pt-3 border-t border-gray-100 flex gap-2">
                 <button
                     @click="$emit('edit', record)"
                     class="px-3 py-1.5 text-xs font-medium rounded-lg bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 transition"
@@ -84,9 +89,11 @@
 
 <script setup>
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '@/stores/auth';
+import { isRecordEditable } from '@/utils/consultationLock';
 
-defineProps({
+const props = defineProps({
     records: { type: Array, default: () => [] }
 });
 
@@ -94,6 +101,11 @@ defineEmits(['edit', 'prescribe']);
 
 const authStore = useAuthStore();
 const canManage = computed(() => authStore.hasRole(['medecin', 'nurse']));
+const { t } = useI18n();
+
+// Consultation passee = lecture seule : flag serveur is_editable, ou calcul
+// local (lignes PowerSync hors ligne) sur l'historique complet du patient.
+const editable = (record) => isRecordEditable(record, props.records, { samePatient: true });
 
 // Pas de prefixe "Dr." fige : ce champ est aussi rempli par des
 // infirmieres (created_by_name), afficher "Dr." devant leur nom etait

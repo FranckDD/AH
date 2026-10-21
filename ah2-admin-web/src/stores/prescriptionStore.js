@@ -4,6 +4,7 @@ import { PrescriptionGateway } from '@/services/PrescriptionGateway';
 import { db } from '@/powersync-client/client';
 import { useAuthStore } from '@/stores/auth';
 import { getExamCatalogLocal } from '@/powersync-client/referenceData';
+import { isRecordEditable, findLinkedRecord, samePatientRecords, LOCKED_MESSAGE_FR } from '@/utils/consultationLock';
 
 export const usePrescriptionStore = defineStore('prescription', () => {
 
@@ -117,8 +118,36 @@ export const usePrescriptionStore = defineStore('prescription', () => {
              LEFT JOIN patients lp ON lp.id = pr.patient_uuid
              ORDER BY pr.start_date DESC`
         );
-        prescriptions.value = rows.map(mapLocalPrescription);
+        // Lignes locales sans flag serveur is_editable : calcule depuis les
+        // consultations locales connues (regle « consultation passee »).
+        const records = await localRecords();
+        prescriptions.value = rows.map(mapLocalPrescription).map((p) => ({
+            ...p,
+            is_editable: linkEditable(p.medical_record_id, records),
+        }));
         totalItems.value = rows.length;
+    }
+
+    async function localRecords() {
+        return db.getAll('SELECT id, server_id, patient_id, patient_uuid, consultation_date FROM medical_records');
+    }
+
+    // Consultation liee + ses soeurs du MEME patient (patient_id OU
+    // patient_uuid), comparees entre elles. Sans lien / lien inconnu
+    // localement : modifiable (le serveur tranchera).
+    function linkEditable(medicalRecordId, records) {
+        const rec = findLinkedRecord(medicalRecordId, records);
+        if (!rec) return true;
+        return isRecordEditable(rec, samePatientRecords(rec, records), { samePatient: true });
+    }
+
+    // Garde-fou local (ecriture PowerSync) : le serveur refuserait de toute
+    // facon (409), mais hors ligne l'echec n'arriverait qu'a la synchro.
+    async function assertLinkWritableLocal(medicalRecordId) {
+        if (medicalRecordId == null || medicalRecordId === '') return;
+        if (!linkEditable(medicalRecordId, await localRecords())) {
+            throw new Error(LOCKED_MESSAGE_FR);
+        }
     }
 
     // Ecriture locale pour medecin/nurse, meme motif que
@@ -133,6 +162,7 @@ export const usePrescriptionStore = defineStore('prescription', () => {
     async function createPrescription(data) {
         const authStore = useAuthStore();
         if (authStore.hasRole(['medecin', 'nurse'])) {
+            await assertLinkWritableLocal(data.medicalRecordId);
             const uuid = crypto.randomUUID();
             await db.execute(
                 `INSERT INTO prescriptions (
@@ -165,12 +195,13 @@ export const usePrescriptionStore = defineStore('prescription', () => {
         const authStore = useAuthStore();
         if (authStore.hasRole(['medecin', 'nurse'])) {
             const existing = await db.getOptional(
-                'SELECT id FROM prescriptions WHERE id = ? OR server_id = ?',
+                'SELECT id, medical_record_id FROM prescriptions WHERE id = ? OR server_id = ?',
                 [String(prescriptionId), prescriptionId]
             );
             if (!existing) {
                 throw new Error('Prescription introuvable localement - modification impossible hors ligne.');
             }
+            await assertLinkWritableLocal(existing.medical_record_id);
             await db.execute(
                 `UPDATE prescriptions SET
                     medication = ?, dosage = ?, frequency = ?, duration = ?, start_date = ?,

@@ -106,7 +106,11 @@
               <td class="px-6 py-4 text-sm text-gray-600 max-w-xs truncate" :title="rec.diagnosis">{{ rec.diagnosis || '—' }}</td>
               <td class="px-6 py-4 text-sm text-gray-600 max-w-xs truncate" :title="rec.treatment">{{ rec.treatment || '—' }}</td>
               <td class="px-6 py-4 text-right">
-                <div class="flex justify-end gap-2">
+                <span v-if="!isRecordEditable(rec, medicalRecordStore.records)"
+                      class="inline-block px-2 py-0.5 text-[11px] font-semibold rounded-full bg-gray-200 text-gray-700">
+                  {{ t('medical.readonly.badge') }}
+                </span>
+                <div v-else class="flex justify-end gap-2">
                   <button
                     @click="openEditModal(rec)"
                     :disabled="!rec.record_id"
@@ -166,6 +170,7 @@ import { ref, computed, onMounted } from 'vue';
 import { useMedicalRecordStore } from '@/stores/medicalRecordStore';
 import { useI18n } from 'vue-i18n';
 import MedicalRecordModal from '@/components/medical-records/MedicalRecordModal.vue';
+import { isRecordEditable } from '@/utils/consultationLock';
 import {
   PlusCircleIcon,
   MagnifyingGlassIcon,

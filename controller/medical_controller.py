@@ -12,6 +12,11 @@ from celery import Task
 # --- Imports App ---
 from repositories.medical_repo import MedicalRecordRepository
 from repositories.audit_repo import AuditRepository
+from repositories.consultation_lock import (
+    assert_consultation_writable, lock_patient_consultations, annotate_records, is_noop_update,
+)
+from models.medical_record import MedicalRecord as _MR
+from repositories.consultation_lock import as_uuid as _as_uuid
 
 # --- Optimisation ---
 try:
@@ -139,6 +144,20 @@ class MedicalRecordController:
             data['created_by'] = getattr(self.user, 'user_id', None)
             data['created_by_name'] = getattr(self.user, 'full_name', None) or getattr(self.user, 'username', None)
 
+        # Regle lecture seule (2026-10-21) : verrou patient pour serialiser
+        # cette creation avec une ecriture concurrente sur l'ancienne
+        # consultation (voir repositories/consultation_lock.py).
+        lock_patient_consultations(self.repo.session, data.get('patient_id'))
+
+        # Rejeu idempotent (meme uuid deja cree, ex. file PowerSync rejouee
+        # apres un commit dont la reponse s'est perdue) : on renvoie
+        # l'existant, avant toute autre logique.
+        if data.get('uuid'):
+            existing = self.repo.session.query(_MR).filter(_MR.uuid == _as_uuid(data['uuid'])).first()
+            if existing is not None:
+                self.repo.session.commit()  # relache le verrou patient
+                return existing
+
         # 1. Création via Repo (qui appelle la Procédure SQL corrigée)
         record = self.repo.create(data)
 
@@ -227,6 +246,13 @@ class MedicalRecordController:
             self.logger.exception("Echec notification patient_pending_review")
 
     def update_record(self, record_id: int, data: dict):
+        # Consultation passee = lecture seule (leve ConsultationLockedError).
+        # Un rejeu identique d'une modification deja appliquee n'est pas
+        # refuse (no-op) : verifie AVANT la regle.
+        current = self.repo.get(record_id)
+        if is_noop_update(current, data, ignore=("patient_id", "consultation_date", "record_id")):
+            return True
+        assert_consultation_writable(self.repo.session, record_id)
         record = self.repo.update(record_id, data)
         
         if self.audit_repo and self.user:
@@ -244,6 +270,7 @@ class MedicalRecordController:
         return record
 
     def delete_record(self, record_id: int):
+        assert_consultation_writable(self.repo.session, record_id)
         result = self.repo.delete(record_id)
         
         try:
@@ -288,13 +315,16 @@ class MedicalRecordController:
                 severity=severity,
                 search=search
             )
+            annotate_records(self.repo.session, result.get("data"))
             return result
         except Exception as e:
             self.logger.error(f"Erreur list_records: {e}", exc_info=True)
             raise
 
     def get_record(self, record_id: int):
-        return self.repo.get(record_id)
+        r = self.repo.get(record_id)
+        annotate_records(self.repo.session, [r])
+        return r
 
     def list_motifs(self) -> list[dict]:
         return self.repo.get_motifs()
@@ -307,20 +337,28 @@ class MedicalRecordController:
         return self.patient_ctrl.find_by_code(query)
     
     def get_by_day(self, target_date: date) -> list:
-        return self.repo.find_by_date_range(target_date, target_date)
+        records = self.repo.find_by_date_range(target_date, target_date)
+        annotate_records(self.repo.session, records)
+        return records
     
     def get_last_for_patient(self, patient_id: int):
-        return self.repo.get_last_for_patient(patient_id)
+        r = self.repo.get_last_for_patient(patient_id)
+        annotate_records(self.repo.session, [r])
+        return r
 
     def claim_review(self, record_id: int):
         roles = getattr(self.user, "roles", []) or []
         if "medecin" not in roles:
             raise PermissionError("Seul un médecin peut prendre en charge un dossier en attente.")
-        return self.repo.claim(record_id, self.user.user_id)
+        record = self.repo.claim(record_id, self.user.user_id)
+        annotate_records(self.repo.session, [record])
+        return record
 
     def list_pending_review(self):
         doctor_id = getattr(self.user, "user_id", None)
-        return self.repo.list_pending_for_doctor(doctor_id)
+        records = self.repo.list_pending_for_doctor(doctor_id)
+        annotate_records(self.repo.session, records)
+        return records
 
     def _calculate_age(self, birth_date):
         if not birth_date: return 0
@@ -345,4 +383,6 @@ class MedicalRecordController:
         return self.repo.breakdown_by_motif_for_doctor(d, start, end)
     
     def get_patient_history(self, patient_id: int):
-        return self.repo.get_full_history(patient_id)
+        records = self.repo.get_full_history(patient_id)
+        annotate_records(self.repo.session, records)
+        return records

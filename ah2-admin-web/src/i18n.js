@@ -965,6 +965,19 @@ const messages = {
         prescribe_exam: "+ Prescrire Examen",
         new_prescription: "+ Nouvelle Ordonnance"
       },
+      readonly: {
+        badge: "Consultation clôturée — une consultation plus récente existe",
+        locked: "Cette consultation n'est plus modifiable : une consultation plus récente existe pour ce patient.",
+        prescription_locked: "Prescription en lecture seule : sa consultation a été clôturée par une consultation plus récente.",
+        sync_rejected: "Modification non synchronisée",
+        sync_rejected_record: "Consultation non synchronisée : elle a été clôturée par une consultation plus récente. Votre saisie est conservée dans « Échecs de synchronisation ».",
+        sync_rejected_prescription: "Prescription non synchronisée : sa consultation a été clôturée par une consultation plus récente. Votre saisie est conservée dans « Échecs de synchronisation ».",
+        quarantine_title: "Modifications refusées : consultation clôturée",
+        quarantine_intro: "Ces modifications faites hors ligne ont été refusées car une consultation plus récente existait déjà pour le patient. Relisez le texte et ressaisissez-le si besoin dans la consultation la plus récente.",
+        quarantine_record: "Modification de consultation refusée",
+        quarantine_prescription: "Prescription refusée",
+        quarantine_dismiss: "Retirer",
+      },
       consultation_flow: {
         offer_prescription: "Ajouter une prescription pour cette consultation ?",
         decline: "Non",
@@ -2641,6 +2654,19 @@ const messages = {
         new_consultation: "+ New Consultation",
         prescribe_exam: "+ Order Lab Test",
         new_prescription: "+ New Prescription"
+      },
+      readonly: {
+        badge: "Consultation closed — a more recent consultation exists",
+        locked: "This consultation can no longer be modified: a more recent consultation exists for this patient.",
+        prescription_locked: "Read-only prescription: its consultation was closed by a more recent consultation.",
+        sync_rejected: "Change not synchronised",
+        sync_rejected_record: "Consultation not synchronised: it was closed by a more recent consultation. Your input is kept in \"Sync failures\".",
+        sync_rejected_prescription: "Prescription not synchronised: its consultation was closed by a more recent consultation. Your input is kept in \"Sync failures\".",
+        quarantine_title: "Rejected changes: consultation closed",
+        quarantine_intro: "These offline changes were rejected because a more recent consultation already existed for the patient. Review the text and re-enter it in the most recent consultation if needed.",
+        quarantine_record: "Rejected consultation change",
+        quarantine_prescription: "Rejected prescription",
+        quarantine_dismiss: "Dismiss",
       },
       consultation_flow: {
         offer_prescription: "Add a prescription for this consultation?",

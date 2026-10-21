@@ -3,6 +3,7 @@ import { ref, computed } from 'vue';
 import { MedicalRecordGateway } from '@/services/MedicalRecordGateway';
 import { db } from '@/powersync-client/client';
 import { useAuthStore } from '@/stores/auth';
+import { isRecordEditable, LOCKED_MESSAGE_FR } from '@/utils/consultationLock';
 
 export const useMedicalRecordStore = defineStore('medicalRecord', () => {
 
@@ -158,11 +159,21 @@ export const useMedicalRecordStore = defineStore('medicalRecord', () => {
         const authStore = useAuthStore();
         if (authStore.hasRole(['medecin', 'nurse'])) {
             const existing = await db.getOptional(
-                'SELECT id FROM medical_records WHERE id = ? OR server_id = ?',
+                'SELECT id, server_id, patient_id, patient_uuid, consultation_date FROM medical_records WHERE id = ? OR server_id = ?',
                 [String(recordId), recordId]
             );
             if (!existing) {
                 throw new Error('Consultation introuvable localement - modification impossible hors ligne.');
+            }
+            // Consultation passee = lecture seule (meme regle que le serveur,
+            // qui renverrait 409 a la synchro) - verifie sur les consultations
+            // locales du meme patient.
+            const siblings = await db.getAll(
+                'SELECT id, server_id, patient_id, patient_uuid, consultation_date FROM medical_records WHERE patient_id = ? OR patient_uuid = ?',
+                [existing.patient_id ?? -1, existing.patient_uuid ?? '']
+            );
+            if (!isRecordEditable(existing, siblings, { samePatient: true })) {
+                throw new Error(LOCKED_MESSAGE_FR);
             }
             await db.execute(
                 `UPDATE medical_records SET

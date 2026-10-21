@@ -19,6 +19,7 @@ from repositories.audit_repo import AuditRepository
 from repositories.patient_repo import PatientRepository
 from repositories.medical_repo import MedicalRecordRepository
 from repositories.notification_repo import NotificationRepository
+from repositories.consultation_lock import ConsultationLockedError
 from api_backend.backend_app.routes.auth.auth_endpoints import get_current_user, role_required
 from api_backend.backend_app.routes.patients.patients_schemas import PatientResponse
 
@@ -163,8 +164,22 @@ def create_record(data: MedicalRecordCreate, medical_ctrl: MedicalRecordControll
         raise HTTPException(status_code=500, detail="Erreur serveur lors de la création du dossier médical")
 
 
+def _rollback_quietly(medical_ctrl):
+    try:
+        medical_ctrl.repo.session.rollback()
+    except Exception:
+        logger.exception("Rollback failed")
+
+
+def _ensure_record_exists(medical_ctrl, record_id: int):
+    # 404 AVANT 409 : une consultation inexistante n'est jamais "verrouillee".
+    if medical_ctrl.repo.get(record_id) is None:
+        raise HTTPException(status_code=404, detail="Dossier médical non trouvé")
+
+
 @router.put("/{record_id}", response_model=MedicalRecordResponse)
 def update_record(record_id: int, data: MedicalRecordUpdate, medical_ctrl: MedicalRecordController = Depends(get_medical_controller)):
+    _ensure_record_exists(medical_ctrl, record_id)
     try:
         medical_ctrl.update_record(record_id, data.model_dump(exclude_unset=True))
         r = medical_ctrl.get_record(record_id)
@@ -172,6 +187,9 @@ def update_record(record_id: int, data: MedicalRecordUpdate, medical_ctrl: Medic
             raise HTTPException(status_code=404, detail="Dossier médical introuvable après mise à jour")
         resp = normalize_medical_record_data(r)
         return MedicalRecordResponse.model_validate(resp)
+    except ConsultationLockedError as le:
+        _rollback_quietly(medical_ctrl)
+        raise HTTPException(status_code=409, detail=str(le))
     except ValueError as ve:
         raise HTTPException(status_code=404, detail=str(ve))
     except IntegrityError as ie:
@@ -192,10 +210,14 @@ def update_record(record_id: int, data: MedicalRecordUpdate, medical_ctrl: Medic
 
 @router.delete("/{record_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_record(record_id: int, medical_ctrl: MedicalRecordController = Depends(get_medical_controller)):
+    _ensure_record_exists(medical_ctrl, record_id)
     try:
         success = medical_ctrl.delete_record(record_id)
         if not success:
             raise HTTPException(status_code=404, detail="Dossier médical non trouvé")
+    except ConsultationLockedError as le:
+        _rollback_quietly(medical_ctrl)
+        raise HTTPException(status_code=409, detail=str(le))
     except SQLAlchemyError:
         logger.exception("SQLAlchemyError deleting medical record")
         raise HTTPException(status_code=500, detail="Erreur serveur lors de la suppression du dossier médical")
@@ -313,6 +335,7 @@ def get_pending_review(medical_ctrl: MedicalRecordController = Depends(get_medic
             consultation_date=r.consultation_date.isoformat() if r.consultation_date else None,
             created_by_name=r.created_by_name,
             assigned_doctor_id=r.assigned_doctor_id,
+            is_editable=getattr(r, "is_editable", None),
         ))
     return out
 

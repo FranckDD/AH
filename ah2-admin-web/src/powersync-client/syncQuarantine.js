@@ -48,6 +48,12 @@ export async function quarantine(database, { kind, localId, patientUuid, payload
   );
 }
 
+// Retire une entree de quarantaine apres relecture (ecriture refusee par la
+// regle « consultation passee », sans resolution automatique possible).
+export async function dismissQuarantineEntry(id) {
+  await db.execute('DELETE FROM sync_quarantine WHERE id = ?', [id]);
+}
+
 export async function listQuarantine() {
   return db.getAll('SELECT * FROM sync_quarantine ORDER BY created_at');
 }

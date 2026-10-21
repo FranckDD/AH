@@ -98,7 +98,11 @@
               </td>
               <td class="px-6 py-4 text-sm text-gray-600">{{ presc.prescribed_by_name || '—' }}</td>
               <td class="px-6 py-4 text-right">
-                <div class="flex justify-end gap-2">
+                <span v-if="!isPrescriptionEditable(presc)" :title="t('medical.readonly.prescription_locked')"
+                      class="inline-block px-2 py-0.5 text-[11px] font-semibold rounded-full bg-gray-200 text-gray-700">
+                  {{ t('medical.readonly.badge') }}
+                </span>
+                <div v-else class="flex justify-end gap-2">
                   <button
                     @click="openEditModal(presc)"
                     :disabled="!presc.prescription_id"
@@ -158,6 +162,7 @@ import { ref, computed, onMounted } from 'vue';
 import { usePrescriptionStore } from '@/stores/prescriptionStore';
 import { useI18n } from 'vue-i18n';
 import PrescriptionModal from '@/components/prescriptions/PrescriptionModal.vue';
+import { isPrescriptionEditable } from '@/utils/consultationLock';
 import {
   PlusCircleIcon,
   MagnifyingGlassIcon,

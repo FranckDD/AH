@@ -18,6 +18,7 @@ from repositories.audit_repo import AuditRepository
 from repositories.patient_repo import PatientRepository
 from api_backend.backend_app.routes.auth.auth_endpoints import get_current_user, role_required
 from .mapping import normalize_prescription_data
+from repositories.consultation_lock import ConsultationLockedError
 from .prescriptions_schemas import PrescriptionCreate, PrescriptionUpdate, PrescriptionResponse
 from api_backend.backend_app.utils.patient_resolution import resolve_patient_id, resolve_medical_record_id
 
@@ -60,6 +61,13 @@ def get_prescription_controller(current_user=Depends(get_current_user),
         current_user=current_user,
         audit_repo=audit_repo # <--- INJECTION
     )
+
+def _rollback_quietly(prescription_ctrl):
+    try:
+        prescription_ctrl.repo.session.rollback()
+    except Exception:
+        logger.exception("Rollback failed")
+
 
 def _validate_and_normalize_single(obj: Any) -> PrescriptionResponse:
     try:
@@ -158,6 +166,9 @@ def create_prescription(
     # 1) Création : attrape les erreurs SQL/Integrity ici pour renvoyer des HTTP appropriés
     try:
         created = prescription_ctrl.create_prescription(payload)
+    except ConsultationLockedError as le:
+        _rollback_quietly(prescription_ctrl)
+        raise HTTPException(status_code=409, detail=str(le))
     except IntegrityError as ie:
         try:
             prescription_ctrl.repo.session.rollback()
@@ -230,12 +241,17 @@ def update_prescription(prescription_id: int, data: PrescriptionUpdate, prescrip
     # sont transmis a la mise a jour ORM - un payload partiel n'ecrase plus
     # les colonnes NOT NULL omises avec None (registre E4).
     payload = data.model_dump(exclude_unset=True)
+    if prescription_ctrl.repo.get(prescription_id) is None:
+        raise HTTPException(status_code=404, detail="Prescription non trouvée")
     try:
         prescription_ctrl.update_prescription(prescription_id, payload)
         updated = prescription_ctrl.get_prescription(prescription_id)
         if not updated:
             raise HTTPException(status_code=404, detail="Prescription introuvable après mise à jour")
         return _validate_and_normalize_single(updated)
+    except ConsultationLockedError as le:
+        _rollback_quietly(prescription_ctrl)
+        raise HTTPException(status_code=409, detail=str(le))
     except IntegrityError as ie:
         try:
             prescription_ctrl.repo.session.rollback()
@@ -279,6 +295,9 @@ def delete_prescription(prescription_id: int, prescription_ctrl: PrescriptionCon
         if not ok:
             raise HTTPException(status_code=404, detail="Prescription non trouvée")
         return None
+    except ConsultationLockedError as le:
+        _rollback_quietly(prescription_ctrl)
+        raise HTTPException(status_code=409, detail=str(le))
     except SQLAlchemyError:
         try:
             prescription_ctrl.repo.session.rollback()

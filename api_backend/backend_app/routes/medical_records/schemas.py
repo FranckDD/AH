@@ -78,6 +78,9 @@ class MedicalRecordResponse(MedicalRecordBase):
     needs_doctor_review: Optional[bool] = False
     assigned_doctor_id: Optional[int] = None
     reviewed_at: Optional[datetime] = None
+    # Regle « consultation passee = lecture seule » (repositories/consultation_lock.py) :
+    # False => plus aucune ecriture acceptee (409). None = non calcule.
+    is_editable: Optional[bool] = None
 
     model_config = {"from_attributes": True}
 
@@ -129,5 +132,6 @@ class PendingReviewRecordOut(BaseModel):
     consultation_date: Optional[str] = None
     created_by_name: Optional[str] = None
     assigned_doctor_id: Optional[int] = None
+    is_editable: Optional[bool] = None
 
     model_config = {"from_attributes": True}

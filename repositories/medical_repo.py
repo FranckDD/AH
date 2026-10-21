@@ -219,7 +219,9 @@ class MedicalRecordRepository:
             self.session
                 .query(self.model)
                 .filter(self.model.patient_id == patient_id)
-                .order_by(desc(self.model.consultation_date))
+                # Meme ordre total que repositories/consultation_lock.py
+                # (date NULL = plus ancienne, egalite departagee par record_id).
+                .order_by(self.model.consultation_date.desc().nulls_last(), desc(self.model.record_id))
                 .first()
         )
     

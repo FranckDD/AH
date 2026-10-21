@@ -7,6 +7,8 @@ import { CaisseGateway } from '@/services/CaisseGateway';
 import api, { API_URL } from '@/services/api';
 import { isPatientQuarantined, isLabResultQuarantined, quarantine } from '@/powersync-client/syncQuarantine';
 import { useToastStore } from '@/stores/toastStore';
+import i18n from '@/i18n';
+import { isConsultationLockedRejection, buildLockedQuarantineEntry } from '@/utils/consultationLock';
 
 // URL du service PowerSync self-hoste (voir powersync/.env, PS_PORT) -
 // distincte de l'API FastAPI (API_URL). A definir dans .env.local du
@@ -567,7 +569,30 @@ export class DossierConnector {
         // apercoive - demande explicite de ne pas reprendre le pattern
         // "bandeau bas de page" de caisse ici, mais une notification
         // ephemere (ToastContainer, glisse depuis la droite).
-        if (lastOp?.table === 'prescriptions') {
+        // Regle « consultation passee = lecture seule » (2026-10-21) : une
+        // ecriture hors ligne sur une consultation (ou une prescription de
+        // celle-ci) close entre-temps par une consultation plus recente
+        // (autre poste) est refusee en 409. Le texte clinique saisi n'est
+        // PAS perdu : la ligne locale complete part en quarantaine (vue
+        // Echecs de synchronisation), puis l'operation est retiree de la file
+        // comme toute erreur terminale. Les autres 409 sont inchanges.
+        const lockedRejection = ['medical_records', 'prescriptions'].includes(lastOp?.table)
+          && isConsultationLockedRejection(error);
+        if (lockedRejection) {
+          try {
+            const localRow = await database.getOptional(`SELECT * FROM ${lastOp.table} WHERE id = ?`, [lastOp.id]);
+            await quarantine(database, buildLockedQuarantineEntry(lastOp, localRow, error));
+          } catch (quarantineError) {
+            console.error("Impossible de mettre l'ecriture refusee en quarantaine:", quarantineError);
+          }
+          try {
+            const key = lastOp.table === 'medical_records' ? 'medical.readonly.sync_rejected_record' : 'medical.readonly.sync_rejected_prescription';
+            useToastStore().push(i18n.global.t(key));
+          } catch (toastError) {
+            console.error("Impossible d'afficher la notification de refus:", toastError);
+          }
+        }
+        if (lastOp?.table === 'prescriptions' && !lockedRejection) {
           try {
             const detail = error?.response?.data?.detail || 'Echec de synchronisation de la prescription - contacter un administrateur.';
             useToastStore().push(`Prescription non synchronisee : ${typeof detail === 'string' ? detail : 'donnees refusees par le serveur.'}`);

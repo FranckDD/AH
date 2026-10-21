@@ -154,6 +154,9 @@ class PrescriptionResponse(PrescriptionBase):
     # Champ calculé pour renvoyer une string simple au frontend si besoin
     # (Utile si votre frontend attend "lab_exams" en string pour l'affichage tableau)
     lab_exams: Optional[str] = None
+    # Regle « consultation passee = lecture seule » (repositories/consultation_lock.py) :
+    # False => plus aucune ecriture acceptee (409). None = non calcule.
+    is_editable: Optional[bool] = None
 
     @field_validator("uuid", mode="before")
     @classmethod

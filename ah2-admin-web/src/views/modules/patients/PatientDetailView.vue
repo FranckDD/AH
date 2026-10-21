@@ -197,6 +197,7 @@ import { useMedicalRecordStore } from '@/stores/medicalRecordStore';
 import { usePrescriptionStore } from '@/stores/prescriptionStore';
 import { useAppointmentStore } from '@/stores/appointmentStore';
 import { useAuthStore } from '@/stores/auth';
+import { isRecordEditable } from '@/utils/consultationLock';
 
 import {
     HeartIcon, ScaleIcon, FireIcon, ExclamationTriangleIcon,
@@ -379,7 +380,8 @@ onMounted(async () => {
         const target = dossierStore.medicalHistory.find(
             (r) => String(resolveRecordId(r)) === String(recordQuery)
         );
-        if (target) {
+        // Consultation passee = lecture seule : pas d'ouverture en edition.
+        if (target && isRecordEditable(target, dossierStore.medicalHistory, { samePatient: true })) {
             openEditConsultationModal(target);
         }
         router.replace({ query: {} });
