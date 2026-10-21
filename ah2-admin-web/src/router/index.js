@@ -14,6 +14,7 @@ const ROLES = {
   SPIRITUAL: 'SpiritualCounsellor',
   TOXICO_MANAGER: 'ToxicoManager',
   ASSISTANT: 'Assistant',
+  STOCK_CONTROLLER: 'StockController',
   MEDECIN: 'medecin',
   NURSE: 'nurse',
   SECRETAIRE: 'secretaire'
@@ -188,6 +189,44 @@ const routes = [
             requiresAuth: true, 
             roles: [ROLES.ADMIN, ROLES.TOXICO_MANAGER, ROLES.ASSISTANT] 
         }
+      },
+
+      // 6b. Fabrication, receptions et avaries (Assistant / admin)
+      {
+        path: 'stock-lots',
+        name: 'stock-lots',
+        component: () => import('@/views/modules/stock/ProductionLots.vue'),
+        meta: { requiresAuth: true, roles: [ROLES.ADMIN, ROLES.ASSISTANT] }
+      },
+      {
+        path: 'stock-receipts',
+        name: 'stock-receipts',
+        component: () => import('@/views/modules/stock/StockReceipts.vue'),
+        meta: { requiresAuth: true, roles: [ROLES.ADMIN, ROLES.ASSISTANT] }
+      },
+      {
+        path: 'stock-incidents',
+        name: 'stock-incidents',
+        component: () => import('@/views/modules/stock/StockIncidents.vue'),
+        meta: { requiresAuth: true, roles: [ROLES.ADMIN, ROLES.ASSISTANT] }
+      },
+      {
+        path: 'stock-control',
+        name: 'stock-control',
+        component: () => import('@/views/modules/stock/StockControlQueue.vue'),
+        meta: { requiresAuth: true, roles: [ROLES.STOCK_CONTROLLER, ROLES.ADMIN] }
+      },
+      {
+        path: 'stock-movements',
+        name: 'stock-movements',
+        component: () => import('@/views/modules/stock/StockMovements.vue'),
+        meta: { requiresAuth: true, roles: [ROLES.STOCK_CONTROLLER, ROLES.ADMIN, ROLES.ASSISTANT] }
+      },
+      {
+        path: 'stock-adjustment-requests',
+        name: 'stock-adjustment-requests',
+        component: () => import('@/views/modules/stock/AdjustmentRequestsAdmin.vue'),
+        meta: { requiresAuth: true, roles: [ROLES.ADMIN] }
       },
 
       // 7. Finance

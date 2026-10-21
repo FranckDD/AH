@@ -89,7 +89,7 @@
             >EN</button>
           </div>
 
-          <NotificationBell v-if="authStore.hasRole(['admin', 'promoteur', 'secretaire'])" />
+          <NotificationBell v-if="authStore.hasRole(['admin', 'promoteur', 'secretaire', 'Assistant', 'StockController'])" />
 
           <button
             @click="showAccountModal = true"
@@ -132,7 +132,8 @@ import {
   HomeIcon, UsersIcon, ClipboardDocumentListIcon, BanknotesIcon,
   BeakerIcon, ChartBarIcon, CogIcon, ShieldCheckIcon, CubeIcon,
   Bars3Icon, Bars3CenterLeftIcon, ExclamationCircleIcon, UserCircleIcon,
-  CheckBadgeIcon, ClockIcon, ReceiptPercentIcon
+  CheckBadgeIcon, ClockIcon, ReceiptPercentIcon,
+  ClipboardDocumentCheckIcon, ArrowsRightLeftIcon, AdjustmentsHorizontalIcon
 } from '@heroicons/vue/24/outline';
 
 const authStore = useAuthStore();
@@ -151,7 +152,8 @@ const ROLES = {
   TOXICO_MANAGER: 'ToxicoManager',
   ASSISTANT: 'Assistant',
   LABORANTIN: 'laborantin', // ✅ Ajout du rôle laborantin
-  PROMOTEUR: 'promoteur'
+  PROMOTEUR: 'promoteur',
+  STOCK_CONTROLLER: 'StockController'
 };
 
 // --- 2. STRUCTURE DU MENU (Data Driven) ---
@@ -223,6 +225,42 @@ const menuItems = [
     labelKey: 'stock.title',
     icon: CubeIcon,
     roles: [ROLES.TOXICO_MANAGER, ROLES.ASSISTANT]
+  },
+  {
+    path: '/dashboard/stock-lots',
+    labelKey: 'stockOps.menu_lots',
+    icon: BeakerIcon,
+    roles: [ROLES.ADMIN, ROLES.ASSISTANT]
+  },
+  {
+    path: '/dashboard/stock-receipts',
+    labelKey: 'stockOps.menu_receipts',
+    icon: ClipboardDocumentListIcon,
+    roles: [ROLES.ADMIN, ROLES.ASSISTANT]
+  },
+  {
+    path: '/dashboard/stock-incidents',
+    labelKey: 'stockOps.menu_incidents',
+    icon: ExclamationCircleIcon,
+    roles: [ROLES.ADMIN, ROLES.ASSISTANT]
+  },
+  {
+    path: '/dashboard/stock-control',
+    labelKey: 'stockControl.menu_control',
+    icon: ClipboardDocumentCheckIcon,
+    roles: [ROLES.STOCK_CONTROLLER, ROLES.ADMIN]
+  },
+  {
+    path: '/dashboard/stock-movements',
+    labelKey: 'stockControl.menu_movements',
+    icon: ArrowsRightLeftIcon,
+    roles: [ROLES.STOCK_CONTROLLER, ROLES.ADMIN, ROLES.ASSISTANT]
+  },
+  {
+    path: '/dashboard/stock-adjustment-requests',
+    labelKey: 'stockAdjust.menu_admin',
+    icon: AdjustmentsHorizontalIcon,
+    roles: [ROLES.ADMIN]
   },
   {
     path: '/dashboard/logs',

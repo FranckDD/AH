@@ -50,6 +50,10 @@ import { useAuthStore } from '@/stores/auth';
 import { CaisseGateway } from '@/services/CaisseGateway';
 import { PrinterBridgeGateway } from '@/services/PrinterBridgeGateway';
 import router from '@/router';
+import { useI18n } from 'vue-i18n';
+import { stockDecidedLabel, adjustmentKindLabel } from '@/utils/stockNotificationLabels';
+
+const { t } = useI18n();
 
 const notificationStore = useNotificationStore();
 const authStore = useAuthStore();
@@ -105,7 +109,35 @@ const labelFor = (n) => {
   if (n.type === 'patient_pending_review') {
     return `🩺 Patient en attente — ${n.payload?.patient_name || 'patient'} (${n.payload?.created_by_name || '?'})`;
   }
+  if (n.type === 'stock_to_check') {
+    const p = n.payload || {};
+    const what = p.receipt_id
+      ? t('notifications.stock_to_check_receipt', { number: p.receipt_number || '?' })
+      : t('notifications.stock_to_check_incident', { product: p.product_name || '?', quantity: p.quantity ?? '?' });
+    return t('notifications.stock_to_check', { author: p.created_by_name || '?', what });
+  }
+  if (n.type === 'stock_adjustment_request') {
+    const p = n.payload || {};
+    const k = adjustmentKindLabel(p.kind);
+    return t('notifications.stock_adjustment_request', {
+      author: p.requested_by_name || '?', kind: k.key ? t(k.key) : k.raw, product: p.product_name || '?', quantity: p.quantity ?? '?',
+    });
+  }
+  if (n.type === 'stock_decided') {
+    const p = n.payload || {};
+    const d = stockDecidedLabel(p);
+    const decision = t(d.key, d.params);
+    return p.reason ? t('notifications.stock_decided_with_reason', { decision, reason: p.reason }) : decision;
+  }
   return n.type;
+};
+
+// Navigation par chemin : les pages stock sont creees dans d'autres taches, on
+// ne pousse que si une route correspondante existe (sinon on ne fait rien).
+const pushIfRoute = (path) => {
+  // Le routeur a un catch-all (redirect /dashboard) : on l'exclut explicitement.
+  const matched = router.resolve(path).matched;
+  if (matched.length > 0 && !matched.some((m) => m.path.includes(':pathMatch'))) router.push(path);
 };
 
 const formatDate = (iso) => iso ? new Date(iso).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '';
@@ -121,6 +153,18 @@ const handleClick = async (n) => {
   }
   if (n.type === 'patient_pending_review' && n.payload?.patient_id) {
     router.push(`/medical/patients/${n.payload.patient_id}`);
+  }
+  if (n.type === 'stock_to_check') {
+    pushIfRoute('/dashboard/stock-control');
+  }
+  if (n.type === 'stock_adjustment_request') {
+    pushIfRoute('/dashboard/stock-adjustment-requests');
+  }
+  if (n.type === 'stock_decided') {
+    const kind = n.payload?.kind;
+    if (kind === 'receipt') pushIfRoute('/dashboard/stock-receipts');
+    else if (kind === 'incident') pushIfRoute('/dashboard/stock-incidents');
+    else if (kind === 'adjustment') pushIfRoute('/secretariat/stock');
   }
 };
 

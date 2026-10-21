@@ -9,7 +9,7 @@
         <p class="text-sm text-gray-500">{{ t('stock.subtitle') }}</p>
       </div>
       <button 
-        @click="openModal(null)"
+        v-if="!isSecretary" @click="openModal(null)"
         class="flex items-center px-6 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 shadow-md shadow-emerald-200 transition font-semibold"
       >
         <PlusIcon class="h-5 w-5 mr-2" />
@@ -125,13 +125,16 @@
                             {{ formatCurrency(prod.price) }}
                         </td>
                         <td class="px-6 py-4 text-right space-x-2">
-                            <button @click="openModal(prod)" class="text-indigo-600 hover:text-indigo-900 bg-indigo-50 p-1.5 rounded-lg transition">
+                            <button v-if="isSecretary" @click="openRequest(prod)" class="text-amber-700 bg-amber-50 hover:bg-amber-100 px-2 py-1 rounded-lg text-xs font-medium transition">
+                                {{ t('stockAdjust.request_button') }}
+                            </button>
+                            <button v-if="!isSecretary" @click="openModal(prod)" class="text-indigo-600 hover:text-indigo-900 bg-indigo-50 p-1.5 rounded-lg transition">
                                 <PencilSquareIcon class="h-4 w-4" />
                             </button>
-                            <button v-if="getExpiryStatus(prod.expiryDate) === 'EXPIRED' && prod.quantity > 0" @click="handleDispose(prod)" class="text-white bg-red-600 hover:bg-red-700 p-1.5 rounded-lg transition shadow-xs" :title="t('stock.actions.dispose')">
+                            <button v-if="isAdmin && getExpiryStatus(prod.expiryDate) === 'EXPIRED' && prod.quantity > 0" @click="handleDispose(prod)" class="text-white bg-red-600 hover:bg-red-700 p-1.5 rounded-lg transition shadow-xs" :title="t('stock.actions.dispose')">
                                 <ArchiveBoxXMarkIcon class="h-4 w-4" /> 
                             </button>
-                            <button @click="confirmDelete(prod)" class="text-red-400 hover:text-red-600 p-1.5 rounded-lg transition">
+                            <button v-if="isAdmin" @click="confirmDelete(prod)" class="text-red-400 hover:text-red-600 p-1.5 rounded-lg transition">
                                 <TrashIcon class="h-4 w-4" />
                             </button>
                         </td>
@@ -161,7 +164,60 @@
 
     </div>
 
-    <ProductModal 
+    <div v-if="isSecretary" class="bg-white rounded-2xl shadow-xs border border-gray-100 p-5 space-y-3">
+        <div class="flex items-center justify-between">
+            <h2 class="text-lg font-bold text-gray-800">{{ t('stockAdjust.my_requests') }}</h2>
+            <button type="button" @click="loadMyRequests" class="text-sm text-emerald-700 hover:underline">{{ t('stockAdjust.refresh') }}</button>
+        </div>
+        <div v-if="requestsError" class="bg-red-50 border-l-4 border-red-500 p-3 rounded-sm text-sm text-red-700">{{ requestsError }}</div>
+        <div v-if="requestsLoading" class="text-sm text-gray-400">{{ t('stockOps.loading') }}</div>
+        <div v-else-if="myRequests.length === 0" class="text-sm text-gray-400">{{ t('stockAdjust.no_requests') }}</div>
+        <div v-else class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="text-left text-xs text-gray-500 uppercase border-b">
+                        <th class="py-2">{{ t('stockOps.col_date') }}</th>
+                        <th class="py-2">{{ t('stockOps.col_product') }}</th>
+                        <th class="py-2">{{ t('stockAdjust.col_kind') }}</th>
+                        <th class="py-2">{{ t('stockOps.col_quantity') }}</th>
+                        <th class="py-2">{{ t('stockOps.col_reason') }}</th>
+                        <th class="py-2">{{ t('stockOps.col_status') }}</th>
+                        <th class="py-2">{{ t('stockAdjust.col_stock_change') }}</th>
+                        <th class="py-2"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr v-for="r in myRequests" :key="r.id" class="border-b last:border-0 align-top">
+                        <td class="py-2 whitespace-nowrap">{{ formatDateTime(r.requested_at) }}</td>
+                        <td class="py-2">{{ r.product_name }}</td>
+                        <td class="py-2">{{ t(`stockAdjust.kind.${r.kind}`) }}</td>
+                        <td class="py-2">{{ r.quantity }}</td>
+                        <td class="py-2 max-w-xs">{{ r.reason }}</td>
+                        <td class="py-2">
+                            <span class="px-2 py-0.5 rounded-full text-xs font-medium" :class="requestBadge(r.status)">{{ t(`stockAdjust.status.${r.status}`) }}</span>
+                            <div v-if="r.decision_note" class="text-xs text-gray-600 mt-1">{{ t('stockAdjust.decision_note') }} : {{ r.decision_note }}</div>
+                        </td>
+                        <td class="py-2 whitespace-nowrap">
+                            <span v-if="r.stock_before !== null && r.stock_before !== undefined">{{ r.stock_before }} → {{ r.stock_after }}</span>
+                        </td>
+                        <td class="py-2">
+                            <button v-if="r.status === 'en_attente'" type="button" @click="cancelRequest(r)" :disabled="cancellingId === r.id"
+                                    class="px-3 py-1 bg-gray-200 text-gray-700 rounded-lg text-xs font-medium disabled:opacity-50">{{ t('stockOps.cancel') }}</button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <AdjustmentRequestModal
+        v-if="requestProduct"
+        :product="requestProduct"
+        @close="requestProduct = null"
+        @created="onRequestCreated"
+    />
+
+    <ProductModal :can-edit-quantity="isAdmin"  
         v-if="showModal" 
         :product="selectedProduct" 
         @close="showModal = false" 
@@ -176,6 +232,9 @@ import { ref, computed, onMounted, watch } from 'vue';
 import { useStockStore } from '@/stores/stockStore';
 import { useI18n } from 'vue-i18n';
 import ProductModal from '@/components/stock/ProductModal.vue';
+import AdjustmentRequestModal from '@/components/stock/AdjustmentRequestModal.vue';
+import { useAuthStore } from '@/stores/auth';
+import { StockOpsGateway, describeStockError } from '@/services/StockOpsGateway';
 import { 
     PlusIcon, MagnifyingGlassIcon, PencilSquareIcon, TrashIcon, 
     ClockIcon, ArchiveBoxXMarkIcon, ChevronLeftIcon, ChevronRightIcon 
@@ -183,6 +242,62 @@ import {
 
 const { t } = useI18n();
 const stockStore = useStockStore();
+const authStore = useAuthStore();
+
+// Droits par role (Task 6 cote serveur) : seul l'admin fixe une quantite,
+// supprime ou sort un perime ; la secretaire est en lecture seule et passe
+// par une demande d'ajustement.
+const isAdmin = computed(() => authStore.hasRole(['admin']));
+const isSecretary = computed(() => authStore.hasRole(['secretaire']));
+
+const requestProduct = ref(null);
+const myRequests = ref([]);
+const requestsLoading = ref(false);
+const requestsError = ref('');
+const cancellingId = ref(null);
+
+const loadMyRequests = async () => {
+    requestsLoading.value = true;
+    requestsError.value = '';
+    try {
+        myRequests.value = (await StockOpsGateway.listAdjustmentRequests({ mineOnly: true })) || [];
+    } catch (err) {
+        requestsError.value = describeStockError(err, t('stockOps.error_load'));
+        console.error('Chargement des demandes echoue :', err);
+    } finally {
+        requestsLoading.value = false;
+    }
+};
+
+const openRequest = (prod) => { requestProduct.value = { id: prod.id, name: prod.name, quantity: prod.quantity }; };
+const onRequestCreated = async () => {
+    requestProduct.value = null;
+    await loadMyRequests();
+};
+
+const cancelRequest = async (r) => {
+    if (!window.confirm(t('stockOps.confirm_cancel'))) return;
+    cancellingId.value = r.id;
+    requestsError.value = '';
+    try {
+        await StockOpsGateway.cancelAdjustmentRequest(r.id);
+        await loadMyRequests();
+    } catch (err) {
+        requestsError.value = describeStockError(err, t('stockOps.error_save'));
+        console.error('Annulation de la demande echouee :', err);
+    } finally {
+        cancellingId.value = null;
+    }
+};
+
+const requestBadge = (s) => ({
+    en_attente: 'bg-amber-100 text-amber-800',
+    approuve: 'bg-green-100 text-green-800',
+    refuse: 'bg-red-100 text-red-800',
+    annule: 'bg-gray-200 text-gray-600',
+}[s] || 'bg-gray-100 text-gray-700');
+
+const formatDateTime = (v) => (v ? new Date(v).toLocaleString() : '');
 
 const showModal = ref(false);
 const selectedProduct = ref(null);
@@ -191,6 +306,7 @@ onMounted(() => {
     // 🟢 CHARGEMENT DES DONNÉES RÉELLES
     stockStore.fetchStock();
     stockStore.fetchStats();
+    if (isSecretary.value) loadMyRequests();
 });
 
 // Liaison Store - recherche en direct (debounce 300ms), meme motif que
@@ -272,6 +388,7 @@ const getExpiryColor = (dateString) => {
 
 // Actions
 const handleDispose = async (product) => {
+    if (!isAdmin.value) return;
     if (confirm(`Sortir ${product.name} du stock (PÉRIMÉ) ?`)) {
         const updatedProduct = { ...product, quantity: 0 };
         await stockStore.saveProduct(updatedProduct);
@@ -284,11 +401,13 @@ const openModal = (product) => {
 };
 
 const handleSave = async (product) => {
-    await stockStore.saveProduct(product);
+    if (isSecretary.value) return;
+    await stockStore.saveProduct(product, { canSetQuantity: isAdmin.value });
     showModal.value = false;
 };
 
 const confirmDelete = async (product) => {
+    if (!isAdmin.value) return;
     if(confirm("Supprimer ce produit ?")) {
         await stockStore.deleteProduct(product.id);
     }

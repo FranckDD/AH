@@ -124,6 +124,10 @@ const getRedirectPath = (role) => {
             // Le manager Toxico a aussi intérêt à voir le dashboard Toxico en premier
             return '/dashboard/toxico-dashboard';
 
+        case 'stockcontroller':
+            // Controleur de stock : page de controle (route creee avec le module stock)
+            return '/dashboard/stock-control';
+
         case 'medecin':
         case 'nurse':
             // Fenetre medicale independante (chantier 3) - jamais le dashboard toxico

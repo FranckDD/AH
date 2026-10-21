@@ -140,11 +140,18 @@ export const useStockStore = defineStore('stock', () => {
     }
 
     // 3. Sauvegarder (Create / Update)
-    async function saveProduct(product) {
+    // canSetQuantity=false (non-admin) : le serveur refuse (403) tout PUT
+    // contenant la cle 'quantity' et force 0 a la creation - le stock entre
+    // par une reception controlee ou une demande d'ajustement.
+    async function saveProduct(product, { canSetQuantity = true } = {}) {
         isLoading.value = true;
         try {
             const payload = mapProductToApi(product);
-            
+            if (!canSetQuantity) {
+                if (product.id) delete payload.quantity;
+                else payload.quantity = 0;
+            }
+
             if (product.id) {
                 // Update
                 await api.put(`/pharmacy/${product.id}`, payload);
