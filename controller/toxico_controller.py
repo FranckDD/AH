@@ -29,6 +29,21 @@ REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 redis_client = redis.Redis.from_url(REDIS_URL, decode_responses=True)
 
 
+CONSENT_URL_PREFIX = "/static/uploads/toxico_consents/"
+
+
+def _discard_consent_file(path_or_url):
+    """Supprime un fichier de consentement local sauvegardé pour une admission refusée."""
+    if not path_or_url or not str(path_or_url).startswith(CONSENT_URL_PREFIX):
+        return  # rien ou stockage distant : rien à supprimer localement
+    local = os.path.join(UPLOAD_DIR, os.path.basename(str(path_or_url)))
+    try:
+        if os.path.isfile(local):
+            os.remove(local)
+    except OSError as e:
+        print(f"⚠️ Impossible de supprimer le fichier orphelin {local}: {e}")
+
+
 class ToxicoController:
     # 🎯 Retrait de l'audit_repo de la signature du constructeur
     def __init__(
@@ -94,6 +109,36 @@ class ToxicoController:
             "admissionDate": d.admission_date,
         }
 
+    def list_discharged(self, search=None, reason=None, discharged_from=None, discharged_to=None,
+                        page: int = 1, per_page: int = 20) -> Dict[str, Any]:
+        """Liste paginée des patients sortis (dossiers inactifs) + dernier séjour."""
+        rows, total = self.repo.search_discharged_dossiers(
+            search, reason, discharged_from, discharged_to, page, per_page)
+        data = []
+        for r in rows:
+            last = None
+            if r.stay_number is not None:
+                last = {
+                    "stay_number": r.stay_number,
+                    "admission_date": r.admission_date,
+                    "discharge_date": r.discharge_date,
+                    "discharge_reason": r.discharge_reason,
+                    "discharged_by_name": r.discharged_by_name,
+                    "psychologist_name": r.psychologist_name,
+                    "substance": r.substance,
+                }
+            data.append({
+                "dossier_id": r.dossier_id,
+                "patient_id": r.patient_id,
+                "patientName": f"{r.first_name or ''} {r.last_name or ''}".strip(),
+                "code": r.code_patient,
+                "stays_count": int(r.stays_count or 0),
+                "last_stay": last,
+            })
+        total_pages = (total + per_page - 1) // per_page if total else 0
+        return {"data": data, "total": total, "page": page, "per_page": per_page,
+                "total_pages": total_pages}
+
     def get_dossier_details(self, patient_id: int):
         """Détail complet pour la modale dossier. Retourne l'objet ORM complet."""
         # Le Repo charge toutes les relations nécessaires (Eager Loading)
@@ -116,6 +161,9 @@ class ToxicoController:
             else:
                 psy_name = "Psychologue (Nom inconnu)"
 
+        stays = sorted(dossier.stays, key=lambda s: s.stay_number)
+        stay_numbers = {s.id: s.stay_number for s in stays}
+
         return {
             "dossier_id": dossier.id,
             "patient_id": dossier.patient_id,
@@ -136,15 +184,31 @@ class ToxicoController:
             "guardianContact": dossier.guardian_contact,
             "consentFile": dossier.consent_file,
             "notes": dossier.notes_admission,
-            "phaseHistory": sorted([
+            "isActive": dossier.is_active,
+            "stays": [
+                {
+                    "stay_number": s.stay_number,
+                    "admission_date": s.admission_date,
+                    "discharge_date": s.discharge_date,
+                    "discharge_reason": s.discharge_reason,
+                    "discharge_note": s.discharge_note,
+                    "discharged_by_name": s.discharger.full_name if s.discharger else None,
+                    "psychologist_name": s.psychologist.full_name if s.psychologist else None,
+                    "substance": s.substance,
+                    "is_open": s.discharge_date is None,
+                } for s in stays
+            ],
+            "current_stay_number": next((s.stay_number for s in stays if s.discharge_date is None), None),
+            "phaseHistory": [
                 {
                     "phase": h.phase,
                     "start_date": h.start_date,
                     "end_date": h.end_date,
                     "status": h.status,
-                    "comments": h.comments
-                } for h in dossier.phase_history
-            ], key=lambda x: x['start_date'], reverse=True),
+                    "comments": h.comments,
+                    "stay_number": stay_numbers.get(h.stay_id),
+                } for h in sorted(dossier.phase_history, key=lambda h: (h.start_date, h.id), reverse=True)
+            ],
             "evaluations": [
                 {
                     "id": e.id,
@@ -155,6 +219,7 @@ class ToxicoController:
                     "phase_before": e.phase_before,
                     "phase_after": e.phase_after,
                     "is_relapse": e.is_relapse,
+                    "stay_number": stay_numbers.get(e.stay_id),
                     "evaluator_name": getattr(e.evaluator, "full_name", "Inconnu") if e.evaluator else "Inconnu"
                 } for e in dossier.evaluations
             ]
@@ -166,22 +231,9 @@ class ToxicoController:
         """ 
         Logique métier d'admission avec gestion de l'upload de fichier + Celery + Redis Invalidation.
         """
-        # 1. Gestion de l'upload du fichier de consentement
-        file_path_or_url = None
-        
-        if consent_file:
-            try:
-                # Génération d'un code temporaire pour le nom du fichier
-                temp_code = f"{data.get('firstName', 'unk')}_{data.get('lastName', 'unk')}"
-                
-                # 🟢 APPEL ASYNCHRONE DE SAUVEGARDE
-                file_path_or_url = await save_consent_file(consent_file, temp_code)
-                
-            except Exception as e:
-                # Si une erreur survient, file_path_or_url reste None
-                print(f"❌ Exception durant sauvegarde fichier: {e}")
-        else:
-            print("⚪ Aucun fichier 'consent_file' reçu.")
+        # 1. Le fichier de consentement est sauvegardé APRÈS la résolution du
+        # patient (voir plus bas) et supprimé si le dépôt refuse l'admission,
+        # pour ne pas laisser de fichier orphelin.
 
         # 2. Resolution du patient : rattachement a un patient existant
         # ou creation (chantier 6, registre L2 - avant ce chantier,
@@ -228,6 +280,15 @@ class ToxicoController:
             except ValueError as e:
                 raise ValueError(f"Erreur lors de la création du patient: {str(e)}")
 
+        # Sauvegarde du fichier de consentement
+        file_path_or_url = None
+        if consent_file:
+            try:
+                temp_code = f"{data.get('firstName', 'unk')}_{data.get('lastName', 'unk')}"
+                file_path_or_url = await save_consent_file(consent_file, temp_code) or None
+            except Exception as e:
+                print(f"❌ Exception durant sauvegarde fichier: {e}")
+
         # 3. Préparation des données Toxico
         toxico_data = {
             "admission_date": data['admissionDate'], 
@@ -241,8 +302,12 @@ class ToxicoController:
             "consent_file": file_path_or_url 
         }
 
-        # 4. Création du dossier en base
-        dossier = self.repo.create_dossier_after_patient_commit(patient_id, toxico_data)
+        # 4. Création du dossier en base (fichier supprimé si refus)
+        try:
+            dossier = self.repo.create_dossier_after_patient_commit(patient_id, toxico_data)
+        except Exception:
+            _discard_consent_file(file_path_or_url)
+            raise
 
         # 🟢 OPTIMISATIONS POST-CRÉATION (Redis + Celery)
         
@@ -252,6 +317,10 @@ class ToxicoController:
             redis_client.delete(f"toxico:stats:admissions:{current_month}")
         except Exception as e:
             print(f"⚠️ Erreur Redis Invalidation: {e}")
+
+        open_stay = self.repo.get_open_stay(dossier.id)
+        dossier.stay_number = open_stay.stay_number if open_stay else 1  # attributs transitoires
+        dossier.is_readmission = dossier.stay_number > 1
 
         # B. Tâche de fond Celery (Notification, etc.)
         try:
@@ -268,8 +337,9 @@ class ToxicoController:
         user_id = self.user.get('user_id') if isinstance(self.user, dict) else self.user.user_id
         return self.repo.process_evaluation(dossier_id=data['dossier_id'], data=data, user_id=user_id) # type: ignore
     
-    def discharge_patient(self, dossier_id: int):
-        return self.repo.discharge(dossier_id)
+    def discharge_patient(self, dossier_id: int, reason: str, note: Optional[str] = None):
+        user_id = self.user.get('user_id') if isinstance(self.user, dict) else getattr(self.user, 'user_id', None)
+        return self.repo.discharge(dossier_id, reason, note, user_id)
     
     def get_current_month_admissions_count(self):
         """Calcule le nombre de dossiers créés ce mois-ci (avec Cache Redis)."""
@@ -288,7 +358,8 @@ class ToxicoController:
         # 2. Calcul DB
         now = datetime.now()
         start_of_month = datetime(now.year, now.month, 1)
-        count = self.repo.count_dossiers_created_since(start_of_month)
+        next_month = datetime(now.year + (now.month == 12), now.month % 12 + 1, 1)
+        count = self.repo.count_dossiers_created_since(start_of_month, next_month)
 
         # 3. Mise en cache (TTL 24h)
         try:

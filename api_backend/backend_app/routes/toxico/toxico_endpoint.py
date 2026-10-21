@@ -1,7 +1,7 @@
 # Fichier: routes/toxico_routes.py
 
 from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile, File, Form, Request
-from typing import List, Any, Dict, Optional
+from typing import List, Any, Dict, Optional, Literal
 from sqlalchemy.orm import Session
 from datetime import date
 
@@ -9,7 +9,7 @@ from api_backend.backend_app.database import SessionLocal
 from api_backend.backend_app.routes.auth.auth_endpoints import get_current_user, role_required
 
 from controller.toxico_controller import ToxicoController
-from repositories.toxico_repo import ToxicoRepository
+from repositories.toxico_repo import ToxicoRepository, ToxicoValidationError, ToxicoConflictError
 from repositories.patient_repo import PatientRepository
 from repositories.audit_repo import AuditRepository 
 from controller.patient_controller import PatientController
@@ -17,8 +17,10 @@ from controller.patient_controller import PatientController
 from api_backend.backend_app.routes.toxico.toxico_schema import (
     PsychologistSimple,
     ToxicoListResponse,
+    ToxicoDischargedListResponse,
     ToxicoAdmissionCreate,
-    ToxicoEvaluationCreate
+    ToxicoEvaluationCreate,
+    ToxicoDischargeRequest,
 )
 
 # 🟢 GLOBAL : On autorise le Psychologue ici.
@@ -76,6 +78,23 @@ def list_patients(
     data = [ctrl.map_dossier_to_list_item(item) for item in items]
     return {"data": data, "total": total, "page": page, "per_page": per_page}
 
+@router.get("/dossiers/discharged", response_model=ToxicoDischargedListResponse)
+def list_discharged(
+    search: Optional[str] = Query(None, max_length=100),
+    reason: Optional[Literal['guerison', 'abandon', 'exclusion', 'autre']] = Query(None),
+    discharged_from: Optional[date] = Query(None),
+    discharged_to: Optional[date] = Query(None),
+    page: int = Query(1, ge=1),
+    per_page: int = Query(20, ge=1, le=100),
+    ctrl: ToxicoController = Depends(get_toxico_controller)
+):
+    # Patients sortis : mêmes rôles que la liste active (garde du routeur).
+    if discharged_from and discharged_to and discharged_from > discharged_to:
+        raise HTTPException(status_code=422,
+                            detail="La date de début doit précéder la date de fin.")
+    return ctrl.list_discharged(search=search, reason=reason, discharged_from=discharged_from,
+                                discharged_to=discharged_to, page=page, per_page=per_page)
+
 @router.get("/patients/{patient_id}", response_model=Any)
 def get_patient_detail(
     patient_id: int,
@@ -118,13 +137,24 @@ async def admission_patient(
         }
         base_url = str(request.base_url).rstrip("/")
         dossier = await ctrl.admission_patient(data=data, consent_file=consentFile, base_url=base_url) # type: ignore
-        return {"message": "Admission réussie", "code_patient": dossier.patient.code_patient}
+        return {
+            "message": "Réadmission réussie" if dossier.is_readmission else "Admission réussie",
+            "code_patient": dossier.patient.code_patient,
+            "dossier_id": dossier.id,
+            "is_readmission": dossier.is_readmission,
+            "stay_number": dossier.stay_number,
+        }
+    except ToxicoValidationError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    except ToxicoConflictError as e:
+        raise HTTPException(status_code=409, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erreur interne: {str(e)}")
 
 @router.post("/evaluation", status_code=status.HTTP_200_OK,
-             # 🟢 Psychologist est bien ici
-             dependencies=[Depends(role_required("Psychologist", "SpiritualCounsellor", "admin"))])
+             # Regle metier : SEUL le psychologue fait l'evaluation psychologique
+             # (ni admin, ni accompagnateur spirituel). La lecture reste ouverte aux autres roles.
+             dependencies=[Depends(role_required("Psychologist"))])
 def submit_evaluation(
     data: ToxicoEvaluationCreate,
     ctrl: ToxicoController = Depends(get_toxico_controller)
@@ -137,8 +167,10 @@ def submit_evaluation(
                 raise ValueError("Dossier introuvable")
             payload['dossier_id'] = dossier.id
 
-        ctrl.submit_evaluation(payload) 
+        ctrl.submit_evaluation(payload)
         return {"message": "Évaluation enregistrée"}
+    except ToxicoConflictError as e:
+        raise HTTPException(status_code=409, detail=str(e))
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -146,11 +178,16 @@ def submit_evaluation(
              dependencies=[Depends(role_required("ToxicoManager", "admin"))])
 def discharge_patient(
     dossier_id: int,
+    body: ToxicoDischargeRequest,
     ctrl: ToxicoController = Depends(get_toxico_controller)
 ):
     try:
-        ctrl.discharge_patient(dossier_id)
+        ctrl.discharge_patient(dossier_id, body.reason, body.note)
         return {"message": "Dossier clôturé avec succès."}
+    except ToxicoValidationError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    except ToxicoConflictError as e:
+        raise HTTPException(status_code=409, detail=str(e))
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     

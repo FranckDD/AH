@@ -290,9 +290,9 @@ class RemoteGateway:
         """Enregistre une nouvelle évaluation psychologique et met à jour la phase."""
         return self.request("POST", "/toxico/evaluation", json=evaluation_data)
 
-    def discharge_toxico_patient(self, dossier_id: int) -> Dict[str, Any]:
-        """Clôture le dossier et sort le patient du programme (discharge)."""
-        return self.request("POST", f"/toxico/discharge/{dossier_id}")
+    def discharge_toxico_patient(self, dossier_id: int, reason: str = "autre", note: str = "Sortie depuis l'application bureau") -> Dict[str, Any]:
+        """Clôture le séjour en cours (le backend exige {reason, note?})."""
+        return self.request("POST", f"/toxico/discharge/{dossier_id}", json={"reason": reason, "note": note})
     
     def get_dashboard_toxico_stats(self) -> Dict[str, Any]:
         """

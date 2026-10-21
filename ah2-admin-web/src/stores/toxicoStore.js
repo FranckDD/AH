@@ -3,6 +3,7 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { ToxicoGateway } from '@/services/ToxicoGateway'; // Assurez-vous que le chemin est correct
+import { buildDischargedQuery, clampDischargedPage, DISCHARGED_PER_PAGE } from '@/utils/toxicoDischarged';
 
 export const useToxicoStore = defineStore('toxico', () => {
     // --- STATE ---
@@ -76,12 +77,12 @@ export const useToxicoStore = defineStore('toxico', () => {
         try {
             console.log("📦 [Store] Envoi Admission JSON:", JSON.stringify(admissionData));
 
-            await ToxicoGateway.admitPatient(admissionData);
+            const response = await ToxicoGateway.admitPatient(admissionData);
             
             // Rafraîchir la liste et les stats après succès
             await fetchToxicoPatients();
             await fetchDashboardStats(); // ✅ Mise à jour des stats après une admission
-            return true; // Succès
+            return response?.data || {}; // { is_readmission, stay_number, ... }
         } catch (error) {
             if (error.response) {
                 console.error("❌ Erreur API Admission:", error.response.status, error.response.data);
@@ -112,9 +113,9 @@ export const useToxicoStore = defineStore('toxico', () => {
     }
     
     // 5. Clôture / Sortie
-    async function dischargePatient(dossierId) {
+    async function dischargePatient(dossierId, { reason, note } = {}) {
         try {
-            await ToxicoGateway.dischargePatient(dossierId);
+            await ToxicoGateway.dischargePatient(dossierId, { reason, note });
             await fetchToxicoPatients();
             await fetchDashboardStats(); // ✅ Mise à jour des stats si le décompte change
         } catch (error) {
@@ -153,6 +154,60 @@ export const useToxicoStore = defineStore('toxico', () => {
             monthlyAdmissionsCount.value = 0; // Réinitialiser en cas d'échec
             throw error;
         }
+    }
+
+    // --- PATIENTS SORTIS (dossiers inactifs) ---
+    const discharged = ref([]);
+    const dischargedTotal = ref(0);
+    const dischargedTotalPages = ref(0);
+    const dischargedLoading = ref(false);
+    const dischargedError = ref(null);
+    const dischargedFilters = ref({ page: 1, per_page: DISCHARGED_PER_PAGE, search: '', reason: '', from: '', to: '' });
+    let dischargedRequestId = 0;
+
+    async function fetchDischarged() {
+        const reqId = ++dischargedRequestId;
+        dischargedLoading.value = true;
+        dischargedError.value = null;
+        try {
+            const res = await ToxicoGateway.listDischarged(buildDischargedQuery(dischargedFilters.value));
+            if (reqId !== dischargedRequestId) return;
+            discharged.value = res.data?.data || [];
+            dischargedTotal.value = res.data?.total || 0;
+            dischargedTotalPages.value = res.data?.total_pages || 0;
+            const f = dischargedFilters.value;
+            const target = clampDischargedPage(f.page, dischargedTotal.value, f.per_page, discharged.value.length);
+            if (target !== null && target !== f.page) {
+                dischargedFilters.value = { ...f, page: target };
+                return fetchDischarged();
+            }
+        } catch (error) {
+            if (reqId !== dischargedRequestId) return;
+            console.error("Erreur chargement patients sortis:", error);
+            discharged.value = [];
+            dischargedError.value = error;
+        } finally {
+            if (reqId === dischargedRequestId) dischargedLoading.value = false;
+        }
+    }
+
+    function setDischargedFilters(patch) {
+        dischargedFilters.value = { ...dischargedFilters.value, ...patch, page: 1 };
+        return fetchDischarged();
+    }
+
+    function clearDischarged() {
+        dischargedRequestId++;
+        discharged.value = [];
+        dischargedTotal.value = 0;
+        dischargedTotalPages.value = 0;
+        dischargedLoading.value = false;
+        dischargedError.value = null;
+    }
+
+    function setDischargedPage(page) {
+        dischargedFilters.value = { ...dischargedFilters.value, page };
+        return fetchDischarged();
     }
 
     // --- ACTIONS UI (Pagination) ---
@@ -267,6 +322,8 @@ export const useToxicoStore = defineStore('toxico', () => {
         getPatientDetails,
         setPage,
         setSearch,
+        discharged, dischargedTotal, dischargedTotalPages, dischargedLoading, dischargedError,
+        dischargedFilters, fetchDischarged, setDischargedFilters, setDischargedPage, clearDischarged,
         
         // COMPUTED STATS
         totalActive,

@@ -10,7 +10,7 @@
       </div>
       
       <div class="flex space-x-3 w-full md:w-auto">
-          <div class="relative w-full md:w-64">
+          <div v-if="activeTab === 'active'" class="relative w-full md:w-64">
             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <MagnifyingGlassIcon class="h-5 w-5 text-gray-400" />
             </div>
@@ -25,7 +25,7 @@
 
           <button 
                 v-if="canAdmitPatient"
-                @click="showAdmissionModal = true" 
+                @click="openNewAdmission" 
                 class="flex items-center px-6 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 shadow-md transition font-semibold"
             >
                 <PlusCircleIcon class="h-5 w-5 mr-2" />
@@ -95,7 +95,19 @@
         </div>
     </div>
 
-    <div class="bg-white rounded-2xl shadow-xs border border-gray-100 overflow-hidden">
+    <div role="tablist" :aria-label="t('toxico.discharged.tabs_label')" class="inline-flex bg-gray-100 rounded-xl p-1 gap-1">
+        <button v-for="tab in listTabs" :key="tab.id" type="button" role="tab"
+                :aria-selected="activeTab === tab.id" @click="activeTab = tab.id"
+                :class="activeTab === tab.id ? 'bg-white text-indigo-700 shadow-xs' : 'text-gray-600 hover:text-gray-900'"
+                class="min-h-[44px] lg:min-h-0 px-5 py-2 rounded-lg text-sm font-semibold transition">
+            {{ t(tab.label) }}
+        </button>
+    </div>
+
+    <ToxicoDischargedPanel v-if="activeTab === 'discharged'" :canReadmit="canAdmitPatient"
+        @view="openDossier" @readmit="openReadmission" />
+
+    <div v-if="activeTab === 'active'" class="bg-white rounded-2xl shadow-xs border border-gray-100 overflow-hidden">
         <div v-if="toxicoStore.isLoading" class="p-10 text-center text-gray-500 flex flex-col items-center">
             <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mb-2"></div>
             {{ t('common.loading') }}
@@ -164,7 +176,8 @@
                                 Dossier
                             </button>
 
-                            <button 
+                            <button
+                                v-if="canEvaluatePatient"
                                 @click="openEvaluation(p)"
                                 class="text-purple-600 hover:text-purple-900 bg-purple-50 hover:bg-purple-100 px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center inline-flex"
                             >
@@ -179,7 +192,7 @@
                                 :title="t('toxico.actions.discharge')"
                             >
                                 <ArrowRightStartOnRectangleIcon class="h-4 w-4 mr-1" />
-                                Sortie
+                                {{ t('toxico.stays.discharge_action') }}
                             </button>
 
                         </td>
@@ -209,6 +222,7 @@
         v-if="showDossierModal"
         :patientId="selectedPatientId" 
         @close="closeDossierModal"
+        @discharged="onDischargedFromDossier"
     />
 
     <ToxicoEvaluationModal 
@@ -220,7 +234,8 @@
 
     <ToxicoAdmissionModal
         v-if="showAdmissionModal"
-        @close="showAdmissionModal = false"
+        :preselectedPatient="readmitPatient"
+        @close="closeAdmission"
         @save="handleAdmission"
     />
 
@@ -231,41 +246,13 @@
         @open-dossier="openDossierFromDetails"
     />
 
-    <div v-if="showDischargeConfirm" class="fixed inset-0 bg-gray-900/60 overflow-y-auto h-full w-full z-50 flex items-center justify-center backdrop-blur-xs">
-      <div class="relative mx-auto w-full max-w-md bg-white shadow-2xl rounded-2xl border border-gray-200">
-        <div class="px-6 py-4 border-b border-gray-100 bg-red-50 rounded-t-2xl">
-          <h3 class="text-lg font-bold text-red-800 flex items-center">
-            <ExclamationTriangleIcon class="h-6 w-6 mr-2" />
-            Confirmation de sortie
-          </h3>
-        </div>
-        
-        <div class="p-6">
-          <p class="text-gray-700 mb-4">
-            Voulez-vous vraiment clôturer le dossier de <span class="font-semibold">{{ patientToDischarge?.patientName }}</span> ?
-          </p>
-          <p class="text-sm text-gray-500 mb-6">
-            Cette action est irréversible. Le patient sera marqué comme "sorti" du programme.
-          </p>
-          
-          <div class="flex justify-end space-x-3">
-            <button 
-              @click="showDischargeConfirm = false"
-              class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition"
-            >
-              Annuler
-            </button>
-            <button 
-              @click="handleDischarge"
-              class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium transition flex items-center"
-            >
-              <CheckIcon class="h-5 w-5 mr-2" />
-              Confirmer la sortie
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
+    <ToxicoDischargeModal
+        v-if="showDischargeConfirm && patientToDischarge"
+        :dossierId="Number(patientToDischarge.dossier_id || patientToDischarge.id)"
+        :patientName="patientToDischarge.patientName || ''"
+        @close="closeDischarge"
+        @discharged="onDischarged"
+    />
 
   </div>
 </template>
@@ -279,6 +266,9 @@ import ToxicoEvaluationModal from '@/components/toxico/ToxicoEvaluationModal.vue
 import ToxicoDossierModal from '@/components/toxico/ToxicoDossierModal.vue';
 import ToxicoAdmissionModal from '@/components/toxico/ToxicoAdmissionModal.vue';
 import ToxicoPatientDetailsModal from '@/components/toxico/ToxicoPatientDetailsModal.vue';
+import ToxicoDischargeModal from '@/components/toxico/ToxicoDischargeModal.vue';
+import ToxicoDischargedPanel from '@/components/toxico/ToxicoDischargedPanel.vue';
+import { toPreselectedPatient } from '@/utils/toxicoDischarged';
 import { 
     PlusCircleIcon, 
     UserIcon, 
@@ -300,6 +290,21 @@ const { t } = useI18n();
 const toxicoStore = useToxicoStore();
 const authStore = useAuthStore(); // 🟢 INITIALISATION
 
+// --- ONGLETS Actifs | Sortis ---
+const listTabs = [
+    { id: 'active', label: 'toxico.discharged.tab_active' },
+    { id: 'discharged', label: 'toxico.discharged.tab_discharged' },
+];
+const activeTab = ref('active');
+const readmitPatient = ref(null);
+const openNewAdmission = () => { readmitPatient.value = null; showAdmissionModal.value = true; };
+const openReadmission = (row) => {
+    if (!canAdmitPatient.value) return;
+    readmitPatient.value = toPreselectedPatient(row);
+    showAdmissionModal.value = true;
+};
+const closeAdmission = () => { showAdmissionModal.value = false; readmitPatient.value = null; };
+
 // --- ÉTATS LOCAUX ---
 const showDossierModal = ref(false);
 const showAdmissionModal = ref(false);
@@ -316,6 +321,11 @@ const selectedPatientForDetails = ref(null);
 const canAdmitPatient = computed(() => {
     // Admin, Manager et Assistant peuvent créer une admission
     return authStore.hasRole(['admin', 'ToxicoManager', 'Assistant']);
+});
+
+const canEvaluatePatient = computed(() => {
+    // Regle metier : SEUL le psychologue fait l'evaluation psychologique
+    return authStore.hasRole(['Psychologist']);
 });
 
 const canDischargePatient = computed(() => {
@@ -369,6 +379,7 @@ const closeDossierModal = () => {
 };
 
 const openEvaluation = (patient) => {
+    if (!canEvaluatePatient.value) return;
     if (!patient.dossier_id && !patient.id) {
         console.error("❌ Patient n'a pas de dossier_id:", patient);
         alert("Erreur: Impossible de trouver l'identifiant du dossier. Veuillez rafraîchir la page.");
@@ -388,11 +399,18 @@ const closeEvalModal = () => {
     selectedPatientForEval.value = null;
 };
 
-const handleAdmission = async (admissionData) => {
+const handleAdmission = async (result) => {
+    // Réadmission depuis "Sortis" : retour sur Actifs (le store a déjà rechargé la liste active)
+    if (result?.isReadmission) {
+        activeTab.value = 'active';
+        toxicoStore.setDischargedPage(1);
+    }
     try {
         await toxicoStore.fetchToxicoPatients();
         await toxicoStore.fetchDashboardStats();
-        alert("Admission validée avec succès !");
+        alert(result?.isReadmission
+            ? t('toxico.stays.readmission_success', { n: result.stayNumber })
+            : "Admission validée avec succès !");
     } catch (error) {
         console.error("Erreur lors du rafraîchissement:", error);
         alert("Admission enregistrée, mais erreur lors du rafraîchissement");
@@ -421,21 +439,17 @@ const confirmDischarge = (patient) => {
     showDischargeConfirm.value = true;
 };
 
-const handleDischarge = async () => {
-    if (!patientToDischarge.value) return;
-    try {
-        const dossierId = patientToDischarge.value.dossier_id || patientToDischarge.value.id;
-        await toxicoStore.dischargePatient(dossierId);
-        showDischargeConfirm.value = false;
-        patientToDischarge.value = null;
-        await toxicoStore.fetchToxicoPatients();
-        await toxicoStore.fetchDashboardStats();
-        alert("Dossier clôturé avec succès !");
-    } catch (error) {
-        console.error("❌ Erreur lors de la sortie:", error);
-        alert("Erreur lors de la sortie.");
-    }
+// La modale envoie { reason, note } ; le store rafraichit deja liste + stats.
+const closeDischarge = () => {
+    showDischargeConfirm.value = false;
+    patientToDischarge.value = null;
 };
+const onDischarged = () => {
+    closeDischarge();
+    alert(t('toxico.stays.discharge_success'));
+};
+// Le store a deja rafraichi liste + stats lors de la sortie : rien a refaire ici.
+const onDischargedFromDossier = () => {};
 
 const openPatientDetails = async (patient) => {
     try {

@@ -1,13 +1,28 @@
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import desc, or_, and_, func
 from sqlalchemy.exc import IntegrityError
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from typing import List, Optional, Tuple
 
-from models.toxico import ToxicoDossier, ToxicoPhaseHistory, ToxicoEvaluation
+from sqlalchemy.orm import selectinload
+
+from models.toxico import ToxicoDossier, ToxicoPhaseHistory, ToxicoEvaluation, ToxicoStay, DISCHARGE_REASONS
 from models.patient import Patient
 from models.user import User
 from models.application_role import ApplicationRole
+
+
+# Rôles proposés par GET /toxico/psychologists ET acceptés comme responsable à l'admission
+RESPONSIBLE_ROLES = ('Psychologist', 'ToxicoManager', 'medecin')
+
+
+class ToxicoValidationError(ValueError):
+    """Donnée invalide (mappée en 422)."""
+
+
+class ToxicoConflictError(ValueError):
+    """État incompatible : déjà sorti, déjà actif, doublon (mappée en 409)."""
+
 
 class ToxicoRepository:
     def __init__(self, session: Session):
@@ -68,6 +83,81 @@ class ToxicoRepository:
 
         return items, total
 
+    def search_discharged_dossiers(
+        self,
+        search_query: str = None,
+        reason: str = None,
+        discharged_from: date = None,
+        discharged_to: date = None,
+        page: int = 1,
+        per_page: int = 20,
+    ) -> Tuple[list, int]:
+        """Dossiers INACTIFS (patients sortis) avec leur dernier séjour, en une
+        seule requête agrégée (pas de N+1). Les filtres motif/dates portent sur
+        le dernier séjour. Un dossier sans séjour reste listé (champs à None).
+        Retourne (lignes, total) ; chaque ligne est un tuple nommé."""
+        from sqlalchemy.orm import aliased
+
+        agg = (
+            self.session.query(
+                ToxicoStay.dossier_id.label("dossier_id"),
+                func.count(ToxicoStay.id).label("stays_count"),
+                func.max(ToxicoStay.stay_number).label("last_number"),
+            )
+            .group_by(ToxicoStay.dossier_id)
+            .subquery()
+        )
+        psy = aliased(User)
+        disch = aliased(User)
+
+        query = (
+            self.session.query(
+                ToxicoDossier.id.label("dossier_id"),
+                ToxicoDossier.patient_id.label("patient_id"),
+                Patient.first_name, Patient.last_name, Patient.code_patient,
+                func.coalesce(agg.c.stays_count, 0).label("stays_count"),
+                ToxicoStay.stay_number, ToxicoStay.admission_date, ToxicoStay.discharge_date,
+                ToxicoStay.discharge_reason, ToxicoStay.substance,
+                psy.full_name.label("psychologist_name"),
+                disch.full_name.label("discharged_by_name"),
+            )
+            .join(Patient, Patient.patient_id == ToxicoDossier.patient_id)
+            .outerjoin(agg, agg.c.dossier_id == ToxicoDossier.id)
+            .outerjoin(ToxicoStay, and_(ToxicoStay.dossier_id == ToxicoDossier.id,
+                                        ToxicoStay.stay_number == agg.c.last_number))
+            .outerjoin(psy, psy.user_id == ToxicoStay.psychologist_id)
+            .outerjoin(disch, disch.user_id == ToxicoStay.discharged_by)
+            .filter(ToxicoDossier.is_active == False)  # noqa: E712
+        )
+
+        if search_query and search_query.strip():
+            raw = search_query.strip()
+            esc = raw.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+            term = f"%{esc}%"
+            query = query.filter(or_(
+                Patient.last_name.ilike(term, escape="\\"),
+                Patient.first_name.ilike(term, escape="\\"),
+                Patient.code_patient.ilike(term, escape="\\"),
+                (Patient.first_name + " " + Patient.last_name).ilike(term, escape="\\"),
+                (Patient.last_name + " " + Patient.first_name).ilike(term, escape="\\"),
+            ))
+        if reason:
+            query = query.filter(ToxicoStay.discharge_reason == reason)
+        if discharged_from:
+            query = query.filter(ToxicoStay.discharge_date >= discharged_from)
+        if discharged_to:
+            query = query.filter(ToxicoStay.discharge_date <= discharged_to)
+
+        total = query.order_by(None).count()
+        rows = (
+            query
+            .order_by(ToxicoStay.discharge_date.desc().nullslast(), ToxicoDossier.id.desc())
+            .offset((page - 1) * per_page)
+            .limit(per_page)
+            .all()
+        )
+        return rows, total
+
     def get_dossier_full(self, patient_id: int) -> Optional[ToxicoDossier]:
         """
         Charge tout le dossier avec l'historique complet pour la vue détaillée.
@@ -78,7 +168,9 @@ class ToxicoRepository:
                 joinedload(ToxicoDossier.patient),
                 # ✅ CORRECTION : Supprimer order_by sur le joinedload
                 joinedload(ToxicoDossier.phase_history), 
-                joinedload(ToxicoDossier.evaluations).joinedload(ToxicoEvaluation.evaluator)
+                joinedload(ToxicoDossier.evaluations).joinedload(ToxicoEvaluation.evaluator),
+                selectinload(ToxicoDossier.stays).joinedload(ToxicoStay.psychologist),
+                selectinload(ToxicoDossier.stays).joinedload(ToxicoStay.discharger),
             )
             .filter(ToxicoDossier.patient_id == patient_id)
             .first()
@@ -87,8 +179,8 @@ class ToxicoRepository:
     def get_psychologists(self) -> List[User]:
         """ Récupère les psys actifs via leurs rôles """
         # Adapte les noms exacts de tes rôles en BDD ici
-        target_roles = ['Psychologist', 'ToxicoManager', 'medecin']
-        
+        target_roles = list(RESPONSIBLE_ROLES)
+
         return (
             self.session.query(User)
             .join(ApplicationRole)
@@ -104,14 +196,28 @@ class ToxicoRepository:
 
     def create_dossier_after_patient_commit(self, patient_id: int, toxico_data: dict) -> ToxicoDossier:
         """
-        Crée le Dossier Toxico et l'Historique de Phase.
+        Admission OU réadmission (une seule transaction) :
+        - aucun dossier -> création du dossier + séjour 1 + phase 1 (liés au séjour) ;
+        - dossier inactif -> réactivation, séjour n+1, nouvelle phase 1 ;
+        - dossier actif -> ToxicoConflictError (409), rien n'est écrit.
         Utilisée APRÈS que le patient ait été créé et commité (via PS Patient).
         """
         try:
-            # Vérification Doublon Dossier (inchangée)
-            existing = self.session.query(ToxicoDossier).filter_by(patient_id=patient_id, is_active=True).first()
-            if existing: 
-                raise ValueError(f"Ce patient a déjà un dossier Toxicologie actif.")
+            self._validate_psychologist(toxico_data.get('psychologist_id'))
+
+            # Verrou de ligne : deux réadmissions simultanées se sérialisent ici.
+            existing = (
+                self.session.query(ToxicoDossier)
+                .filter(ToxicoDossier.patient_id == patient_id)
+                .with_for_update()
+                .first()
+            )
+            if existing is not None:
+                if existing.is_active:
+                    raise ToxicoConflictError("Ce patient a déjà un dossier Toxicologie actif.")
+                dossier = self._readmit(existing, toxico_data)
+                self.session.commit()
+                return dossier
 
             # 1. Création Dossier
             dossier = ToxicoDossier(
@@ -130,22 +236,120 @@ class ToxicoRepository:
             self.session.add(dossier)
             self.session.flush() # Génère l'ID
 
-            # 2. Historique Initial (inchangé)
+            stay = ToxicoStay(
+                dossier_id=dossier.id,
+                stay_number=1,
+                admission_date=toxico_data['admission_date'],
+                psychologist_id=toxico_data['psychologist_id'],
+                substance=toxico_data['substance'],
+            )
+            self.session.add(stay)
+            self.session.flush()
+
+            # 2. Historique Initial
             history = ToxicoPhaseHistory(
                 dossier_id=dossier.id,
                 phase=1,
                 start_date=toxico_data['admission_date'],
                 status="En cours",
-                comments="Admission initiale"
+                comments="Admission initiale",
+                stay_id=stay.id,
             )
             self.session.add(history)
 
             self.session.commit()
             return dossier
 
+        except IntegrityError as e:
+            self.session.rollback()
+            msg = str(getattr(e, "orig", e))
+            if any(k in msg for k in ("uq_toxico_stays_one_open", "uq_toxico_stays_dossier_number",
+                                      "uq_toxico_patient", "toxico_dossiers_patient_id_key")):
+                raise ToxicoConflictError(
+                    "Une admission est déjà en cours pour ce patient (doublon refusé).") from e
+            raise
         except Exception as e:
             self.session.rollback()
             raise e
+
+    def _validate_psychologist(self, psychologist_id):
+        if not psychologist_id:
+            raise ToxicoValidationError("Le psychologue est obligatoire à chaque admission.")
+        user = (
+            self.session.query(User)
+            .join(ApplicationRole, User.role_id == ApplicationRole.role_id)
+            .filter(User.user_id == psychologist_id)
+            .filter(User.is_active == True)
+            .filter(ApplicationRole.role_name.in_(RESPONSIBLE_ROLES))
+            .first()
+        )
+        if user is None:
+            raise ToxicoValidationError(
+                "Le responsable choisi est introuvable, inactif ou n'a pas un rôle autorisé.")
+
+    def get_open_stay(self, dossier_id: int) -> Optional[ToxicoStay]:
+        return (
+            self.session.query(ToxicoStay)
+            .filter(ToxicoStay.dossier_id == dossier_id, ToxicoStay.discharge_date == None)
+            .first()
+        )
+
+    def _readmit(self, dossier: ToxicoDossier, toxico_data: dict) -> ToxicoDossier:
+        """Réactive un dossier inactif (appelant : verrou + commit/rollback)."""
+        last = (
+            self.session.query(ToxicoStay)
+            .filter(ToxicoStay.dossier_id == dossier.id)
+            .order_by(desc(ToxicoStay.stay_number))
+            .first()
+        )
+        new_number = (last.stay_number if last else 0) + 1
+
+        adm = toxico_data['admission_date']
+        if isinstance(adm, str):
+            adm = date.fromisoformat(adm)
+        if isinstance(adm, datetime):
+            adm = adm.date()
+        if adm > date.today() + timedelta(days=1):
+            raise ToxicoValidationError("La date de réadmission ne peut pas être dans le futur.")
+        if last is not None and last.discharge_date is not None and adm < last.discharge_date:
+            raise ToxicoValidationError(
+                "La date de réadmission est antérieure à la sortie du séjour précédent "
+                f"({last.discharge_date.isoformat()}).")
+
+        dossier.is_active = True
+        dossier.admission_date = toxico_data['admission_date']
+        dossier.substance = toxico_data['substance']
+        dossier.psychologist_id = toxico_data['psychologist_id']
+        dossier.current_phase = 1
+        # relapse_count volontairement inchangé (régressions décidées en évaluation)
+        if toxico_data.get('guardian_name'):
+            dossier.guardian_name = toxico_data['guardian_name']
+        if toxico_data.get('guardian_contact'):
+            dossier.guardian_contact = toxico_data['guardian_contact']
+        if toxico_data.get('notes'):
+            dossier.notes_admission = toxico_data['notes']
+        if toxico_data.get('consent_file'):
+            dossier.consent_file = toxico_data['consent_file']  # sinon on garde l'ancien
+
+        stay = ToxicoStay(
+            dossier_id=dossier.id,
+            stay_number=new_number,
+            admission_date=toxico_data['admission_date'],
+            psychologist_id=toxico_data['psychologist_id'],
+            substance=toxico_data['substance'],
+        )
+        self.session.add(stay)
+        self.session.flush()  # l'index du séjour ouvert lève ici en cas de doublon
+
+        self.session.add(ToxicoPhaseHistory(
+            dossier_id=dossier.id,
+            phase=1,
+            start_date=toxico_data['admission_date'],
+            status="En cours",
+            comments=f"Réadmission — séjour {new_number}",
+            stay_id=stay.id,
+        ))
+        return dossier
 
     def process_evaluation(self, dossier_id: int, data: dict, user_id: int) -> ToxicoEvaluation:
         """
@@ -154,13 +358,19 @@ class ToxicoRepository:
         try:
             dossier = self.session.get(ToxicoDossier, dossier_id)
             if not dossier: raise ValueError("Dossier introuvable")
+            if not dossier.is_active:
+                raise ToxicoConflictError(
+                    "Ce dossier est sorti du programme : le patient doit être réadmis avant toute évaluation.")
 
             target_phase = data['target_phase']
             decision = data['decision'] # PROGRESS, REGRESS, MAINTAIN
+            open_stay = self.get_open_stay(dossier.id)
+            stay_id = open_stay.id if open_stay else None
 
             # 1. Créer l'évaluation
             eval_entry = ToxicoEvaluation(
                 dossier_id=dossier.id,
+                stay_id=stay_id,
                 created_by=user_id,
                 decision=decision,
                 observation=data['observation'],
@@ -182,7 +392,8 @@ class ToxicoRepository:
                     phase=target_phase,
                     start_date=date.today(),
                     status="En cours",
-                    comments=f"Changement suite évaluation ({decision})"
+                    comments=f"Changement suite évaluation ({decision})",
+                    stay_id=stay_id,
                 )
                 self.session.add(new_hist)
                 
@@ -210,28 +421,56 @@ class ToxicoRepository:
             current.end_date = date.today()
             current.status = "Terminé" if reason == 'PROGRESS' else "Interrompu"
 
-    def discharge(self, dossier_id: int):
-        """Sortie du programme (Clôture)"""
+    def discharge(self, dossier_id: int, reason: str, note: Optional[str], user_id: Optional[int]):
+        """Sortie du programme : ferme la phase courante et le séjour ouvert,
+        dossier inactif — une seule transaction."""
+        if reason not in DISCHARGE_REASONS:
+            raise ToxicoValidationError(
+                f"Motif de sortie invalide (attendu : {', '.join(DISCHARGE_REASONS)}).")
+        note = (note or "").strip() or None
+        if reason == 'autre' and not note:
+            raise ToxicoValidationError("Une note est obligatoire pour le motif « autre ».")
         try:
-            dossier = self.session.get(ToxicoDossier, dossier_id)
-            if not dossier: raise ValueError("Dossier introuvable")
-            
-            # Fermer phase active
+            dossier = (
+                self.session.query(ToxicoDossier)
+                .filter(ToxicoDossier.id == dossier_id)
+                .with_for_update()
+                .first()
+            )
+            if not dossier:
+                raise ValueError("Dossier introuvable")
+            if not dossier.is_active:
+                raise ToxicoConflictError("Ce dossier est déjà sorti du programme.")
+
+            today = date.today()
+            stay = self.get_open_stay(dossier.id)
+            if stay is None:
+                raise ToxicoConflictError("Aucun séjour ouvert pour ce dossier : sortie impossible.")
+            if stay.admission_date > today:
+                raise ToxicoValidationError("Sortie impossible avant la date d'admission du séjour.")
+
             self._close_current_phase(dossier.id, "DISCHARGE")
-            
+            stay.discharge_date = today
+            stay.discharge_reason = reason
+            stay.discharge_note = note
+            stay.discharged_by = user_id
             dossier.is_active = False
             self.session.commit()
+            return dossier
         except Exception as e:
             self.session.rollback()
             raise e
-        
 
-    def count_dossiers_created_since(self, start_date):
-        """Compte les dossiers de patients créés (ou admis) depuis une certaine date."""
-        count = self.session.query(ToxicoDossier).filter(
-            # On filtre sur la date de création du dossier.
-            # SQLite supporte la comparaison directe des datetime.
-            ToxicoDossier.created_at >= start_date 
-        ).count()
-        
-        return count    
+    def count_dossiers_created_since(self, start_date, end_date=None):
+        """Compte les séjours commencés (admissions + réadmissions, par
+        admission_date) dans [start_date, end_date) ; sans end_date : jusqu'à
+        aujourd'hui inclus (un séjour daté dans le futur n'est pas compté)."""
+        def _d(v):
+            return v.date() if isinstance(v, datetime) else v
+        start = _d(start_date)
+        q = self.session.query(ToxicoStay).filter(ToxicoStay.admission_date >= start)
+        if end_date is not None:
+            q = q.filter(ToxicoStay.admission_date < _d(end_date))
+        else:
+            q = q.filter(ToxicoStay.admission_date <= date.today())
+        return q.count()

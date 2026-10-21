@@ -1,6 +1,6 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict, model_validator
 from datetime import date, datetime
-from typing import List, Optional
+from typing import List, Optional, Literal
 
 # --- 1. OBJETS DE LECTURE (Ce que le Front reçoit) ---
 
@@ -80,6 +80,32 @@ class ToxicoListResponse(BaseModel):
     per_page: int
 
 
+class ToxicoLastStay(BaseModel):
+    stay_number: int
+    admission_date: date
+    discharge_date: Optional[date] = None
+    discharge_reason: Optional[str] = None
+    # pas de discharge_note : texte libre clinique, reserve au detail du dossier
+    discharged_by_name: Optional[str] = None
+    psychologist_name: Optional[str] = None
+    substance: Optional[str] = None
+
+class ToxicoDischargedItem(BaseModel):
+    dossier_id: int
+    patient_id: int
+    patientName: str
+    code: Optional[str] = None
+    stays_count: int
+    last_stay: Optional[ToxicoLastStay] = None
+
+class ToxicoDischargedListResponse(BaseModel):
+    data: List[ToxicoDischargedItem]
+    total: int
+    page: int
+    per_page: int
+    total_pages: int
+
+
 # --- 2. OBJETS D'ÉCRITURE (Ce que le Front envoie) ---
 
 class ToxicoAdmissionCreate(BaseModel):
@@ -103,6 +129,20 @@ class ToxicoAdmissionCreate(BaseModel):
     guardianContact: str
     consentFile: Optional[str] = Field(None) # On reçoit le nom du fichier pour l'instant
     notes: Optional[str] = None
+
+class ToxicoDischargeRequest(BaseModel):
+    """Corps strict de POST /toxico/discharge/{dossier_id}."""
+    model_config = ConfigDict(extra="forbid")
+
+    reason: Literal['guerison', 'abandon', 'exclusion', 'autre']
+    note: Optional[str] = Field(None, max_length=2000)
+
+    @model_validator(mode="after")
+    def _note_required_for_autre(self):
+        if self.reason == 'autre' and not (self.note or "").strip():
+            raise ValueError("Une note est obligatoire pour le motif « autre ».")
+        return self
+
 
 class ToxicoEvaluationCreate(BaseModel):
     """Payload de la modale d'évaluation"""

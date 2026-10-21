@@ -40,20 +40,39 @@
 
                 <div v-if="selectedExistingPatient" class="flex items-center justify-between bg-indigo-50 border border-indigo-200 rounded-lg px-3 py-2">
                     <span class="text-sm font-medium text-indigo-900">
-                        {{ selectedExistingPatient.first_name }} {{ selectedExistingPatient.last_name }} ({{ selectedExistingPatient.code_patient }})
+                        {{ selectedPatientLabel }}
                     </span>
-                    <button type="button" @click="selectedExistingPatient = null" class="text-xs text-indigo-600 hover:underline">Changer</button>
+                    <button type="button" @click="clearExistingPatient" class="text-xs text-indigo-600 hover:underline min-h-[44px] lg:min-h-0 px-2">Changer</button>
+                </div>
+
+                <p v-if="dossierCheck === 'loading'" class="mt-2 text-xs text-gray-400">{{ t('toxico.stays.checking') }}</p>
+                <div v-else-if="dossierCheck === 'readmission'" role="status"
+                     class="mt-3 bg-amber-50 border-l-4 border-amber-500 rounded-sm p-3 text-sm text-amber-900 space-y-1">
+                    <p class="font-semibold">{{ t('toxico.stays.readmission_banner', { n: nextStayNumber }) }}</p>
+                    <p>{{ t('toxico.stays.readmission_phase_reset') }}</p>
+                    <p v-if="lastDischargeDate">{{ t('toxico.stays.readmission_min_date', { date: lastDischargeDate }) }}</p>
+                </div>
+                <div v-else-if="dossierCheck === 'active'" role="alert"
+                     class="mt-3 bg-red-50 border-l-4 border-red-500 rounded-sm p-3 text-sm text-red-700">
+                    {{ t('toxico.stays.already_active') }}
+                </div>
+                <div v-else-if="dossierCheck === 'error'" class="mt-2 flex flex-wrap items-center gap-2 text-xs text-red-600">
+                    <span>{{ t('toxico.stays.check_failed') }}</span>
+                    <button type="button" @click="checkToxicoDossier(selectedExistingPatient.patient_id)"
+                            class="min-h-[44px] lg:min-h-0 px-3 py-1 rounded-lg border border-red-300 bg-white text-red-700 font-medium hover:bg-red-50">
+                        {{ t('toxico.stays.retry') }}
+                    </button>
                 </div>
 
                 <div v-if="selectedExistingPatient || showNewPatientForm" class="space-y-4 mt-3">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('toxico.admission.date') }} <span class="text-red-500">*</span></label>
                         <input v-model="form.admissionDate" type="date" required
-                               :max="today"
+                               :max="today" :min="minAdmissionDate || undefined"
                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500" />
                     </div>
 
-                    <div class="grid grid-cols-2 gap-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('toxico.admission.substance') }} <span class="text-red-500">*</span></label>
                             <select v-model="form.substance" required
@@ -80,7 +99,7 @@
                 </div>
 
                 <div v-if="showNewPatientForm" class="space-y-4 mt-3">
-                    <div class="grid grid-cols-2 gap-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('toxico.admission.firstname') }} <span class="text-red-500">*</span></label>
                             <input v-model="form.firstName" type="text" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500" />
@@ -91,7 +110,7 @@
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-2 gap-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('toxico.admission.dob') }} <span class="text-red-500">*</span></label>
                             <input v-model="form.dob" type="date" required
@@ -129,7 +148,7 @@
                     {{ t('toxico.admission.section_guardian') }}
                 </h4>
                 <div class="space-y-4">
-                    <div class="grid grid-cols-2 gap-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('toxico.admission.guardian_name') }} <span class="text-red-500">*</span></label>
                             <input v-model="form.guardianName" type="text" required 
@@ -213,6 +232,9 @@
 import { reactive, ref, onMounted, computed, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useToxicoStore } from '@/stores/toxicoStore';
+import { ToxicoGateway } from '@/services/ToxicoGateway';
+import { apiErrorMessage } from '@/utils/toxicoStays';
+import { displayName } from '@/utils/toxicoDischarged';
 import { 
     UserPlusIcon, 
     CheckCircleIcon, 
@@ -222,7 +244,11 @@ import {
 } from '@heroicons/vue/24/outline';
 
 const { t } = useI18n();
-const emit = defineEmits(['close', 'save']); 
+const emit = defineEmits(['close', 'save']);
+// Réadmission depuis l'onglet "Sortis" : { patient_id, first_name, last_name, code_patient }
+const props = defineProps({
+    preselectedPatient: { type: Object, default: null },
+});
 const toxicoStore = useToxicoStore();
 
 const today = new Date().toISOString().split('T')[0];
@@ -262,6 +288,12 @@ const searchResults = ref([]);
 const isSearching = ref(false);
 const selectedExistingPatient = ref(null);
 const showNewPatientForm = ref(false);
+const selectedPatientLabel = computed(() => {
+    const p = selectedExistingPatient.value;
+    if (!p) return '';
+    const name = displayName(p.first_name, p.last_name);
+    return p.code_patient ? `${name} (${p.code_patient})` : name;
+});
 
 let searchTimeout = null;
 const onSearchInput = () => {
@@ -277,14 +309,64 @@ const onSearchInput = () => {
     }, 300);
 };
 
+// Etat du dossier toxico du patient rattache : 'none' (pas de dossier, 404),
+// 'readmission' (dossier inactif), 'active' (deja suivi -> le backend refusera 409).
+const dossierCheck = ref('');
+const existingDossier = ref(null);
+const lastClosedStay = computed(() => {
+    const stays = existingDossier.value?.stays || [];
+    return [...stays].filter((s) => !s.is_open).sort((a, b) => b.stay_number - a.stay_number)[0] || null;
+});
+const nextStayNumber = computed(() => {
+    const stays = existingDossier.value?.stays || [];
+    return (stays.length ? Math.max(...stays.map((s) => s.stay_number)) : 0) + 1;
+});
+// Regle backend : la nouvelle admission ne precede pas la derniere sortie.
+const minAdmissionDate = computed(() =>
+    dossierCheck.value === 'readmission' && lastClosedStay.value?.discharge_date
+        ? String(lastClosedStay.value.discharge_date).slice(0, 10) : '');
+const lastDischargeDate = computed(() => {
+    if (!minAdmissionDate.value) return '';
+    const d = new Date(minAdmissionDate.value);
+    return isNaN(d.getTime()) ? minAdmissionDate.value : d.toLocaleDateString();
+});
+
+const checkToxicoDossier = async (patientId) => {
+    dossierCheck.value = 'loading';
+    existingDossier.value = null;
+    try {
+        const res = await ToxicoGateway.getPatientDetails(patientId);
+        if (selectedExistingPatient.value?.patient_id !== patientId) return;
+        existingDossier.value = res.data;
+        dossierCheck.value = res.data?.isActive ? 'active' : 'readmission';
+        if (minAdmissionDate.value && form.admissionDate < minAdmissionDate.value) {
+            form.admissionDate = minAdmissionDate.value > today ? today : minAdmissionDate.value;
+        }
+    } catch (e) {
+        if (selectedExistingPatient.value?.patient_id !== patientId) return;
+        dossierCheck.value = e?.response?.status === 404 ? 'none' : 'error';
+    }
+};
+
 const selectExistingPatient = (patient) => {
     selectedExistingPatient.value = patient;
     showNewPatientForm.value = false;
     searchResults.value = [];
+    checkToxicoDossier(patient.patient_id);
 };
 
-const startNewPatient = () => {
+const clearExistingPatient = () => {
     selectedExistingPatient.value = null;
+    dossierCheck.value = '';
+    existingDossier.value = null;
+};
+
+onMounted(() => {
+    if (props.preselectedPatient?.patient_id) selectExistingPatient(props.preselectedPatient);
+});
+
+const startNewPatient = () => {
+    clearExistingPatient();
     showNewPatientForm.value = true;
 };
 
@@ -293,7 +375,8 @@ const isFormValid = computed(() => {
     const patientOk = selectedExistingPatient.value || (
         form.firstName.trim() && form.lastName.trim() && form.dob && form.mothersName.trim()
     );
-    return patientOk &&
+    const dossierOk = !selectedExistingPatient.value || ['none', 'readmission'].includes(dossierCheck.value);
+    return patientOk && dossierOk &&
            form.admissionDate &&
            form.substance &&
            form.psychologist &&
@@ -336,6 +419,11 @@ const handleSubmit = async () => {
 
     if (admissionDate > todayDate) {
         errorMessage.value = "La date d'admission ne peut pas être dans le futur";
+        return;
+    }
+
+    if (minAdmissionDate.value && form.admissionDate < minAdmissionDate.value) {
+        errorMessage.value = t('toxico.stays.errors.admission_before_discharge', { date: lastDischargeDate.value });
         return;
     }
 
@@ -386,10 +474,10 @@ const handleSubmit = async () => {
 
     try {
         //console.log("🔄 Appel à toxicoStore.addPatient...");
-        await toxicoStore.addPatient(payload);
+        const result = await toxicoStore.addPatient(payload);
         
         console.log("✅ Admission réussie!");
-        emit('save'); 
+        emit('save', { isReadmission: !!result?.is_readmission, stayNumber: result?.stay_number ?? null }); 
         emit('close'); 
         
     } catch (error) {
@@ -415,6 +503,8 @@ const handleSubmit = async () => {
                 } else {
                     errorMessage.value = `Erreur: ${details}`;
                 }
+            } else if (error.response.status === 409) {
+                errorMessage.value = apiErrorMessage(error, t('toxico.stays.already_active'));
             } else if (error.response.status === 400) {
                 errorMessage.value = error.response.data.detail || "Données invalides";
             } else if (error.response.status === 401) {

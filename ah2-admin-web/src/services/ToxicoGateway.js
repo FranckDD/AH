@@ -28,6 +28,11 @@ export const ToxicoGateway = {
         return api.get('/toxico/patients', { params: query });
     },
 
+    // Patients sortis (dossiers inactifs) : params deja construits par buildDischargedQuery
+    async listDischarged(params) {
+        return api.get('/toxico/dossiers/discharged', { params });
+    },
+
     async getPatientDetails(patientId) {
        // console.log("[GATEWAY] getPatientDetails appelé pour patientId:", patientId);
         return api.get(`/toxico/patients/${patientId}`);
@@ -130,9 +135,12 @@ export const ToxicoGateway = {
         return api.post('/toxico/evaluation', payload);
     },
 
-    async dischargePatient(dossierId) {
-        //console.log("[GATEWAY] dischargePatient appelé pour dossierId:", dossierId);
-        return api.post(`/toxico/discharge/${dossierId}`);
+    // Corps strict exige par le backend : { reason, note? } (sinon 422).
+    async dischargePatient(dossierId, { reason, note } = {}) {
+        const trimmed = (note || '').trim();
+        const body = { reason };
+        if (trimmed) body.note = trimmed;
+        return api.post(`/toxico/discharge/${dossierId}`, body);
     }
 
     

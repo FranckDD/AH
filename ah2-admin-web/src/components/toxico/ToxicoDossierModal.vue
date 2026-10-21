@@ -21,6 +21,9 @@
                 <div>
                     <h3 class="text-xl font-bold text-gray-900">
                         {{ patient.firstName }} {{ patient.lastName }}
+                        <span v-if="patient.isActive === false" class="ml-2 align-middle px-2 py-0.5 text-xs font-bold rounded-full bg-gray-200 text-gray-700">
+                            {{ t('toxico.discharged.badge_inactive') }}
+                        </span>
                     </h3>
                     <p class="text-sm text-indigo-600 font-medium">
                         Code: {{ patient.code }} • Substance: {{ patient.substance }}
@@ -52,6 +55,9 @@
           </div>
 
           <div class="p-6 overflow-y-auto bg-gray-50 flex-1">
+            <div v-if="dischargeSuccess" role="status" class="mb-4 bg-green-50 border-l-4 border-green-500 rounded-sm p-3 text-sm text-green-800">
+                {{ t('toxico.stays.discharge_success') }}
+            </div>
             
             <div v-if="currentTab === 'history'" class="space-y-6">
                 <div class="bg-white p-5 rounded-xl shadow-xs border border-gray-100">
@@ -69,25 +75,7 @@
                 <div class="bg-white p-5 rounded-xl shadow-xs border border-gray-100">
                     <h4 class="text-sm font-bold text-gray-700 uppercase mb-4">{{ t('toxico.dossier.tabs.history') }}</h4>
                     
-                    <div v-if="patient.phaseHistory && patient.phaseHistory.length > 0" class="relative border-l-2 border-indigo-200 ml-3 space-y-6">
-                        <div v-for="(phase, index) in patient.phaseHistory" :key="index" class="mb-8 ml-6">
-                            <span class="absolute flex items-center justify-center w-6 h-6 bg-indigo-100 rounded-full -left-3 ring-4 ring-white">
-                                <span class="w-2 h-2 bg-indigo-600 rounded-full"></span>
-                            </span>
-                            <div class="bg-gray-50 p-3 rounded-lg border border-gray-200">
-                                <h5 class="flex items-center mb-1 text-sm font-semibold text-gray-900">
-                                    {{ t(`toxico.phases.${phase.phase}`) }}
-                                    <span v-if="phase.status && phase.status.includes('Terminé')" class="bg-green-100 text-green-800 text-xs px-2 py-0.5 rounded-full ml-2">{{ phase.status }}</span>
-                                    <span v-else class="bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded-full ml-2">{{ phase.status }}</span>
-                                </h5>
-                                <time class="block mb-2 text-xs font-normal leading-none text-gray-400">
-                                    {{ formatDate(phase.start_date) }} <span v-if="phase.end_date"> - {{ formatDate(phase.end_date) }}</span>
-                                </time>
-                                <p class="text-sm font-normal text-gray-600">{{ phase.comments }}</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div v-else class="text-center text-gray-500 py-4 italic">Aucun historique disponible.</div>
+                    <ToxicoStaysTimeline :stays="patient.stays || []" :phaseHistory="patient.phaseHistory || []" :evaluations="patient.evaluations || []" />
                 </div>
             </div>
 
@@ -141,14 +129,22 @@
 
           </div>
 
-          <div class="px-6 py-4 border-t border-gray-100 bg-gray-50 rounded-b-2xl flex justify-end shrink-0">
-            <button @click="$emit('close')" class="px-5 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium transition shadow-md">
+          <div class="px-4 md:px-6 py-4 border-t border-gray-100 bg-gray-50 rounded-b-2xl flex flex-col-reverse sm:flex-row sm:justify-end gap-2 shrink-0">
+            <button v-if="canDischarge" type="button" @click="showDischarge = true"
+                    class="min-h-[44px] lg:min-h-0 px-5 py-2 bg-red-50 text-red-700 border border-red-200 rounded-lg hover:bg-red-100 font-medium transition">
+                {{ t('toxico.stays.discharge_action') }}
+            </button>
+            <button @click="$emit('close')" class="min-h-[44px] lg:min-h-0 px-5 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium transition shadow-md">
                 Fermer le dossier
             </button>
           </div>
       </div>
 
     </div>
+
+    <ToxicoDischargeModal v-if="showDischarge && patient" :dossierId="patient.dossier_id"
+        :patientName="`${patient.firstName || ''} ${patient.lastName || ''}`.trim()"
+        @close="showDischarge = false" @discharged="onDischarged" />
   </div>
 </template>
 
@@ -160,6 +156,8 @@ import { useToxicoStore } from '@/stores/toxicoStore';
 import { useAuthStore } from '@/stores/auth';
 import { ToxicoGateway } from '@/services/ToxicoGateway';
 import { ClockIcon, HeartIcon, BeakerIcon } from '@heroicons/vue/24/outline';
+import ToxicoStaysTimeline from '@/components/toxico/ToxicoStaysTimeline.vue';
+import ToxicoDischargeModal from '@/components/toxico/ToxicoDischargeModal.vue';
 
 const { t } = useI18n();
 const toxicoStore = useToxicoStore();
@@ -170,7 +168,7 @@ const props = defineProps({
   patientId: { type: Number, required: true }
 });
 
-const emit = defineEmits(['close']);
+const emit = defineEmits(['close', 'discharged']);
 
 // Initialiser avec un objet vide évite parfois des erreurs, 
 // mais ici on utilise v-if="!patient" donc null est correct pour l'état initial.
@@ -190,6 +188,20 @@ const tabs = [
 const canSeeClinical = computed(() => authStore.hasRole(['admin', 'ToxicoManager', 'Psychologist']));
 // L'historique complet vit sur /patients/:id, reserve admin + responsable toxico.
 const canOpenFullHistory = computed(() => authStore.hasRole(['admin', 'ToxicoManager']));
+// Sortie : responsable toxico et admin uniquement, et seulement sur un dossier actif.
+const canDischarge = computed(() => !!patient.value?.isActive && authStore.hasRole(['ToxicoManager', 'admin']));
+const showDischarge = ref(false);
+const dischargeSuccess = ref(false);
+const loadDossier = async () => {
+    const data = await toxicoStore.getPatientDetails(props.patientId);
+    patient.value = data;
+};
+const onDischarged = async () => {
+    showDischarge.value = false;
+    dischargeSuccess.value = true;
+    emit('discharged');
+    try { await loadDossier(); } catch (e) { console.error('Erreur rechargement dossier:', e); }
+};
 const visibleTabs = computed(() =>
     tabs.filter((tab) => canSeeClinical.value || !['medical', 'prescriptions'].includes(tab.id))
 );
@@ -240,8 +252,7 @@ onMounted(async () => {
     isLoading.value = true;
     try {
         // Le store appelle l'API get_patient_detail qui renvoie { firstName, lastName, phaseHistory... }
-        const data = await toxicoStore.getPatientDetails(props.patientId);
-        patient.value = data;
+        await loadDossier();
     } catch (e) {
         console.error("❌ Erreur chargement dossier:", e);
     } finally {
