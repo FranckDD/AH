@@ -29,3 +29,6 @@ printer_bridge/config.json
 
 # Scratch de la methode de travail (ledgers, briefs, rapports de revue)
 .superpowers/
+
+# Maquettes de reference (a compresser avant de decider de versionner les images retenues)
+Image_propos_test_ui/
