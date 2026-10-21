@@ -269,6 +269,7 @@ import ToxicoPatientDetailsModal from '@/components/toxico/ToxicoPatientDetailsM
 import ToxicoDischargeModal from '@/components/toxico/ToxicoDischargeModal.vue';
 import ToxicoDischargedPanel from '@/components/toxico/ToxicoDischargedPanel.vue';
 import { toPreselectedPatient } from '@/utils/toxicoDischarged';
+import { TOXICO_DISCHARGE_ROLES } from '@/utils/toxicoExport';
 import { 
     PlusCircleIcon, 
     UserIcon, 
@@ -329,8 +330,8 @@ const canEvaluatePatient = computed(() => {
 });
 
 const canDischargePatient = computed(() => {
-    // Admin et Manager peuvent faire une sortie
-    return authStore.hasRole(['admin', 'ToxicoManager']);
+    // Admin, Manager et promoteur (2026-10-22) peuvent faire une sortie
+    return authStore.hasRole(TOXICO_DISCHARGE_ROLES);
 });
 
 

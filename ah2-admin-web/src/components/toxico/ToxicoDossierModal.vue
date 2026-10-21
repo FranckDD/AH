@@ -163,7 +163,7 @@ import { ToxicoGateway } from '@/services/ToxicoGateway';
 import { ClockIcon, HeartIcon, BeakerIcon } from '@heroicons/vue/24/outline';
 import ToxicoStaysTimeline from '@/components/toxico/ToxicoStaysTimeline.vue';
 import ToxicoDischargeModal from '@/components/toxico/ToxicoDischargeModal.vue';
-import { TOXICO_DOSSIER_EXPORT_ROLES, downloadPdfBlob, dossierExportFilename, exportErrorKey } from '@/utils/toxicoExport';
+import { TOXICO_DOSSIER_EXPORT_ROLES, TOXICO_DISCHARGE_ROLES, downloadPdfBlob, dossierExportFilename, exportErrorKey } from '@/utils/toxicoExport';
 
 const { t } = useI18n();
 const toxicoStore = useToxicoStore();
@@ -195,7 +195,7 @@ const canSeeClinical = computed(() => authStore.hasRole(['admin', 'ToxicoManager
 // L'historique complet vit sur /patients/:id, reserve admin + responsable toxico.
 const canOpenFullHistory = computed(() => authStore.hasRole(['admin', 'ToxicoManager']));
 // Sortie : responsable toxico et admin uniquement, et seulement sur un dossier actif.
-const canDischarge = computed(() => !!patient.value?.isActive && authStore.hasRole(['ToxicoManager', 'admin']));
+const canDischarge = computed(() => !!patient.value?.isActive && authStore.hasRole(TOXICO_DISCHARGE_ROLES));
 const showDischarge = ref(false);
 // Export PDF du dossier (actif ou sorti) : evaluations sensibles -> memes roles que le backend.
 const canExportDossier = computed(() => authStore.hasRole(TOXICO_DOSSIER_EXPORT_ROLES));

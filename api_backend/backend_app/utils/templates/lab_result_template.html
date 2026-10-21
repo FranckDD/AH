@@ -73,11 +73,7 @@
             padding: 10px;
             border-left: 4px solid #2c3e50;
         }
-        
-        .signature {
-            margin-top: 50px;
-            text-align: right;
-        }
+
     </style>
 </head>
 <body>
@@ -147,9 +143,12 @@
     </div>
     {% endif %}
 
-    <div class="signature">
-        <p><strong>Le Biologiste / Responsable Labo</strong></p>
-        <p><em>Document généré numériquement</em></p>
+    {# Zone de signature partagee (remplace l'ancien bloc "Le Biologiste / Responsable Labo"). #}
+    {% from '_pdf_signatures.html' import signature_block %}
+    {# La mention reste solidaire du bloc de signature (jamais seule en haut de page). #}
+    <div style="page-break-inside: avoid; break-inside: avoid;">
+    {{ signature_block([{'title': 'Le chef du laboratoire'}]) }}
+    <p style="text-align: right; font-size: 9pt; margin-top: 4px;"><em>Document généré numériquement</em></p>
     </div>
 
 </body>

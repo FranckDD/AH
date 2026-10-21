@@ -31,7 +31,13 @@ from api_backend.backend_app.routes.toxico.toxico_schema import (
 
 # 🟢 GLOBAL : On autorise le Psychologue ici.
 router = APIRouter(prefix="/toxico", tags=["Toxicologie"],
-                    dependencies=[Depends(role_required("ToxicoManager", "Psychologist", "SpiritualCounsellor", "Assistant", "admin"))])
+                    dependencies=[Depends(role_required("ToxicoManager", "Psychologist", "SpiritualCounsellor", "Assistant", "admin", "promoteur"))])
+
+# Roles "metier toxico" historiques (garde du routeur avant 2026-10-22). Le
+# promoteur n'est admis au routeur que pour valider une sortie : il ne voit que
+# les listes active/sortis, le detail (sans le texte des evaluations) et le POST
+# de sortie. Toute autre route GET qui herite du routeur reprend cette liste.
+TOXICO_STAFF_ROLES = ("ToxicoManager", "Psychologist", "SpiritualCounsellor", "Assistant", "admin")
 
 def get_db():
     db = SessionLocal()
@@ -139,7 +145,8 @@ def _header_ctx(db: Session) -> dict:
     return get_pdf_header_context(ConfigController(repo=ConfigRepository(db)))
 
 
-@router.get("/dossiers/discharged/export")
+@router.get("/dossiers/discharged/export",
+            dependencies=[Depends(role_required(*TOXICO_STAFF_ROLES))])
 def export_discharged(
     search: Optional[str] = Query(None, max_length=100),
     reason: Optional[Literal['guerison', 'abandon', 'exclusion', 'autre']] = Query(None),
@@ -200,6 +207,9 @@ def _build_dossier_pdf_context(d: dict) -> dict:
         stays.append(entry)
         by_num[s["stay_number"]] = entry
 
+    raw_stays = d.get("stays") or []
+    last_stay = max(raw_stays, key=lambda s: s.get("stay_number") or 0) if raw_stays else None
+
     # Donnees historiques sans sejour rattache (avant migration 022).
     orphan = {"number": None, "phases": [], "evaluations": []}
 
@@ -236,6 +246,14 @@ def _build_dossier_pdf_context(d: dict) -> dict:
         "guardian_contact": d.get("guardianContact") or "",
         "stays": stays,
         "orphan": orphan if (orphan["phases"] or orphan["evaluations"]) else None,
+        # Zones de signature (2026-10-22) : psychologue du DERNIER sejour ;
+        # responsable administratif = qui a valide la sortie du dernier sejour,
+        # seulement si le dossier est sorti (sinon case vierge a signer).
+        # Ancien dossier sans sejour (avant migration 022) : psychologue du dossier.
+        "sig_psychologist": ((last_stay or {}).get("psychologist_name") or "") if last_stay
+                            else (d.get("psychologist") if d.get("psychologist") not in (None, "Non assigné") else ""),
+        "sig_discharger": ((last_stay or {}).get("discharged_by_name") or "")
+                          if not d.get("isActive") else "",
     }
 
 
@@ -263,12 +281,14 @@ def export_dossier(
 @router.get("/patients/{patient_id}", response_model=Any)
 def get_patient_detail(
     patient_id: int,
-    ctrl: ToxicoController = Depends(get_toxico_controller)
+    ctrl: ToxicoController = Depends(get_toxico_controller),
 ):
     dossier = ctrl.get_dossier_details(patient_id)
     if not dossier:
         raise HTTPException(status_code=404, detail="Dossier Toxico introuvable")
 
+    # Masquage du texte des evaluations pour le promoteur "pur" : fait dans
+    # ToxicoController.serialize_dossier_details (partage avec le dossier consolide).
     return ctrl.serialize_dossier_details(dossier)
 
 @router.post("/admission", status_code=status.HTTP_201_CREATED,
@@ -340,7 +360,8 @@ def submit_evaluation(
         raise HTTPException(status_code=400, detail=str(e))
 
 @router.post("/discharge/{dossier_id}", status_code=status.HTTP_200_OK,
-             dependencies=[Depends(role_required("ToxicoManager", "admin"))])
+             # 2026-10-22 : le promoteur peut valider une sortie (responsable administratif).
+             dependencies=[Depends(role_required("ToxicoManager", "admin", "promoteur"))])
 def discharge_patient(
     dossier_id: int,
     body: ToxicoDischargeRequest,
@@ -358,6 +379,8 @@ def discharge_patient(
     
 @router.get("/stats/dashboard", response_model=Dict[str, Any], tags=["ToxicoStats"])
 def get_dashboard_stats(ctrl: ToxicoController = Depends(get_toxico_controller)):
+    # Compteur agrege (aucune donnee nominative) : ouvert aussi au promoteur,
+    # la page liste toxico l'appelle au chargement.
     # Hérite des permissions globales du router (donc Psychologist OK)
     admissions = ctrl.get_current_month_admissions_count()
     return {"currentMonthAdmissions": admissions}

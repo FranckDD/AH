@@ -1,0 +1,39 @@
+{#
+  Zones de signature partagees (2026-10-22). Usage, en fin de document :
+    {% from '_pdf_signatures.html' import signature_block %}
+    {{ signature_block([{'title': 'Le psychologue', 'name': nom_ou_vide}, ...]) }}
+  - 1 ou 2 cases ; 'name' optionnel : vide/None -> rien n'est imprime (titre + espace).
+  - Les noms sont echappes ici (|e) : render_pdf_from_template n'a pas d'autoescape.
+  - Style autonome, le bloc ne se coupe jamais entre deux pages.
+#}
+{% macro signature_block(boxes) %}
+<style>
+    .sig-block { margin-top: 28px; width: 100%; page-break-inside: avoid; break-inside: avoid; text-align: left; }
+    .sig-table { width: 100%; border-collapse: collapse; border: none; page-break-inside: avoid; }
+    .sig-table td.sig-cell { border: none; vertical-align: top; padding: 0; background: none; text-align: left; }
+    .sig-box { width: 85mm; max-width: 100%; margin: 0; text-align: left; }
+    .sig-box-right { margin-left: auto; margin-right: 0; }
+    .sig-title { font-size: 10pt; font-weight: bold; color: #2c3e50; margin: 0; }
+    .sig-space { height: 1.7cm; }
+    .sig-line { width: 58mm; border-top: 1px solid #333; margin: 0 0 3px 0; }
+    .sig-name { font-size: 9.5pt; margin: 0 0 4px 0; }
+    .sig-date { font-size: 9pt; margin: 6px 0 0 0; }
+</style>
+<div class="sig-block">
+    <table class="sig-table">
+        <tr>
+        {% for b in boxes %}
+            <td class="sig-cell" style="width: {{ (100 / (boxes|length))|round(0, 'floor')|int }}%;">
+                <div class="sig-box{% if boxes|length > 1 and loop.last %} sig-box-right{% endif %}">
+                    <p class="sig-title">{{ b.title|e }}</p>
+                    <div class="sig-space"></div>
+                    <div class="sig-line"></div>
+                    {% if b.name %}<p class="sig-name">{{ b.name|e }}</p>{% endif %}
+                    <p class="sig-date">Date : ____________________</p>
+                </div>
+            </td>
+        {% endfor %}
+        </tr>
+    </table>
+</div>
+{% endmacro %}

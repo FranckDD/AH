@@ -6,6 +6,9 @@ export const TOXICO_LIST_EXPORT_ROLES = ['ToxicoManager', 'Psychologist', 'Spiri
 // Evaluations = donnees sensibles : ni Assistant ni accompagnateur spirituel.
 export const TOXICO_DOSSIER_EXPORT_ROLES = ['Psychologist', 'ToxicoManager', 'admin'];
 
+// Sortie d'un dossier (POST /toxico/discharge) : promoteur ajoute le 2026-10-22.
+export const TOXICO_DISCHARGE_ROLES = ['ToxicoManager', 'admin', 'promoteur'];
+
 export const DISCHARGED_EXPORT_FILENAME = 'toxico_patients_sortis.pdf';
 
 // Memes filtres que la liste affichee, sans pagination (l'export prend tout).

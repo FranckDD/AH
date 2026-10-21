@@ -73,5 +73,8 @@
     </table>
     {% endif %}
 
+    {% from '_pdf_signatures.html' import signature_block %}
+    {{ signature_block([{'title': 'Le médecin référent'}]) }}
+
 </body>
 </html>

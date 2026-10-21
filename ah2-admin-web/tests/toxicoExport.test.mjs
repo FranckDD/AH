@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import {
-    buildDischargedExportQuery, exportErrorKey, TOXICO_DOSSIER_EXPORT_ROLES, TOXICO_LIST_EXPORT_ROLES,
+    buildDischargedExportQuery, exportErrorKey, TOXICO_DOSSIER_EXPORT_ROLES, TOXICO_LIST_EXPORT_ROLES, TOXICO_DISCHARGE_ROLES,
     dossierExportFilename, resolveExportSearch,
 } from '../src/utils/toxicoExport.js';
 
@@ -60,3 +60,14 @@ for (const loc of ['fr', 'en']) {
         for (const k of keys) assert.equal(typeof get(msgs, k), 'string', `missing ${loc}: ${k}`);
     });
 }
+
+test('TOXICO_DISCHARGE_ROLES mirrors POST /toxico/discharge (promoteur added, exports unchanged)', () => {
+    assert.deepEqual([...TOXICO_DISCHARGE_ROLES].sort(), ['ToxicoManager', 'admin', 'promoteur'].sort());
+    assert.ok(!TOXICO_DOSSIER_EXPORT_ROLES.includes('promoteur'));
+    assert.ok(!TOXICO_LIST_EXPORT_ROLES.includes('promoteur'));
+    const list = readFileSync(new URL('../src/views/modules/toxico/ToxicoList.vue', import.meta.url), 'utf8');
+    assert.match(list, /hasRole\(TOXICO_DISCHARGE_ROLES\)/);
+    assert.match(list, /hasRole\(\['Psychologist'\]\)/); // evaluer : psychologue seul
+    const router = readFileSync(new URL('../src/router/index.js', import.meta.url), 'utf8');
+    assert.match(router, /ToxicoList\.vue[\s\S]{0,250}ROLES\.PROMOTEUR/);
+});

@@ -61,5 +61,8 @@
     </table>
     {% endautoescape %}
 
+    {% from '_pdf_signatures.html' import signature_block %}
+    {{ signature_block([{'title': 'Visa de la direction'}]) }}
+
 </body>
 </html>

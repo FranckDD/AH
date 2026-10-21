@@ -94,5 +94,11 @@
     {% endif %}
     {% endautoescape %}
 
+    {% from '_pdf_signatures.html' import signature_block %}
+    {{ signature_block([
+        {'title': 'Le psychologue', 'name': sig_psychologist},
+        {'title': 'Le responsable administratif (promoteur ou manager)', 'name': sig_discharger},
+    ]) }}
+
 </body>
 </html>

@@ -18,7 +18,8 @@ from tests.conftest import auth_headers, create_test_user, create_test_patient
 PWD = "TestPass123!"
 ROLES = ("Psychologist", "SpiritualCounsellor", "admin", "ToxicoManager", "Assistant",
          "medecin", "nurse", "secretaire", "laborantin", "promoteur", "StockController")
-READ_ALLOWED = {"ToxicoManager", "Psychologist", "SpiritualCounsellor", "Assistant", "admin"}
+READ_ALLOWED = {"ToxicoManager", "Psychologist", "SpiritualCounsellor", "Assistant", "admin",
+                "promoteur"}  # 2026-10-22 : lecture ouverte au promoteur (validation de sortie)
 URL = "/toxico/dossiers/discharged"
 
 

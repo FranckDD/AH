@@ -78,5 +78,9 @@
         {% endif %}
     </div>
 
+    {% from '_pdf_signatures.html' import signature_block %}
+    {# Jamais le nom du createur (l'infirmier peut generer la lettre). #}
+    {{ signature_block([{'title': 'Le médecin référent'}]) }}
+
 </body>
 </html>

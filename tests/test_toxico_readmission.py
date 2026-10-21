@@ -18,7 +18,7 @@ from tests.conftest import auth_headers, create_test_user, create_test_patient
 PWD = "TestPass123!"
 ROLES = ("Psychologist", "SpiritualCounsellor", "admin", "ToxicoManager", "Assistant",
          "medecin", "nurse", "secretaire", "laborantin", "promoteur", "StockController")
-DISCHARGE_ALLOWED = {"ToxicoManager", "admin"}
+DISCHARGE_ALLOWED = {"ToxicoManager", "admin", "promoteur"}  # promoteur : 2026-10-22
 ADMISSION_ALLOWED = {"ToxicoManager", "admin", "Assistant"}
 
 

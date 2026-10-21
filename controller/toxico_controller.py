@@ -154,6 +154,20 @@ class ToxicoController:
         # Le Repo charge toutes les relations nécessaires (Eager Loading)
         return self.repo.get_dossier_full(patient_id)
 
+    # Promoteur "pur" (2026-10-22) : il peut valider une sortie mais le texte
+    # des evaluations (observation/recommandation) reste reserve aux roles
+    # metier toxico. Regle partagee par GET /toxico/patients/{id} ET le dossier
+    # consolide GET /patients/{id}/dossier (+ ses exports), qui passent tous
+    # deux par serialize_dossier_details.
+    EVALUATION_TEXT_ROLES = frozenset({"toxicomanager", "psychologist", "spiritualcounsellor",
+                                       "assistant", "admin"})
+
+    def _masks_evaluation_text(self) -> bool:
+        from api_backend.backend_app.security.role_map import normalize_role_name
+        raw = self.user.get("roles") if isinstance(self.user, dict) else getattr(self.user, "roles", None)
+        roles = {normalize_role_name(str(r)) for r in (raw or []) if r}
+        return "promoteur" in roles and not (roles & self.EVALUATION_TEXT_ROLES)
+
     def serialize_dossier_details(self, dossier) -> Optional[Dict[str, Any]]:
         """Serialise un ToxicoDossier ORM en dict JSON-safe. Extrait de
         l'ancien corps de GET /toxico/patients/{patient_id} (chantier 6) -
@@ -161,6 +175,7 @@ class ToxicoController:
         consolide, pour ne pas dupliquer cette logique."""
         if not dossier:
             return None
+        mask_text = self._masks_evaluation_text()
 
         psy_name = "Non assigné"
         if dossier.psychologist:
@@ -224,8 +239,8 @@ class ToxicoController:
                     "id": e.id,
                     "created_at": e.created_at,
                     "decision": e.decision,
-                    "observation": e.observation,
-                    "recommendation": e.recommendation,
+                    "observation": None if mask_text else e.observation,
+                    "recommendation": None if mask_text else e.recommendation,
                     "phase_before": e.phase_before,
                     "phase_after": e.phase_after,
                     "is_relapse": e.is_relapse,
