@@ -40,7 +40,7 @@
       <template #cell-producer="{ row: lot }">{{ lot.producer || '-' }}</template>
       <template #cell-status="{ row: lot }"><StatusBadge :tone="badge(lot.status)" :label="$t(`stockOps.lot_status.${lot.status}`)" /></template>
       <template #actions="{ row: lot }">
-        <AppButton v-if="lot.status === 'produit'" @click="openDeliver(lot)">{{ $t('stockOps.lots.mark_delivered') }}</AppButton>
+        <AppButton v-if="lot.status === 'produit'" variant="info" @click="openDeliver(lot)">{{ $t('stockOps.lots.mark_delivered') }}</AppButton>
         <AppButton v-if="lot.status === 'produit' || lot.status === 'livre'" variant="danger" @click="cancelLot(lot)" :disabled="busyId === lot.id" :loading="busyId === lot.id">{{ $t('stockOps.cancel') }}</AppButton>
       </template>
     </ResponsiveTable>

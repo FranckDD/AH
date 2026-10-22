@@ -71,7 +71,7 @@
           <div v-else class="flex flex-col gap-2 sm:flex-row sm:justify-end">
             <AppButton v-if="linesDirty" variant="secondary" @click="saveLines" :disabled="busy">{{ $t('stockControl.save_corrections') }}</AppButton>
             <AppButton variant="danger" @click="openReject('receipt', selected)" :disabled="busy">{{ $t('stockControl.reject') }}</AppButton>
-            <AppButton @click="validateReceipt" :disabled="busy">{{ $t('stockControl.validate') }}</AppButton>
+            <AppButton variant="success" @click="validateReceipt" :disabled="busy">{{ $t('stockControl.validate') }}</AppButton>
           </div>
         </template>
       </div>
@@ -89,7 +89,7 @@
         <template #actions="{ row: inc }">
           <span v-if="isMine(inc)" class="text-base font-medium text-tone-warning-text">{{ $t('stockControl.own_entry') }}</span>
           <template v-else>
-            <AppButton @click="validateIncident(inc)" :disabled="busy">{{ $t('stockControl.validate') }}</AppButton>
+            <AppButton variant="success" @click="validateIncident(inc)" :disabled="busy">{{ $t('stockControl.validate') }}</AppButton>
             <AppButton variant="danger" @click="openReject('incident', inc)" :disabled="busy">{{ $t('stockControl.reject') }}</AppButton>
           </template>
         </template>

@@ -41,7 +41,7 @@
         <p v-if="errorFor[req.id]" role="alert" class="rounded-control border p-3 text-base" :class="toneClasses('danger')">{{ errorFor[req.id] }}</p>
 
         <div class="grid gap-2 sm:grid-cols-2">
-          <AppButton @click="submitDecision(req, false)">{{ $t('discount_review.approve') }}</AppButton>
+          <AppButton variant="success" @click="submitDecision(req, false)">{{ $t('discount_review.approve') }}</AppButton>
           <AppButton variant="danger" @click="submitDecision(req, true)">{{ $t('discount_review.refuse') }}</AppButton>
         </div>
       </div>

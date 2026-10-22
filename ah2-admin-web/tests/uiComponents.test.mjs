@@ -16,8 +16,8 @@ test('describedBy : aide et erreur relient les ids, rien sinon', () => {
 });
 
 test('buttonClasses : variantes et tailles issues des jetons, repli sur primary/md', () => {
-    assert.match(buttonClasses('primary', 'md'), /bg-brand-600/);
-    assert.match(buttonClasses('secondary', 'md'), /border-brand-600/);
+    assert.match(buttonClasses('primary', 'md'), /bg-action-600/);
+    assert.match(buttonClasses('secondary', 'md'), /border-action-600/);
     assert.match(buttonClasses('danger', 'md'), /bg-tone-danger-solid/);
     assert.match(buttonClasses('ghost', 'md'), /bg-transparent/);
     assert.match(buttonClasses('pharma', 'md'), /bg-tab-pharma/);

@@ -16,8 +16,10 @@ const BUTTON_BASE =
 
 const BUTTON_VARIANTS = {
     // Boutons pleins en degrade diagonal (couleur de base vers la meme couleur legerement assombrie, ombre douce) : le texte blanc reste lisible aux deux bouts.
-    primary: 'bg-brand-600 bg-linear-to-br from-brand-600 to-brand-700 text-white border-transparent shadow-sm hover:brightness-110 hover:shadow-md',
-    secondary: 'bg-white text-brand-700 border-brand-600 hover:bg-brand-50',
+    primary: 'bg-action-600 bg-linear-to-br from-action-600 to-[color-mix(in_srgb,var(--color-action-600),black_10%)] text-white border-transparent shadow-sm hover:brightness-110 hover:shadow-md',
+    success: 'bg-action-success bg-linear-to-br from-action-success to-[color-mix(in_srgb,var(--color-action-success),black_10%)] text-white border-transparent shadow-sm hover:brightness-110 hover:shadow-md',
+    info: 'bg-action-info bg-linear-to-br from-action-info to-[color-mix(in_srgb,var(--color-action-info),black_10%)] text-white border-transparent shadow-sm hover:brightness-110 hover:shadow-md',
+    secondary: 'bg-white text-action-700 border-action-600 hover:bg-action-50',
     danger: 'bg-tone-danger-solid bg-linear-to-br from-tone-danger-solid to-[color-mix(in_srgb,var(--color-tone-danger-solid),black_10%)] text-white border-transparent shadow-sm hover:brightness-110 hover:shadow-md',
     ghost: 'bg-transparent text-ink-muted border-transparent hover:bg-tone-neutral-bg',
     // Boutons d'action de rubrique : meme couleur que l'onglet correspondant de la fiche patient.

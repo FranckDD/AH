@@ -59,6 +59,12 @@ html, body, #app {
   --color-tone-danger-border: #fca5a5;
   /* Fond des boutons rouges pleins : plus vif que le texte rouge, texte blanc lisible (4,8:1) */
   --color-tone-danger-solid: #dc2626;
+  /* Boutons pleins : indigo (action principale), vert (valider), bleu ciel (consulter) ; texte blanc >= 4,5:1 */
+  --color-action-50: #eef2ff;
+  --color-action-600: #4f46e5;
+  --color-action-700: #4338ca;
+  --color-action-success: #15803d;
+  --color-action-info: #0369a1;
   --color-tone-warning-bg: #fffbeb;
   --color-tone-warning-text: #92400e;
   --color-tone-warning-border: #fcd34d;

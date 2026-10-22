@@ -12,7 +12,7 @@ const lum = (hex) => {
 };
 const ratioWhite = (hex) => 1.05 / (lum(hex) + 0.05);
 
-const FILLED = { primary: 'brand-600', danger: 'tone-danger-solid', pharma: 'tab-pharma', hospital: 'tab-hospital', lab: 'tab-lab', record: 'tab-record', toxico: 'tab-toxico', spirit: 'tab-spirit' };
+const FILLED = { primary: 'action-600', success: 'action-success', info: 'action-info', danger: 'tone-danger-solid', pharma: 'tab-pharma', hospital: 'tab-hospital', lab: 'tab-lab', record: 'tab-record', toxico: 'tab-toxico', spirit: 'tab-spirit' };
 
 test('chaque bouton plein a un dégradé diagonal avec sa couleur de base en haut et un repli de couleur unie', () => {
     for (const [variant, base] of Object.entries(FILLED)) {
@@ -34,6 +34,10 @@ test('le texte blanc reste lisible sur la couleur de base de chaque bouton plein
         assert.ok(ratioWhite(tokens[base]) >= 4.5, `${variant} : ${ratioWhite(tokens[base]).toFixed(2)}`);
     }
     assert.ok(ratioWhite(tokens['brand-800']) >= 4.5);
+    // le texte du bouton secondaire (indigo foncé) reste lisible sur blanc et sur son fond de survol
+    assert.ok(1.05 / (lum(tokens['action-700']) + 0.05) >= 4.5, 'action-700 sur blanc');
+    const ratio = (a, b) => { const [hi, lo] = [lum(a), lum(b)].sort((x, y) => y - x); return (hi + 0.05) / (lo + 0.05); };
+    assert.ok(ratio(tokens['action-700'], tokens['action-50']) >= 4.5, 'action-700 sur action-50');
 });
 
 test('le dégradé assombrit peu (10 %) : les boutons restent clairs et modernes, avec une ombre douce', () => {

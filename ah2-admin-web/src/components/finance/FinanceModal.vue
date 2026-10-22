@@ -6,7 +6,7 @@
       <div class="grid gap-1.5">
         <span class="text-base font-medium text-ink">{{ t('finance.modal.type') }}</span>
         <div class="grid grid-cols-2 gap-2" role="group" :aria-label="t('finance.modal.type')">
-          <AppButton :variant="form.type === 'INCOME' ? 'primary' : 'secondary'" :aria-pressed="form.type === 'INCOME'" :icon="BanknotesIcon" @click="setTransactionType('INCOME')">
+          <AppButton :variant="form.type === 'INCOME' ? 'success' : 'secondary'" :aria-pressed="form.type === 'INCOME'" :icon="BanknotesIcon" @click="setTransactionType('INCOME')">
             {{ t('finance.income') }}
           </AppButton>
           <AppButton :variant="form.type === 'EXPENSE' ? 'danger' : 'secondary'" :aria-pressed="form.type === 'EXPENSE'" :icon="ArrowTrendingDownIcon" @click="setTransactionType('EXPENSE')">
@@ -56,7 +56,7 @@
         <template #secondary>
           <AppButton variant="ghost" @click="$emit('close')">{{ t('finance.modal.cancel') }}</AppButton>
         </template>
-        <AppButton type="submit" form="finance-form" :variant="form.type === 'INCOME' ? 'primary' : 'danger'">{{ t('finance.modal.save') }}</AppButton>
+        <AppButton type="submit" form="finance-form" :variant="form.type === 'INCOME' ? 'success' : 'danger'">{{ t('finance.modal.save') }}</AppButton>
       </ActionBar>
     </template>
   </FullScreenPanel>

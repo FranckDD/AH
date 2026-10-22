@@ -52,7 +52,7 @@
       </template>
       <template #actions="{ row: r }">
         <template v-if="r.status === 'en_attente'">
-          <AppButton @click="approve(r)" :disabled="busyId === r.id" :loading="busyId === r.id">{{ $t('stockAdjust.approve') }}</AppButton>
+          <AppButton variant="success" @click="approve(r)" :disabled="busyId === r.id" :loading="busyId === r.id">{{ $t('stockAdjust.approve') }}</AppButton>
           <AppButton variant="danger" @click="openRefuse(r)" :disabled="busyId === r.id">{{ $t('stockAdjust.refuse') }}</AppButton>
         </template>
       </template>

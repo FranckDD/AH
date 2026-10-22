@@ -46,7 +46,7 @@
       <div class="flex flex-col gap-3 rounded-card border border-tone-neutral-border bg-white p-3 sm:flex-row sm:items-center sm:justify-between">
         <div class="grid grid-cols-3 gap-2 sm:flex" role="group" :aria-label="t('financeScreens.type_group')">
           <AppButton :variant="typeFilter === 'ALL' ? 'primary' : 'secondary'" :aria-pressed="typeFilter === 'ALL'" @click="typeFilter = 'ALL'">{{ t('financeScreens.all_types') }}</AppButton>
-          <AppButton :variant="typeFilter === 'INCOME' ? 'primary' : 'secondary'" :aria-pressed="typeFilter === 'INCOME'" @click="typeFilter = 'INCOME'">{{ t('financeScreens.entries') }}</AppButton>
+          <AppButton :variant="typeFilter === 'INCOME' ? 'success' : 'secondary'" :aria-pressed="typeFilter === 'INCOME'" @click="typeFilter = 'INCOME'">{{ t('financeScreens.entries') }}</AppButton>
           <AppButton :variant="typeFilter === 'EXPENSE' ? 'danger' : 'secondary'" :aria-pressed="typeFilter === 'EXPENSE'" @click="typeFilter = 'EXPENSE'">{{ t('financeScreens.exits') }}</AppButton>
         </div>
         <p class="text-base text-ink-muted">
