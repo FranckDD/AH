@@ -1,74 +1,74 @@
 <template>
-    <div v-if="dossierStore.isLoading" class="flex justify-center items-center h-96">
-        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600"></div>
-    </div>
+    <p v-if="dossierStore.isLoading" class="flex h-96 items-center justify-center" role="status">
+        <span class="h-12 w-12 animate-spin rounded-full border-b-2 border-brand-600"></span>
+        <span class="sr-only">{{ t('common.loading') }}</span>
+    </p>
 
-    <div v-else-if="dossierStore.patientSummary" class="min-h-screen bg-gray-50 space-y-6">
-        
+    <div v-else-if="dossierStore.patientSummary" class="grid gap-6">
+
         <PatientHeader :patient="dossierStore.patientSummary" @back="goBack" />
 
-        <div class="flex justify-end gap-2 px-1">
-          <button @click="exportDossier('pdf')" :disabled="isExportingDossier"
-                  class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition disabled:opacity-50">
+        <div class="flex flex-col gap-2 sm:flex-row sm:justify-end">
+          <AppButton variant="secondary" @click="exportDossier('pdf')" :disabled="isExportingDossier">
             {{ t('export.confirm') }} PDF
-          </button>
-          <button @click="exportDossier('excel')" :disabled="isExportingDossier"
-                  class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition disabled:opacity-50">
+          </AppButton>
+          <AppButton variant="secondary" @click="exportDossier('excel')" :disabled="isExportingDossier">
             {{ t('export.confirm') }} Excel
-          </button>
+          </AppButton>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 px-1">
-            <VitalsCard :label="t('medical.vitals.bp')" :value="dossierStore.vitals.bp" unit="mmHg" :icon="HeartIcon" colorClass="bg-rose-500/10" iconColor="text-rose-600" :date="dossierStore.vitals.lastDate" />
-            <VitalsCard :label="t('medical.vitals.weight')" :value="dossierStore.patientSummary?.last_weight" unit="kg" :icon="ScaleIcon" colorClass="bg-blue-500/10" iconColor="text-blue-600" />
-            <VitalsCard :label="t('medical.vitals.temperature')" :value="dossierStore.patientSummary?.last_temp" unit="°C" :icon="FireIcon" colorClass="bg-orange-500/10" iconColor="text-orange-600" />
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <VitalsCard :label="t('medical.vitals.bp')" :value="dossierStore.vitals.bp" unit="mmHg" :icon="HeartIcon" :date="dossierStore.vitals.lastDate" />
+            <VitalsCard :label="t('medical.vitals.weight')" :value="dossierStore.patientSummary?.last_weight" unit="kg" :icon="ScaleIcon" />
+            <VitalsCard :label="t('medical.vitals.temperature')" :value="dossierStore.patientSummary?.last_temp" unit="°C" :icon="FireIcon" />
 
-            <div class="bg-red-50 p-4 rounded-xl border border-red-100 flex items-start shadow-xs">
-                <ExclamationTriangleIcon class="h-6 w-6 text-red-600 mr-3 mt-1 shrink-0" />
+            <!-- Allergies : rouge, avec icone et texte (alerte clinique) -->
+            <div class="flex items-start rounded-card border p-4 shadow-card" :class="toneClasses('danger')">
+                <ExclamationTriangleIcon class="mr-3 mt-1 h-6 w-6 shrink-0" aria-hidden="true" />
                 <div>
-                    <h4 class="text-xs font-bold text-red-700 uppercase tracking-wider">
+                    <h4 class="text-base font-bold">
                         {{ t('medical.alerts.allergies_title') }}
                     </h4>
-                    <p class="text-sm text-red-900 mt-1 font-medium leading-tight">
+                    <p class="mt-1 text-base font-medium leading-tight">
                         {{ dossierStore.patientSummary?.allergies || t('common.none') }}
                     </p>
                 </div>
             </div>
         </div>
 
-        <div class="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden min-h-[500px] mx-1">
-            
-            <div class="border-b border-gray-200 px-6">
-                <nav class="-mb-px flex space-x-8 overflow-x-auto" aria-label="Tabs">
-                    <button @click="currentTab = 'MEDICAL'" :class="[currentTab === 'MEDICAL' ? 'border-emerald-500 text-emerald-600' : 'border-transparent text-gray-500 hover:text-gray-700', 'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center transition duration-150']">
-                        <HeartIcon class="h-5 w-5 mr-2" /> {{ t('medical.tabs.medical_record') }}
+        <div class="min-h-[500px] overflow-hidden rounded-card border border-tone-neutral-border bg-white shadow-card">
+
+            <div class="overflow-x-auto border-b border-tone-neutral-border px-2 md:px-4">
+                <div class="-mb-px flex gap-1" role="tablist" aria-label="Dossier du patient">
+                    <button type="button" role="tab" :aria-selected="currentTab === 'MEDICAL'" @click="currentTab = 'MEDICAL'" :class="tabClass('MEDICAL')">
+                        <HeartIcon :class="['mr-2 h-5 w-5', tabIconClass('MEDICAL')]" aria-hidden="true" /> {{ t('medical.tabs.medical_record') }}
                     </button>
-                    <button @click="currentTab = 'LABO'" :class="[currentTab === 'LABO' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700', 'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center transition duration-150']">
-                        <BeakerIcon class="h-5 w-5 mr-2" /> {{ t('medical.tabs.lab_exams') }}
+                    <button type="button" role="tab" :aria-selected="currentTab === 'LABO'" @click="currentTab = 'LABO'" :class="tabClass('LABO')">
+                        <BeakerIcon :class="['mr-2 h-5 w-5', tabIconClass('LABO')]" aria-hidden="true" /> {{ t('medical.tabs.lab_exams') }}
                     </button>
-                    <button @click="currentTab = 'PHARMA'" :class="[currentTab === 'PHARMA' ? 'border-purple-500 text-purple-600' : 'border-transparent text-gray-500 hover:text-gray-700', 'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center transition duration-150']">
-                        <TagIcon class="h-5 w-5 mr-2" /> {{ t('medical.tabs.treatments') }}
+                    <button type="button" role="tab" :aria-selected="currentTab === 'PHARMA'" @click="currentTab = 'PHARMA'" :class="tabClass('PHARMA')">
+                        <TagIcon :class="['mr-2 h-5 w-5', tabIconClass('PHARMA')]" aria-hidden="true" /> {{ t('medical.tabs.treatments') }}
                     </button>
-                    <button v-if="authStore.hasRole(['medecin', 'nurse'])" @click="currentTab = 'HOSPITALISATION'" :class="[currentTab === 'HOSPITALISATION' ? 'border-red-500 text-red-600' : 'border-transparent text-gray-500 hover:text-gray-700', 'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center transition duration-150']">
-                        <BuildingOffice2Icon class="h-5 w-5 mr-2" /> {{ t('hospitalization.card_title') }}
+                    <button v-if="authStore.hasRole(['medecin', 'nurse'])" type="button" role="tab" :aria-selected="currentTab === 'HOSPITALISATION'" @click="currentTab = 'HOSPITALISATION'" :class="tabClass('HOSPITALISATION')">
+                        <BuildingOffice2Icon :class="['mr-2 h-5 w-5', tabIconClass('HOSPITALISATION')]" aria-hidden="true" /> {{ t('hospitalization.card_title') }}
                     </button>
-                    <button v-if="dossierStore.isToxicology" @click="currentTab = 'TOXICO'" :class="[currentTab === 'TOXICO' ? 'border-orange-500 text-orange-600' : 'border-transparent text-gray-500 hover:text-gray-700', 'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center transition duration-150']">
-                        <NoSymbolIcon class="h-5 w-5 mr-2" /> {{ t('medical.tabs.toxico_followup') }}
+                    <button v-if="dossierStore.isToxicology" type="button" role="tab" :aria-selected="currentTab === 'TOXICO'" @click="currentTab = 'TOXICO'" :class="tabClass('TOXICO')">
+                        <NoSymbolIcon :class="['mr-2 h-5 w-5', tabIconClass('TOXICO')]" aria-hidden="true" /> {{ t('medical.tabs.toxico_followup') }}
                     </button>
-                    <button v-if="dossierStore.isSpiritual" @click="currentTab = 'SPIRITUEL'" :class="[currentTab === 'SPIRITUEL' ? 'border-amber-500 text-amber-700' : 'border-transparent text-gray-500 hover:text-gray-700', 'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center transition duration-150']">
-                        <SparklesIcon class="h-5 w-5 mr-2" /> {{ t('medical.tabs.spiritual_followup') }}
+                    <button v-if="dossierStore.isSpiritual" type="button" role="tab" :aria-selected="currentTab === 'SPIRITUEL'" @click="currentTab = 'SPIRITUEL'" :class="tabClass('SPIRITUEL')">
+                        <SparklesIcon :class="['mr-2 h-5 w-5', tabIconClass('SPIRITUEL')]" aria-hidden="true" /> {{ t('medical.tabs.spiritual_followup') }}
                     </button>
-                </nav>
+                </div>
             </div>
 
-            <div class="p-6">
-                
+            <div class="p-4 md:p-6">
+
                 <div v-if="currentTab === 'MEDICAL'" class="space-y-4">
-                    <div class="flex justify-between items-center mb-4">
-                        <h3 class="text-lg font-bold text-gray-800">{{ t('medical.history.title') }}</h3>
-                        <button v-if="canCreateConsultation" @click="openConsultationModal()" class="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 transition">
+                    <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <h3 class="text-lg font-bold text-ink">{{ t('medical.history.title') }}</h3>
+                        <AppButton v-if="canCreateConsultation" @click="openConsultationModal()">
                             {{ t('medical.actions.new_consultation') }}
-                        </button>
+                        </AppButton>
                     </div>
                     <MedicalRecordTimeline
                         :records="dossierStore.medicalHistory"
@@ -82,12 +82,12 @@
                 </div>
 
                 <div v-if="currentTab === 'PHARMA'">
-                    <ul class="mt-4 space-y-2">
-                        <li v-for="p in dossierStore.prescriptionHistory" :key="p.prescription_id" class="p-3 bg-gray-50 rounded-sm border border-purple-100 hover:shadow-md transition">
-                            <span class="font-semibold text-purple-800">{{ p.medication }}</span> - {{ p.dosage }} 
-                            <span :class="['ml-2 text-xs font-medium px-2 py-0.5 rounded-full', p.status === 'Active' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800']">
-                                ({{ p.status }})
-                            </span>
+                    <EmptyState v-if="dossierStore.prescriptionHistory.length === 0" title="Aucune prescription enregistrée." message="Les prescriptions de ce patient apparaîtront ici." />
+                    <ul v-else class="space-y-2">
+                        <li v-for="p in dossierStore.prescriptionHistory" :key="p.prescription_id" class="flex flex-wrap items-center gap-2 rounded-card border border-tone-neutral-border bg-tone-neutral-bg p-3 text-base text-ink">
+                            <span class="font-semibold">{{ p.medication }}</span>
+                            <span>{{ p.dosage }}</span>
+                            <StatusBadge :tone="p.status === 'Active' ? 'success' : 'neutral'" :label="String(p.status)" />
                         </li>
                     </ul>
                 </div>
@@ -97,58 +97,58 @@
                 </div>
 
                 <div v-if="currentTab === 'SPIRITUEL'" class="space-y-4">
-                    <div class="flex justify-between items-center mb-4">
-                        <h3 class="text-lg font-bold text-gray-800 text-amber-700">
+                    <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <h3 class="text-lg font-bold text-ink">
                             {{ t('medical.tabs.spiritual_followup') }}
                         </h3>
-                        <button v-if="!dossierStore.spirituelRestreint" class="px-4 py-2 bg-amber-600 text-white rounded-lg text-sm font-medium hover:bg-amber-700 transition">
+                        <AppButton v-if="!dossierStore.spirituelRestreint">
                             {{ t('medical.spiritual.new_note') }}
-                        </button>
+                        </AppButton>
                     </div>
 
-                    <div v-if="dossierStore.spirituelRestreint" class="bg-gray-50 p-4 rounded-lg border border-gray-200 text-gray-500 text-sm">
-                        Ce domaine relève d'un autre service — non affiché ici.
-                    </div>
+                    <p v-if="dossierStore.spirituelRestreint" class="rounded-card border border-tone-neutral-border bg-tone-neutral-bg p-4 text-base text-ink-muted">
+                        Ce domaine relève d'un autre service, non affiché ici.
+                    </p>
                     <SpiritualTimeline v-else :records="dossierStore.spiritualHistory" />
 
                 </div>
 
                 <div v-if="currentTab === 'TOXICO'">
-                    <div class="flex justify-between items-center mb-4">
-                        <h3 class="text-lg font-bold text-gray-800 text-orange-600">
+                    <div class="mb-4 flex items-center justify-between">
+                        <h3 class="text-lg font-bold text-ink">
                             {{ t('medical.tabs.toxico_followup') }}
                         </h3>
                     </div>
-                    <div v-if="dossierStore.toxicoRestreint" class="bg-gray-50 p-4 rounded-lg border border-gray-200 text-gray-500 text-sm">
-                        Ce domaine relève d'un autre service — non affiché ici.
-                    </div>
-                    <div v-else-if="dossierStore.isDomaineIndisponible('dossier_toxico')" class="bg-gray-50 p-4 rounded-lg border border-gray-200 text-gray-500 text-sm">
-                        Indisponible pour le moment — réessayez plus tard.
-                    </div>
-                    <div v-else-if="dossierStore.toxicoDossier" class="bg-orange-50 p-4 rounded-lg border border-orange-200 space-y-2">
-                        <p><span class="font-medium text-orange-800">Substance :</span> {{ dossierStore.toxicoDossier.substance }}</p>
-                        <p><span class="font-medium text-orange-800">Phase actuelle :</span> {{ dossierStore.toxicoDossier.currentPhase }}</p>
-                        <p><span class="font-medium text-orange-800">Psychologue :</span> {{ dossierStore.toxicoDossier.psychologist }}</p>
-                        <p><span class="font-medium text-orange-800">Admission :</span> {{ dossierStore.toxicoDossier.admissionDate }}</p>
-                    </div>
-                    <div v-else class="text-sm text-gray-400">Aucun dossier toxicologie pour ce patient.</div>
+                    <p v-if="dossierStore.toxicoRestreint" class="rounded-card border border-tone-neutral-border bg-tone-neutral-bg p-4 text-base text-ink-muted">
+                        Ce domaine relève d'un autre service, non affiché ici.
+                    </p>
+                    <p v-else-if="dossierStore.isDomaineIndisponible('dossier_toxico')" class="rounded-card border border-tone-neutral-border bg-tone-neutral-bg p-4 text-base text-ink-muted">
+                        Indisponible pour le moment, réessayez plus tard.
+                    </p>
+                    <dl v-else-if="dossierStore.toxicoDossier" class="grid gap-2 rounded-card border p-4 text-base" :class="toneClasses('warning')">
+                        <div><dt class="inline font-medium">Substance :</dt> <dd class="inline">{{ dossierStore.toxicoDossier.substance }}</dd></div>
+                        <div><dt class="inline font-medium">Phase actuelle :</dt> <dd class="inline">{{ dossierStore.toxicoDossier.currentPhase }}</dd></div>
+                        <div><dt class="inline font-medium">Psychologue :</dt> <dd class="inline">{{ dossierStore.toxicoDossier.psychologist }}</dd></div>
+                        <div><dt class="inline font-medium">Admission :</dt> <dd class="inline">{{ dossierStore.toxicoDossier.admissionDate }}</dd></div>
+                    </dl>
+                    <EmptyState v-else title="Aucun dossier toxicologie pour ce patient." />
                 </div>
 
-                <div v-if="dossierStore.domainesIndisponibles.length" class="mt-4 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                <p v-if="dossierStore.domainesIndisponibles.length" class="mt-4 rounded-card border px-3 py-2 text-base" :class="toneClasses('warning')">
                     Certaines informations sont temporairement indisponibles : {{ dossierStore.domainesIndisponibles.join(', ') }}.
-                </div>
+                </p>
             </div>
         </div>
 
-        <div v-if="prescriptionOffer.visible" class="mx-1 bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex items-center justify-between">
-            <p class="text-sm text-emerald-800">{{ t('medical.consultation_flow.offer_prescription') }}</p>
-            <div class="flex gap-2">
-                <button @click="declinePrescriptionOffer" class="px-3 py-1.5 text-xs font-medium rounded-lg bg-white border border-emerald-300 text-emerald-700 hover:bg-emerald-100 transition">
+        <div v-if="prescriptionOffer.visible" class="flex flex-col gap-3 rounded-card border p-4 sm:flex-row sm:items-center sm:justify-between" :class="toneClasses('success')">
+            <p class="text-base font-medium">{{ t('medical.consultation_flow.offer_prescription') }}</p>
+            <div class="flex flex-col gap-2 sm:flex-row">
+                <AppButton variant="secondary" @click="declinePrescriptionOffer">
                     {{ t('medical.consultation_flow.decline') }}
-                </button>
-                <button @click="acceptPrescriptionOffer" class="px-3 py-1.5 text-xs font-medium rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 transition">
+                </AppButton>
+                <AppButton variant="pharma" @click="acceptPrescriptionOffer">
                     {{ t('medical.consultation_flow.accept') }}
-                </button>
+                </AppButton>
             </div>
         </div>
 
@@ -170,9 +170,9 @@
         />
     </div>
 
-    <div v-else class="min-h-screen flex flex-col items-center justify-center text-red-500 p-6 bg-gray-50">
-        <ExclamationTriangleIcon class="h-10 w-10 mb-3" />
-        <p class="text-lg font-medium">{{ dossierStore.error || t('medical.errors.patient_not_found') }}</p>
+    <div v-else class="flex min-h-[50vh] flex-col items-center justify-center p-6 text-center" role="alert">
+        <ExclamationTriangleIcon class="mb-3 h-10 w-10 text-tone-danger-text" aria-hidden="true" />
+        <p class="text-lg font-medium text-tone-danger-text">{{ dossierStore.error || t('medical.errors.patient_not_found') }}</p>
     </div>
 </template>
 
@@ -198,6 +198,8 @@ import { usePrescriptionStore } from '@/stores/prescriptionStore';
 import { useAppointmentStore } from '@/stores/appointmentStore';
 import { useAuthStore } from '@/stores/auth';
 import { isRecordEditable } from '@/utils/consultationLock';
+import { AppButton, StatusBadge, EmptyState } from '@/components/ui';
+import { toneClasses } from '@/design/tones';
 
 import {
     HeartIcon, ScaleIcon, FireIcon, ExclamationTriangleIcon,
@@ -216,6 +218,26 @@ const authStore = useAuthStore();
 const canCreateConsultation = computed(() => authStore.hasRole(['medecin', 'nurse']));
 
 const currentTab = ref('MEDICAL');
+
+// Une couleur par rubrique pour se reperer d'un coup d'oeil : l'icone la garde toujours, l'onglet actif la prend
+// en plus pour son texte et son trait. Classes ecrites en toutes lettres (Tailwind ne detecte pas les noms construits).
+const TAB_STYLES = {
+    MEDICAL: { active: 'border-tab-record text-tab-record', hover: 'hover:border-tab-record', icon: 'text-tab-record' },
+    LABO: { active: 'border-tab-lab text-tab-lab', hover: 'hover:border-tab-lab', icon: 'text-tab-lab' },
+    PHARMA: { active: 'border-tab-pharma text-tab-pharma', hover: 'hover:border-tab-pharma', icon: 'text-tab-pharma' },
+    HOSPITALISATION: { active: 'border-tab-hospital text-tab-hospital', hover: 'hover:border-tab-hospital', icon: 'text-tab-hospital' },
+    TOXICO: { active: 'border-tab-toxico text-tab-toxico', hover: 'hover:border-tab-toxico', icon: 'text-tab-toxico' },
+    SPIRITUEL: { active: 'border-tab-spirit text-tab-spirit', hover: 'hover:border-tab-spirit', icon: 'text-tab-spirit' },
+};
+
+const tabClass = (name) => [
+    currentTab.value === name
+        ? `${TAB_STYLES[name].active} font-semibold`
+        : `border-transparent text-ink-muted hover:text-ink ${TAB_STYLES[name].hover} font-medium`,
+    'flex min-h-11 items-center whitespace-nowrap border-b-2 px-3 text-base transition duration-150 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand-600'
+];
+
+const tabIconClass = (name) => TAB_STYLES[name].icon;
 
 const showConsultationModal = ref(false);
 const consultationAppointmentId = ref(null);

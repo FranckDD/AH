@@ -1,14 +1,14 @@
 <template>
-  <div class="bg-white p-6 rounded-2xl shadow-xs border border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-    
-    <div class="flex items-center gap-4">
-        <div class="h-16 w-16 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-2xl font-bold border-2 border-white shadow-xs">
+  <div class="bg-white p-4 md:p-6 rounded-card shadow-card border border-tone-neutral-border flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+
+    <div class="flex items-center gap-4 min-w-0">
+        <div class="h-16 w-16 shrink-0 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center text-2xl font-bold border-2 border-white shadow-card" aria-hidden="true">
             {{ getInitials(patient.full_name) }}
         </div>
-        <div>
-            <h2 class="text-2xl font-bold text-gray-900">{{ patient.full_name }}</h2>
-            <div class="flex items-center text-gray-500 text-sm mt-1 space-x-3">
-                <span class="font-mono bg-gray-100 px-2 py-0.5 rounded-sm text-gray-700">{{ patient.code }}</span>
+        <div class="min-w-0">
+            <h2 class="text-2xl font-bold text-ink">{{ patient.full_name }}</h2>
+            <div class="flex flex-wrap items-center text-ink-muted text-base mt-1 gap-x-3 gap-y-1">
+                <span class="font-mono bg-tone-neutral-bg px-2 py-0.5 rounded-control text-tone-neutral-text">{{ patient.code }}</span>
                 <span>{{ patient.age }} ans</span>
                 <span>{{ patient.gender === 'M' ? 'Homme' : 'Femme' }}</span>
             </div>
@@ -16,28 +16,22 @@
     </div>
 
     <div class="flex flex-wrap gap-2">
-        <span v-if="patient.flags?.is_clinical" class="px-3 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-800 border border-blue-200">
-            CLINIQUE
-        </span>
-        <span v-if="patient.flags?.is_toxicology" class="px-3 py-1 rounded-full text-xs font-bold bg-purple-100 text-purple-800 border border-purple-200">
-            TOXICOLOGIE
-        </span>
-        <span v-if="patient.flags?.is_spiritual" class="px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200">
-            SPIRITUEL
-        </span>
-        <span v-if="patient.is_staff" class="px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
-            {{ t('staffDiscount.badge') }}
-        </span>
+        <StatusBadge v-if="patient.flags?.is_clinical" tone="info" label="CLINIQUE" />
+        <StatusBadge v-if="patient.flags?.is_toxicology" tone="warning" label="TOXICOLOGIE" />
+        <StatusBadge v-if="patient.flags?.is_spiritual" tone="neutral" label="SPIRITUEL" />
+        <StatusBadge v-if="patient.is_staff" tone="success" :label="t('staffDiscount.badge')" />
     </div>
 
-    <button @click="$emit('back')" class="text-gray-400 hover:text-gray-600">
-        Fermer ✕
-    </button>
+    <AppButton variant="ghost" :icon="XMarkIcon" @click="$emit('back')">
+        Fermer
+    </AppButton>
   </div>
 </template>
 
 <script setup>
 import { useI18n } from 'vue-i18n';
+import { XMarkIcon } from '@heroicons/vue/24/outline';
+import { AppButton, StatusBadge } from '@/components/ui';
 
 defineProps({
     patient: { type: Object, required: true }

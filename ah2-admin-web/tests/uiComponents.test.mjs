@@ -20,6 +20,8 @@ test('buttonClasses : variantes et tailles issues des jetons, repli sur primary/
     assert.match(buttonClasses('secondary', 'md'), /border-brand-600/);
     assert.match(buttonClasses('danger', 'md'), /bg-tone-danger-text/);
     assert.match(buttonClasses('ghost', 'md'), /bg-transparent/);
+    assert.match(buttonClasses('pharma', 'md'), /bg-tab-pharma/);
+    assert.match(buttonClasses('hospital', 'md'), /bg-tab-hospital/);
     assert.match(buttonClasses('primary', 'md'), /min-h-11/);
     assert.match(buttonClasses('primary', 'lg'), /min-h-12/);
     assert.equal(buttonClasses('nope', 'xx'), buttonClasses('primary', 'md'));
@@ -27,7 +29,7 @@ test('buttonClasses : variantes et tailles issues des jetons, repli sur primary/
 });
 
 test('buttonClasses : aucune couleur Tailwind brute ni hexadécimal', () => {
-    for (const v of ['primary', 'secondary', 'danger', 'ghost']) {
+    for (const v of ['primary', 'secondary', 'danger', 'ghost', 'pharma', 'hospital']) {
         const cls = buttonClasses(v, 'md');
         assert.doesNotMatch(cls, /#[0-9a-f]{3,6}|(slate|gray|indigo|emerald|red|green|blue)-\d/);
         assert.match(cls, /focus-visible:/);
@@ -96,4 +98,12 @@ test('la route du guide de style n’existe qu’en développement', () => {
     const router = readFileSync(new URL('../src/router/index.js', import.meta.url), 'utf8');
     assert.match(router, /import\.meta\.env\.DEV/);
     assert.match(router, /\/dev\/styleguide/);
+});
+
+test('boutons de rubrique : Prescrire et Admettre reprennent la couleur de leur onglet', () => {
+    const read = (p) => readFileSync(new URL(`../src/${p}`, import.meta.url), 'utf8');
+    assert.match(read('components/patients/medical/MedicalRecordTimeline.vue'), /variant="pharma"[^>]*\$emit\('prescribe'/);
+    assert.match(read('components/hospitalization/HospitalizationCard.vue'), /variant="hospital"[^>]*showAdmitForm = true/);
+    assert.match(read('views/modules/prescriptions/PrescriptionsList.vue'), /variant="pharma"[^>]*openCreateModal/);
+    assert.match(read('views/modules/patients/PatientDetailView.vue'), /variant="pharma"[^>]*acceptPrescriptionOffer/);
 });

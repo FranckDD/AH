@@ -1,104 +1,87 @@
 <template>
-  <div class="fixed inset-0 bg-gray-900/50 overflow-y-auto h-full w-full z-50 flex items-center justify-center backdrop-blur-xs">
-    <div class="relative mx-auto w-full max-w-2xl bg-white shadow-2xl rounded-2xl flex flex-col max-h-[90vh]">
+  <!-- Panneau plein ecran sur telephone et tablette, grande fenetre centree sur PC -->
+  <FullScreenPanel :title="isEditing ? 'Modifier le patient' : 'Nouveau patient'" @close="$emit('close')">
 
-      <div class="flex justify-between items-center p-6 border-b border-gray-100">
-        <h3 class="text-xl font-bold text-gray-800">
-          {{ isEditing ? 'Modifier le patient' : 'Nouveau patient' }}
-        </h3>
-        <button @click="$emit('close')" class="text-gray-400 hover:text-gray-600 transition p-2 rounded-full hover:bg-gray-100">
-          <span class="text-2xl leading-none">&times;</span>
-        </button>
+    <form @submit.prevent="handleSubmit" id="patientForm" class="space-y-4">
+
+      <FormSection :title="$t('patients.modal.section_identity')">
+        <FormField id="patient-first-name" label="Prénom" required v-slot="{ describedBy }">
+          <input id="patient-first-name" v-model="form.firstName" type="text" required :aria-describedby="describedBy" :class="[fieldClass, 'bg-white']" />
+        </FormField>
+        <FormField id="patient-last-name" label="Nom" required v-slot="{ describedBy }">
+          <input id="patient-last-name" v-model="form.lastName" type="text" required :aria-describedby="describedBy" :class="[fieldClass, 'bg-white']" />
+        </FormField>
+        <FormField id="patient-birth-date" label="Date de naissance" required v-slot="{ describedBy }">
+          <input id="patient-birth-date" v-model="form.birthDate" type="date" required :max="today" :aria-describedby="describedBy" :class="[fieldClass, 'bg-white']" />
+        </FormField>
+        <FormField id="patient-gender" label="Genre" v-slot="{ describedBy }">
+          <select id="patient-gender" v-model="form.gender" :aria-describedby="describedBy" :class="[fieldClass, 'bg-white']">
+            <option :value="null">Non précisé</option>
+            <option value="M">Masculin</option>
+            <option value="F">Féminin</option>
+            <option value="A">Autre</option>
+          </select>
+        </FormField>
+        <div class="md:col-span-2">
+          <FormField id="patient-national-id" label="Numéro national d'identité" v-slot="{ describedBy }">
+            <input id="patient-national-id" v-model="form.nationalId" type="text" :aria-describedby="describedBy" :class="[fieldClass, 'bg-white']" />
+          </FormField>
+        </div>
+      </FormSection>
+
+      <FormSection :title="$t('patients.modal.section_contact')">
+        <FormField id="patient-phone" label="Téléphone" v-slot="{ describedBy }">
+          <input id="patient-phone" v-model="form.contactPhone" type="tel" inputmode="tel" :aria-describedby="describedBy" :class="[fieldClass, 'bg-white']" />
+        </FormField>
+        <FormField id="patient-residence" label="Résidence" v-slot="{ describedBy }">
+          <input id="patient-residence" v-model="form.residence" type="text" :aria-describedby="describedBy" :class="[fieldClass, 'bg-white']" />
+        </FormField>
+        <div class="md:col-span-2">
+          <FormField id="patient-assurance" label="Assurance" v-slot="{ describedBy }">
+            <input id="patient-assurance" v-model="form.assurance" type="text" :aria-describedby="describedBy" :class="[fieldClass, 'bg-white']" />
+          </FormField>
+        </div>
+      </FormSection>
+
+      <FormSection :title="$t('patients.modal.section_family')">
+        <FormField id="patient-father" label="Nom du père" v-slot="{ describedBy }">
+          <input id="patient-father" v-model="form.fatherName" type="text" :aria-describedby="describedBy" :class="[fieldClass, 'bg-white']" />
+        </FormField>
+        <FormField id="patient-mother" label="Nom de la mère" v-slot="{ describedBy }">
+          <input id="patient-mother" v-model="form.motherName" type="text" :aria-describedby="describedBy" :class="[fieldClass, 'bg-white']" />
+        </FormField>
+      </FormSection>
+
+      <div v-if="errorMessage" role="alert" class="flex items-start gap-2 rounded-control border p-3 text-base" :class="toneClasses('danger')">
+        <ExclamationCircleIcon class="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
+        <p>{{ errorMessage }}</p>
       </div>
 
-      <div class="p-6 overflow-y-auto custom-scrollbar">
-        <form @submit.prevent="handleSubmit" id="patientForm" class="space-y-6">
+    </form>
 
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <div>
-              <label class="block text-sm font-semibold text-gray-700 mb-1.5">Prénom <span class="text-red-500">*</span></label>
-              <input v-model="form.firstName" type="text" required class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 transition" />
-            </div>
-            <div>
-              <label class="block text-sm font-semibold text-gray-700 mb-1.5">Nom <span class="text-red-500">*</span></label>
-              <input v-model="form.lastName" type="text" required class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 transition" />
-            </div>
-          </div>
-
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <div>
-              <label class="block text-sm font-semibold text-gray-700 mb-1.5">Date de naissance <span class="text-red-500">*</span></label>
-              <input v-model="form.birthDate" type="date" required :max="today" class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 transition" />
-            </div>
-            <div>
-              <label class="block text-sm font-semibold text-gray-700 mb-1.5">Genre</label>
-              <select v-model="form.gender" class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 bg-white">
-                <option :value="null">— Non précisé —</option>
-                <option value="M">Masculin</option>
-                <option value="F">Féminin</option>
-                <option value="A">Autre</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <div>
-              <label class="block text-sm font-semibold text-gray-700 mb-1.5">Numéro national d'identité</label>
-              <input v-model="form.nationalId" type="text" class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 transition" />
-            </div>
-            <div>
-              <label class="block text-sm font-semibold text-gray-700 mb-1.5">Téléphone</label>
-              <input v-model="form.contactPhone" type="tel" class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 transition" />
-            </div>
-          </div>
-
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <div>
-              <label class="block text-sm font-semibold text-gray-700 mb-1.5">Assurance</label>
-              <input v-model="form.assurance" type="text" class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 transition" />
-            </div>
-            <div>
-              <label class="block text-sm font-semibold text-gray-700 mb-1.5">Résidence</label>
-              <input v-model="form.residence" type="text" class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 transition" />
-            </div>
-          </div>
-
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <div>
-              <label class="block text-sm font-semibold text-gray-700 mb-1.5">Nom du père</label>
-              <input v-model="form.fatherName" type="text" class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 transition" />
-            </div>
-            <div>
-              <label class="block text-sm font-semibold text-gray-700 mb-1.5">Nom de la mère</label>
-              <input v-model="form.motherName" type="text" class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 transition" />
-            </div>
-          </div>
-
-          <div v-if="errorMessage" class="bg-red-50 border-l-4 border-red-500 p-4 rounded-sm">
-            <p class="text-sm text-red-700">{{ errorMessage }}</p>
-          </div>
-
-        </form>
-      </div>
-
-      <div class="p-6 border-t border-gray-100 flex justify-end gap-3 bg-gray-50 rounded-b-2xl">
-        <button type="button" @click="$emit('close')" :disabled="isSaving" class="px-5 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 font-medium transition shadow-xs disabled:opacity-50">
-          Annuler
-        </button>
-        <button type="submit" form="patientForm" :disabled="isSaving || !isFormValid" class="px-5 py-2.5 bg-green-600 text-white rounded-xl hover:bg-green-700 font-medium shadow-lg shadow-green-200 transition transform active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed flex items-center">
-          <svg v-if="isSaving" class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-          </svg>
+    <!-- Barre d'actions fixe : Creer / Enregistrer (principal) et Annuler (discret) -->
+    <template #footer>
+      <ActionBar>
+        <template #secondary>
+          <AppButton variant="ghost" :disabled="isSaving" @click="$emit('close')">Annuler</AppButton>
+        </template>
+        <AppButton type="submit" form="patientForm" :disabled="isSaving || !isFormValid" :loading="isSaving">
           {{ isEditing ? 'Enregistrer' : 'Créer' }}
-        </button>
-      </div>
-    </div>
-  </div>
+        </AppButton>
+      </ActionBar>
+    </template>
+
+  </FullScreenPanel>
 </template>
 
 <script setup>
 import { reactive, computed, onMounted } from 'vue';
+import { ExclamationCircleIcon } from '@heroicons/vue/20/solid';
+import { AppButton, FormField, FormSection, ActionBar, FullScreenPanel } from '@/components/ui';
+import { toneClasses } from '@/design/tones';
+
+// Style commun des champs : zone tactile >= 44 px, focus visible.
+const fieldClass = 'block w-full min-h-11 rounded-control border border-tone-neutral-border px-3 text-base text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand-600';
 
 const props = defineProps({
   patientToEdit: { type: Object, default: null },

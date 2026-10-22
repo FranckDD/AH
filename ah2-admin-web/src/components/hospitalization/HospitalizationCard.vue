@@ -1,7 +1,7 @@
 <template>
   <AppCard :title="t('hospitalization.card_title')">
     <template #actions>
-      <AppButton v-if="!openStay" @click="showAdmitForm = true">
+      <AppButton v-if="!openStay" variant="hospital" @click="showAdmitForm = true">
         {{ t('hospitalization.admit_button') }}
       </AppButton>
     </template>
@@ -17,7 +17,7 @@
         <textarea id="hosp-reason" v-model="admissionReason" rows="2" :aria-describedby="describedBy" :class="[fieldClass, 'py-2']"></textarea>
       </FormField>
       <div class="flex flex-col gap-2 sm:flex-row">
-        <AppButton @click="submitAdmit" :disabled="isSubmitting" :loading="isSubmitting">
+        <AppButton variant="hospital" @click="submitAdmit" :disabled="isSubmitting" :loading="isSubmitting">
           {{ t('hospitalization.confirm') }}
         </AppButton>
         <AppButton variant="ghost" @click="showAdmitForm = false" :disabled="isSubmitting">

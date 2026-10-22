@@ -82,3 +82,18 @@ test('le texte de base 15-16 px est limité au conteneur .app-refonte', () => {
     const body = css.match(/html,\s*body,\s*#app\s*\{[^}]*\}/)[0];
     assert.ok(!body.includes('font-size'), 'la taille de base ne doit pas être posée globalement');
 });
+
+// Couleurs des onglets de la fiche patient : chacune lisible sur blanc (texte et icône) et toutes distinctes.
+const TAB_COLORS = ['tab-record', 'tab-lab', 'tab-pharma', 'tab-hospital', 'tab-toxico', 'tab-spirit'];
+
+for (const name of TAB_COLORS) {
+    test(`onglet ${name} : contraste sur blanc >= 4.5`, () => {
+        const ratio = contrast(color(name), '#ffffff');
+        assert.ok(ratio >= 4.5, `${name} (${color(name)}) = ${ratio.toFixed(2)}`);
+    });
+}
+
+test('les six couleurs d’onglets sont toutes différentes', () => {
+    const values = TAB_COLORS.map((n) => color(n).toLowerCase());
+    assert.equal(new Set(values).size, TAB_COLORS.length);
+});

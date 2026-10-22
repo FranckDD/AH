@@ -131,6 +131,11 @@ const messages = {
         clinique: "Clinique",
         toxico: "Toxicologie",
         spirituel: "Spirituel",
+      },
+      modal: {
+        section_identity: "Identité",
+        section_contact: "Contact et assurance",
+        section_family: "Famille"
       }
     }, 
     appointments: {
@@ -281,6 +286,11 @@ const messages = {
       results_count: "prescriptions trouvées",
       empty: "Aucune prescription trouvée pour ces critères.",
       confirm_delete: "Supprimer cette prescription ?",
+      end_expired: "Échue",
+      end_today: "Aujourd'hui",
+      end_in_days: "Dans {n} jour | Dans {n} jours",
+      prev_page: "Page précédente",
+      next_page: "Page suivante",
       table: {
         patient: "Patient",
         content: "Prescription",
@@ -298,6 +308,13 @@ const messages = {
       modal: {
         title_new: "Nouvelle Prescription",
         title_edit: "Modifier la Prescription",
+        section_patient: "Patient",
+        section_prescription: "Prescription",
+        section_dates: "Dates",
+        help_patient_code: "Le nom du patient s'affiche dès que le code est reconnu.",
+        help_frequency: "Combien de prises (exemple : 3 fois par jour).",
+        help_duration: "Pendant combien de temps (exemple : 7 jours).",
+        help_end_date: "Facultative : elle sert au suivi des renouvellements.",
         patient_code: "Code Patient",
         is_lab_order: "Ceci est une demande d'examen (Laboratoire)",
         medication: "Médicament",
@@ -1925,6 +1942,11 @@ const messages = {
         clinique: "Clinical",
         toxico: "Toxicology",
         spirituel: "Spiritual"
+      },
+      modal: {
+        section_identity: "Identity",
+        section_contact: "Contact and insurance",
+        section_family: "Family"
       }
     }, 
     appointments: {
@@ -2075,6 +2097,11 @@ const messages = {
       results_count: "prescriptions found",
       empty: "No prescriptions found for these criteria.",
       confirm_delete: "Delete this prescription?",
+      end_expired: "Expired",
+      end_today: "Today",
+      end_in_days: "In {n} day | In {n} days",
+      prev_page: "Previous page",
+      next_page: "Next page",
       table: {
         patient: "Patient",
         content: "Prescription",
@@ -2092,6 +2119,13 @@ const messages = {
       modal: {
         title_new: "New Prescription",
         title_edit: "Edit Prescription",
+        section_patient: "Patient",
+        section_prescription: "Prescription",
+        section_dates: "Dates",
+        help_patient_code: "The patient's name appears as soon as the code is recognized.",
+        help_frequency: "How many doses (example: 3 times a day).",
+        help_duration: "For how long (example: 7 days).",
+        help_end_date: "Optional: it is used to follow renewals.",
         patient_code: "Patient Code",
         is_lab_order: "This is a lab order",
         medication: "Medication",

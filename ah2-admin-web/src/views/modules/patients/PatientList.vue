@@ -1,164 +1,134 @@
 <template>
-  <div class="space-y-6 w-full">
-    
-    <div class="flex flex-col md:flex-row justify-between items-center bg-white p-6 rounded-2xl shadow-xs border border-gray-100 gap-4">
-      <div>
-        <h1 class="text-2xl font-extrabold text-gray-800 tracking-tight">
-          {{ t('patients.title') }}
-        </h1>
-        <p class="text-sm text-gray-500">
-          Total : {{ activeTabCount }} patients
-        </p>
-      </div>
+  <div class="grid w-full gap-6">
 
-      <div class="flex items-center gap-3">
-        <button @click="showExportModal = true" class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition">
+    <PageHeader :title="t('patients.title')" :subtitle="`Total : ${activeTabCount} patients`">
+      <template #actions>
+        <AppButton variant="secondary" @click="showExportModal = true">
           {{ t('export.confirm') }}
-        </button>
-        <button
-            v-if="canManagePatients"
-            @click="openCreateModal"
-            class="flex items-center gap-2 bg-green-600 text-white px-4 py-2.5 rounded-xl hover:bg-green-700 font-medium shadow-xs transition"
-        >
-            <PlusIcon class="h-5 w-5" />
-            Ajouter un patient
-        </button>
-      </div>
+        </AppButton>
+        <AppButton v-if="canManagePatients" :icon="PlusIcon" @click="openCreateModal">
+          Ajouter un patient
+        </AppButton>
+      </template>
+    </PageHeader>
 
-      <div class="relative w-full md:w-80">
-        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-          <MagnifyingGlassIcon class="h-5 w-5 text-gray-400" />
-        </div>
-        <input 
-          v-model.lazy="searchQuery"
-          @keyup.enter="patientStore.fetchPatients()"
-          type="text"
-          :placeholder="t('patients.search_placeholder')"
-          class="block w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-xl bg-gray-50 focus:ring-green-500 focus:border-green-500 sm:text-sm"
-        />
-      </div>
+    <div class="relative w-full md:max-w-md">
+      <label for="patient-search" class="sr-only">{{ t('patients.search_placeholder') }}</label>
+      <MagnifyingGlassIcon class="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-ink-muted" aria-hidden="true" />
+      <input
+        id="patient-search"
+        v-model.lazy="searchQuery"
+        @keyup.enter="patientStore.fetchPatients()"
+        type="text"
+        :placeholder="t('patients.search_placeholder')"
+        class="block w-full min-h-11 rounded-control border border-tone-neutral-border bg-white pl-10 pr-3 text-base text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand-600"
+      />
     </div>
 
-    <div class="border-b border-gray-200">
-      <nav class="-mb-px flex space-x-8" aria-label="Tabs">
-        <button 
-          v-for="tab in tabs" 
+    <div class="overflow-x-auto border-b border-tone-neutral-border">
+      <div class="-mb-px flex gap-2" role="tablist" aria-label="Catégories de patients">
+        <button
+          v-for="tab in tabs"
           :key="tab.value"
-          @click="currentTab = tab.value" 
+          type="button"
+          role="tab"
+          :aria-selected="currentTab === tab.value"
+          @click="currentTab = tab.value"
           :class="[
             currentTab === tab.value
-              ? 'border-green-500 text-green-600'
-              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
-            'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center'
+              ? 'border-brand-600 text-brand-700'
+              : 'border-transparent text-ink-muted hover:text-ink hover:border-tone-neutral-border',
+            'flex min-h-11 items-center whitespace-nowrap border-b-2 px-3 text-base font-medium focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand-600'
           ]"
         >
-          <component :is="tab.icon" class="h-5 w-5 mr-2" />
+          <component :is="tab.icon" class="mr-2 h-5 w-5" aria-hidden="true" />
           {{ t(tab.labelKey) }}
-          <span class="ml-2 bg-gray-100 text-gray-600 py-0.5 px-2.5 rounded-full text-xs font-bold">
+          <span class="ml-2 rounded-full bg-tone-neutral-bg px-2.5 py-0.5 text-sm font-bold text-tone-neutral-text">
             {{ tab.count }}
           </span>
         </button>
-      </nav>
+      </div>
     </div>
 
-    <div class="bg-white rounded-2xl shadow-xs border border-gray-100 overflow-hidden">
-      
-      <div v-if="patientStore.isLoading" class="p-10 text-center">
-        <span class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></span>
-        <p class="mt-2 text-gray-500">Chargement des données...</p>
-      </div>
+    <p v-if="patientStore.error" role="alert" class="rounded-card border p-4 text-base font-medium" :class="toneClasses('danger')">
+      {{ patientStore.error }}
+    </p>
 
-      <div v-else-if="patientStore.error" class="p-10 text-center text-red-500">
-        {{ patientStore.error }}
-      </div>
-
-      <div v-else class="overflow-x-auto">
-        <table class="min-w-full text-left border-collapse">
-          <thead>
-            <tr class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
-              <th class="px-6 py-4 font-semibold">Code / Patient</th>
-              <th class="px-6 py-4 font-semibold">Type</th>
-              <th class="px-6 py-4 font-semibold">Téléphone</th>
-              <th class="px-6 py-4 font-semibold text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-gray-100">
-            <tr v-for="patient in patientStore.patients" :key="patient.id" class="hover:bg-gray-50 transition">
-              <td class="px-6 py-4">
-                <div class="flex flex-col">
-                    <span class="text-xs font-bold text-gray-400 uppercase tracking-wide">{{ patient.code }}</span>
-                    <span class="text-sm font-medium text-gray-900">{{ patient.firstName }} {{ patient.lastName }}</span>
-                    <span v-if="patient.is_staff" class="px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200 self-start mt-1">{{ t('staffDiscount.badge') }}</span>
-                </div>
-              </td>
-              <td class="px-6 py-4">
-                <span :class="getTypeBadgeClass(patient.type)" class="px-3 py-1 text-xs font-bold rounded-full border">
-                  {{ patient.type }}
-                </span>
-              </td>
-              <td class="px-6 py-4 text-sm text-gray-600">
-                {{ patient.phone || 'N/A' }}
-              </td>
-              <td class="px-6 py-4 text-right">
-                <div class="flex items-center justify-end gap-2">
-                    <button v-if="canManagePatients" @click="openEditModal(patient)" :disabled="patient.pending"
-                            class="p-2 bg-white border border-gray-200 rounded-lg text-indigo-600 hover:bg-indigo-50 hover:border-indigo-200 transition shadow-xs disabled:opacity-40 disabled:cursor-not-allowed"
-                            :title="patient.pending ? 'En attente de synchronisation' : 'Modifier'">
-                        <PencilSquareIcon class="h-4 w-4" />
-                    </button>
-                    <button v-if="canManagePatients" @click="confirmDelete(patient)" :disabled="patient.pending"
-                            class="p-2 bg-white border border-gray-200 rounded-lg text-red-500 hover:bg-red-50 hover:border-red-200 transition shadow-xs disabled:opacity-40 disabled:cursor-not-allowed"
-                            :title="patient.pending ? 'En attente de synchronisation' : 'Supprimer'">
-                        <TrashIcon class="h-4 w-4" />
-                    </button>
-                    <button
-                        v-if="!disableDetailLink"
-                        @click="viewPatientDossier(patient.id)"
-                        class="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center"
-                    >
-                        Voir Dossier
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                        </svg>
-                    </button>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-        
-        <div v-if="patientStore.patients.length === 0" class="p-8 text-center text-gray-500">
-            Aucun patient trouvé.
+    <ResponsiveTable
+      v-else
+      :columns="columns"
+      :rows="patientStore.patients"
+      row-key="id"
+      :loading="patientStore.isLoading"
+      empty-title="Aucun patient trouvé."
+      :empty-message="' '"
+    >
+      <template #cell-patient="{ row: patient }">
+        <div class="flex flex-col">
+          <span class="text-sm font-bold uppercase tracking-wide text-ink-muted">{{ patient.code }}</span>
+          <span class="text-base font-medium text-ink">{{ patient.firstName }} {{ patient.lastName }}</span>
+          <span v-if="patient.is_staff" class="mt-1 self-start"><StatusBadge tone="success" :label="t('staffDiscount.badge')" /></span>
         </div>
-      </div>
+      </template>
+      <template #cell-type="{ row: patient }">
+        <StatusBadge :tone="typeTone(patient.type)" :label="patient.type" />
+      </template>
+      <template #cell-phone="{ row: patient }">{{ patient.phone || 'N/A' }}</template>
 
-      <div class="p-4 flex justify-between items-center border-t border-gray-100 bg-gray-50">
-        <button 
-            @click="goToPage(patientStore.pagination.page - 1)" 
-            :disabled="patientStore.pagination.page === 1" 
-            class="px-4 py-2 border rounded-lg bg-white hover:bg-gray-50 disabled:opacity-50 flex items-center"
+      <template #actions="{ row: patient }">
+        <AppButton
+          v-if="!disableDetailLink"
+          @click="viewPatientDossier(patient.id)"
         >
-            <ChevronLeftIcon class="h-4 w-4 mr-2"/> Précédent
-        </button>
-
-        <span class="text-sm font-medium text-gray-700">
-            Page {{ patientStore.pagination.page }} sur {{ patientStore.pagination.total_pages }}
-        </span>
-
-        <button 
-            @click="goToPage(patientStore.pagination.page + 1)" 
-            :disabled="!patientStore.pagination.hasNext" 
-            class="px-4 py-2 border rounded-lg bg-white hover:bg-gray-50 disabled:opacity-50 flex items-center"
+          Voir Dossier
+        </AppButton>
+        <AppButton
+          v-if="canManagePatients"
+          variant="secondary"
+          :icon="PencilSquareIcon"
+          @click="openEditModal(patient)"
+          :disabled="patient.pending"
+          :title="patient.pending ? 'En attente de synchronisation' : 'Modifier'"
         >
-            Suivant <ChevronRightIcon class="h-4 w-4 ml-2"/>
-        </button>
-      </div>
+          Modifier
+        </AppButton>
+        <AppButton
+          v-if="canManagePatients"
+          variant="danger"
+          :icon="TrashIcon"
+          @click="confirmDelete(patient)"
+          :disabled="patient.pending"
+          :title="patient.pending ? 'En attente de synchronisation' : 'Supprimer'"
+        >
+          Supprimer
+        </AppButton>
+      </template>
+    </ResponsiveTable>
 
+    <div class="flex items-center justify-between gap-3 rounded-card border border-tone-neutral-border bg-white p-3">
+      <AppButton
+        variant="secondary"
+        :icon="ChevronLeftIcon"
+        @click="goToPage(patientStore.pagination.page - 1)"
+        :disabled="patientStore.pagination.page === 1"
+      >
+        Précédent
+      </AppButton>
+
+      <span class="text-base font-medium text-ink">
+        Page {{ patientStore.pagination.page }} sur {{ patientStore.pagination.total_pages }}
+      </span>
+
+      <AppButton
+        variant="secondary"
+        @click="goToPage(patientStore.pagination.page + 1)"
+        :disabled="!patientStore.pagination.hasNext"
+      >
+        Suivant <ChevronRightIcon class="h-5 w-5" aria-hidden="true" />
+      </AppButton>
     </div>
 
-    <div v-if="deleteError" class="bg-red-50 border-l-4 border-red-500 p-4 rounded-xl">
-        <p class="text-sm text-red-700">{{ deleteError }}</p>
-    </div>
+    <p v-if="deleteError" role="alert" class="rounded-card border p-4 text-base font-medium" :class="toneClasses('danger')">{{ deleteError }}</p>
 
     <PatientModal
         v-if="showModal"
@@ -188,7 +158,7 @@
 
     <ExportModal
       v-if="showExportModal"
-      :title="t('export.confirm') + ' — ' + t('patients.title')"
+      :title="t('export.confirm') + ' : ' + t('patients.title')"
       :formats="[{ value: 'pdf', label: 'PDF' }, { value: 'csv', label: 'CSV' }]"
       :onExport="exportPatients"
       @close="showExportModal = false"
@@ -213,6 +183,8 @@ import { useMedicalRecordStore } from '@/stores/medicalRecordStore';
 import { useToastStore } from '@/stores/toastStore';
 import { runsNewPatientFlow, patientPrefillFromCreated } from '@/utils/newPatientFlow';
 import ExportModal from '@/components/common/ExportModal.vue';
+import { AppButton, PageHeader, StatusBadge, ResponsiveTable } from '@/components/ui';
+import { toneClasses } from '@/design/tones';
 import { useAuthStore } from '@/stores/auth';
 import api from '@/services/api';
 
@@ -234,6 +206,13 @@ const authStore = useAuthStore();
 const canManagePatients = computed(() =>
     authStore.hasRole(['medecin', 'nurse', 'secretaire', 'admin', 'manager'])
 );
+
+// Colonnes du tableau (cartes empilees sous lg).
+const columns = [
+    { key: 'patient', label: 'Code / Patient' },
+    { key: 'type', label: 'Type' },
+    { key: 'phone', label: 'Téléphone' },
+];
 
 const showModal = ref(false);
 const patientBeingEdited = ref(null);
@@ -453,12 +432,12 @@ const goToPage = (page) => {
     patientStore.setPage(page);
 };
 
-const getTypeBadgeClass = (type) => {
+// Categorie du patient : le texte porte l'information, la couleur n'est qu'un repere.
+const typeTone = (type) => {
     switch(type) {
-        case 'CLINIQUE': return 'bg-blue-50 text-blue-700 border-blue-200';
-        case 'TOXICO': return 'bg-purple-50 text-purple-700 border-purple-200';
-        case 'SPIRITUEL': return 'bg-amber-50 text-amber-700 border-amber-200'; 
-        default: return 'bg-gray-100 text-gray-600 border-gray-200';
+        case 'CLINIQUE': return 'info';
+        case 'TOXICO': return 'warning';
+        default: return 'neutral';
     }
 };
 </script>

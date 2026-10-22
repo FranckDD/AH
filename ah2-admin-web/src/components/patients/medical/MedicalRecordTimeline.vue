@@ -63,7 +63,7 @@
                 <AppButton variant="secondary" @click="$emit('edit', record)">
                     Modifier
                 </AppButton>
-                <AppButton @click="$emit('prescribe', record)">
+                <AppButton variant="pharma" @click="$emit('prescribe', record)">
                     Prescrire
                 </AppButton>
             </div>

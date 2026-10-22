@@ -1,44 +1,34 @@
 <template>
-  <div class="overflow-x-auto">
-    <table class="min-w-full text-left border-collapse">
-        <thead>
-            <tr class="text-xs font-bold text-gray-500 uppercase border-b border-gray-200 bg-gray-50">
-                <th class="px-4 py-3">{{ t('lab.patient_table.date') }}</th>
-                <th class="px-4 py-3">{{ t('lab.patient_table.exam') }}</th>
-                <th class="px-4 py-3">{{ t('lab.patient_table.lab_code') }}</th>
-                <th class="px-4 py-3">{{ t('lab.patient_table.status') }}</th>
-                <th class="px-4 py-3 text-right">{{ t('lab.patient_table.action') }}</th>
-            </tr>
-        </thead>
-        <tbody class="divide-y divide-gray-100">
-            <tr v-for="res in results" :key="res.result_id" class="hover:bg-gray-50">
-                <td class="px-4 py-3 text-sm text-gray-600">{{ res.test_date }}</td>
-                <td class="px-4 py-3 font-medium text-gray-900">{{ res.examen_name }}</td>
-                <td class="px-4 py-3 text-sm font-mono text-gray-500">{{ res.code_lab }}</td>
-                <td class="px-4 py-3">
-                    <div class="flex items-center gap-2">
-                        <span :class="getStatusClass(res.status)" class="px-2 py-0.5 rounded-sm text-xs font-bold uppercase">
-                            {{ statusLabel(res.status) }}
-                        </span>
-                        <span v-if="res.nb_anormaux > 0"
-                              class="bg-red-100 text-red-700 border border-red-200 px-2 py-0.5 rounded-full text-xs font-bold">
-                            {{ t('lab.patient_table.abnormal_count', { n: res.nb_anormaux }, res.nb_anormaux) }}
-                        </span>
-                    </div>
-                </td>
-                <td class="px-4 py-3 text-right">
-                    <button @click="openDetail(res)" class="text-blue-600 hover:text-blue-800 text-sm font-medium">
-                        {{ t('lab.patient_table.view_results') }}
-                    </button>
-                </td>
-            </tr>
-            <tr v-if="results.length === 0">
-                <td colspan="5" class="px-4 py-8 text-center text-gray-500">{{ t('lab.patient_table.empty') }}</td>
-            </tr>
-        </tbody>
-    </table>
+  <div class="grid gap-3">
+    <ResponsiveTable
+      :columns="columns"
+      :rows="results"
+      row-key="result_id"
+      :empty-title="t('lab.patient_table.empty')"
+      :empty-message="' '"
+    >
+      <template #cell-date="{ row: res }">{{ res.test_date }}</template>
+      <template #cell-exam="{ row: res }"><span class="font-medium text-ink">{{ res.examen_name }}</span></template>
+      <template #cell-lab_code="{ row: res }"><span class="font-mono text-ink-muted">{{ res.code_lab }}</span></template>
+      <template #cell-status="{ row: res }">
+        <div class="flex flex-wrap items-center gap-2">
+          <StatusBadge :tone="statusTone(res.status)" :label="statusLabel(res.status)" />
+          <StatusBadge
+            v-if="res.nb_anormaux > 0"
+            tone="danger"
+            :label="t('lab.patient_table.abnormal_count', { n: res.nb_anormaux }, res.nb_anormaux)"
+          />
+        </div>
+      </template>
 
-    <p v-if="detailError" class="mt-3 text-sm text-red-600">{{ detailError }}</p>
+      <template #actions="{ row: res }">
+        <AppButton variant="secondary" @click="openDetail(res)">
+          {{ t('lab.patient_table.view_results') }}
+        </AppButton>
+      </template>
+    </ResponsiveTable>
+
+    <p v-if="detailError" role="alert" class="text-base font-medium text-tone-danger-text">{{ detailError }}</p>
 
     <ResultDetailModal
         v-if="selectedResult"
@@ -50,10 +40,11 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useLabStore } from '@/stores/labStore';
 import ResultDetailModal from '@/components/lab/ResultDetailModal.vue';
+import { AppButton, StatusBadge, ResponsiveTable } from '@/components/ui';
 
 defineProps({
     results: { type: Array, default: () => [] }
@@ -64,11 +55,19 @@ const labStore = useLabStore();
 const selectedResult = ref(null);
 const detailError = ref('');
 
-const getStatusClass = (status) => {
+const columns = computed(() => [
+    { key: 'date', label: t('lab.patient_table.date') },
+    { key: 'exam', label: t('lab.patient_table.exam') },
+    { key: 'lab_code', label: t('lab.patient_table.lab_code') },
+    { key: 'status', label: t('lab.patient_table.status') },
+]);
+
+// Vert = termine, orange = en attente, neutre sinon (toujours accompagne du libelle).
+const statusTone = (status) => {
     switch(status) {
-        case 'completed': return 'bg-green-100 text-green-700';
-        case 'pending': return 'bg-yellow-100 text-yellow-700';
-        default: return 'bg-gray-100 text-gray-600';
+        case 'completed': return 'success';
+        case 'pending': return 'warning';
+        default: return 'neutral';
     }
 };
 
