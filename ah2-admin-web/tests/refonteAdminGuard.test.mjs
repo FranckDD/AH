@@ -101,9 +101,9 @@ test('(c) les zones de texte de l’admin existent et n’ont ni tiret long ni p
 
 // --- (d) la refonte n'a touché que les fichiers autorisés, jamais l'argent ni les données ---
 const BASE = 'f050a08'; // juste avant la Tâche 1 de l'admin
-// Dernier commit des Tâches 1 à 5. null = arbre de travail (tant que ces tâches ne sont pas commitées) ;
-// à renseigner avec le hash du commit pour que les chantiers suivants ne fassent pas échouer ce contrôle.
-const FIN = null;
+// Dernier commit des Tâches 1 à 6 (1324a7e). null = arbre de travail ;
+// renseigné pour que les chantiers suivants ne fassent pas échouer ce contrôle.
+const FIN = '1324a7e';
 
 const AUTORISES = new Set([
     ...REFONDUS,
