@@ -10,6 +10,8 @@ const props = defineProps({
     note: { type: String, default: '' },
     icon: { type: [Object, Function], default: null },
     tone: { type: String, default: 'neutral' },
+    // Montant a surveiller (ex. reste du) : la valeur elle-meme est ecrite en rouge, le titre garde le sens.
+    alert: { type: Boolean, default: false },
 });
 
 const iconClasses = computed(() => toneClasses(props.tone));
@@ -19,7 +21,7 @@ const iconClasses = computed(() => toneClasses(props.tone));
     <div class="flex items-start justify-between gap-3 rounded-card border border-tone-neutral-border bg-white p-4 shadow-card">
         <div class="min-w-0">
             <p class="text-sm font-medium text-ink-muted">{{ title }}</p>
-            <p class="mt-1 break-words text-2xl font-bold text-ink">{{ value }}</p>
+            <p :class="['mt-1 break-words text-2xl font-bold', alert ? 'text-tone-danger-text' : 'text-ink']">{{ value }}</p>
             <p v-if="note" class="mt-1 text-sm text-ink-muted">{{ note }}</p>
             <slot />
         </div>

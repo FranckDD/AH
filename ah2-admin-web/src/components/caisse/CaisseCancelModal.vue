@@ -1,55 +1,46 @@
 <template>
-  <div class="fixed inset-0 bg-gray-900/60 overflow-y-auto h-full w-full z-50 flex items-center justify-center backdrop-blur-xs">
-    <div class="relative mx-auto w-full max-w-md bg-white shadow-xl rounded-2xl border border-gray-200">
-      <div class="px-6 py-4 border-b border-gray-100 bg-red-600 rounded-t-2xl flex justify-between items-center">
-        <h3 class="text-lg font-bold text-white flex items-center">
-          <ExclamationTriangleIcon class="h-6 w-6 mr-2" />
-          {{ t('caisse.cancel_modal.title') }}
-        </h3>
-        <button @click="$emit('close')" class="text-red-100 hover:text-white transition">
-          <span class="text-2xl font-bold">&times;</span>
-        </button>
-      </div>
+  <FullScreenPanel :title="t('caisse.cancel_modal.title')" @close="$emit('close')">
+    <form id="cancel-form" @submit.prevent="handleSubmit" class="space-y-4">
+      <p class="text-base font-semibold text-ink">{{ label }}</p>
+      <p class="text-base text-ink-muted">{{ t('caisseScreens.cancel_help') }}</p>
 
-      <form @submit.prevent="handleSubmit" class="p-6 space-y-4">
-        <p class="text-sm text-gray-600">{{ label }}</p>
+      <FormField id="cancel-justification" :label="t('caisse.cancel_modal.justification')" required v-slot="{ describedBy }">
+        <textarea
+          id="cancel-justification"
+          v-model="justification"
+          rows="3"
+          required
+          :aria-describedby="describedBy"
+          :class="[fieldClass, 'py-2']"
+          :placeholder="t('caisse.cancel_modal.justification_placeholder')"
+        ></textarea>
+      </FormField>
 
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">
-            {{ t('caisse.cancel_modal.justification') }} <span class="text-red-500">*</span>
-          </label>
-          <textarea
-            v-model="justification"
-            rows="3"
-            required
-            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-red-500 focus:border-red-500"
-            :placeholder="t('caisse.cancel_modal.justification_placeholder')"
-          ></textarea>
-        </div>
+      <p v-if="errorMessage" role="alert" class="flex items-start gap-2 rounded-control border p-3 text-base" :class="toneClasses('danger')">
+        <ExclamationCircleIcon class="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
+        <span>{{ errorMessage }}</span>
+      </p>
+    </form>
 
-        <div v-if="errorMessage" class="bg-red-50 border-l-4 border-red-500 p-3 rounded-sm text-sm text-red-700">
-          {{ errorMessage }}
-        </div>
-
-        <div class="flex justify-end space-x-3 pt-2">
-          <button type="button" @click="$emit('close')" :disabled="isSaving"
-                  class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition disabled:opacity-50">
-            {{ t('caisse.cancel_modal.cancel') }}
-          </button>
-          <button type="submit" :disabled="isSaving || !justification.trim()"
-                  class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium shadow-xs transition disabled:opacity-50">
-            {{ isSaving ? t('caisse.cancel_modal.saving') : t('caisse.cancel_modal.confirm') }}
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
+    <template #footer>
+      <ActionBar>
+        <template #secondary>
+          <AppButton variant="ghost" :disabled="isSaving" @click="$emit('close')">{{ t('caisse.cancel_modal.cancel') }}</AppButton>
+        </template>
+        <AppButton type="submit" form="cancel-form" variant="danger" :disabled="isSaving || !justification.trim()" :loading="isSaving">
+          {{ isSaving ? t('caisse.cancel_modal.saving') : t('caisse.cancel_modal.confirm') }}
+        </AppButton>
+      </ActionBar>
+    </template>
+  </FullScreenPanel>
 </template>
 
 <script setup>
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { ExclamationTriangleIcon } from '@heroicons/vue/24/outline';
+import { ExclamationCircleIcon } from '@heroicons/vue/20/solid';
+import { AppButton, FormField, ActionBar, FullScreenPanel } from '@/components/ui';
+import { toneClasses } from '@/design/tones';
 
 const props = defineProps({
   label: { type: String, default: '' },
@@ -60,6 +51,9 @@ const emit = defineEmits(['close', 'confirm']);
 
 const { t } = useI18n();
 const justification = ref('');
+
+// Style commun des champs : zone tactile >= 44 px, focus visible.
+const fieldClass = 'block w-full min-h-11 rounded-control border border-tone-neutral-border bg-white px-3 text-base text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand-600';
 
 const handleSubmit = () => {
   if (!justification.value.trim()) return;

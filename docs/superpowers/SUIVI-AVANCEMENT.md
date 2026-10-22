@@ -1,6 +1,6 @@
 # Suivi d'avancement — AH2 / Glostone-Kare
 
-**Dernière mise à jour :** 2026-10-22 (refonte UX du secrétariat, Tâches 1 à 6 ; échecs de synchronisation : suppression et correction du numéro d'identité)
+**Dernière mise à jour :** 2026-10-22 (refonte UX du secrétariat livrée, Tâches 1 à 10 ; à vérifier par l'utilisateur dans le navigateur)
 **But de ce document :** état d'avancement des chantiers de remise en service et de sécurisation, et registre des découvertes faites en cours de route mais non encore traitées. Pour le contexte général du projet, voir `docs/superpowers/CONTEXTE-PROJET.md`. Pour le détail d'un chantier, voir les fichiers correspondants dans `docs/superpowers/specs/` et `docs/superpowers/plans/`.
 
 ## Feuille de route
@@ -1310,9 +1310,22 @@ Spec `specs/2026-10-22-refonte-ux-medical-design.md` · Plan `plans/2026-10-22-r
 
 Accueil après connexion : le médecin arrive sur `/medical/doctors` et l'infirmière sur `/medical/patients` (changé le 2026-10-22, voir la refonte UX) ; recharger `/` ou `/dashboard` ramène chaque rôle sur son accueil. Consultations passées en lecture seule (voir section dédiée). Évaluation toxico réservée au psychologue. Sortie toxico validable par le promoteur. Signatures sur les PDF. Réadmission des patients toxico (séjours). Exports PDF toxico. Question toujours ouverte : l'accompagnateur spirituel a-t-il une évaluation distincte ? (laissée de côté à la demande de l'utilisateur). Backlog restant : migration des autres espaces vers la refonte UX (espace médical livré), onglet Rapports (après la refonte), documentation par rôle (après la refonte, simple, avec la responsabilité de chaque rôle), chantier 8 (déploiement sur le VPS OVH Londres).
 
-### Refonte UX du secrétariat : Tâches 1 à 6 livrées, point de contrôle (2026-10-22)
+### Refonte UX du secrétariat : livrée (Tâches 1 à 10), à vérifier par l'utilisateur (2026-10-22)
 
-Plan : `docs/superpowers/plans/2026-10-22-refonte-ux-secretariat.md` ; protocole de test : `docs/superpowers/usability-test-protocol-secretariat.md`. Livré : cadre commun `AppShell`, menu du secrétariat, accueil (actions rapides et statistiques, `StatTile`), stock, consultations, historique des réductions. Reste : caisse (T7 à T9) et garde finale (T10).
+Plan `plans/2026-10-22-refonte-ux-secretariat.md` · Protocole du test d'utilisation `usability-test-protocol-secretariat.md`. Commit `d84dbbf` (Tâches 1 à 6, code du patient pour la secrétaire, échecs de synchronisation) ; les Tâches 7 à 10 (caisse, facture, retraits, garde-fou, ce suivi) sont dans l'arbre de travail, **non commitées**. **Vérifié** : 1942 tests `node` (dont `refonteSecretariatGuard.test.mjs`, vu échouer sur une couleur en dur ajoutée puis retirée) et `vite build`. **Jamais vérifié dans un navigateur par un agent** : le rendu est à contrôler par l'utilisateur avec la checklist ci-dessous ; les phases 1 et 2 et la facture ont déjà été regardées (« c'est bon »).
+
+**Livré**
+- **Cadre commun** `AppShell` (menu, tiroir, cloche, indicateur de connexion) utilisé par `MedicalLayout` et `SecretaireLayout` ; accueil du secrétariat (actions rapides et statistiques, `StatTile`) ; stock (demande d'ajustement réservée à la secrétaire) ; consultations ; historique des réductions.
+- **Caisse** : liste des factures (tuiles, filtres, tableau à lignes alternées, une couleur par action : Voir bleu, Verser sarcelle, Solder or, Télécharger violet, Réimprimer orange, Annuler rouge ; reste dû en rouge ; facture annulée barrée), détail en panneau, versement et annulation en panneau. **Facture** d'après la maquette `Nouvelle facture médicale en français.png` (fenêtre large à en-tête vert, patient, lignes sur une rangée, carte du total, paiement, réduction). **Retraits** (liste et formulaire).
+- **Échec d'impression du ticket** : notification (toast d'avertissement, disparaît seule après 6 s) au lieu d'un encadré dans la page ; mêmes cas qu'avant.
+- **Bibliothèque ui/** : nouvelles variantes de bouton `lab`, `record`, `toxico`, `spirit` (couleurs des onglets du dossier) ; options `FullScreenPanel` (`wide`, `accent`, `subtitle`), `FormSection` (`compact`), `ResponsiveTable` (`striped`), `StatTile` (`alert`).
+
+**Décisions et rulings**
+- Écart au plan : `?nouveau=1` (facture, retrait) est retiré de l'adresse par `history.replaceState` et non `router.replace`, qui remonterait la page (clé = chemin complet) et fermerait le formulaire.
+- `ToastContainer.vue` et `toastStore.js` (interdits par le plan) ont été modifiés à la demande de l'utilisateur pour la notification d'impression.
+- Aucune ligne « Reste à payer » dans la facture (ce montant n'est calculé nulle part) ; pas de compteur « 0/500 » sur la description (aucune limite serveur connue).
+- Argent et impression **jamais modifiés** : `invoiceTotals.js`, `staffDiscount.js`, `receiptLines.js`, `caisseStore.js`, `CaisseGateway.js`, `PrinterBridgeGateway.js`, `printer_bridge/` ; vérifié par le garde-fou.
+- Garde-fou : la constante `FIN` de `refonteSecretariatGuard.test.mjs` vaut `null` (compare à l'arbre de travail). **À renseigner avec le hash du commit des Tâches 7 à 10** une fois commité, sinon tout chantier suivant fera échouer le contrôle de périmètre.
 
 **Corrections de la session**
 - Patient créé par la secrétaire : fenêtre du code (comme l'infirmière) puis retour à la liste, sans formulaire de paramètres (action médicale, interdite à la secrétaire) ; la liste se recharge quand le serveur confirme le patient.
@@ -1320,3 +1333,26 @@ Plan : `docs/superpowers/plans/2026-10-22-refonte-ux-secretariat.md` ; protocole
 - Échecs de synchronisation : bouton « Supprimer cette entrée » (confirmation chiffrée, suppression locale définitive) et « Corriger le numéro d'identité et renvoyer » (même uuid, donc sans doublon ; les données retenues sont rattachées au patient une fois accepté).
 
 **Décision (utilisateur, 2026-10-22) : le type du patient reste calculé, sans exception.** Le type n'est jamais stocké : CLINIQUE = dossier médical ou hospitalisation, TOXICO = dossier toxico, SPIRITUEL = au moins une consultation spirituelle. Un patient tout juste créé (par la secrétaire comme par l'infirmière) n'a aucun dossier : il apparaît seulement dans « Tous », étiqueté NOUVEAU, et entre dans l'onglet Spirituel à sa première consultation spirituelle. Pas de type provisoire. À reprendre tel quel dans la documentation par rôle.
+
+**Checklist à vérifier par l'utilisateur** (chaque ligne à 360, 768 et 1280 px ; en secrétaire sauf mention)
+| Écran | Points précis |
+|---|---|
+| Cadre et menu | Bouton de réduction du menu ; tiroir sous 768 px (Échap) ; nom complet ; indicateur de connexion (hors ligne, éléments à envoyer) ; cloche ; badge des échecs de synchronisation ; **médecin et infirmière : même cadre, rien de cassé** |
+| Accueil | Actions rapides (Nouveau patient, Nouvelle facture, Nouveau retrait ouvrent directement le formulaire) ; statistiques lisibles |
+| Patients | Création : fenêtre du code, retour à la liste sans formulaire de paramètres ; patient visible dans « Tous » étiqueté NOUVEAU ; doublon de numéro d'identité : fenêtre « refusé » et lien vers les échecs |
+| Échecs de synchronisation | « Supprimer cette entrée » (confirmation chiffrée) ; « Corriger le numéro d'identité et renvoyer » (code reçu, données rattachées) ; rattachement par code |
+| Stock | Demande d'ajustement (secrétaire uniquement) ; **admin et assistant : modifier, supprimer, mettre au rebut inchangés** |
+| Consultations | Liste et formulaire en panneau ; type spirituel ou restauration familiale |
+| Réductions (historique) | Presets de période, filtres, statuts avec texte ; **admin et promoteur** |
+| Caisse, liste | Boutons de couleurs distinctes, grisés avec « En attente de synchronisation » si non synchronisée ; reste dû rouge ; lignes alternées ; facture annulée barrée ; bandeau des réductions en attente ; versement, solde, annulation, détail, téléchargement, réimpression ; en ligne et hors ligne |
+| Caisse, facture | Patient (recherche ou de passage), lignes de chaque type, avance, total net ; patient du personnel (ligne de réduction) ; réduction manuelle et son blocage avec avance ; saisie hors ligne puis ticket ; 20 lignes à 360 px, total toujours visible |
+| Ticket | Notification d'avertissement quand l'imprimante est coupée, puis « Réimprimer » |
+| Retraits | Création, annulation, filtres, `?nouveau=1` |
+
+**Résiduels**
+- Textes encore en dur dans plusieurs écrans partagés (messages d'erreur, « Facture n° » du libellé d'annulation de la caisse) : à passer en `t()` si l'anglais est exigé.
+- Les notifications d'impression disparaissent après 6 s : un ticket manquant peut passer inaperçu si la caissière regarde ailleurs (le bouton « Réimprimer » reste disponible) ; un délai plus long pour ce seul message est un petit réglage.
+- `ToastContainer` affiche encore le type `success` en style d'avertissement (comportement d'avant la refonte, non corrigé).
+- Le test d'utilisation avec la secrétaire (protocole prêt) n'est pas fait ; l'état réduit du menu n'est pas mémorisé.
+
+**Reste à migrer** (non commencé) : administrateur et promoteur, laboratoire, toxicologie, stock-control (lots, réceptions, avaries), finance admin ; puis la documentation d'utilisation par rôle, l'onglet Rapports et le chantier 8 (déploiement).

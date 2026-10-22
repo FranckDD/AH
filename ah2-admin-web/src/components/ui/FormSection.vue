@@ -7,6 +7,8 @@ const props = defineProps({
     subtitle: { type: String, default: '' },
     collapsible: { type: Boolean, default: false },
     defaultOpen: { type: Boolean, default: true },
+    // Version resserree (moins d'espace) pour les formulaires denses.
+    compact: { type: Boolean, default: false },
 });
 
 const open = ref(props.collapsible ? props.defaultOpen : true);
@@ -21,7 +23,7 @@ const bodyId = `form-section-${useId()}`;
             :type="collapsible ? 'button' : undefined"
             :aria-expanded="collapsible ? open : undefined"
             :aria-controls="collapsible ? bodyId : undefined"
-            :class="['flex w-full min-h-11 items-center justify-between gap-3 px-4 py-3 text-left md:px-5', collapsible ? 'cursor-pointer rounded-card focus-visible:outline-2 focus-visible:outline-brand-600' : '']"
+            :class="['flex w-full min-h-11 items-center justify-between gap-3 px-4 text-left md:px-5', collapsible ? 'cursor-pointer rounded-card focus-visible:outline-2 focus-visible:outline-brand-600' : '', compact ? 'py-2' : 'py-3']"
             @click="collapsible && (open = !open)"
         >
             <span class="min-w-0">
@@ -30,7 +32,7 @@ const bodyId = `form-section-${useId()}`;
             </span>
             <ChevronDownIcon v-if="collapsible" :class="['h-5 w-5 shrink-0 text-ink-muted transition-transform', open ? 'rotate-180' : '']" aria-hidden="true" />
         </component>
-        <div v-show="open" :id="bodyId" class="grid gap-4 border-t border-tone-neutral-border px-4 py-4 md:grid-cols-2 md:px-5">
+        <div v-show="open" :id="bodyId" :class="['grid border-t border-tone-neutral-border px-4 md:grid-cols-2 md:px-5', compact ? 'gap-3 py-3' : 'gap-4 py-4']">
             <slot />
         </div>
     </fieldset>

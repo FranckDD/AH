@@ -1,112 +1,85 @@
 <template>
-  <div class="space-y-6 w-full">
-    <div class="flex flex-col md:flex-row justify-between items-center bg-white p-6 rounded-2xl shadow-xs border border-gray-100 gap-4">
-      <div>
-        <h1 class="text-2xl font-extrabold text-gray-800 tracking-tight">{{ t('retrait.title') }}</h1>
-        <p class="text-sm text-gray-500">{{ retraitStore.pagination.total }} retraits</p>
-      </div>
-      <button @click="showCreateModal = true"
-              class="flex items-center px-6 py-2.5 bg-red-600 text-white rounded-xl hover:bg-red-700 shadow-md shadow-red-200 transition font-semibold">
-        <PlusCircleIcon class="h-5 w-5 mr-2" />
-        {{ t('retrait.new_retrait') }}
-      </button>
-    </div>
+  <div class="grid w-full gap-6">
+    <PageHeader :title="t('retrait.title')" :subtitle="t('retraitScreens.count', { n: retraitStore.pagination.total })">
+      <template #actions>
+        <AppButton variant="danger" :icon="PlusCircleIcon" @click="showCreateModal = true">{{ t('retrait.new_retrait') }}</AppButton>
+      </template>
+    </PageHeader>
 
-    <div class="bg-white p-4 rounded-2xl shadow-xs border border-gray-100 flex flex-wrap gap-4 items-end">
-      <div class="flex-1 min-w-[200px]">
-        <label class="text-xs font-bold text-gray-500 uppercase mb-1 block">Recherche</label>
-        <input v-model="searchQuery" type="text" :placeholder="t('retrait.search_placeholder')"
-               class="block w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 focus:ring-red-500 focus:border-red-500 sm:text-sm" />
+    <section :aria-label="t('retrait.table.status')" class="grid gap-4 rounded-card border border-tone-neutral-border bg-white p-4 shadow-card md:grid-cols-2 lg:flex lg:flex-wrap lg:items-end">
+      <div class="md:col-span-2 lg:min-w-64 lg:flex-1">
+        <FormField id="retrait-search" :label="t('caisseScreens.search_label')" v-slot="{ describedBy }">
+          <input id="retrait-search" v-model="searchQuery" type="search" :placeholder="t('retrait.search_placeholder')" :aria-describedby="describedBy" :class="fieldClass" />
+        </FormField>
       </div>
-      <div class="w-full md:w-40">
-        <label class="text-xs font-bold text-gray-500 uppercase mb-1 block">Du</label>
-        <input v-model="startDate" type="date" class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-red-500 focus:border-red-500 sm:text-sm" />
+      <div class="lg:w-44">
+        <FormField id="retrait-from" :label="t('caisseScreens.from')" v-slot="{ describedBy }">
+          <input id="retrait-from" v-model="startDate" type="date" :aria-describedby="describedBy" :class="fieldClass" />
+        </FormField>
       </div>
-      <div class="w-full md:w-40">
-        <label class="text-xs font-bold text-gray-500 uppercase mb-1 block">Au</label>
-        <input v-model="endDate" type="date" class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-red-500 focus:border-red-500 sm:text-sm" />
+      <div class="lg:w-44">
+        <FormField id="retrait-to" :label="t('caisseScreens.to')" v-slot="{ describedBy }">
+          <input id="retrait-to" v-model="endDate" type="date" :aria-describedby="describedBy" :class="fieldClass" />
+        </FormField>
       </div>
-      <div class="w-full md:w-40">
-        <label class="text-xs font-bold text-gray-500 uppercase mb-1 block">{{ t('retrait.table.status') }}</label>
-        <select v-model="statusFilter" class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-red-500 focus:border-red-500 sm:text-sm">
-          <option value="">{{ t('caisse.status.all') }}</option>
-          <option value="active">{{ t('caisse.status.active') }}</option>
-          <option value="cancelled">{{ t('caisse.status.cancelled') }}</option>
-        </select>
+      <div class="md:col-span-2 lg:w-52">
+        <FormField id="retrait-status" :label="t('retrait.table.status')" v-slot="{ describedBy }">
+          <select id="retrait-status" v-model="statusFilter" :aria-describedby="describedBy" :class="fieldClass">
+            <option value="">{{ t('caisse.status.all') }}</option>
+            <option value="active">{{ t('caisse.status.active') }}</option>
+            <option value="cancelled">{{ t('caisse.status.cancelled') }}</option>
+          </select>
+        </FormField>
       </div>
-    </div>
+    </section>
 
-    <div class="bg-white rounded-2xl shadow-xs border border-gray-100 overflow-hidden">
-      <div v-if="retraitStore.isLoading" class="p-10 text-center">
-        <span class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-red-600"></span>
-      </div>
-      <div v-else-if="retraitStore.loadError" class="p-10 text-center text-red-500">Erreur de chargement</div>
-      <div v-else class="overflow-x-auto">
-        <table class="min-w-full text-left border-collapse">
-          <thead>
-            <tr class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
-              <th class="px-6 py-4 font-semibold">{{ t('retrait.table.date') }}</th>
-              <th class="px-6 py-4 font-semibold">{{ t('retrait.table.justification') }}</th>
-              <th class="px-6 py-4 font-semibold">{{ t('retrait.table.category') }}</th>
-              <th class="px-6 py-4 font-semibold">{{ t('retrait.table.method') }}</th>
-              <th class="px-6 py-4 font-semibold text-right">{{ t('retrait.table.amount') }}</th>
-              <th class="px-6 py-4 font-semibold">{{ t('retrait.table.status') }}</th>
-              <th class="px-6 py-4 font-semibold text-right">{{ t('retrait.table.actions') }}</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-gray-100">
-            <tr v-for="r in retraitStore.retraits" :key="r.retrait_id || r.id" class="hover:bg-gray-50 transition">
-              <td class="px-6 py-4 text-sm text-gray-600 font-mono">{{ formatDate(r.retrait_at) }}</td>
-              <td class="px-6 py-4 text-sm text-gray-900">{{ r.justification }}</td>
-              <td class="px-6 py-4">
-                <span class="inline-flex items-center px-2.5 py-0.5 rounded-lg text-xs font-medium bg-gray-100 text-gray-800 border border-gray-200">
-                  {{ r.category }}
-                </span>
-              </td>
-              <td class="px-6 py-4 text-sm text-gray-600">{{ r.payment_method }}</td>
-              <td class="px-6 py-4 text-right font-bold text-sm text-red-600">- {{ formatCurrency(r.amount) }}</td>
-              <td class="px-6 py-4">
-                <span v-if="r.status === 'active'" class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-green-100 text-green-800">
-                  {{ t('caisse.status.active') }}
-                </span>
-                <span v-else class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-gray-200 text-gray-600">
-                  {{ t('caisse.status.cancelled') }}
-                </span>
-              </td>
-              <td class="px-6 py-4 text-right">
-                <button v-if="r.status === 'active'" @click="openCancelModal(r)"
-                        :disabled="!r.retrait_id"
-                        class="p-2 bg-white border border-gray-200 rounded-lg text-red-500 hover:bg-red-50 hover:border-red-200 transition shadow-xs disabled:opacity-40 disabled:cursor-not-allowed"
-                        :title="r.retrait_id ? t('caisse.actions.cancel') : 'En attente de synchronisation'">
-                  <XCircleIcon class="h-4 w-4" />
-                </button>
-              </td>
-            </tr>
-            <tr v-if="retraitStore.retraits.length === 0">
-              <td colspan="7" class="px-6 py-8 text-center text-gray-500 italic">Aucun retrait trouvé.</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+    <section class="grid gap-3">
+      <p v-if="retraitStore.loadError" role="alert" class="rounded-card border p-4 text-center text-base font-medium" :class="toneClasses('danger')">
+        {{ t('caisseScreens.load_error') }}
+      </p>
+      <ResponsiveTable
+        v-else
+        :columns="columns"
+        :rows="retraitStore.retraits"
+        row-key="retrait_id"
+        :loading="retraitStore.isLoading"
+        :empty-title="t('retraitScreens.empty')"
+        :empty-message="' '"
+        striped
+      >
+        <template #cell-date="{ row: r }"><span class="font-mono">{{ formatDate(r.retrait_at) }}</span></template>
+        <template #cell-justification="{ row: r }">{{ r.justification }}</template>
+        <template #cell-category="{ row: r }">{{ r.category }}</template>
+        <template #cell-method="{ row: r }">{{ r.payment_method }}</template>
+        <template #cell-amount="{ row: r }">
+          <span class="font-bold" :class="r.status === 'active' ? 'text-tone-danger-text' : 'text-ink-muted line-through'">- {{ formatCurrency(r.amount) }}</span>
+        </template>
+        <template #cell-status="{ row: r }">
+          <StatusBadge v-if="r.status === 'active'" tone="success" :label="t('caisse.status.active')" />
+          <StatusBadge v-else tone="neutral" :label="t('caisse.status.cancelled')" />
+        </template>
+        <template #actions="{ row: r }">
+          <AppButton v-if="r.status === 'active'" variant="danger" :icon="XCircleIcon" @click="openCancelModal(r)" :disabled="!r.retrait_id"
+                     :title="r.retrait_id ? t('caisse.actions.cancel') : t('caisseScreens.pending_sync')">
+            <span class="lg:sr-only">{{ t('caisse.actions.cancel') }}</span>
+          </AppButton>
+        </template>
+      </ResponsiveTable>
 
-      <div v-if="retraitStore.pagination.total_pages > 1" class="p-4 flex justify-between items-center border-t border-gray-100 bg-gray-50">
-        <p class="text-sm text-gray-700">Page {{ retraitStore.pagination.page }} sur {{ retraitStore.pagination.total_pages }}</p>
-        <div class="flex space-x-2">
-          <button @click="goToPage(retraitStore.pagination.page - 1)" :disabled="retraitStore.pagination.page === 1" class="px-3 py-1 border rounded-sm bg-white disabled:opacity-50">
-            <ChevronLeftIcon class="h-5 w-5" />
-          </button>
-          <button @click="goToPage(retraitStore.pagination.page + 1)" :disabled="retraitStore.pagination.page === retraitStore.pagination.total_pages" class="px-3 py-1 border rounded-sm bg-white disabled:opacity-50">
-            <ChevronRightIcon class="h-5 w-5" />
-          </button>
+      <div v-if="retraitStore.pagination.total_pages > 1" class="flex items-center justify-between gap-3 rounded-card border border-tone-neutral-border bg-white p-3">
+        <p class="text-base text-ink">{{ t('caisseScreens.page_label', { n: retraitStore.pagination.page, total: retraitStore.pagination.total_pages }) }}</p>
+        <div class="flex gap-2">
+          <AppButton variant="secondary" :icon="ChevronLeftIcon" :aria-label="t('caisseScreens.prev_page')" @click="goToPage(retraitStore.pagination.page - 1)" :disabled="retraitStore.pagination.page === 1" />
+          <AppButton variant="secondary" :icon="ChevronRightIcon" :aria-label="t('caisseScreens.next_page')" @click="goToPage(retraitStore.pagination.page + 1)" :disabled="retraitStore.pagination.page === retraitStore.pagination.total_pages" />
         </div>
       </div>
-    </div>
+    </section>
 
     <RetraitModal v-if="showCreateModal" :isSaving="isSavingCreate" :errorMessage="createError"
                   @close="showCreateModal = false" @save="handleCreate" />
 
     <CaisseCancelModal v-if="cancellingRetrait" :isSaving="isCancelling" :errorMessage="cancelError"
-                        :label="`Retrait de ${formatCurrency(cancellingRetrait.amount)} du ${formatDate(cancellingRetrait.retrait_at)}`"
+                        :label="t('retraitScreens.cancel_label', { amount: formatCurrency(cancellingRetrait.amount), date: formatDate(cancellingRetrait.retrait_at) })"
                         @close="cancellingRetrait = null" @confirm="handleCancel" />
   </div>
 </template>
@@ -114,17 +87,38 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useRoute } from 'vue-router';
 import { useRetraitStore } from '@/stores/retraitStore';
 import RetraitModal from '@/components/caisse/RetraitModal.vue';
 import CaisseCancelModal from '@/components/caisse/CaisseCancelModal.vue';
 import {
   PlusCircleIcon, ChevronLeftIcon, ChevronRightIcon, XCircleIcon,
 } from '@heroicons/vue/24/outline';
+import { AppButton, PageHeader, FormField, StatusBadge, ResponsiveTable } from '@/components/ui';
+import { toneClasses } from '@/design/tones';
 
 const { t } = useI18n();
 const retraitStore = useRetraitStore();
+const route = useRoute();
+
+// Colonnes du tableau (cartes empilees sous lg) et style commun des champs.
+const columns = computed(() => [
+  { key: 'date', label: t('retrait.table.date') },
+  { key: 'justification', label: t('retrait.table.justification') },
+  { key: 'category', label: t('retrait.table.category') },
+  { key: 'method', label: t('retrait.table.method') },
+  { key: 'amount', label: t('retrait.table.amount'), align: 'right' },
+  { key: 'status', label: t('retrait.table.status') },
+]);
+const fieldClass = 'block w-full min-h-11 lg:min-h-10 rounded-control border border-tone-neutral-border bg-white px-3 text-base text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand-600';
 
 onMounted(() => {
+  // Action rapide de l'accueil du secretariat (?nouveau=1) : ouvre directement le formulaire. Le parametre est
+  // retire de l'adresse SANS navigation (router.replace remonterait la page et fermerait le formulaire).
+  if (route.query.nouveau === '1') {
+    showCreateModal.value = true;
+    window.history.replaceState(window.history.state, '', route.path);
+  }
   retraitStore.fetchRetraits();
 });
 

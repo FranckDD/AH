@@ -1,198 +1,130 @@
 <template>
-  <div class="space-y-6 w-full">
-    <div class="flex flex-col md:flex-row justify-between items-center bg-white p-6 rounded-2xl shadow-xs border border-gray-100 gap-4">
-      <div>
-        <h1 class="text-2xl font-extrabold text-gray-800 tracking-tight">{{ t('caisse.title') }}</h1>
-        <p class="text-sm text-gray-500">{{ caisseStore.pagination.total }} transactions</p>
-      </div>
-      <button @click="showInvoiceModal = true"
-              class="flex items-center px-6 py-2.5 bg-green-600 text-white rounded-xl hover:bg-green-700 shadow-md shadow-green-200 transition font-semibold">
-        <PlusCircleIcon class="h-5 w-5 mr-2" />
-        {{ t('caisse.new_invoice') }}
-      </button>
+  <div class="grid w-full gap-6">
+    <PageHeader :title="t('caisse.title')" :subtitle="t('caisseScreens.transactions_count', { n: caisseStore.pagination.total })">
+      <template #actions>
+        <AppButton :icon="PlusCircleIcon" @click="showInvoiceModal = true">{{ t('caisse.new_invoice') }}</AppButton>
+      </template>
+    </PageHeader>
+
+    <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+      <StatTile :title="t('finance.income')" :value="kpiAffiche(formatCurrency(caisseStore.kpi.total_paid))" :icon="ArrowTrendingUpIcon" tone="success" />
+      <StatTile :title="t('caisse.table.due')" :value="kpiAffiche(formatCurrency(caisseStore.kpi.remaining_due))" :icon="ClockIcon" tone="danger" alert />
+      <StatTile :title="t('caisseScreens.kpi_transactions')" :value="kpiAffiche(caisseStore.kpi.total_transactions)" :icon="BanknotesIcon" />
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-      <div class="bg-white p-6 rounded-2xl shadow-xs border border-gray-100 flex items-center">
-        <div class="p-3 bg-green-50 rounded-full mr-4"><ArrowTrendingUpIcon class="h-8 w-8 text-green-600" /></div>
-        <div>
-          <p class="text-sm text-gray-500 font-medium uppercase">{{ t('finance.income') }}</p>
-          <p class="text-2xl font-bold text-gray-900">{{ kpiAffiche(formatCurrency(caisseStore.kpi.total_paid)) }}</p>
+    <button v-if="pendingApprovalCount > 0 && statusFilter !== 'pending_approval'" type="button"
+            class="flex w-full min-h-11 flex-col items-start gap-1 rounded-card border p-4 text-left text-base transition hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600 sm:flex-row sm:items-center sm:justify-between"
+            :class="toneClasses('warning')"
+            @click="statusFilter = 'pending_approval'">
+      <span class="font-medium">{{ t('caisse.pending_banner', { count: pendingApprovalCount }) }}</span>
+      <span class="font-semibold underline">{{ t('caisse.status.pending_approval') }}</span>
+    </button>
+
+    <section :aria-label="t('caisse.table.status')" class="grid gap-4 rounded-card border border-tone-neutral-border bg-white p-4 shadow-card md:grid-cols-2 lg:flex lg:flex-wrap lg:items-end">
+      <div class="md:col-span-2 lg:min-w-64 lg:flex-1">
+        <FormField id="caisse-search" :label="t('caisseScreens.search_label')" v-slot="{ describedBy }">
+          <input id="caisse-search" v-model="searchQuery" type="search" :placeholder="t('caisse.search_placeholder')" :aria-describedby="describedBy" :class="fieldClass" />
+        </FormField>
+      </div>
+      <div class="lg:w-44">
+        <FormField id="caisse-from" :label="t('caisseScreens.from')" v-slot="{ describedBy }">
+          <input id="caisse-from" v-model="startDate" type="date" :aria-describedby="describedBy" :class="fieldClass" />
+        </FormField>
+      </div>
+      <div class="lg:w-44">
+        <FormField id="caisse-to" :label="t('caisseScreens.to')" v-slot="{ describedBy }">
+          <input id="caisse-to" v-model="endDate" type="date" :aria-describedby="describedBy" :class="fieldClass" />
+        </FormField>
+      </div>
+      <div class="md:col-span-2 lg:w-52">
+        <FormField id="caisse-status" :label="t('caisse.table.status')" v-slot="{ describedBy }">
+          <select id="caisse-status" v-model="statusFilter" :aria-describedby="describedBy" :class="fieldClass">
+            <option value="active">{{ t('caisse.status.active') }}</option>
+            <option value="pending_approval">{{ t('caisse.status.pending_approval') }}</option>
+            <option value="cancelled">{{ t('caisse.status.cancelled') }}</option>
+            <option value="refunded">{{ t('caisse.status.refunded') }}</option>
+            <option value="">{{ t('caisse.status.all') }}</option>
+          </select>
+        </FormField>
+      </div>
+    </section>
+
+    <section class="grid gap-3">
+      <p v-if="caisseStore.loadError" role="alert" class="rounded-card border p-4 text-center text-base font-medium" :class="toneClasses('danger')">
+        {{ t('caisseScreens.load_error') }}
+      </p>
+      <ResponsiveTable
+        v-else
+        :columns="columns"
+        :rows="caisseStore.transactions"
+        row-key="transaction_id"
+        :loading="caisseStore.isLoading"
+        striped
+        :empty-title="t('caisseScreens.empty')"
+        :empty-message="' '"
+      >
+        <template #cell-date="{ row: tx }"><span class="font-mono">{{ formatDate(tx.paid_at) }}</span></template>
+        <template #cell-patient="{ row: tx }">{{ tx.patient_name || '-' }}</template>
+        <template #cell-type="{ row: tx }">{{ tx.transaction_type }}</template>
+        <template #cell-amount="{ row: tx }">
+          <span class="font-bold" :class="tx.status === 'cancelled' ? 'text-ink-muted line-through' : ''">{{ formatCurrency(tx.amount) }}</span>
+          <div v-if="Number(tx.staff_discount_amount) > 0" class="text-sm font-semibold text-tone-success-text">
+            {{ t('staffDiscount.invoice_line') }} -{{ formatCurrency(tx.staff_discount_amount) }}
+          </div>
+        </template>
+        <template #cell-paid="{ row: tx }"><span :class="tx.status === 'cancelled' ? 'text-ink-muted line-through' : 'text-tone-success-text'">{{ formatCurrency(tx.amount_paid) }}</span></template>
+        <template #cell-due="{ row: tx }">
+          <span :class="tx.status === 'cancelled' ? 'text-ink-muted line-through' : Number(tx.amount_due) > 0 ? 'font-semibold text-tone-danger-text' : 'text-ink-muted'">
+            {{ formatCurrency(tx.amount_due) }}
+          </span>
+        </template>
+        <template #cell-status="{ row: tx }">
+          <div class="flex flex-wrap items-center gap-1.5">
+            <StatusBadge v-if="tx.status === 'active'" tone="success" :label="t('caisse.status.active')" />
+            <StatusBadge v-else-if="tx.status === 'pending_approval'" tone="warning" :label="t('caisse.status.pending_approval')" />
+            <StatusBadge v-else-if="tx.status === 'refunded'" tone="info" :label="t('caisse.status.refunded')" />
+            <StatusBadge v-else tone="neutral" :label="t('caisse.status.cancelled')" />
+            <StatusBadge v-if="tx.upload_error" tone="danger" :label="t('caisseScreens.sync_failed')" :title="tx.upload_error" />
+          </div>
+        </template>
+        <template #actions="{ row: tx }">
+          <AppButton variant="lab" :icon="EyeIcon" @click="openViewModal(tx)" :disabled="!tx.transaction_id"
+                     :title="tx.transaction_id ? t('caisse.actions.view') : t('caisseScreens.pending_sync')">
+            <span class="lg:sr-only">{{ t('caisse.actions.view') }}</span>
+          </AppButton>
+          <AppButton v-if="tx.status === 'active' && Number(tx.amount_due) > 0" variant="record" :icon="CurrencyDollarIcon" @click="openInstallmentModal(tx)" :disabled="!tx.transaction_id"
+                     :title="tx.transaction_id ? t('caisse.actions.add_payment') : t('caisseScreens.pending_sync')">
+            <span class="lg:sr-only">{{ t('caisse.actions.add_payment') }}</span>
+          </AppButton>
+          <AppButton v-if="tx.status === 'active' && Number(tx.amount_due) > 0" variant="spirit" :icon="CheckBadgeIcon" @click="handleSettle(tx)" :disabled="!tx.transaction_id"
+                     :title="tx.transaction_id ? t('caisse.actions.settle') : t('caisseScreens.pending_sync')">
+            <span class="lg:sr-only">{{ t('caisseScreens.action_settle') }}</span>
+          </AppButton>
+          <AppButton variant="pharma" :icon="ArrowDownTrayIcon" @click="downloadInvoice(tx)" :disabled="!tx.transaction_id"
+                     :title="tx.transaction_id ? t('caisse.actions.download') : t('caisseScreens.pending_sync')">
+            <span class="lg:sr-only">{{ t('caisseScreens.action_download') }}</span>
+          </AppButton>
+          <AppButton v-if="tx.status === 'active'" variant="toxico" :icon="PrinterIcon" @click="printTicketForTransaction(tx.transaction_id)" :disabled="!tx.transaction_id"
+                     :title="tx.transaction_id ? t('caisse.actions.reprint_ticket') : t('caisseScreens.pending_sync')">
+            <span class="lg:sr-only">{{ t('caisse.actions.reprint_ticket') }}</span>
+          </AppButton>
+          <AppButton v-if="tx.status === 'active'" variant="danger" :icon="XCircleIcon" @click="openCancelModal(tx)" :disabled="!tx.transaction_id"
+                     :title="tx.transaction_id ? t('caisse.actions.cancel') : t('caisseScreens.pending_sync')">
+            <span class="lg:sr-only">{{ t('caisse.actions.cancel') }}</span>
+          </AppButton>
+        </template>
+      </ResponsiveTable>
+
+      <div v-if="caisseStore.pagination.total_pages > 1" class="flex items-center justify-between gap-3 rounded-card border border-tone-neutral-border bg-white p-3">
+        <p class="text-base text-ink">{{ t('caisseScreens.page_label', { n: caisseStore.pagination.page, total: caisseStore.pagination.total_pages }) }}</p>
+        <div class="flex gap-2">
+          <AppButton variant="secondary" :icon="ChevronLeftIcon" :aria-label="t('caisseScreens.prev_page')" @click="goToPage(caisseStore.pagination.page - 1)" :disabled="caisseStore.pagination.page === 1" />
+          <AppButton variant="secondary" :icon="ChevronRightIcon" :aria-label="t('caisseScreens.next_page')" @click="goToPage(caisseStore.pagination.page + 1)" :disabled="caisseStore.pagination.page === caisseStore.pagination.total_pages" />
         </div>
       </div>
-      <div class="bg-white p-6 rounded-2xl shadow-xs border border-gray-100 flex items-center">
-        <div class="p-3 bg-amber-50 rounded-full mr-4"><ClockIcon class="h-8 w-8 text-amber-600" /></div>
-        <div>
-          <p class="text-sm text-gray-500 font-medium uppercase">{{ t('caisse.table.due') }}</p>
-          <p class="text-2xl font-bold text-gray-900">{{ kpiAffiche(formatCurrency(caisseStore.kpi.remaining_due)) }}</p>
-        </div>
-      </div>
-      <div class="bg-linear-to-r from-gray-800 to-gray-900 p-6 rounded-2xl shadow-lg text-white flex items-center justify-between">
-        <div>
-          <p class="text-sm text-gray-400 font-medium uppercase">Transactions</p>
-          <p class="text-3xl font-bold text-white">{{ kpiAffiche(caisseStore.kpi.total_transactions) }}</p>
-        </div>
-        <BanknotesIcon class="h-10 w-10 text-gray-500 opacity-50" />
-      </div>
-    </div>
+    </section>
 
-    <div v-if="pendingApprovalCount > 0 && statusFilter !== 'pending_approval'"
-         class="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-xl flex items-center justify-between cursor-pointer hover:bg-amber-100 transition"
-         @click="statusFilter = 'pending_approval'">
-      <p class="text-sm text-amber-800 font-medium">{{ t('caisse.pending_banner', { count: pendingApprovalCount }) }}</p>
-      <span class="text-xs text-amber-600 underline">{{ t('caisse.status.pending_approval') }}</span>
-    </div>
-
-    <div class="bg-white p-4 rounded-2xl shadow-xs border border-gray-100 flex flex-wrap gap-4 items-end">
-      <div class="flex-1 min-w-[200px]">
-        <label class="text-xs font-bold text-gray-500 uppercase mb-1 block">Recherche</label>
-        <input v-model="searchQuery" type="text" :placeholder="t('caisse.search_placeholder')"
-               class="block w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 focus:ring-green-500 focus:border-green-500 sm:text-sm" />
-      </div>
-      <div class="w-full md:w-40">
-        <label class="text-xs font-bold text-gray-500 uppercase mb-1 block">Du</label>
-        <input v-model="startDate" type="date" class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500 sm:text-sm" />
-      </div>
-      <div class="w-full md:w-40">
-        <label class="text-xs font-bold text-gray-500 uppercase mb-1 block">Au</label>
-        <input v-model="endDate" type="date" class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500 sm:text-sm" />
-      </div>
-      <div class="w-full md:w-40">
-        <label class="text-xs font-bold text-gray-500 uppercase mb-1 block">{{ t('caisse.table.status') }}</label>
-        <select v-model="statusFilter" class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500 sm:text-sm">
-          <option value="active">{{ t('caisse.status.active') }}</option>
-          <option value="pending_approval">{{ t('caisse.status.pending_approval') }}</option>
-          <option value="cancelled">{{ t('caisse.status.cancelled') }}</option>
-          <option value="refunded">{{ t('caisse.status.refunded') }}</option>
-          <option value="">{{ t('caisse.status.all') }}</option>
-        </select>
-      </div>
-    </div>
-
-    <div class="bg-white rounded-2xl shadow-xs border border-gray-100 overflow-hidden">
-      <div v-if="caisseStore.isLoading" class="p-10 text-center">
-        <span class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></span>
-      </div>
-      <div v-else-if="caisseStore.loadError" class="p-10 text-center text-red-500">Erreur de chargement</div>
-      <div v-else class="overflow-x-auto">
-        <table class="min-w-full text-left border-collapse">
-          <thead>
-            <tr class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
-              <th class="px-6 py-4 font-semibold">{{ t('caisse.table.date') }}</th>
-              <th class="px-6 py-4 font-semibold">{{ t('caisse.table.patient') }}</th>
-              <th class="px-6 py-4 font-semibold">{{ t('caisse.table.type') }}</th>
-              <th class="px-6 py-4 font-semibold text-right">{{ t('caisse.table.total') }}</th>
-              <th class="px-6 py-4 font-semibold text-right">{{ t('caisse.table.paid') }}</th>
-              <th class="px-6 py-4 font-semibold text-right">{{ t('caisse.table.due') }}</th>
-              <th class="px-6 py-4 font-semibold">{{ t('caisse.table.status') }}</th>
-              <th class="px-6 py-4 font-semibold text-right">{{ t('caisse.table.actions') }}</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-gray-100">
-            <tr v-for="tx in caisseStore.transactions" :key="tx.transaction_id || tx.id" class="hover:bg-gray-50 transition">
-              <td class="px-6 py-4 text-sm text-gray-600 font-mono">{{ formatDate(tx.paid_at) }}</td>
-              <td class="px-6 py-4 text-sm text-gray-900">{{ tx.patient_name || '—' }}</td>
-              <td class="px-6 py-4">
-                <span class="inline-flex items-center px-2.5 py-0.5 rounded-lg text-xs font-medium bg-gray-100 text-gray-800 border border-gray-200">
-                  {{ tx.transaction_type }}
-                </span>
-              </td>
-              <td class="px-6 py-4 text-right font-bold text-sm">
-                {{ formatCurrency(tx.amount) }}
-                <div v-if="Number(tx.staff_discount_amount) > 0" class="text-xs font-semibold text-emerald-700">
-                  {{ t('staffDiscount.invoice_line') }} −{{ formatCurrency(tx.staff_discount_amount) }}
-                </div>
-              </td>
-              <td class="px-6 py-4 text-right text-sm text-green-700">{{ formatCurrency(tx.amount_paid) }}</td>
-              <td class="px-6 py-4 text-right text-sm" :class="Number(tx.amount_due) > 0 ? 'text-red-600 font-semibold' : 'text-gray-400'">
-                {{ formatCurrency(tx.amount_due) }}
-              </td>
-              <td class="px-6 py-4">
-                <span v-if="tx.status === 'active'" class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-green-100 text-green-800">
-                  {{ t('caisse.status.active') }}
-                </span>
-                <span v-else-if="tx.status === 'pending_approval'" class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-amber-100 text-amber-800">
-                  {{ t('caisse.status.pending_approval') }}
-                </span>
-                <span v-else-if="tx.status === 'refunded'" class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-blue-100 text-blue-800">
-                  {{ t('caisse.status.refunded') }}
-                </span>
-                <span v-else class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-gray-200 text-gray-600">
-                  {{ t('caisse.status.cancelled') }}
-                </span>
-                <span v-if="tx.upload_error" :title="tx.upload_error"
-                      class="ml-1 inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-red-100 text-red-800">
-                  Échec de synchronisation
-                </span>
-              </td>
-              <td class="px-6 py-4">
-                <div class="flex items-center justify-end gap-1.5">
-                  <button @click="openViewModal(tx)"
-                          :disabled="!tx.transaction_id"
-                          class="p-2 bg-white border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-100 transition shadow-xs disabled:opacity-40 disabled:cursor-not-allowed"
-                          :title="tx.transaction_id ? t('caisse.actions.view') : 'En attente de synchronisation'">
-                    <EyeIcon class="h-4 w-4" />
-                  </button>
-                  <button v-if="tx.status === 'active' && Number(tx.amount_due) > 0" @click="openInstallmentModal(tx)"
-                          :disabled="!tx.transaction_id"
-                          class="p-2 bg-white border border-gray-200 rounded-lg text-green-600 hover:bg-green-50 hover:border-green-200 transition shadow-xs disabled:opacity-40 disabled:cursor-not-allowed"
-                          :title="tx.transaction_id ? t('caisse.actions.add_payment') : 'En attente de synchronisation'">
-                    <CurrencyDollarIcon class="h-4 w-4" />
-                  </button>
-                  <button v-if="tx.status === 'active' && Number(tx.amount_due) > 0" @click="handleSettle(tx)"
-                          :disabled="!tx.transaction_id"
-                          class="p-2 bg-white border border-gray-200 rounded-lg text-indigo-600 hover:bg-indigo-50 hover:border-indigo-200 transition shadow-xs disabled:opacity-40 disabled:cursor-not-allowed"
-                          :title="tx.transaction_id ? t('caisse.actions.settle') : 'En attente de synchronisation'">
-                    <CheckBadgeIcon class="h-4 w-4" />
-                  </button>
-                  <button v-if="tx.status === 'active'" @click="openCancelModal(tx)"
-                          :disabled="!tx.transaction_id"
-                          class="p-2 bg-white border border-gray-200 rounded-lg text-red-500 hover:bg-red-50 hover:border-red-200 transition shadow-xs disabled:opacity-40 disabled:cursor-not-allowed"
-                          :title="tx.transaction_id ? t('caisse.actions.cancel') : 'En attente de synchronisation'">
-                    <XCircleIcon class="h-4 w-4" />
-                  </button>
-                  <button @click="downloadInvoice(tx)"
-                          :disabled="!tx.transaction_id"
-                          class="p-2 bg-white border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-100 transition shadow-xs disabled:opacity-40 disabled:cursor-not-allowed"
-                          :title="tx.transaction_id ? t('caisse.actions.download') : 'En attente de synchronisation'">
-                    <ArrowDownTrayIcon class="h-4 w-4" />
-                  </button>
-                  <button v-if="tx.status === 'active'" @click="printTicketForTransaction(tx.transaction_id)"
-                          :disabled="!tx.transaction_id"
-                          class="p-2 bg-white border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-100 transition shadow-xs disabled:opacity-40 disabled:cursor-not-allowed"
-                          :title="tx.transaction_id ? t('caisse.actions.reprint_ticket') : 'En attente de synchronisation'">
-                    <PrinterIcon class="h-4 w-4" />
-                  </button>
-                </div>
-              </td>
-            </tr>
-            <tr v-if="caisseStore.transactions.length === 0">
-              <td colspan="8" class="px-6 py-8 text-center text-gray-500 italic">Aucune transaction trouvée.</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <div v-if="caisseStore.pagination.total_pages > 1" class="p-4 flex justify-between items-center border-t border-gray-100 bg-gray-50">
-        <p class="text-sm text-gray-700">Page {{ caisseStore.pagination.page }} sur {{ caisseStore.pagination.total_pages }}</p>
-        <div class="flex space-x-2">
-          <button @click="goToPage(caisseStore.pagination.page - 1)" :disabled="caisseStore.pagination.page === 1" class="px-3 py-1 border rounded-sm bg-white disabled:opacity-50">
-            <ChevronLeftIcon class="h-5 w-5" />
-          </button>
-          <button @click="goToPage(caisseStore.pagination.page + 1)" :disabled="caisseStore.pagination.page === caisseStore.pagination.total_pages" class="px-3 py-1 border rounded-sm bg-white disabled:opacity-50">
-            <ChevronRightIcon class="h-5 w-5" />
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <div v-if="actionError" class="bg-red-50 border-l-4 border-red-500 p-4 rounded-xl">
-      <p class="text-sm text-red-700">{{ actionError }}</p>
-    </div>
-
-    <div v-if="printError" class="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-xl">
-      <p class="text-sm text-amber-700">{{ printError }}</p>
-    </div>
+    <p v-if="actionError" role="alert" class="rounded-card border p-4 text-base" :class="toneClasses('danger')">{{ actionError }}</p>
 
     <CaisseInvoiceModal v-if="showInvoiceModal" :isSaving="isSavingInvoice" :errorMessage="invoiceError"
                          @close="showInvoiceModal = false" @save="handleCreateInvoice"
@@ -203,55 +135,34 @@
                              @close="installmentTx = null" @confirm="handleAddPayment" />
 
     <CaisseCancelModal v-if="cancellingTx" :isSaving="isCancelling" :errorMessage="cancelError"
-                        :label="`Facture ${cancellingTx.transaction_id} — ${formatCurrency(cancellingTx.amount)}`"
+                        :label="`Facture ${cancellingTx.transaction_id} : ${formatCurrency(cancellingTx.amount)}`"
                         @close="cancellingTx = null" @confirm="handleCancel" />
 
-    <div v-if="viewingTx" class="fixed inset-0 bg-gray-900/60 overflow-y-auto h-full w-full z-50 flex items-center justify-center backdrop-blur-xs">
-      <div class="relative mx-auto w-full max-w-2xl bg-white shadow-xl rounded-2xl border border-gray-200 flex flex-col max-h-[90vh]">
-        <div class="px-6 py-4 border-b border-gray-100 bg-gray-700 rounded-t-2xl flex justify-between items-center shrink-0">
-          <h3 class="text-lg font-bold text-white">{{ t('caisse.actions.view') }} — {{ viewingTx.patient_name || viewingTx.transaction_id }}</h3>
-          <button @click="viewingTx = null" class="text-gray-200 hover:text-white transition">
-            <span class="text-2xl font-bold">&times;</span>
-          </button>
-        </div>
-        <div class="p-6 overflow-y-auto space-y-4">
-          <div v-if="viewLoading" class="text-center py-6">
-            <span class="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-gray-600"></span>
-          </div>
-          <div v-else-if="viewError" class="bg-red-50 border-l-4 border-red-500 p-3 rounded-sm text-sm text-red-700">{{ viewError }}</div>
-          <div v-else>
-            <h4 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">{{ t('caisse.invoice_modal.section_items') }}</h4>
-            <table class="min-w-full text-left border-collapse text-sm">
-              <thead>
-                <tr class="bg-gray-50 text-gray-500 text-xs uppercase">
-                  <th class="px-3 py-2">{{ t('caisse.table.type') }}</th>
-                  <th class="px-3 py-2 text-right">{{ t('caisse.invoice_modal.quantity') }}</th>
-                  <th class="px-3 py-2 text-right">{{ t('caisse.invoice_modal.unit_price') }}</th>
-                  <th class="px-3 py-2 text-right">{{ t('caisse.invoice_modal.line_total') }}</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-gray-100">
-                <tr v-for="item in viewingItems" :key="item.item_id">
-                  <td class="px-3 py-2">{{ item.note || item.item_type }}</td>
-                  <td class="px-3 py-2 text-right">{{ item.quantity }}</td>
-                  <td class="px-3 py-2 text-right">{{ formatCurrency(item.unit_price) }}</td>
-                  <td class="px-3 py-2 text-right font-semibold">{{ formatCurrency(item.line_total) }}</td>
-                </tr>
-                <tr v-if="viewingItems.length === 0">
-                  <td colspan="4" class="px-3 py-4 text-center text-gray-400 italic">{{ t('caisse.invoice_modal.no_lines') }}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
+    <!-- Detail de la facture : lecture seule -->
+    <FullScreenPanel v-if="viewingTx" :title="`${t('caisseScreens.view_title')} : ${viewingTx.patient_name || viewingTx.transaction_id}`" @close="viewingTx = null">
+      <p v-if="viewLoading" role="status" class="py-6 text-center text-base text-ink-muted">{{ t('ui.loading') }}</p>
+      <p v-else-if="viewError" role="alert" class="rounded-control border p-3 text-base" :class="toneClasses('danger')">{{ viewError }}</p>
+      <div v-else class="grid gap-3">
+        <h3 class="text-lg font-semibold text-ink">{{ t('caisse.invoice_modal.section_items') }}</h3>
+        <ResponsiveTable :columns="itemColumns" :rows="viewingItems" row-key="item_id" :empty-title="t('caisse.invoice_modal.no_lines')" :empty-message="' '">
+          <template #cell-label="{ row: item }">{{ item.note || item.item_type }}</template>
+          <template #cell-unit_price="{ row: item }">{{ formatCurrency(item.unit_price) }}</template>
+          <template #cell-line_total="{ row: item }"><span class="font-semibold">{{ formatCurrency(item.line_total) }}</span></template>
+        </ResponsiveTable>
       </div>
-    </div>
+      <template #footer>
+        <ActionBar>
+          <AppButton variant="secondary" @click="viewingTx = null">{{ t('ui.close') }}</AppButton>
+        </ActionBar>
+      </template>
+    </FullScreenPanel>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useRoute } from 'vue-router';
 import { useCaisseStore } from '@/stores/caisseStore';
 import api from '@/services/api';
 import CaisseInvoiceModal from '@/components/caisse/CaisseInvoiceModal.vue';
@@ -266,11 +177,33 @@ import { CaisseGateway } from '@/services/CaisseGateway';
 import { PrinterBridgeGateway } from '@/services/PrinterBridgeGateway';
 import { useAuthStore } from '@/stores/auth';
 import { useConfigStore } from '@/stores/configStore';
+import { useToastStore } from '@/stores/toastStore';
+import { AppButton, PageHeader, FormField, StatTile, StatusBadge, ResponsiveTable, ActionBar, FullScreenPanel } from '@/components/ui';
+import { toneClasses } from '@/design/tones';
 
 const { t } = useI18n();
 const caisseStore = useCaisseStore();
 const authStore = useAuthStore();
 const configStore = useConfigStore();
+const route = useRoute();
+
+// Colonnes du tableau (cartes empilees sous lg) et style commun des champs.
+const columns = computed(() => [
+  { key: 'date', label: t('caisse.table.date') },
+  { key: 'patient', label: t('caisse.table.patient') },
+  { key: 'type', label: t('caisse.table.type') },
+  { key: 'amount', label: t('caisse.table.total'), align: 'right' },
+  { key: 'paid', label: t('caisse.table.paid'), align: 'right' },
+  { key: 'due', label: t('caisse.table.due'), align: 'right' },
+  { key: 'status', label: t('caisse.table.status') },
+]);
+const itemColumns = computed(() => [
+  { key: 'label', label: t('caisse.table.type') },
+  { key: 'quantity', label: t('caisse.invoice_modal.quantity'), align: 'right' },
+  { key: 'unit_price', label: t('caisse.invoice_modal.unit_price'), align: 'right' },
+  { key: 'line_total', label: t('caisse.invoice_modal.line_total'), align: 'right' },
+]);
+const fieldClass = 'block w-full min-h-11 rounded-control border border-tone-neutral-border bg-white px-3 text-base text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand-600';
 
 // Compteur independant du filtre courant - residu documente au chantier
 // notifications ("factures en attente invisibles/mal etiquetees dans le
@@ -306,6 +239,12 @@ const AUTO_REFRESH_MS = 30000;
 let autoRefreshTimer = null;
 
 onMounted(() => {
+  // Action rapide de l'accueil du secretariat (?nouveau=1) : ouvre directement la facture. Le parametre est
+  // retire de l'adresse SANS navigation (router.replace remonterait la page et fermerait la facture).
+  if (route.query.nouveau === '1') {
+    showInvoiceModal.value = true;
+    window.history.replaceState(window.history.state, '', route.path);
+  }
   caisseStore.fetchTransactions();
   fetchPendingApprovalCount();
   autoRefreshTimer = setInterval(() => {
@@ -363,7 +302,7 @@ const mapErrorToMessage = (err) => {
 // ete demandee ou non (voir Tache 12) - jamais conditionnee par autre
 // chose, pour ne pas rouvrir la faille anti-fraude (facture encaissee
 // sans ticket physique puis annulee discretement).
-const printError = ref('');
+const toastStore = useToastStore();
 
 // PrinterBridgeGateway.printTicket() leve un message explicite
 // "Jeton d'impression non configuré." quand configStore.ticketPrintToken
@@ -374,13 +313,18 @@ const printError = ref('');
 const TOKEN_ERROR_MESSAGE = "Jeton d'impression non configuré.";
 const describePrintError = (err) => {
   if (err?.message === TOKEN_ERROR_MESSAGE) {
-    return "Jeton d'impression non configuré ou invalide — contactez un administrateur.";
+    return "Jeton d'impression non configuré ou invalide : contactez un administrateur.";
   }
-  return "Ticket non imprimé — imprimante indisponible. Utilisez le bouton Réimprimer pour réessayer.";
+  return "Ticket non imprimé : imprimante indisponible. Utilisez le bouton Réimprimer pour réessayer.";
+};
+
+// Notification qui disparait seule apres quelques secondes (la facture est deja enregistree ; le bouton Reimprimer
+// reste disponible). Memes cas qu'avant : toute tentative d'impression (auto ou reimpression) qui echoue.
+const notifyPrintFailure = (err) => {
+  toastStore.push(describePrintError(err), 'warning');
 };
 
 const printTicketForTransaction = async (transactionId) => {
-  printError.value = '';
   try {
     const resp = await CaisseGateway.getTicket(transactionId);
     // ticket_logo_path renvoye par le backend est un chemin fichier sur SON
@@ -391,7 +335,7 @@ const printTicketForTransaction = async (transactionId) => {
     // data URI local, seule forme que printer_bridge peut effectivement lire.
     await PrinterBridgeGateway.printTicket({ ...resp.data, ticket_logo_path: configStore.ticketLogoDataUri || null });
   } catch (err) {
-    printError.value = describePrintError(err);
+    notifyPrintFailure(err);
     console.error('Erreur impression ticket:', err);
   }
 };
@@ -452,12 +396,11 @@ const buildLocalTicketData = (localTransactionId, payload, patientDisplayName) =
 });
 
 const printLocallyBuiltTicket = async (localTransactionId, payload, patientDisplayName) => {
-  printError.value = '';
   try {
     const ticketData = buildLocalTicketData(localTransactionId, payload, patientDisplayName);
     await PrinterBridgeGateway.printTicket(ticketData);
   } catch (err) {
-    printError.value = describePrintError(err);
+    notifyPrintFailure(err);
     console.error('Erreur impression ticket (local):', err);
   }
 };

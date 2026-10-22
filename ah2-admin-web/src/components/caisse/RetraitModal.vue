@@ -1,29 +1,14 @@
 <template>
-  <div class="fixed inset-0 bg-gray-600/50 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
-    <div class="relative mx-auto p-6 border w-full max-w-md shadow-xl rounded-2xl bg-white">
-      <div class="flex justify-between items-center mb-6">
-        <h3 class="text-xl font-bold text-gray-900">{{ t('retrait.modal.title') }}</h3>
-        <button @click="$emit('close')" class="text-gray-400 hover:text-gray-500 transition">
-          <span class="text-2xl">&times;</span>
-        </button>
-      </div>
+  <FullScreenPanel :title="t('retrait.modal.title')" @close="$emit('close')">
+    <form id="retrait-form" @submit.prevent="handleSubmit" class="grid gap-4">
+      <FormField id="retrait-amount" :label="t('retrait.modal.amount')" :help="t('retraitScreens.amount_help')" required v-slot="{ describedBy }">
+        <input id="retrait-amount" v-model.number="form.amount" type="number" min="1" step="0.01" required inputmode="decimal"
+               :aria-describedby="describedBy" :class="[fieldClass, 'text-right']" placeholder="0" />
+      </FormField>
 
-      <form @submit.prevent="handleSubmit" class="space-y-5">
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('retrait.modal.amount') }}</label>
-          <div class="relative rounded-md shadow-xs">
-            <input v-model.number="form.amount" type="number" min="1" step="0.01" required
-                   class="block w-full pl-3 pr-12 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 sm:text-sm"
-                   placeholder="0" />
-            <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-              <span class="text-gray-500 sm:text-sm">FCFA</span>
-            </div>
-          </div>
-        </div>
-
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('retrait.modal.category') }}</label>
-          <select v-model="form.category" class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-red-500 focus:border-red-500 sm:text-sm">
+      <div class="grid gap-4 md:grid-cols-2">
+        <FormField id="retrait-category" :label="t('retrait.modal.category')" v-slot="{ describedBy }">
+          <select id="retrait-category" v-model="form.category" :aria-describedby="describedBy" :class="fieldClass">
             <option value="">-- {{ t('retrait.modal.category') }} --</option>
             <option value="SUPPLIES">{{ t('finance.categories.supplies') }}</option>
             <option value="SALARY">{{ t('finance.categories.salary') }}</option>
@@ -31,47 +16,48 @@
             <option value="BILLS">{{ t('finance.categories.bills') }}</option>
             <option value="OTHER">{{ t('finance.categories.other') }}</option>
           </select>
-        </div>
+        </FormField>
 
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('finance.modal.method') }}</label>
-          <select v-model="form.paymentMethod" class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-red-500 focus:border-red-500 sm:text-sm">
+        <FormField id="retrait-method" :label="t('finance.modal.method')" v-slot="{ describedBy }">
+          <select id="retrait-method" v-model="form.paymentMethod" :aria-describedby="describedBy" :class="fieldClass">
             <option value="Espèces">{{ t('finance.payment_methods.cash') }}</option>
             <option value="Mobile Money">{{ t('finance.payment_methods.mobile') }}</option>
             <option value="Virement">{{ t('finance.payment_methods.transfer') }}</option>
             <option value="Chèque">{{ t('finance.payment_methods.check') }}</option>
           </select>
-        </div>
+        </FormField>
+      </div>
 
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('retrait.modal.justification') }}</label>
-          <textarea v-model="form.justification" rows="2" required
-                    :placeholder="t('retrait.modal.justification_placeholder')"
-                    class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-red-500 focus:border-red-500 sm:text-sm"></textarea>
-        </div>
+      <FormField id="retrait-justification" :label="t('retrait.modal.justification')" :help="t('retraitScreens.justification_help')" required v-slot="{ describedBy }">
+        <textarea id="retrait-justification" v-model="form.justification" rows="3" required
+                  :placeholder="t('retrait.modal.justification_placeholder')" :aria-describedby="describedBy" :class="[fieldClass, 'py-2']"></textarea>
+      </FormField>
 
-        <div v-if="errorMessage" class="bg-red-50 border-l-4 border-red-500 p-3 rounded-sm text-sm text-red-700">
-          {{ errorMessage }}
-        </div>
+      <p v-if="errorMessage" role="alert" class="flex items-start gap-2 rounded-control border p-3 text-base" :class="toneClasses('danger')">
+        <ExclamationCircleIcon class="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
+        <span>{{ errorMessage }}</span>
+      </p>
+    </form>
 
-        <div class="flex justify-end space-x-3 mt-6 pt-4 border-t border-gray-100">
-          <button type="button" @click="$emit('close')" :disabled="isSaving"
-                  class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition shadow-xs disabled:opacity-50">
-            {{ t('finance.modal.cancel') }}
-          </button>
-          <button type="submit" :disabled="isSaving || !isFormValid"
-                  class="px-4 py-2 text-white rounded-lg shadow-md font-medium transition flex items-center bg-red-600 hover:bg-red-700 disabled:opacity-50">
-            {{ isSaving ? t('caisse.cancel_modal.saving') : t('finance.modal.save') }}
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
+    <template #footer>
+      <ActionBar>
+        <template #secondary>
+          <AppButton variant="ghost" :disabled="isSaving" @click="$emit('close')">{{ t('finance.modal.cancel') }}</AppButton>
+        </template>
+        <AppButton type="submit" form="retrait-form" variant="danger" :disabled="isSaving || !isFormValid" :loading="isSaving">
+          {{ isSaving ? t('caisse.cancel_modal.saving') : t('finance.modal.save') }}
+        </AppButton>
+      </ActionBar>
+    </template>
+  </FullScreenPanel>
 </template>
 
 <script setup>
 import { reactive, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { ExclamationCircleIcon } from '@heroicons/vue/20/solid';
+import { AppButton, FormField, ActionBar, FullScreenPanel } from '@/components/ui';
+import { toneClasses } from '@/design/tones';
 
 const props = defineProps({
   isSaving: { type: Boolean, default: false },
@@ -79,6 +65,9 @@ const props = defineProps({
 });
 const emit = defineEmits(['close', 'save']);
 const { t } = useI18n();
+
+// Style commun des champs : zone tactile >= 44 px, focus visible.
+const fieldClass = 'block w-full min-h-11 lg:min-h-10 rounded-control border border-tone-neutral-border bg-white px-3 text-base text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand-600';
 
 const form = reactive({
   amount: '',

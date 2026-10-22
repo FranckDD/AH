@@ -1,5 +1,5 @@
 <template>
-  <div class="fixed top-20 right-4 z-100 flex flex-col items-end gap-2 pointer-events-none">
+  <div class="fixed top-20 right-4 z-100 flex flex-col items-end gap-2 pointer-events-none" role="status" aria-live="polite">
     <TransitionGroup name="toast-slide">
       <div
         v-for="toast in toastStore.toasts"
@@ -13,6 +13,7 @@
         <p class="text-sm flex-1">{{ toast.message }}</p>
         <button
           @click="toastStore.dismiss(toast.id)"
+          :aria-label="$t('ui.close')"
           class="shrink-0 text-current opacity-60 hover:opacity-100 transition"
         >
           <XMarkIcon class="h-4 w-4" />

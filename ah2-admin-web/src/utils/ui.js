@@ -22,6 +22,10 @@ const BUTTON_VARIANTS = {
     // Boutons d'action de rubrique : meme couleur que l'onglet correspondant de la fiche patient.
     pharma: 'bg-tab-pharma text-white border-transparent hover:opacity-90',
     hospital: 'bg-tab-hospital text-white border-transparent hover:opacity-90',
+    lab: 'bg-tab-lab text-white border-transparent hover:opacity-90',
+    record: 'bg-tab-record text-white border-transparent hover:opacity-90',
+    toxico: 'bg-tab-toxico text-white border-transparent hover:opacity-90',
+    spirit: 'bg-tab-spirit text-white border-transparent hover:opacity-90',
 };
 
 // Zones tactiles >= 44 px (min-h-11) ; un peu plus compactes à partir de lg pour la souris.

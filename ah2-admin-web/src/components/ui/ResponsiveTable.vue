@@ -10,6 +10,8 @@ const props = defineProps({
     loading: { type: Boolean, default: false },
     emptyTitle: { type: String, default: '' },
     emptyMessage: { type: String, default: '' },
+    // Lignes alternees (fond different une ligne sur deux) pour ne pas confondre deux lignes voisines.
+    striped: { type: Boolean, default: false },
 });
 
 const cols = computed(() => normalizeColumns(props.columns));
@@ -42,7 +44,7 @@ const keyOf = (row, i) => row?.[props.rowKey] ?? i;
                         </tr>
                     </thead>
                     <tbody>
-                        <tr v-for="(row, i) in rows" :key="keyOf(row, i)" class="border-b border-tone-neutral-border last:border-b-0 hover:bg-brand-50">
+                        <tr v-for="(row, i) in rows" :key="keyOf(row, i)" :class="['border-b border-tone-neutral-border last:border-b-0 hover:bg-brand-50', striped && i % 2 === 1 ? 'bg-tone-neutral-bg' : '']">
                             <td v-for="c in cols" :key="c.key" :class="['px-4 py-3 text-ink', alignClass(c.align), c.class]">
                                 <slot :name="`cell-${c.key}`" :row="row">{{ row[c.key] }}</slot>
                             </td>
@@ -54,7 +56,7 @@ const keyOf = (row, i) => row?.[props.rowKey] ?? i;
 
             <!-- Téléphone et tablette : cartes empilées (2 colonnes dès md) -->
             <ul class="grid gap-3 p-3 md:grid-cols-2 lg:hidden">
-                <li v-for="(row, i) in rows" :key="keyOf(row, i)" class="rounded-card border border-tone-neutral-border p-4">
+                <li v-for="(row, i) in rows" :key="keyOf(row, i)" :class="['rounded-card border border-tone-neutral-border p-4', striped && i % 2 === 1 ? 'bg-tone-neutral-bg' : '']">
                     <slot name="card" :row="row">
                         <dl class="grid gap-2">
                             <div v-for="c in cols" :key="c.key" class="flex flex-col">

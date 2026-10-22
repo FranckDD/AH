@@ -1,55 +1,49 @@
 <template>
-  <div class="fixed inset-0 bg-gray-600/50 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
-    <div class="relative mx-auto p-6 border w-full max-w-sm shadow-xl rounded-2xl bg-white">
-      <div class="flex justify-between items-center mb-4">
-        <h3 class="text-lg font-bold text-gray-900">{{ t('caisse.installment_modal.title') }}</h3>
-        <button @click="$emit('close')" class="text-gray-400 hover:text-gray-500 transition">
-          <span class="text-2xl">&times;</span>
-        </button>
-      </div>
-
-      <p class="text-sm text-gray-600 mb-4">
-        {{ t('caisse.installment_modal.remaining_due') }}: <span class="font-bold">{{ formatCurrency(remainingDue) }}</span>
+  <FullScreenPanel :title="t('caisse.installment_modal.title')" @close="$emit('close')">
+    <form id="installment-form" @submit.prevent="handleSubmit" class="space-y-4">
+      <p class="text-base text-ink">
+        {{ t('caisse.installment_modal.remaining_due') }} : <span class="font-bold">{{ formatCurrency(remainingDue) }}</span>
       </p>
 
-      <form @submit.prevent="handleSubmit" class="space-y-4">
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('caisse.invoice_modal.unit_price') === '' ? '' : t('finance.modal.amount') }}</label>
-          <input v-model.number="paidAmount" type="number" min="0.01" :max="remainingDue" step="0.01" required
-                 class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500 sm:text-sm" />
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('finance.modal.method') }}</label>
-          <select v-model="paymentMethod" class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500 sm:text-sm">
-            <option value="Espèces">{{ t('finance.payment_methods.cash') }}</option>
-            <option value="Mobile Money">{{ t('finance.payment_methods.mobile') }}</option>
-            <option value="Virement">{{ t('finance.payment_methods.transfer') }}</option>
-            <option value="Chèque">{{ t('finance.payment_methods.check') }}</option>
-          </select>
-        </div>
+      <FormField id="installment-amount" :label="t('finance.modal.amount')" :help="t('caisseScreens.installment_help')" required v-slot="{ describedBy }">
+        <input id="installment-amount" v-model.number="paidAmount" type="number" min="0.01" :max="remainingDue" step="0.01" required
+               inputmode="decimal" :aria-describedby="describedBy" :class="[fieldClass, 'text-right']" />
+      </FormField>
 
-        <div v-if="errorMessage" class="bg-red-50 border-l-4 border-red-500 p-3 rounded-sm text-sm text-red-700">
-          {{ errorMessage }}
-        </div>
+      <FormField id="installment-method" :label="t('finance.modal.method')" v-slot="{ describedBy }">
+        <select id="installment-method" v-model="paymentMethod" :aria-describedby="describedBy" :class="fieldClass">
+          <option value="Espèces">{{ t('finance.payment_methods.cash') }}</option>
+          <option value="Mobile Money">{{ t('finance.payment_methods.mobile') }}</option>
+          <option value="Virement">{{ t('finance.payment_methods.transfer') }}</option>
+          <option value="Chèque">{{ t('finance.payment_methods.check') }}</option>
+        </select>
+      </FormField>
 
-        <div class="flex justify-end space-x-3 pt-2">
-          <button type="button" @click="$emit('close')" :disabled="isSaving"
-                  class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition disabled:opacity-50">
-            {{ t('finance.modal.cancel') }}
-          </button>
-          <button type="submit" :disabled="isSaving || !(paidAmount > 0)"
-                  class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium shadow-xs transition disabled:opacity-50">
-            {{ isSaving ? t('caisse.cancel_modal.saving') : t('finance.modal.save') }}
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
+      <p v-if="errorMessage" role="alert" class="flex items-start gap-2 rounded-control border p-3 text-base" :class="toneClasses('danger')">
+        <ExclamationCircleIcon class="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
+        <span>{{ errorMessage }}</span>
+      </p>
+    </form>
+
+    <template #footer>
+      <ActionBar>
+        <template #secondary>
+          <AppButton variant="ghost" :disabled="isSaving" @click="$emit('close')">{{ t('finance.modal.cancel') }}</AppButton>
+        </template>
+        <AppButton type="submit" form="installment-form" :disabled="isSaving || !(paidAmount > 0)" :loading="isSaving">
+          {{ isSaving ? t('caisse.cancel_modal.saving') : t('finance.modal.save') }}
+        </AppButton>
+      </ActionBar>
+    </template>
+  </FullScreenPanel>
 </template>
 
 <script setup>
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { ExclamationCircleIcon } from '@heroicons/vue/20/solid';
+import { AppButton, FormField, ActionBar, FullScreenPanel } from '@/components/ui';
+import { toneClasses } from '@/design/tones';
 
 const props = defineProps({
   remainingDue: { type: Number, required: true },
@@ -58,6 +52,9 @@ const props = defineProps({
 });
 const emit = defineEmits(['close', 'confirm']);
 const { t } = useI18n();
+
+// Style commun des champs : zone tactile >= 44 px, focus visible.
+const fieldClass = 'block w-full min-h-11 rounded-control border border-tone-neutral-border bg-white px-3 text-base text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand-600';
 
 const paidAmount = ref(props.remainingDue);
 const paymentMethod = ref('Espèces');
