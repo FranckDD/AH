@@ -114,9 +114,9 @@ test('(c) les zones de texte du secrétariat existent et n’ont ni tiret long n
 
 // --- (d) la refonte n'a touché que les fichiers autorisés, et jamais l'argent ni l'impression ---
 const BASE = 'da31771'; // juste avant la Tâche 1 du secrétariat
-// Dernier commit des Tâches 1 à 9. null = arbre de travail (tant que ces tâches ne sont pas commitées) ;
-// à renseigner avec le hash du commit pour que les chantiers suivants ne fassent pas échouer ce contrôle.
-const FIN = null;
+// Dernier commit des Tâches 1 à 9 (a79235f). null = arbre de travail ;
+// renseigné pour que les chantiers suivants ne fassent pas échouer ce contrôle.
+const FIN = 'a79235f';
 
 const AUTORISES = new Set([
     ...REFONDUS,
