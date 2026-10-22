@@ -1,108 +1,88 @@
 <template>
-  <div class="max-w-7xl mx-auto p-6 space-y-6 animate-fade-in-up h-full flex flex-col">
+  <div class="grid w-full gap-6">
 
-    <div class="bg-white p-4 rounded-2xl shadow-xs border border-gray-100 flex flex-col md:flex-row gap-4 items-center justify-between">
-      <div class="relative flex-1 max-w-md">
-          <MagnifyingGlassIcon class="w-5 h-5 text-gray-400 absolute left-3 top-3"/>
-          <input
-              v-model="filters.query"
-              @input="handleSearch"
-              type="text"
-              :placeholder="t('lab.history_view.search_ph')"
-              class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-xl focus:ring-indigo-500 focus:border-indigo-500 transition"
-          >
+    <PageHeader :title="t('lab.nav.medical_results')" />
+
+    <div class="flex flex-col gap-3 rounded-card border border-tone-neutral-border bg-white p-4 shadow-card sm:flex-row sm:items-center">
+      <div class="relative flex-1 sm:max-w-md">
+        <label for="lab-results-search" class="sr-only">{{ t('lab.history_view.search_ph') }}</label>
+        <MagnifyingGlassIcon class="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-ink-muted" aria-hidden="true" />
+        <input
+            id="lab-results-search"
+            v-model="filters.query"
+            @input="handleSearch"
+            type="text"
+            :placeholder="t('lab.history_view.search_ph')"
+            class="block w-full min-h-11 rounded-control border border-tone-neutral-border bg-white pl-10 pr-3 text-base text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand-600"
+        >
       </div>
 
-      <button @click="refresh" class="p-2 text-gray-500 hover:bg-gray-100 rounded-full transition" :title="t('lab.history_view.refresh')">
-        <ArrowPathIcon class="w-5 h-5" :class="{'animate-spin': store.loading}"/>
-      </button>
+      <AppButton variant="secondary" :icon="ArrowPathIcon" @click="refresh" :title="t('lab.history_view.refresh')">
+        {{ t('lab.history_view.refresh') }}
+      </AppButton>
     </div>
 
-    <div class="bg-white rounded-2xl shadow-xs border border-gray-100 flex-1 overflow-hidden flex flex-col">
-      <div class="overflow-y-auto flex-1">
-        <table class="w-full text-sm text-left">
-            <thead class="bg-gray-50 text-gray-500 uppercase font-bold text-xs border-b border-gray-100 sticky top-0 z-10">
-            <tr>
-                <th class="px-6 py-4">{{ t('lab.history_view.col_date') }}</th>
-                <th class="px-6 py-4">{{ t('lab.history_view.col_patient') }}</th>
-                <th class="px-6 py-4">{{ t('lab.history_view.col_exam') }}</th>
-                <th class="px-6 py-4 text-center">{{ t('lab.history_view.col_actions') }}</th>
-            </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-100">
-            <tr v-for="res in store.paginatedHistory.items" :key="res.result_id" class="hover:bg-gray-50 transition group">
-                <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="text-gray-900 font-medium">{{ formatDate(res.test_date) }}</div>
-                    <div class="text-[10px] text-gray-400 font-mono">#{{ res.result_id }} <span v-if="res.code">| {{ res.code }}</span></div>
-                </td>
+    <section class="grid gap-3">
+      <ResponsiveTable
+        :columns="columns"
+        :rows="store.paginatedHistory.items"
+        row-key="result_id"
+        :loading="store.loading"
+        :empty-title="t('lab.history_view.empty_medical')"
+        :empty-message="t('lab.history_view.empty_medical_hint')"
+      >
+        <template #cell-date="{ row: res }">
+          <div class="text-base font-medium text-ink">{{ formatDate(res.test_date) }}</div>
+          <div class="font-mono text-sm text-ink-muted">#{{ res.result_id }} <span v-if="res.code">| {{ res.code }}</span></div>
+        </template>
 
-                <td class="px-6 py-4">
-                    <div class="font-bold text-gray-800">{{ res.patient_name }}</div>
-                    <div class="flex gap-2 mt-1">
-                        <span class="text-[10px] text-gray-500">{{ res.patient_age }} • {{ res.patient_sexe }}</span>
-                        <span v-if="res.is_external" class="text-[9px] bg-orange-50 text-orange-600 px-1.5 py-0.5 rounded-sm font-black uppercase">{{ t('lab.result_modal.external') }}</span>
-                    </div>
-                </td>
-
-                <td class="px-6 py-4 text-gray-600 font-medium">
-                    {{ res.examen_nom }}
-                </td>
-
-                <td class="px-6 py-4">
-                    <div class="flex items-center justify-center gap-2">
-                        <button
-                            @click="openView(res)"
-                            class="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition border border-transparent hover:border-indigo-100"
-                            :title="t('lab.history_view.view_details')"
-                        >
-                            <EyeIcon class="w-5 h-5"/>
-                        </button>
-
-                        <button
-                            @click="downloadPdf(res)"
-                            class="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition border border-transparent hover:border-red-100"
-                            :title="t('lab.history_view.download_pdf')"
-                        >
-                            <PrinterIcon class="w-5 h-5"/>
-                        </button>
-                    </div>
-                </td>
-            </tr>
-            </tbody>
-        </table>
-
-        <div v-if="store.paginatedHistory.items.length === 0 && !store.loading" class="flex flex-col items-center justify-center h-64 text-gray-400">
-            <DocumentMagnifyingGlassIcon class="w-16 h-16 mb-2 opacity-20"/>
-            <p class="font-medium">{{ t('lab.history_view.empty_medical') }}</p>
-            <p class="text-xs">{{ t('lab.history_view.empty_medical_hint') }}</p>
-        </div>
-      </div>
-
-      <div v-if="store.paginatedHistory.total_pages > 0" class="border-t border-gray-100 bg-gray-50 px-6 py-3 flex items-center justify-between">
-          <div class="text-sm text-gray-500">
-              {{ t('lab.history_view.showing', { n: store.paginatedHistory.items.length, total: store.paginatedHistory.total_items }) }}
+        <template #cell-patient="{ row: res }">
+          <div class="text-base font-bold text-ink">{{ res.patient_name }}</div>
+          <div class="mt-1 flex flex-wrap items-center gap-2">
+            <span class="text-sm text-ink-muted">{{ res.patient_age }} • {{ res.patient_sexe }}</span>
+            <StatusBadge v-if="res.is_external" tone="warning" :label="t('lab.result_modal.external')" />
           </div>
-          <div class="flex items-center space-x-2 text-sm">
-              <button
+        </template>
+
+        <template #cell-exam="{ row: res }">
+          <span class="font-medium text-ink">{{ res.examen_nom }}</span>
+        </template>
+
+        <template #actions="{ row: res }">
+          <AppButton variant="secondary" :icon="EyeIcon" @click="openView(res)" :title="t('lab.history_view.view_details')">
+            {{ t('lab.history_view.view_details') }}
+          </AppButton>
+          <AppButton variant="secondary" :icon="PrinterIcon" @click="downloadPdf(res)" :title="t('lab.history_view.download_pdf')">
+            {{ t('lab.history_view.download_pdf') }}
+          </AppButton>
+        </template>
+      </ResponsiveTable>
+
+      <div v-if="store.paginatedHistory.total_pages > 0" class="flex flex-col gap-3 rounded-card border border-tone-neutral-border bg-white p-3 sm:flex-row sm:items-center sm:justify-between">
+          <p class="text-base text-ink-muted" aria-live="polite">
+              {{ t('lab.history_view.showing', { n: store.paginatedHistory.items.length, total: store.paginatedHistory.total_items }) }}
+          </p>
+          <div class="flex items-center justify-between gap-2 sm:justify-end">
+              <AppButton
+                  variant="secondary"
                   @click="prevPage"
                   :disabled="filters.page === 1"
-                  class="px-3 py-1 rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition"
               >
                   {{ t('lab.history_view.prev') }}
-              </button>
-              <span class="px-3 py-1 text-gray-600 font-medium">
+              </AppButton>
+              <span class="px-2 text-base font-medium text-ink">
                   {{ t('lab.history_view.page', { current: store.paginatedHistory.current_page, total: store.paginatedHistory.total_pages }) }}
               </span>
-              <button
+              <AppButton
+                  variant="secondary"
                   @click="nextPage"
                   :disabled="filters.page >= store.paginatedHistory.total_pages"
-                  class="px-3 py-1 rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition"
               >
                   {{ t('lab.history_view.next') }}
-              </button>
+              </AppButton>
           </div>
       </div>
-    </div>
+    </section>
 
     <ResultDetailModal
         v-if="selectedResult"
@@ -114,15 +94,15 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useLabStore } from '@/stores/labStore';
 import { useI18n } from 'vue-i18n';
 import ResultDetailModal from '@/components/lab/ResultDetailModal.vue';
+import { AppButton, PageHeader, StatusBadge, ResponsiveTable } from '@/components/ui';
 import dayjs from 'dayjs';
 import debounce from 'lodash/debounce';
 import {
-    MagnifyingGlassIcon, ArrowPathIcon, PrinterIcon,
-    DocumentMagnifyingGlassIcon, EyeIcon
+    MagnifyingGlassIcon, ArrowPathIcon, PrinterIcon, EyeIcon
 } from '@heroicons/vue/24/outline';
 
 // Vue dediee medecin/nurse (chantier perimetre medical, 2026-09-22) - pas
@@ -133,6 +113,13 @@ import {
 const store = useLabStore();
 const { t } = useI18n();
 const selectedResult = ref(null);
+
+// Colonnes du tableau (cartes empilees sous lg).
+const columns = computed(() => [
+    { key: 'date', label: t('lab.history_view.col_date') },
+    { key: 'patient', label: t('lab.history_view.col_patient') },
+    { key: 'exam', label: t('lab.history_view.col_exam') },
+]);
 
 const filters = ref({
     query: '',
@@ -197,14 +184,3 @@ onMounted(() => {
     fetchData();
 });
 </script>
-
-<style scoped>
-.animate-fade-in-up {
-  animation: fadeInUp 0.4s ease-out;
-}
-
-@keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-</style>

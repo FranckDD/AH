@@ -119,7 +119,7 @@ const messages = {
       }
     },
     patients: {
-      title: "Dossiers Patients",
+      title: "Patients",
       search_placeholder: "Rechercher par nom ou code...",
       tabs: {
         all: "Tous les patients",
@@ -336,9 +336,9 @@ const messages = {
       }
     },
     medicalRecords: {
-      title: "Dossier Médical",
+      title: "Consultations",
       subtitle: "Consultations et paramètres cliniques",
-      new_record: "Nouvelle Consultation",
+      new_record: "Nouvelle consultation",
       search_label: "Recherche",
       search_placeholder: "Rechercher code patient ou nom...",
       date_from: "Du",
@@ -369,8 +369,8 @@ const messages = {
         delete: "Supprimer"
       },
       modal: {
-        title_new: "Nouvelle Consultation",
-        title_edit: "Modifier la Consultation",
+        title_new: "Nouvelle consultation",
+        title_edit: "Modifier la consultation",
         patient_code: "Code Patient",
         patient_not_found: "Patient introuvable",
         section_consultation: "Consultation",
@@ -419,7 +419,7 @@ const messages = {
       }
     },
     doctorKpi: {
-      title: "Médecins",
+      title: "Tableau de bord",
       subtitle: "Mes statistiques d'activité",
       period_from: "Du",
       period_to: "Au",
@@ -998,7 +998,7 @@ const messages = {
       },
       tabs: {
         medical_record: "Dossier Médical",
-        lab_exams: "Examens & Labo",
+        lab_exams: "Examens",
         treatments: "Traitements",
         toxico_followup: "Suivi Toxicologie",
         spiritual_followup: "Suivi Spirituel"
@@ -1013,7 +1013,7 @@ const messages = {
         history_title: "Historique des Traitements"
       },
       actions: {
-        new_consultation: "+ Nouvelle Consultation",
+        new_consultation: "Nouvelle consultation",
         prescribe_exam: "+ Prescrire Examen",
         new_prescription: "+ Nouvelle Ordonnance"
       },
@@ -1182,7 +1182,7 @@ const messages = {
         "clear_abnormal": "Retirer le filtre"
       },
       nav: {
-        sync_failures: "Échecs sync",
+        sync_failures: "Échecs de synchronisation",
         reception: "Réception",
         bench: "Paillasse",
         config_short: "Config",
@@ -1930,7 +1930,7 @@ const messages = {
       }
     },
     patients: {
-      title: "Patient Files",
+      title: "Patients",
       search_placeholder: "Search by name or code...",
       tabs: {
         all: "All Patients",
@@ -2147,9 +2147,9 @@ const messages = {
       }
     },
     medicalRecords: {
-      title: "Medical Record",
+      title: "Consultations",
       subtitle: "Consultations and clinical vitals",
-      new_record: "New Consultation",
+      new_record: "New consultation",
       search_label: "Search",
       search_placeholder: "Search patient code or name...",
       date_from: "From",
@@ -2180,8 +2180,8 @@ const messages = {
         delete: "Delete"
       },
       modal: {
-        title_new: "New Consultation",
-        title_edit: "Edit Consultation",
+        title_new: "New consultation",
+        title_edit: "Edit consultation",
         patient_code: "Patient Code",
         patient_not_found: "Patient not found",
         section_consultation: "Consultation",
@@ -2230,7 +2230,7 @@ const messages = {
       }
     },
     doctorKpi: {
-      title: "Doctors",
+      title: "Dashboard",
       subtitle: "My activity statistics",
       period_from: "From",
       period_to: "To",
@@ -2809,7 +2809,7 @@ const messages = {
       },
       tabs: {
         medical_record: "Medical Record",
-        lab_exams: "Labs & Exams",
+        lab_exams: "Exams",
         treatments: "Treatments",
         toxico_followup: "Toxicology Follow-up",
         spiritual_followup: "Spiritual Follow-up"
@@ -2824,7 +2824,7 @@ const messages = {
         history_title: "Treatment History"
       },
       actions: {
-        new_consultation: "+ New Consultation",
+        new_consultation: "New consultation",
         prescribe_exam: "+ Order Lab Test",
         new_prescription: "+ New Prescription"
       },

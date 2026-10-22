@@ -1,96 +1,86 @@
 <template>
-  <div class="space-y-6 w-full">
-    <div class="bg-white p-6 rounded-2xl shadow-xs border border-gray-100">
-      <h1 class="text-2xl font-extrabold text-gray-800 tracking-tight">Échecs de synchronisation</h1>
-      <p class="text-sm text-gray-500 mt-1">
-        Patients créés hors ligne refusés par le serveur (par exemple un numéro d'identité nationale déjà utilisé).
-        Leurs consultations et prescriptions sont conservées ici, jamais envoyées au mauvais patient.
-      </p>
+  <div class="grid w-full gap-6">
+
+    <PageHeader
+      title="Échecs de synchronisation"
+      subtitle="Patients créés hors ligne refusés par le serveur (par exemple un numéro d'identité nationale déjà utilisé). Leurs consultations et prescriptions sont conservées ici, jamais envoyées au mauvais patient."
+    />
+
+    <p v-if="isLoading" class="p-10 text-center text-base text-ink-muted" role="status">{{ t('common.loading') }}</p>
+
+    <div v-else-if="groups.length === 0 && labOrphans.length === 0 && lockedRejections.length === 0" class="rounded-card border border-tone-neutral-border bg-white shadow-card">
+      <EmptyState title="Aucun échec de synchronisation." message="Tout ce qui a été saisi hors ligne a bien été envoyé au serveur." />
     </div>
 
-    <div v-if="isLoading" class="p-10 text-center">
-      <span class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600"></span>
-    </div>
-
-    <div v-else-if="groups.length === 0 && labOrphans.length === 0 && lockedRejections.length === 0" class="bg-white p-10 rounded-2xl border border-gray-100 text-center text-gray-500">
-      Aucun échec de synchronisation.
-    </div>
-
-    <div v-for="g in groups" :key="g.patientUuid" class="bg-white p-6 rounded-2xl shadow-xs border border-red-100 space-y-3">
-      <div class="flex flex-wrap justify-between gap-2">
+    <section v-for="g in groups" :key="g.patientUuid" class="grid gap-3 rounded-card border border-tone-danger-border bg-white p-4 shadow-card md:p-6">
+      <div class="flex flex-wrap items-start justify-between gap-2">
         <div>
-          <p class="text-lg font-semibold text-gray-900">{{ g.name }}</p>
-          <p class="text-xs text-gray-500">Né(e) le {{ g.birthDate || '—' }} · N° d'identité : {{ g.nationalId || '—' }}</p>
+          <p class="text-lg font-semibold text-ink">{{ g.name }}</p>
+          <p class="text-base text-ink-muted">Né(e) le {{ g.birthDate || '-' }}, N° d'identité : {{ g.nationalId || '-' }}</p>
         </div>
-        <span class="inline-flex items-center px-2 py-0.5 h-fit rounded-sm text-xs font-medium bg-red-100 text-red-800">
-          Échec de synchronisation
-        </span>
+        <StatusBadge tone="danger" label="Échec de synchronisation" />
       </div>
-      <p class="text-sm text-red-700">Motif : {{ g.error }}</p>
-      <p class="text-sm text-gray-600">
+      <p class="text-base font-medium text-tone-danger-text">Motif : {{ g.error }}</p>
+      <p class="text-base text-ink">
         Données retenues : {{ g.recordCount }} consultation(s), {{ g.prescriptionCount }} prescription(s),
         {{ g.labResultCount }} dossier(s) labo, {{ g.labResultDetailCount }} valeur(s) de dossier labo.
       </p>
 
-      <div class="flex flex-wrap items-end gap-2 pt-2 border-t border-gray-100">
-        <div class="flex-1 min-w-[200px]">
-          <label :for="`code-${g.patientUuid}`" class="text-xs font-bold text-gray-500 uppercase mb-1 block">
-            Code du patient existant (AH2-…)
-          </label>
-          <input :id="`code-${g.patientUuid}`" v-model="codes[g.patientUuid]" type="text"
-                 class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500 sm:text-sm" />
-        </div>
-        <button type="button" @click="handleReattach(g)" :disabled="busy[g.patientUuid]"
-                class="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 font-medium disabled:opacity-50">
-          {{ busy[g.patientUuid] ? 'Rattachement…' : 'Rattacher à ce patient' }}
-        </button>
+      <div class="grid gap-3 border-t border-tone-neutral-border pt-3 sm:grid-cols-[1fr_auto] sm:items-end">
+        <FormField :id="`code-${g.patientUuid}`" label="Code du patient existant (AH2-...)" v-slot="{ describedBy }">
+          <input :id="`code-${g.patientUuid}`" v-model="codes[g.patientUuid]" type="text" :aria-describedby="describedBy"
+                 class="block w-full min-h-11 rounded-control border border-tone-neutral-border bg-white px-3 text-base text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand-600" />
+        </FormField>
+        <AppButton @click="handleReattach(g)" :disabled="busy[g.patientUuid]" :loading="busy[g.patientUuid]">
+          {{ busy[g.patientUuid] ? 'Rattachement...' : 'Rattacher à ce patient' }}
+        </AppButton>
       </div>
-      <p v-if="messages[g.patientUuid]" class="text-sm" :class="messages[g.patientUuid].ok ? 'text-emerald-700' : 'text-red-700'">
+      <p v-if="messages[g.patientUuid]" role="status" class="text-base font-medium" :class="messages[g.patientUuid].ok ? 'text-tone-success-text' : 'text-tone-danger-text'">
         {{ messages[g.patientUuid].text }}
       </p>
-    </div>
+    </section>
 
     <!-- Dossiers/valeurs labo refuses pour une raison propre au dossier
          (ex. examen retire du catalogue), sans patient en quarantaine :
          consultation seule, aucune action de resolution ici. -->
-    <div v-if="!isLoading && labOrphans.length" class="bg-white p-6 rounded-2xl shadow-xs border border-red-100 space-y-3">
-      <p class="text-lg font-semibold text-gray-900">Laboratoire : éléments refusés par le serveur</p>
-      <ul class="divide-y divide-gray-100">
-        <li v-for="l in labOrphans" :key="l.id" class="py-2 text-sm">
-          <span class="font-medium text-gray-800">{{ l.kind === 'lab_result' ? 'Dossier labo' : 'Valeur de dossier labo' }}</span>
-          <span v-if="l.examenId" class="text-gray-500"> · examen n° {{ l.examenId }}</span>
-          <span class="text-gray-400"> · {{ l.createdAt }}</span>
-          <p class="text-red-700">Motif : {{ l.error || '—' }}</p>
+    <section v-if="!isLoading && labOrphans.length" class="grid gap-3 rounded-card border border-tone-danger-border bg-white p-4 shadow-card md:p-6">
+      <p class="text-lg font-semibold text-ink">Laboratoire : éléments refusés par le serveur</p>
+      <ul class="divide-y divide-tone-neutral-border">
+        <li v-for="l in labOrphans" :key="l.id" class="py-3 text-base">
+          <span class="font-medium text-ink">{{ l.kind === 'lab_result' ? 'Dossier labo' : 'Valeur de dossier labo' }}</span>
+          <span v-if="l.examenId" class="text-ink-muted">, examen n° {{ l.examenId }}</span>
+          <span class="text-ink-muted">, {{ l.createdAt }}</span>
+          <p class="font-medium text-tone-danger-text">Motif : {{ l.error || '-' }}</p>
         </li>
       </ul>
-    </div>
+    </section>
 
     <!-- Ecritures hors ligne refusees par la regle « consultation passee =
          lecture seule » : texte clinique conserve pour relecture. -->
-    <div v-if="!isLoading && lockedRejections.length" class="bg-white p-6 rounded-2xl shadow-xs border border-amber-200 space-y-3">
-      <p class="text-lg font-semibold text-gray-900">{{ t('medical.readonly.quarantine_title') }}</p>
-      <p class="text-sm text-gray-600">{{ t('medical.readonly.quarantine_intro') }}</p>
-      <ul class="divide-y divide-gray-100">
-        <li v-for="l in lockedRejections" :key="l.id" class="py-3 text-sm space-y-1">
-          <div class="flex justify-between gap-2">
-            <span class="font-medium text-gray-800">
+    <section v-if="!isLoading && lockedRejections.length" class="grid gap-3 rounded-card border border-tone-warning-border bg-white p-4 shadow-card md:p-6">
+      <p class="text-lg font-semibold text-ink">{{ t('medical.readonly.quarantine_title') }}</p>
+      <p class="text-base text-ink-muted">{{ t('medical.readonly.quarantine_intro') }}</p>
+      <ul class="divide-y divide-tone-neutral-border">
+        <li v-for="l in lockedRejections" :key="l.id" class="space-y-2 py-3 text-base">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <span class="font-medium text-ink">
               {{ l.kind === 'medical_record_locked' ? t('medical.readonly.quarantine_record') : t('medical.readonly.quarantine_prescription') }}
-              <span class="text-gray-400 font-normal"> · {{ l.createdAt }}</span>
+              <span class="font-normal text-ink-muted">, {{ l.createdAt }}</span>
             </span>
-            <button type="button" @click="handleDismiss(l)" class="px-3 py-1 text-xs rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50">
+            <AppButton variant="secondary" @click="handleDismiss(l)">
               {{ t('medical.readonly.quarantine_dismiss') }}
-            </button>
+            </AppButton>
           </div>
-          <p class="text-red-700">{{ l.error || '—' }}</p>
-          <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-4 text-gray-700">
+          <p class="font-medium text-tone-danger-text">{{ l.error || '-' }}</p>
+          <dl class="grid grid-cols-1 gap-x-4 gap-y-1 text-ink sm:grid-cols-2">
             <template v-for="f in l.fields" :key="f.key">
-              <dt class="text-xs font-bold text-gray-500 uppercase">{{ f.key }}</dt>
+              <dt class="text-sm font-bold uppercase text-ink-muted">{{ f.key }}</dt>
               <dd class="whitespace-pre-line">{{ f.value }}</dd>
             </template>
           </dl>
         </li>
       </ul>
-    </div>
+    </section>
   </div>
 </template>
 
@@ -99,6 +89,7 @@ import { ref, reactive, onMounted } from 'vue';
 import api from '@/services/api';
 import { useI18n } from 'vue-i18n';
 import { listQuarantine, reattachToExistingPatient, dismissQuarantineEntry } from '@/powersync-client/syncQuarantine';
+import { AppButton, PageHeader, FormField, StatusBadge, EmptyState } from '@/components/ui';
 
 const { t } = useI18n();
 const lockedRejections = ref([]);
