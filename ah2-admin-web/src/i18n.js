@@ -182,7 +182,10 @@ const messages = {
         cancel: "Annuler",
         save: "Enregistrer",
         patient_not_found: "Patient introuvable",
-        patient_lookup_error: "Erreur lors de la recherche locale du patient."
+        patient_lookup_error: "Erreur lors de la recherche locale du patient.",
+        section_patient: "Patient",
+        section_appointment: "Rendez-vous",
+        patient_code_help: "Le nom du patient s'affiche dès que le code est reconnu."
       },
       view_list: "Vue liste",
       view_calendar: "Vue calendrier",
@@ -191,7 +194,10 @@ const messages = {
         weekdays_short: ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"],
         more: "de plus",
         day_panel_empty: "Aucun rendez-vous ce jour.",
-        day_panel_title: "Rendez-vous du"
+        day_panel_title: "Rendez-vous du",
+        prev_month: "Mois précédent",
+        next_month: "Mois suivant",
+        appointments_count: "{n} rendez-vous | {n} rendez-vous"
       }
     },
     hospitalization: {
@@ -254,7 +260,15 @@ const messages = {
       remove: "Retirer",
       no_assignment: "Aucun infirmier assigné.",
       read_only_note: "Seuls le médecin ou le chef infirmier/infirmière peuvent modifier ce planning.",
-      head_nurse_badge: "Chef infirmier/infirmière"
+      head_nurse_badge: "Chef infirmier/infirmière",
+      prev_month: "Mois précédent",
+      next_month: "Mois suivant",
+      nurses_count: "{n} infirmier | {n} infirmiers",
+      view_week: "Semaine",
+      view_month: "Mois",
+      prev_week: "Semaine précédente",
+      next_week: "Semaine suivante",
+      day_column: "Jour"
     },
     prescriptions: {
       title: "Prescriptions",
@@ -322,6 +336,8 @@ const messages = {
       results_count: "consultations trouvées",
       empty: "Aucune consultation trouvée pour ces critères.",
       confirm_delete: "Supprimer cette consultation ?",
+      prev_page: "Page précédente",
+      next_page: "Page suivante",
       table: {
         patient: "Patient",
         date: "Date",
@@ -363,7 +379,7 @@ const messages = {
         needs_doctor_review_hint: "Non coché = dossier infirmier classique, n'apparaîtra sur aucun tableau de bord médecin.",
         assign_doctor: "Médecin",
         assign_doctor_pool: "File d'attente (tout médecin)",
-        assign_doctor_hint: "Choisissez « File d'attente » si vous ne savez pas encore quel médecin sera disponible — visible par tous les médecins jusqu'à prise en charge.",
+        assign_doctor_hint: "Choisissez « File d'attente » si vous ne savez pas encore quel médecin sera disponible, visible par tous les médecins jusqu'à prise en charge.",
         cancel: "Annuler",
         save: "Enregistrer",
         motif_required: "Veuillez sélectionner un motif.",
@@ -373,7 +389,16 @@ const messages = {
         marital_single: "Célibataire",
         marital_married: "Marié(e)",
         marital_divorced: "Divorcé(e)",
-        marital_widowed: "Veuf(ve)"
+        marital_widowed: "Veuf(ve)",
+        section_patient: "Patient",
+        section_history: "Antécédents et allergies",
+        section_exam: "Examen et symptômes",
+        section_diagnosis: "Diagnostic et traitement",
+        help_patient_code: "Le nom du patient s'affiche dès que le code est reconnu.",
+        help_bp: "Exemple : 120/80",
+        help_temperature: "Entre 30 et 45 °C.",
+        help_weight: "En kilogrammes (0 à 1000).",
+        help_height: "En centimètres (30 à 250)."
       }
     },
     doctorKpi: {
@@ -393,7 +418,17 @@ const messages = {
       pending_review_title: "Patients en attente",
       pending_review_empty: "Aucun patient en attente.",
       pending_review_by: "signalé par",
-      claim_button: "Prendre en charge"
+      claim_button: "Prendre en charge",
+      queue_help: "Patients dont les paramètres ont été pris et qui attendent un médecin.",
+      queue_empty_help: "Les patients signalés par les infirmières apparaîtront ici.",
+      waiting_today: "Aujourd'hui",
+      waiting_days: "Depuis {n} jour | Depuis {n} jours",
+      load_error: "Impossible de charger les statistiques.",
+      quick_title: "Accès rapides",
+      quick_appointments: "Rendez-vous",
+      quick_hospitalizations: "Séjours en cours",
+      quick_patients: "Patients",
+      stats_title: "Statistiques de la période"
     },
     secretariat: {
       title: "Secrétariat",
@@ -966,7 +1001,7 @@ const messages = {
         new_prescription: "+ Nouvelle Ordonnance"
       },
       readonly: {
-        badge: "Consultation clôturée — une consultation plus récente existe",
+        badge: "Consultation clôturée : une consultation plus récente existe",
         locked: "Cette consultation n'est plus modifiable : une consultation plus récente existe pour ce patient.",
         prescription_locked: "Prescription en lecture seule : sa consultation a été clôturée par une consultation plus récente.",
         sync_rejected: "Modification non synchronisée",
@@ -1689,6 +1724,75 @@ const messages = {
         invoice_amount: "Montant facture",
         reduced_amount: "Montant réduit",
       },
+    },
+    ui: {
+      noResults: "Aucun résultat",
+      noResultsHelp: "Modifiez votre recherche ou vos filtres.",
+      close: "Fermer",
+      retry: "Réessayer",
+      loading: "Chargement...",
+      required: "obligatoire",
+      expand: "Afficher la section",
+      collapse: "Masquer la section",
+      actions: "Actions",
+    },
+    medicalShell: {
+      sections: {
+        activity: "Activité",
+        medical: "Médical",
+        followup: "Suivi",
+      },
+      openMenu: "Ouvrir le menu",
+      closeMenu: "Fermer le menu",
+      collapseMenu: "Réduire le menu",
+      expandMenu: "Déployer le menu",
+      mainNav: "Navigation principale",
+      userMenu: "Compte et déconnexion",
+      connection: {
+        label: "État de la connexion",
+        online: "Connecté",
+        syncing: "Synchronisation...",
+        pending: "{n} élément à envoyer | {n} éléments à envoyer",
+        offline: "Hors ligne",
+        offlineDetail: "(vos saisies sont conservées)",
+        error: "Erreur d'envoi",
+      },
+    },
+    newPatient: {
+      title: "Patient enregistré",
+      patientLabel: "Patient",
+      codeLabel: "Code patient",
+      copy: "Copier",
+      copied: "Copié",
+      noteIt: "Notez ce code sur le carnet du patient, puis cliquez sur OK.",
+      waiting: "Attribution du code en cours...",
+      offline: "Code attribué à la synchronisation, il apparaîtra dans la liste.",
+      late: "Le code n'est pas encore arrivé. Il apparaîtra dans la liste dès que la synchronisation sera terminée.",
+      ok: "OK",
+      saved: "Paramètres enregistrés.",
+    },
+    loginPage: {
+      title: "Connexion au SIH",
+      heroTitle: "Une gestion plus simple, pour de meilleurs soins.",
+      heroOrg: "A.H2 / A Hand To Humanity Medical Center",
+      heroAddress: "Étoug-Ébé, Yaoundé VI, Cameroun",
+      copyright: "©",
+      subtitle: "Accédez à votre espace de travail sécurisé.",
+      username: "Identifiant",
+      usernamePlaceholder: "Votre nom d'utilisateur",
+      password: "Mot de passe",
+      passwordPlaceholder: "Mot de passe sécurisé",
+      showPassword: "Afficher le mot de passe",
+      hidePassword: "Masquer le mot de passe",
+      submit: "Se connecter",
+      submitting: "Connexion en cours...",
+      forgot: "Mot de passe oublié ?",
+      forgotMessage: "Veuillez vous rapprocher de l'administration.",
+      close: "Fermer",
+      errorPrefix: "Erreur :",
+      errorInvalid: "Identifiants ou mot de passe incorrects. Veuillez vérifier.",
+      errorGeneric: "Une erreur inattendue est survenue. Le serveur est peut-être inaccessible.",
+      security: "Accès sécurisé • Données médicales protégées",
     }
   },
 
@@ -1872,7 +1976,10 @@ const messages = {
         cancel: "Cancel",
         save: "Save",
         patient_not_found: "Patient not found",
-        patient_lookup_error: "Local patient lookup failed."
+        patient_lookup_error: "Local patient lookup failed.",
+        section_patient: "Patient",
+        section_appointment: "Appointment",
+        patient_code_help: "The patient's name appears as soon as the code is recognized."
       },
       view_list: "List view",
       view_calendar: "Calendar view",
@@ -1881,7 +1988,10 @@ const messages = {
         weekdays_short: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
         more: "more",
         day_panel_empty: "No appointments this day.",
-        day_panel_title: "Appointments for"
+        day_panel_title: "Appointments for",
+        prev_month: "Previous month",
+        next_month: "Next month",
+        appointments_count: "{n} appointment | {n} appointments"
       }
     },
     hospitalization: {
@@ -1944,7 +2054,15 @@ const messages = {
       remove: "Remove",
       no_assignment: "No nurse assigned.",
       read_only_note: "Only the physician or the head nurse can edit this schedule.",
-      head_nurse_badge: "Head nurse"
+      head_nurse_badge: "Head nurse",
+      prev_month: "Previous month",
+      next_month: "Next month",
+      nurses_count: "{n} nurse | {n} nurses",
+      view_week: "Week",
+      view_month: "Month",
+      prev_week: "Previous week",
+      next_week: "Next week",
+      day_column: "Day"
     },
     prescriptions: {
       title: "Prescriptions",
@@ -2012,6 +2130,8 @@ const messages = {
       results_count: "consultations found",
       empty: "No consultations found for these criteria.",
       confirm_delete: "Delete this consultation?",
+      prev_page: "Previous page",
+      next_page: "Next page",
       table: {
         patient: "Patient",
         date: "Date",
@@ -2053,7 +2173,7 @@ const messages = {
         needs_doctor_review_hint: "Unchecked = a regular nursing note, won't appear on any doctor's dashboard.",
         assign_doctor: "Doctor",
         assign_doctor_pool: "Shared queue (any doctor)",
-        assign_doctor_hint: "Pick \"Shared queue\" if you don't know yet which doctor will be available — visible to every doctor until someone takes it.",
+        assign_doctor_hint: "Pick \"Shared queue\" if you don't know yet which doctor will be available, visible to every doctor until someone takes it.",
         cancel: "Cancel",
         save: "Save",
         motif_required: "Please select a reason.",
@@ -2063,7 +2183,16 @@ const messages = {
         marital_single: "Single",
         marital_married: "Married",
         marital_divorced: "Divorced",
-        marital_widowed: "Widowed"
+        marital_widowed: "Widowed",
+        section_patient: "Patient",
+        section_history: "History and allergies",
+        section_exam: "Examination and symptoms",
+        section_diagnosis: "Diagnosis and treatment",
+        help_patient_code: "The patient's name appears as soon as the code is recognized.",
+        help_bp: "Example: 120/80",
+        help_temperature: "Between 30 and 45 °C.",
+        help_weight: "In kilograms (0 to 1000).",
+        help_height: "In centimeters (30 to 250)."
       }
     },
     doctorKpi: {
@@ -2083,7 +2212,17 @@ const messages = {
       pending_review_title: "Patients awaiting review",
       pending_review_empty: "No patient waiting.",
       pending_review_by: "flagged by",
-      claim_button: "Take in charge"
+      claim_button: "Take in charge",
+      queue_help: "Patients whose measurements have been taken and who are waiting for a doctor.",
+      queue_empty_help: "Patients flagged by nurses will appear here.",
+      waiting_today: "Today",
+      waiting_days: "For {n} day | For {n} days",
+      load_error: "Unable to load the statistics.",
+      quick_title: "Quick access",
+      quick_appointments: "Appointments",
+      quick_hospitalizations: "Current stays",
+      quick_patients: "Patients",
+      stats_title: "Statistics for the period"
     },
     secretariat: {
       title: "Secretary",
@@ -2656,7 +2795,7 @@ const messages = {
         new_prescription: "+ New Prescription"
       },
       readonly: {
-        badge: "Consultation closed — a more recent consultation exists",
+        badge: "Consultation closed: a more recent consultation exists",
         locked: "This consultation can no longer be modified: a more recent consultation exists for this patient.",
         prescription_locked: "Read-only prescription: its consultation was closed by a more recent consultation.",
         sync_rejected: "Change not synchronised",
@@ -3379,6 +3518,75 @@ const messages = {
         invoice_amount: "Invoice amount",
         reduced_amount: "Reduced amount",
       },
+    },
+    ui: {
+      noResults: "No results",
+      noResultsHelp: "Change your search or filters.",
+      close: "Close",
+      retry: "Try again",
+      loading: "Loading...",
+      required: "required",
+      expand: "Show section",
+      collapse: "Hide section",
+      actions: "Actions",
+    },
+    medicalShell: {
+      sections: {
+        activity: "Activity",
+        medical: "Medical",
+        followup: "Follow-up",
+      },
+      openMenu: "Open menu",
+      closeMenu: "Close menu",
+      collapseMenu: "Collapse menu",
+      expandMenu: "Expand menu",
+      mainNav: "Main navigation",
+      userMenu: "Account and sign out",
+      connection: {
+        label: "Connection status",
+        online: "Connected",
+        syncing: "Syncing...",
+        pending: "{n} item to send | {n} items to send",
+        offline: "Offline",
+        offlineDetail: "(your entries are saved)",
+        error: "Sending error",
+      },
+    },
+    newPatient: {
+      title: "Patient registered",
+      patientLabel: "Patient",
+      codeLabel: "Patient code",
+      copy: "Copy",
+      copied: "Copied",
+      noteIt: "Write this code in the patient's notebook, then click OK.",
+      waiting: "Assigning the code...",
+      offline: "The code is assigned at synchronization and will appear in the list.",
+      late: "The code has not arrived yet. It will appear in the list once synchronization is complete.",
+      ok: "OK",
+      saved: "Measurements saved.",
+    },
+    loginPage: {
+      title: "Sign in to the HIS",
+      heroTitle: "Simpler management, for better care.",
+      heroOrg: "A.H2 / A Hand To Humanity Medical Center",
+      heroAddress: "Étoug-Ébé, Yaoundé VI, Cameroon",
+      subtitle: "Access your secure workspace.",
+      copyright: "©",
+      username: "Username",
+      usernamePlaceholder: "Your username",
+      password: "Password",
+      passwordPlaceholder: "Your password",
+      showPassword: "Show password",
+      hidePassword: "Hide password",
+      submit: "Sign in",
+      submitting: "Signing in...",
+      forgot: "Forgot your password?",
+      forgotMessage: "Please contact the administration.",
+      close: "Close",
+      errorPrefix: "Error:",
+      errorInvalid: "Incorrect username or password. Please check and try again.",
+      errorGeneric: "An unexpected error occurred. The server may be unreachable.",
+      security: "Secure access • Protected medical data",
     }
   }
 };

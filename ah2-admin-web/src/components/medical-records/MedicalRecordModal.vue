@@ -1,150 +1,138 @@
 <template>
-  <div class="fixed inset-0 bg-gray-600/50 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
-    <div class="relative mx-auto p-6 border w-full max-w-2xl shadow-xl rounded-2xl bg-white my-8">
+  <!-- Panneau plein ecran sur telephone et tablette, grande fenetre centree sur PC -->
+  <FullScreenPanel :title="isEdit ? t('medicalRecords.modal.title_edit') : t('medicalRecords.modal.title_new')" @close="$emit('close')">
 
-      <div class="flex justify-between items-center mb-6">
-        <h3 class="text-xl font-bold text-gray-900">
-          {{ isEdit ? t('medicalRecords.modal.title_edit') : t('medicalRecords.modal.title_new') }}
-        </h3>
-        <button @click="$emit('close')" class="text-gray-400 hover:text-gray-500 transition">
-          <span class="text-2xl">&times;</span>
-        </button>
-      </div>
+    <form id="medical-record-form" @submit.prevent="handleSubmit" class="space-y-4">
 
-      <form @submit.prevent="handleSubmit" class="space-y-6">
-
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('medicalRecords.modal.patient_code') }}</label>
-          <input
-            v-model="patientCode"
-            @blur="lookupPatient"
-            type="text"
+      <FormSection :title="t('medicalRecords.modal.section_patient')">
+        <div class="md:col-span-2">
+          <FormField
+            id="mr-patient-code"
+            :label="t('medicalRecords.modal.patient_code')"
             required
-            :readonly="isEdit || !!prefilledPatient"
-            :class="[
-              'block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500 sm:text-sm',
-              (isEdit || !!prefilledPatient) ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''
-            ]"
-            placeholder="Ex: AH2-000818AQ"
-          />
-          <p class="mt-1 text-xs" :class="patientId ? 'text-emerald-600' : 'text-gray-400'">
-            {{ patientLookupMessage }}
-          </p>
+            :help="patientId || patientUuid ? patientLookupMessage : t('medicalRecords.modal.help_patient_code')"
+            :error="patientId || patientUuid ? '' : patientLookupMessage"
+            v-slot="{ describedBy, invalid }"
+          >
+            <input
+              id="mr-patient-code"
+              v-model="patientCode"
+              @blur="lookupPatient"
+              type="text"
+              required
+              :readonly="isEdit || !!prefilledPatient"
+              :aria-describedby="describedBy"
+              :aria-invalid="invalid"
+              :class="[fieldClass, (isEdit || !!prefilledPatient) ? 'cursor-not-allowed bg-tone-neutral-bg text-ink-muted' : 'bg-white']"
+              placeholder="Ex: AH2-000818AQ"
+            />
+          </FormField>
         </div>
+      </FormSection>
 
-        <div>
-          <h4 class="text-sm font-bold text-gray-500 uppercase mb-3">{{ t('medicalRecords.modal.section_consultation') }}</h4>
-          <div class="grid grid-cols-3 gap-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('medicalRecords.modal.consultation_date') }}</label>
-              <input v-model="form.consultationDate" type="date" required class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500 sm:text-sm" />
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('medicalRecords.modal.motif') }}</label>
-              <select v-model="form.motifCode" required class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500 sm:text-sm">
-                <option value="">{{ t('medicalRecords.modal.motif_none') }}</option>
-                <option v-for="m in medicalRecordStore.motifs" :key="m.code" :value="m.code">{{ m.label_fr }}</option>
-              </select>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('medicalRecords.modal.severity') }}</label>
-              <select v-model="form.severity" class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500 sm:text-sm">
-                <option v-for="opt in severityOptions" :key="opt.value" :value="opt.value">{{ t(opt.labelKey) }}</option>
-              </select>
-            </div>
-          </div>
-          <div class="grid grid-cols-3 gap-4 mt-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('medicalRecords.modal.marital_status') }}</label>
-              <select v-model="form.maritalStatus" class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500 sm:text-sm">
-                <option v-for="opt in maritalOptions" :key="opt.value" :value="opt.value">{{ t(opt.labelKey) }}</option>
-              </select>
-            </div>
-          </div>
+      <FormSection :title="t('medicalRecords.modal.section_consultation')">
+        <FormField id="mr-date" :label="t('medicalRecords.modal.consultation_date')" required v-slot="{ describedBy }">
+          <input id="mr-date" v-model="form.consultationDate" type="date" required :aria-describedby="describedBy" :class="[fieldClass, 'bg-white']" />
+        </FormField>
+        <FormField id="mr-motif" :label="t('medicalRecords.modal.motif')" required v-slot="{ describedBy }">
+          <select id="mr-motif" v-model="form.motifCode" required :aria-describedby="describedBy" :class="[fieldClass, 'bg-white']">
+            <option value="">{{ t('medicalRecords.modal.motif_none') }}</option>
+            <option v-for="m in medicalRecordStore.motifs" :key="m.code" :value="m.code">{{ m.label_fr }}</option>
+          </select>
+        </FormField>
+        <FormField id="mr-severity" :label="t('medicalRecords.modal.severity')" v-slot="{ describedBy }">
+          <select id="mr-severity" v-model="form.severity" :aria-describedby="describedBy" :class="[fieldClass, 'bg-white']">
+            <option v-for="opt in severityOptions" :key="opt.value" :value="opt.value">{{ t(opt.labelKey) }}</option>
+          </select>
+        </FormField>
+        <FormField id="mr-marital" :label="t('medicalRecords.modal.marital_status')" v-slot="{ describedBy }">
+          <select id="mr-marital" v-model="form.maritalStatus" :aria-describedby="describedBy" :class="[fieldClass, 'bg-white']">
+            <option v-for="opt in maritalOptions" :key="opt.value" :value="opt.value">{{ t(opt.labelKey) }}</option>
+          </select>
+        </FormField>
+      </FormSection>
+
+      <FormSection :title="t('medicalRecords.modal.section_vitals')" collapsible>
+        <FormField id="mr-bp" :label="t('medicalRecords.modal.bp')" :help="t('medicalRecords.modal.help_bp')" v-slot="{ describedBy }">
+          <input id="mr-bp" v-model="form.bp" type="text" :aria-describedby="describedBy" placeholder="Ex: 120/80" :class="[fieldClass, 'bg-white']" />
+        </FormField>
+        <FormField id="mr-temperature" :label="t('medicalRecords.modal.temperature')" :help="t('medicalRecords.modal.help_temperature')" v-slot="{ describedBy }">
+          <input id="mr-temperature" v-model="form.temperature" type="number" step="0.1" inputmode="decimal" :aria-describedby="describedBy" :class="[fieldClass, 'bg-white']" />
+        </FormField>
+        <FormField id="mr-weight" :label="t('medicalRecords.modal.weight')" :help="t('medicalRecords.modal.help_weight')" v-slot="{ describedBy }">
+          <input id="mr-weight" v-model="form.weight" type="number" step="0.1" inputmode="decimal" :aria-describedby="describedBy" :class="[fieldClass, 'bg-white']" />
+        </FormField>
+        <FormField id="mr-height" :label="t('medicalRecords.modal.height')" :help="t('medicalRecords.modal.help_height')" v-slot="{ describedBy }">
+          <input id="mr-height" v-model="form.height" type="number" step="0.1" inputmode="decimal" :aria-describedby="describedBy" :class="[fieldClass, 'bg-white']" />
+        </FormField>
+      </FormSection>
+
+      <FormSection :title="t('medicalRecords.modal.section_history')" collapsible>
+        <FormField id="mr-history" :label="t('medicalRecords.modal.medical_history')" v-slot="{ describedBy }">
+          <textarea id="mr-history" v-model="form.medicalHistory" rows="3" :aria-describedby="describedBy" :class="[fieldClass, 'bg-white py-2']"></textarea>
+        </FormField>
+        <FormField id="mr-allergies" :label="t('medicalRecords.modal.allergies')" v-slot="{ describedBy }">
+          <textarea id="mr-allergies" v-model="form.allergies" rows="3" :aria-describedby="describedBy" :class="[fieldClass, 'bg-white py-2']"></textarea>
+        </FormField>
+      </FormSection>
+
+      <FormSection :title="t('medicalRecords.modal.section_exam')" collapsible>
+        <div class="md:col-span-2">
+          <FormField id="mr-symptoms" :label="t('medicalRecords.modal.symptoms')" v-slot="{ describedBy }">
+            <textarea id="mr-symptoms" v-model="form.symptoms" rows="3" :aria-describedby="describedBy" :class="[fieldClass, 'bg-white py-2']"></textarea>
+          </FormField>
         </div>
+      </FormSection>
 
-        <div>
-          <h4 class="text-sm font-bold text-gray-500 uppercase mb-3">{{ t('medicalRecords.modal.section_vitals') }}</h4>
-          <div class="grid grid-cols-4 gap-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('medicalRecords.modal.bp') }}</label>
-              <input v-model="form.bp" type="text" placeholder="Ex: 120/80" class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500 sm:text-sm" />
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('medicalRecords.modal.temperature') }}</label>
-              <input v-model="form.temperature" type="number" step="0.1" class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500 sm:text-sm" />
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('medicalRecords.modal.weight') }}</label>
-              <input v-model="form.weight" type="number" step="0.1" class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500 sm:text-sm" />
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('medicalRecords.modal.height') }}</label>
-              <input v-model="form.height" type="number" step="0.1" class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500 sm:text-sm" />
-            </div>
-          </div>
+      <FormSection :title="t('medicalRecords.modal.section_diagnosis')" collapsible>
+        <FormField id="mr-diagnosis" :label="t('medicalRecords.modal.diagnosis')" v-slot="{ describedBy }">
+          <textarea id="mr-diagnosis" v-model="form.diagnosis" rows="3" :aria-describedby="describedBy" :class="[fieldClass, 'bg-white py-2']"></textarea>
+        </FormField>
+        <FormField id="mr-treatment" :label="t('medicalRecords.modal.treatment')" v-slot="{ describedBy }">
+          <textarea id="mr-treatment" v-model="form.treatment" rows="3" :aria-describedby="describedBy" :class="[fieldClass, 'bg-white py-2']"></textarea>
+        </FormField>
+      </FormSection>
+
+      <FormSection :title="t('medicalRecords.modal.section_notes')" collapsible>
+        <div class="md:col-span-2">
+          <FormField id="mr-notes" :label="t('medicalRecords.modal.notes')" v-slot="{ describedBy }">
+            <textarea id="mr-notes" v-model="form.notes" rows="3" :aria-describedby="describedBy" :class="[fieldClass, 'bg-white py-2']"></textarea>
+          </FormField>
         </div>
+      </FormSection>
 
-        <div>
-          <h4 class="text-sm font-bold text-gray-500 uppercase mb-3">{{ t('medicalRecords.modal.section_notes') }}</h4>
-          <div class="grid grid-cols-2 gap-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('medicalRecords.modal.medical_history') }}</label>
-              <textarea v-model="form.medicalHistory" rows="2" class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500 sm:text-sm"></textarea>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('medicalRecords.modal.allergies') }}</label>
-              <textarea v-model="form.allergies" rows="2" class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500 sm:text-sm"></textarea>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('medicalRecords.modal.symptoms') }}</label>
-              <textarea v-model="form.symptoms" rows="2" class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500 sm:text-sm"></textarea>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('medicalRecords.modal.diagnosis') }}</label>
-              <textarea v-model="form.diagnosis" rows="2" class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500 sm:text-sm"></textarea>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('medicalRecords.modal.treatment') }}</label>
-              <textarea v-model="form.treatment" rows="2" class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500 sm:text-sm"></textarea>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('medicalRecords.modal.notes') }}</label>
-              <textarea v-model="form.notes" rows="2" class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500 sm:text-sm"></textarea>
-            </div>
-          </div>
-        </div>
-
-        <div v-if="!isEdit">
-          <h4 class="text-sm font-bold text-gray-500 uppercase mb-3">{{ t('medicalRecords.modal.section_triage') }}</h4>
-          <label class="inline-flex items-center cursor-pointer mb-3">
-            <input type="checkbox" v-model="form.needsDoctorReview" class="sr-only peer">
-            <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-hidden peer-focus:ring-4 peer-focus:ring-teal-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:inset-s-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-teal-600"></div>
-            <span class="ms-3 text-sm font-medium text-gray-900">{{ t('medicalRecords.modal.needs_doctor_review') }}</span>
+      <FormSection v-if="!isEdit" :title="t('medicalRecords.modal.section_triage')">
+        <div class="md:col-span-2 grid gap-3">
+          <label class="inline-flex min-h-11 cursor-pointer items-center">
+            <input type="checkbox" v-model="form.needsDoctorReview" class="peer sr-only">
+            <div class="relative h-6 w-11 shrink-0 rounded-full bg-tone-neutral-border transition peer-checked:bg-brand-600 peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-brand-600 after:absolute after:left-0.5 after:top-0.5 after:h-5 after:w-5 after:rounded-full after:bg-white after:transition-all after:content-[''] peer-checked:after:translate-x-5"></div>
+            <span class="ms-3 text-base font-medium text-ink">{{ t('medicalRecords.modal.needs_doctor_review') }}</span>
           </label>
-          <p v-if="!form.needsDoctorReview" class="text-xs text-gray-400 mb-1">{{ t('medicalRecords.modal.needs_doctor_review_hint') }}</p>
+          <p v-if="!form.needsDoctorReview" class="text-sm text-ink-muted">{{ t('medicalRecords.modal.needs_doctor_review_hint') }}</p>
           <div v-if="form.needsDoctorReview">
-            <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('medicalRecords.modal.assign_doctor') }}</label>
-            <select v-model="form.assignedDoctorId" class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500 sm:text-sm">
-              <option value="">{{ t('medicalRecords.modal.assign_doctor_pool') }}</option>
-              <option v-for="d in doctors" :key="d.user_id" :value="d.user_id">{{ d.full_name }}</option>
-            </select>
-            <p class="text-xs text-gray-400 mt-1">{{ t('medicalRecords.modal.assign_doctor_hint') }}</p>
+            <FormField id="mr-assign" :label="t('medicalRecords.modal.assign_doctor')" :help="t('medicalRecords.modal.assign_doctor_hint')" v-slot="{ describedBy }">
+              <select id="mr-assign" v-model="form.assignedDoctorId" :aria-describedby="describedBy" :class="[fieldClass, 'bg-white']">
+                <option value="">{{ t('medicalRecords.modal.assign_doctor_pool') }}</option>
+                <option v-for="d in doctors" :key="d.user_id" :value="d.user_id">{{ d.full_name }}</option>
+              </select>
+            </FormField>
           </div>
         </div>
+      </FormSection>
 
-        <div class="flex justify-end space-x-3 mt-6 pt-4 border-t border-gray-100">
-          <button type="button" @click="$emit('close')" class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition shadow-xs">
-            {{ t('medicalRecords.modal.cancel') }}
-          </button>
-          <button type="submit" class="px-4 py-2 text-white rounded-lg shadow-md font-medium transition bg-teal-600 hover:bg-teal-700">
-            {{ t('medicalRecords.modal.save') }}
-          </button>
-        </div>
-      </form>
+    </form>
 
-    </div>
-  </div>
+    <!-- Barre d'actions fixe : Enregistrer (principal) et Annuler (discret) -->
+    <template #footer>
+      <ActionBar>
+        <template #secondary>
+          <AppButton variant="ghost" @click="$emit('close')">{{ t('medicalRecords.modal.cancel') }}</AppButton>
+        </template>
+        <AppButton type="submit" form="medical-record-form">{{ t('medicalRecords.modal.save') }}</AppButton>
+      </ActionBar>
+    </template>
+
+  </FullScreenPanel>
 </template>
 
 <script setup>
@@ -153,10 +141,14 @@ import { useI18n } from 'vue-i18n';
 import { useMedicalRecordStore } from '@/stores/medicalRecordStore';
 import { usePatientLookup } from '@/composables/usePatientLookup';
 import api from '@/services/api';
+import { AppButton, FormField, FormSection, ActionBar, FullScreenPanel } from '@/components/ui';
 
 const { t } = useI18n();
 const medicalRecordStore = useMedicalRecordStore();
 const emit = defineEmits(['close', 'save']);
+
+// Style commun des champs : zone tactile >= 44 px, focus visible.
+const fieldClass = 'block w-full min-h-11 rounded-control border border-tone-neutral-border px-3 text-base text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand-600';
 
 const props = defineProps({
   record: {
@@ -170,6 +162,12 @@ const props = defineProps({
   appointmentId: {
     type: Number,
     default: null,
+  },
+  // Parcours « nouveau patient » de l'infirmiere : la case « a examiner par un medecin » est
+  // cochee d'office (modifiable). Defaut false : tous les autres usages sont inchanges.
+  defaultNeedsDoctorReview: {
+    type: Boolean,
+    default: false,
   },
 });
 
@@ -203,7 +201,7 @@ const form = reactive({
   diagnosis: '',
   treatment: '',
   notes: '',
-  needsDoctorReview: false,
+  needsDoctorReview: props.defaultNeedsDoctorReview,
   assignedDoctorId: '',
 });
 

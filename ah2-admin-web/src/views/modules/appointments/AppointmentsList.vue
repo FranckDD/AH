@@ -1,186 +1,152 @@
 <template>
-  <div class="space-y-6 w-full">
+  <div class="grid w-full gap-6">
 
-    <div class="flex flex-col md:flex-row justify-between items-center bg-white p-6 rounded-2xl shadow-xs border border-gray-100 gap-4">
-      <div>
-        <h1 class="text-2xl font-extrabold text-gray-800 tracking-tight">
-          {{ t('appointments.title') }}
-        </h1>
-        <p class="text-sm text-gray-500">{{ t('appointments.subtitle') }}</p>
-      </div>
-
-      <div class="flex items-center gap-3">
-        <div class="flex bg-gray-100 rounded-xl p-1">
+    <PageHeader :title="t('appointments.title')" :subtitle="t('appointments.subtitle')">
+      <template #actions>
+        <div class="flex rounded-control bg-tone-neutral-bg p-1" role="group" :aria-label="t('appointments.title')">
           <button
+            type="button"
             @click="viewMode = 'list'"
-            class="px-4 py-1.5 text-sm font-medium rounded-lg transition"
-            :class="viewMode === 'list' ? 'bg-white shadow-xs text-gray-900' : 'text-gray-500 hover:text-gray-700'"
+            :aria-pressed="viewMode === 'list'"
+            class="min-h-11 flex-1 rounded-control px-4 text-base font-medium transition focus-visible:outline-2 focus-visible:outline-brand-600 md:min-h-9"
+            :class="viewMode === 'list' ? 'bg-white text-ink shadow-card' : 'text-ink-muted hover:text-ink'"
           >
             {{ t('appointments.view_list') }}
           </button>
           <button
+            type="button"
             @click="viewMode = 'calendar'"
-            class="px-4 py-1.5 text-sm font-medium rounded-lg transition"
-            :class="viewMode === 'calendar' ? 'bg-white shadow-xs text-gray-900' : 'text-gray-500 hover:text-gray-700'"
+            :aria-pressed="viewMode === 'calendar'"
+            class="min-h-11 flex-1 rounded-control px-4 text-base font-medium transition focus-visible:outline-2 focus-visible:outline-brand-600 md:min-h-9"
+            :class="viewMode === 'calendar' ? 'bg-white text-ink shadow-card' : 'text-ink-muted hover:text-ink'"
           >
             {{ t('appointments.view_calendar') }}
           </button>
         </div>
 
-        <button
-          @click="openCreateModal"
-          class="flex items-center px-6 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 shadow-md shadow-emerald-200 transition font-semibold"
-        >
-          <PlusCircleIcon class="h-5 w-5 mr-2" />
+        <AppButton :icon="PlusCircleIcon" @click="openCreateModal">
           {{ t('appointments.new_appointment') }}
-        </button>
-      </div>
-    </div>
+        </AppButton>
+      </template>
+    </PageHeader>
 
-    <div v-if="viewMode === 'list'" class="bg-white p-4 rounded-2xl shadow-xs border border-gray-100 flex flex-wrap gap-4 items-end">
+    <section v-if="viewMode === 'list'" class="grid gap-4 rounded-card border border-tone-neutral-border bg-white p-4 shadow-card md:grid-cols-2 lg:flex lg:flex-wrap lg:items-end">
 
-      <div class="flex-1 min-w-[220px]">
-        <label class="text-xs font-bold text-gray-500 uppercase mb-1 block">{{ t('appointments.search_label') }}</label>
-        <div class="relative">
-          <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <MagnifyingGlassIcon class="h-5 w-5 text-gray-400" />
+      <div class="md:col-span-2 lg:min-w-[220px] lg:flex-1">
+        <FormField id="appt-search" :label="t('appointments.search_label')" v-slot="{ describedBy }">
+          <div class="relative">
+            <MagnifyingGlassIcon class="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-ink-muted" aria-hidden="true" />
+            <input
+              id="appt-search"
+              v-model="searchQuery"
+              type="text"
+              :aria-describedby="describedBy"
+              :placeholder="t('appointments.search_placeholder')"
+              :class="[fieldClass, 'bg-white pl-10']"
+            >
           </div>
-          <input
-            v-model="searchQuery"
-            type="text"
-            :placeholder="t('appointments.search_placeholder')"
-            class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg bg-gray-50 focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm"
+        </FormField>
+      </div>
+
+      <div class="lg:w-48">
+        <FormField id="appt-status" :label="t('appointments.status_label')" v-slot="{ describedBy }">
+          <select id="appt-status" v-model="statusFilter" :aria-describedby="describedBy" :class="[fieldClass, 'bg-white']">
+            <option value="ALL">{{ t('appointments.status_all') }}</option>
+            <option v-for="s in appointmentStatuses" :key="s" :value="s">{{ t(`appointments.status_${s}`) }}</option>
+          </select>
+        </FormField>
+      </div>
+
+      <div class="lg:w-44">
+        <FormField id="appt-date-mode" :label="t('appointments.date_label')" v-slot="{ describedBy }">
+          <select id="appt-date-mode" v-model="dateMode" :aria-describedby="describedBy" :class="[fieldClass, 'bg-white']">
+            <option value="ALL">{{ t('appointments.date_all') }}</option>
+            <option value="TODAY">{{ t('appointments.date_today') }}</option>
+            <option value="CUSTOM">{{ t('appointments.date_custom') }}</option>
+          </select>
+        </FormField>
+      </div>
+
+      <div v-if="dateMode === 'CUSTOM'" class="lg:w-44">
+        <FormField id="appt-custom-date" :label="t('appointments.date_custom')" v-slot="{ describedBy }">
+          <input id="appt-custom-date" v-model="customDate" type="date" :aria-describedby="describedBy" :class="[fieldClass, 'bg-white']" />
+        </FormField>
+      </div>
+    </section>
+
+    <section v-if="viewMode === 'list'" class="grid gap-3">
+
+      <p class="text-base text-ink-muted" aria-live="polite">
+        {{ appointmentStore.appointments.length }} {{ t('appointments.results_count') }}
+      </p>
+
+      <ResponsiveTable
+        :columns="columns"
+        :rows="appointmentStore.appointments"
+        row-key="id"
+        :loading="appointmentStore.isLoading"
+        :empty-title="t('appointments.empty')"
+      >
+        <template #cell-patient="{ row: appt }">
+          <div class="text-base font-medium text-ink">{{ patientName(appt) }}</div>
+          <div class="text-sm text-ink-muted">{{ appt.code_patient }}</div>
+        </template>
+        <template #cell-phone="{ row: appt }">{{ appt.contact_phone || '-' }}</template>
+        <template #cell-doctor="{ row: appt }">{{ appt.doctor_full_name || appt.doctor_username || '-' }}</template>
+        <template #cell-date="{ row: appt }"><span class="font-mono">{{ appt.appointment_date }}</span></template>
+        <template #cell-time="{ row: appt }"><span class="font-mono">{{ (appt.appointment_time || '').substring(0, 5) }}</span></template>
+        <template #cell-reason="{ row: appt }">{{ appt.reason || '-' }}</template>
+        <template #cell-status="{ row: appt }"><StatusBadge :status="appt.status" /></template>
+
+        <template #actions="{ row: appt }">
+          <!--
+            Bouton "Accepter" volontairement omis (contrairement au
+            client desktop) - voir docs/superpowers/SUIVI-AVANCEMENT.md,
+            registre C4. Non touche par ce chantier.
+          -->
+          <AppButton
+            v-if="appt.status === 'pending'"
+            @click="demarrerConsultation(appt)"
+            :disabled="!appt.patient_id || !appt.server_id"
+            :title="!appt.server_id ? t('appointments.pending_sync') : ''"
           >
-        </div>
-      </div>
+            {{ t('appointments.actions.start_consultation') }}
+          </AppButton>
+          <AppButton
+            v-if="appt.status === 'pending'"
+            variant="secondary"
+            @click="appointmentStore.completeAppointment(appt.server_id)"
+            :disabled="!appt.server_id"
+            :title="!appt.server_id ? t('appointments.pending_sync') : ''"
+          >
+            {{ t('appointments.actions.complete') }}
+          </AppButton>
+          <AppButton
+            v-if="appt.status === 'pending'"
+            variant="secondary"
+            @click="voirDossier(appt)"
+            :disabled="!appt.patient_id"
+          >
+            {{ t('appointments.actions.view_dossier') }}
+          </AppButton>
+          <AppButton variant="ghost" @click="openEditModal(appt)">
+            {{ t('appointments.actions.edit') }}
+          </AppButton>
+          <AppButton
+            v-if="appt.status === 'pending'"
+            variant="danger"
+            @click="appointmentStore.cancelAppointment(appt.server_id)"
+            :disabled="!appt.server_id"
+            :title="!appt.server_id ? t('appointments.pending_sync') : ''"
+          >
+            {{ t('appointments.actions.cancel') }}
+          </AppButton>
+        </template>
+      </ResponsiveTable>
 
-      <div class="w-full md:w-48">
-        <label class="text-xs font-bold text-gray-500 uppercase mb-1 block">{{ t('appointments.status_label') }}</label>
-        <select v-model="statusFilter" class="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-hidden focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm rounded-lg">
-          <option value="ALL">{{ t('appointments.status_all') }}</option>
-          <option v-for="s in appointmentStatuses" :key="s" :value="s">{{ t(`appointments.status_${s}`) }}</option>
-        </select>
-      </div>
+    </section>
 
-      <div class="w-full md:w-44">
-        <label class="text-xs font-bold text-gray-500 uppercase mb-1 block">{{ t('appointments.date_label') }}</label>
-        <select v-model="dateMode" class="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-hidden focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm rounded-lg">
-          <option value="ALL">{{ t('appointments.date_all') }}</option>
-          <option value="TODAY">{{ t('appointments.date_today') }}</option>
-          <option value="CUSTOM">{{ t('appointments.date_custom') }}</option>
-        </select>
-      </div>
-
-      <div v-if="dateMode === 'CUSTOM'" class="w-full md:w-40">
-        <label class="text-xs font-bold text-gray-500 uppercase mb-1 block">{{ t('appointments.date_custom') }}</label>
-        <input v-model="customDate" type="date" class="block w-full pl-3 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm" />
-      </div>
-    </div>
-
-    <div v-if="viewMode === 'list'" class="bg-white rounded-2xl shadow-xs border border-gray-100 overflow-hidden">
-
-      <div class="p-4 border-b border-gray-100 flex items-center justify-between">
-        <div class="text-sm text-gray-500">
-          {{ appointmentStore.appointments.length }} {{ t('appointments.results_count') }}
-        </div>
-      </div>
-
-      <div v-if="appointmentStore.isLoading" class="p-10 text-center">
-        <span class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></span>
-        <p class="mt-2 text-gray-500">{{ t('common.loading') }}</p>
-      </div>
-
-      <div v-else class="overflow-x-auto">
-        <table class="min-w-full text-left border-collapse">
-          <thead>
-            <tr class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
-              <th class="px-6 py-4 font-semibold">{{ t('appointments.table.patient') }}</th>
-              <th class="px-6 py-4 font-semibold">{{ t('appointments.table.phone') }}</th>
-              <th class="px-6 py-4 font-semibold">{{ t('appointments.table.doctor') }}</th>
-              <th class="px-6 py-4 font-semibold">{{ t('appointments.table.date') }}</th>
-              <th class="px-6 py-4 font-semibold">{{ t('appointments.table.time') }}</th>
-              <th class="px-6 py-4 font-semibold">{{ t('appointments.table.reason') }}</th>
-              <th class="px-6 py-4 font-semibold">{{ t('appointments.table.status') }}</th>
-              <th class="px-6 py-4 font-semibold text-right">{{ t('appointments.table.actions') }}</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-gray-100">
-            <tr v-for="appt in appointmentStore.appointments" :key="appt.id" class="hover:bg-gray-50 transition">
-              <td class="px-6 py-4">
-                <div class="text-sm font-medium text-gray-900">{{ patientName(appt) }}</div>
-                <div class="text-xs text-gray-500">{{ appt.code_patient }}</div>
-              </td>
-              <td class="px-6 py-4 text-sm text-gray-600">{{ appt.contact_phone || '—' }}</td>
-              <td class="px-6 py-4 text-sm text-gray-600">{{ appt.doctor_full_name || appt.doctor_username || '—' }}</td>
-              <td class="px-6 py-4 text-sm text-gray-600 font-mono">{{ appt.appointment_date }}</td>
-              <td class="px-6 py-4 text-sm text-gray-600 font-mono">{{ (appt.appointment_time || '').substring(0, 5) }}</td>
-              <td class="px-6 py-4 text-sm text-gray-600">{{ appt.reason || '—' }}</td>
-              <td class="px-6 py-4">
-                <StatusBadge :status="appt.status" />
-              </td>
-              <td class="px-6 py-4 text-right">
-                <div class="flex justify-end gap-2">
-                  <!--
-                    Bouton "Accepter" volontairement omis (contrairement au
-                    client desktop) - voir docs/superpowers/SUIVI-AVANCEMENT.md,
-                    registre C4. Non touché par ce chantier.
-                  -->
-                  <button
-                    v-if="appt.status === 'pending'"
-                    @click="appointmentStore.completeAppointment(appt.server_id)"
-                    :disabled="!appt.server_id"
-                    :title="!appt.server_id ? t('appointments.pending_sync') : ''"
-                    class="px-3 py-1.5 text-xs font-medium rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition disabled:opacity-40 disabled:cursor-not-allowed"
-                  >
-                    {{ t('appointments.actions.complete') }}
-                  </button>
-                  <button
-                    v-if="appt.status === 'pending'"
-                    @click="appointmentStore.cancelAppointment(appt.server_id)"
-                    :disabled="!appt.server_id"
-                    :title="!appt.server_id ? t('appointments.pending_sync') : ''"
-                    class="px-3 py-1.5 text-xs font-medium rounded-lg bg-red-50 text-red-700 hover:bg-red-100 transition disabled:opacity-40 disabled:cursor-not-allowed"
-                  >
-                    {{ t('appointments.actions.cancel') }}
-                  </button>
-                  <button
-                    v-if="appt.status === 'pending'"
-                    @click="voirDossier(appt)"
-                    :disabled="!appt.patient_id"
-                    class="px-3 py-1.5 text-xs font-medium rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 transition disabled:opacity-40 disabled:cursor-not-allowed"
-                  >
-                    {{ t('appointments.actions.view_dossier') }}
-                  </button>
-                  <button
-                    v-if="appt.status === 'pending'"
-                    @click="demarrerConsultation(appt)"
-                    :disabled="!appt.patient_id || !appt.server_id"
-                    :title="!appt.server_id ? t('appointments.pending_sync') : ''"
-                    class="px-3 py-1.5 text-xs font-medium rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition disabled:opacity-40 disabled:cursor-not-allowed"
-                  >
-                    {{ t('appointments.actions.start_consultation') }}
-                  </button>
-                  <button
-                    @click="openEditModal(appt)"
-                    class="px-3 py-1.5 text-xs font-medium rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition"
-                  >
-                    {{ t('appointments.actions.edit') }}
-                  </button>
-                </div>
-              </td>
-            </tr>
-            <tr v-if="appointmentStore.appointments.length === 0">
-              <td colspan="8" class="px-6 py-8 text-center text-gray-500 italic">
-                {{ t('appointments.empty') }}
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-    </div>
-
-    <div v-else class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+    <div v-else class="grid grid-cols-1 items-start gap-6 lg:grid-cols-3">
       <div class="lg:col-span-2">
         <AppointmentsCalendar
           :appointments="appointmentStore.rawAppointments"
@@ -220,6 +186,7 @@ import StatusBadge from '@/components/appointments/StatusBadge.vue';
 import AppointmentModal from '@/components/appointments/AppointmentModal.vue';
 import AppointmentsCalendar from '@/components/appointments/AppointmentsCalendar.vue';
 import AppointmentDayPanel from '@/components/appointments/AppointmentDayPanel.vue';
+import { AppButton, PageHeader, FormField, ResponsiveTable } from '@/components/ui';
 import {
   PlusCircleIcon,
   MagnifyingGlassIcon,
@@ -229,6 +196,18 @@ const { t } = useI18n();
 const appointmentStore = useAppointmentStore();
 const appointmentStatuses = APPOINTMENT_STATUSES;
 const router = useRouter();
+
+// Colonnes du tableau (cartes empilees sous lg) et style commun des champs de filtre.
+const columns = computed(() => [
+  { key: 'patient', label: t('appointments.table.patient') },
+  { key: 'phone', label: t('appointments.table.phone') },
+  { key: 'doctor', label: t('appointments.table.doctor') },
+  { key: 'date', label: t('appointments.table.date') },
+  { key: 'time', label: t('appointments.table.time') },
+  { key: 'reason', label: t('appointments.table.reason') },
+  { key: 'status', label: t('appointments.table.status') },
+]);
+const fieldClass = 'block w-full min-h-11 rounded-control border border-tone-neutral-border px-3 text-base text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand-600';
 
 function voirDossier(appt) {
   router.push(`/medical/patients/${appt.patient_id}`);
@@ -264,7 +243,7 @@ const customDate = computed({
 });
 
 function patientName(appt) {
-  return [appt.first_name, appt.last_name].filter(Boolean).join(' ') || '—';
+  return [appt.first_name, appt.last_name].filter(Boolean).join(' ') || '-';
 }
 
 const showModal = ref(false);

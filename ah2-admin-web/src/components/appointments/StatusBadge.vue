@@ -1,25 +1,32 @@
 <template>
-  <span v-if="status === 'completed'" class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-emerald-100 text-emerald-800">
-    <CheckCircleIcon class="h-3 w-3 mr-1" /> {{ t('appointments.status_completed') }}
-  </span>
-  <span v-else-if="status === 'cancelled'" class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-red-100 text-red-800">
-    <XCircleIcon class="h-3 w-3 mr-1" /> {{ t('appointments.status_cancelled') }}
-  </span>
-  <span v-else class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-yellow-100 text-yellow-800">
-    <ClockIcon class="h-3 w-3 mr-1" /> {{ t('appointments.status_pending') }}
-  </span>
+  <UiStatusBadge :tone="tone" :label="label" />
 </template>
 
 <script setup>
+// Meme API qu'avant (prop `status`) : l'apparence passe par le badge commun de la refonte
+// (point + texte, couleur selon le sens : vert = termine, rouge = annule, orange = en attente).
+import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { CheckCircleIcon, XCircleIcon, ClockIcon } from '@heroicons/vue/24/outline';
+import { StatusBadge as UiStatusBadge } from '@/components/ui';
 
 const { t } = useI18n();
 
-defineProps({
+const props = defineProps({
   status: {
     type: String,
     required: true,
   },
+});
+
+const tone = computed(() => {
+  if (props.status === 'completed') return 'success';
+  if (props.status === 'cancelled') return 'danger';
+  return 'warning';
+});
+
+const label = computed(() => {
+  if (props.status === 'completed') return t('appointments.status_completed');
+  if (props.status === 'cancelled') return t('appointments.status_cancelled');
+  return t('appointments.status_pending');
 });
 </script>

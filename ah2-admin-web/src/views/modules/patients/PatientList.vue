@@ -169,6 +169,23 @@
         @save="handleSave"
     />
 
+    <NewPatientCodeModal
+        v-if="codeDialog"
+        :localUuid="codeDialog.localUuid"
+        :firstName="codeDialog.firstName"
+        :lastName="codeDialog.lastName"
+        @ok="onCodeOk"
+    />
+
+    <!-- Parametres du patient qui vient d'etre enregistre : a envoyer au medecin par defaut -->
+    <MedicalRecordModal
+        v-if="recordPrefill"
+        :prefilledPatient="recordPrefill"
+        :defaultNeedsDoctorReview="true"
+        @close="recordPrefill = null"
+        @save="handleRecordSave"
+    />
+
     <ExportModal
       v-if="showExportModal"
       :title="t('export.confirm') + ' — ' + t('patients.title')"
@@ -190,6 +207,11 @@ import {
     PlusIcon, PencilSquareIcon, TrashIcon
 } from '@heroicons/vue/24/outline';
 import PatientModal from '@/components/patients/PatientModal.vue';
+import NewPatientCodeModal from '@/components/patients/NewPatientCodeModal.vue';
+import MedicalRecordModal from '@/components/medical-records/MedicalRecordModal.vue';
+import { useMedicalRecordStore } from '@/stores/medicalRecordStore';
+import { useToastStore } from '@/stores/toastStore';
+import { runsNewPatientFlow, patientPrefillFromCreated } from '@/utils/newPatientFlow';
 import ExportModal from '@/components/common/ExportModal.vue';
 import { useAuthStore } from '@/stores/auth';
 import api from '@/services/api';
@@ -198,6 +220,7 @@ const props = defineProps({ disableDetailLink: { type: Boolean, default: false }
 
 const { t } = useI18n();
 const patientStore = usePatientStore();
+const medicalRecordStore = useMedicalRecordStore();
 const router = useRouter();
 const route = useRoute();
 const authStore = useAuthStore();
@@ -293,6 +316,16 @@ const handleSave = async (payload) => {
         } else {
             const created = await patientStore.addPatient(payload);
             closeModal();
+            // Infirmiere : code a noter sur le carnet (fenetre qui attend OK), puis formulaire
+            // des parametres du patient. Medecin/secretaire : comportement inchange ci-dessous.
+            if (runsNewPatientFlow(authStore.userRole, created)) {
+                codeDialog.value = {
+                    localUuid: created.localUuid,
+                    firstName: payload.firstName,
+                    lastName: payload.lastName,
+                };
+                return;
+            }
             // medecin/nurse : on enchaine directement sur la fiche du patient
             // cree (consultation/prescription possibles hors ligne, identifie
             // par son uuid tant qu'il n'a pas de code). Secretaire : pas de
@@ -307,6 +340,28 @@ const handleSave = async (payload) => {
         modalError.value = mapErrorToMessage(err);
     } finally {
         isSavingPatient.value = false;
+    }
+};
+
+// Parcours nouveau patient (infirmiere) : fenetre du code -> OK -> formulaire des parametres.
+const codeDialog = ref(null);
+const recordPrefill = ref(null);
+
+const onCodeOk = ({ code, patientId }) => {
+    const { localUuid, firstName, lastName } = codeDialog.value;
+    recordPrefill.value = patientPrefillFromCreated({ localUuid, patientId, code, firstName, lastName });
+    codeDialog.value = null;
+};
+
+const handleRecordSave = async (data) => {
+    try {
+        await medicalRecordStore.createMedicalRecord(data);
+        recordPrefill.value = null;
+        useToastStore().push(t('newPatient.saved'), 'success');
+        patientStore.fetchPatients();
+    } catch (err) {
+        console.error('Erreur enregistrement des parametres:', err);
+        alert('Erreur lors de l\'enregistrement : ' + (err.response?.data?.detail || err.message));
     }
 };
 

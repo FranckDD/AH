@@ -1,46 +1,47 @@
 <template>
-  <div class="bg-white rounded-2xl shadow-xs border border-gray-100 p-6">
-    <div class="flex items-center justify-between mb-4">
-      <h3 class="text-lg font-bold text-gray-800">{{ t('hospitalization.card_title') }}</h3>
-      <button
-        v-if="!openStay"
-        @click="showAdmitForm = true"
-        class="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 transition"
-      >
+  <AppCard :title="t('hospitalization.card_title')">
+    <template #actions>
+      <AppButton v-if="!openStay" @click="showAdmitForm = true">
         {{ t('hospitalization.admit_button') }}
-      </button>
-    </div>
+      </AppButton>
+    </template>
 
-    <p v-if="error" class="text-sm text-red-600 mb-4">{{ error }}</p>
+    <p v-if="error" role="alert" class="mb-4 text-base font-medium text-tone-danger-text">{{ error }}</p>
 
-    <div v-if="!openStay && !showAdmitForm" class="text-sm text-gray-500 italic">
+    <p v-if="!openStay && !showAdmitForm" class="text-base text-ink-muted">
       {{ t('hospitalization.not_hospitalized') }}
-    </div>
+    </p>
 
-    <div v-if="showAdmitForm" class="space-y-3 mb-4 p-4 bg-gray-50 rounded-xl">
-      <label class="text-xs font-bold text-gray-500 uppercase block">{{ t('hospitalization.admission_reason') }}</label>
-      <textarea v-model="admissionReason" rows="2" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"></textarea>
-      <div class="flex gap-2">
-        <button @click="submitAdmit" :disabled="isSubmitting" class="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 transition disabled:opacity-40 disabled:cursor-not-allowed">
+    <div v-if="showAdmitForm" class="mb-4 grid gap-3 rounded-card border border-tone-neutral-border bg-tone-neutral-bg p-4">
+      <FormField id="hosp-reason" :label="t('hospitalization.admission_reason')" v-slot="{ describedBy }">
+        <textarea id="hosp-reason" v-model="admissionReason" rows="2" :aria-describedby="describedBy" :class="[fieldClass, 'py-2']"></textarea>
+      </FormField>
+      <div class="flex flex-col gap-2 sm:flex-row">
+        <AppButton @click="submitAdmit" :disabled="isSubmitting" :loading="isSubmitting">
           {{ t('hospitalization.confirm') }}
-        </button>
-        <button @click="showAdmitForm = false" :disabled="isSubmitting" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition disabled:opacity-40 disabled:cursor-not-allowed">
+        </AppButton>
+        <AppButton variant="ghost" @click="showAdmitForm = false" :disabled="isSubmitting">
           {{ t('hospitalization.cancel') }}
-        </button>
+        </AppButton>
       </div>
     </div>
 
     <div v-if="openStay" class="space-y-4">
-      <div class="flex items-center justify-between">
+      <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <div class="text-xs text-gray-500">{{ t('hospitalization.admitted_since') }}</div>
-          <div class="text-sm font-semibold text-gray-900">{{ formatDate(openStay.admitted_at) }} ({{ daysSince(openStay.admitted_at) }} {{ t('hospitalization.days_count') }})</div>
-          <div class="text-xs text-gray-400">{{ t('hospitalization.admitted_by') }} {{ openStay.admitted_by_name || t('hospitalization.unknown_user') }}</div>
+          <div class="text-sm text-ink-muted">{{ t('hospitalization.admitted_since') }}</div>
+          <div class="text-base font-semibold text-ink">{{ formatDate(openStay.admitted_at) }} ({{ daysSince(openStay.admitted_at) }} {{ t('hospitalization.days_count') }})</div>
+          <div class="text-sm text-ink-muted">{{ t('hospitalization.admitted_by') }} {{ openStay.admitted_by_name || t('hospitalization.unknown_user') }}</div>
         </div>
-        <div class="text-right">
-          <div class="text-xs text-gray-500">{{ t('hospitalization.current_status') }}</div>
-          <div class="text-sm font-semibold" :class="statusColorClass(latestStatus)">
-            {{ latestStatus ? t(`hospitalization.status.${latestStatus}`) : t('hospitalization.no_status_yet') }}
+        <div class="sm:text-right">
+          <div class="text-sm text-ink-muted">{{ t('hospitalization.current_status') }}</div>
+          <!-- Alerte d'aggravation : icone + texte en rouge -->
+          <div class="mt-1 inline-flex items-center gap-2">
+            <ExclamationTriangleIcon v-if="latestStatus === 'AGGRAVATION'" class="h-5 w-5 text-tone-danger-text" aria-hidden="true" />
+            <StatusBadge
+              :tone="statusTone(latestStatus)"
+              :label="latestStatus ? t(`hospitalization.status.${latestStatus}`) : t('hospitalization.no_status_yet')"
+            />
           </div>
         </div>
       </div>
@@ -49,93 +50,108 @@
            permet pas de retrouver les etats precedents pendant le sejour -
            chaque entree est deja horodatee et attribuee cote backend, elle
            manquait juste d'un affichage complet. -->
-      <div v-if="openStay.status_updates?.length" class="pt-2 border-t border-gray-100">
-        <h4 class="text-xs font-bold text-gray-500 uppercase mb-2">{{ t('hospitalization.evolution_title') }}</h4>
-        <div class="space-y-1.5 max-h-48 overflow-y-auto pr-1">
-          <div v-for="u in openStay.status_updates" :key="u.id" class="text-xs flex items-start gap-2">
-            <span class="font-semibold shrink-0" :class="statusColorClass(u.status)">{{ t(`hospitalization.status.${u.status}`) }}</span>
-            <span class="text-gray-400 shrink-0">{{ formatDate(u.created_at) }}</span>
-            <span class="text-gray-400 shrink-0">{{ t('hospitalization.recorded_by') }} {{ u.created_by_name || t('hospitalization.unknown_user') }}</span>
-            <span v-if="u.note" class="text-gray-600 italic truncate">— {{ u.note }}</span>
-          </div>
+      <div v-if="openStay.status_updates?.length" class="border-t border-tone-neutral-border pt-3">
+        <h4 class="mb-2 text-base font-semibold text-ink">{{ t('hospitalization.evolution_title') }}</h4>
+        <ul class="max-h-56 space-y-2 overflow-y-auto pr-1">
+          <li v-for="u in openStay.status_updates" :key="u.id" class="flex flex-col gap-1 text-base sm:flex-row sm:flex-wrap sm:items-center sm:gap-2">
+            <StatusBadge :tone="statusTone(u.status)" :label="t(`hospitalization.status.${u.status}`)" />
+            <span class="text-sm text-ink-muted">{{ formatDate(u.created_at) }}</span>
+            <span class="text-sm text-ink-muted">{{ t('hospitalization.recorded_by') }} {{ u.created_by_name || t('hospitalization.unknown_user') }}</span>
+            <span v-if="u.note" class="italic text-ink">{{ u.note }}</span>
+          </li>
+        </ul>
+      </div>
+
+      <div class="flex flex-col gap-2 sm:flex-row">
+        <AppButton variant="secondary" @click="showStatusForm = !showStatusForm">
+          {{ t('hospitalization.update_status_button') }}
+        </AppButton>
+        <AppButton variant="danger" @click="showDischargeForm = !showDischargeForm">
+          {{ t('hospitalization.discharge_button') }}
+        </AppButton>
+      </div>
+
+      <div v-if="showStatusForm" class="grid gap-3 rounded-card border border-tone-neutral-border bg-tone-neutral-bg p-4">
+        <FormField id="hosp-status" :label="t('hospitalization.update_status_button')" v-slot="{ describedBy }">
+          <select id="hosp-status" v-model="newStatus" :aria-describedby="describedBy" :class="fieldClass" :disabled="isSubmitting">
+            <option v-for="s in CLINICAL_STATUSES" :key="s" :value="s">{{ t(`hospitalization.status.${s}`) }}</option>
+          </select>
+        </FormField>
+        <FormField id="hosp-status-note" :label="t('hospitalization.status_note')" v-slot="{ describedBy }">
+          <textarea id="hosp-status-note" v-model="statusNote" rows="2" :aria-describedby="describedBy" :class="[fieldClass, 'py-2']" :disabled="isSubmitting"></textarea>
+        </FormField>
+        <div>
+          <AppButton @click="submitStatusUpdate" :disabled="isSubmitting" :loading="isSubmitting">
+            {{ t('hospitalization.confirm') }}
+          </AppButton>
         </div>
       </div>
 
-      <div class="flex gap-2">
-        <button @click="showStatusForm = !showStatusForm" class="px-3 py-1.5 text-xs font-medium rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 transition">
-          {{ t('hospitalization.update_status_button') }}
-        </button>
-        <button @click="showDischargeForm = !showDischargeForm" class="px-3 py-1.5 text-xs font-medium rounded-lg bg-red-50 text-red-700 hover:bg-red-100 transition">
-          {{ t('hospitalization.discharge_button') }}
-        </button>
-      </div>
-
-      <div v-if="showStatusForm" class="space-y-2 p-3 bg-gray-50 rounded-xl">
-        <select v-model="newStatus" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" :disabled="isSubmitting">
-          <option v-for="s in CLINICAL_STATUSES" :key="s" :value="s">{{ t(`hospitalization.status.${s}`) }}</option>
-        </select>
-        <textarea v-model="statusNote" :placeholder="t('hospitalization.status_note')" rows="2" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" :disabled="isSubmitting"></textarea>
-        <button @click="submitStatusUpdate" :disabled="isSubmitting" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition disabled:opacity-40 disabled:cursor-not-allowed">
-          {{ t('hospitalization.confirm') }}
-        </button>
-      </div>
-
-      <div v-if="showDischargeForm" class="space-y-2 p-3 bg-gray-50 rounded-xl">
-        <select v-model="dischargeDisposition" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" :disabled="isSubmitting">
-          <option value="" disabled>{{ t('hospitalization.discharge_disposition_label') }}</option>
-          <option v-for="d in DISCHARGE_DISPOSITIONS" :key="d" :value="d">{{ t(`hospitalization.disposition.${d}`) }}</option>
-        </select>
-        <textarea v-model="dischargeNote" :placeholder="t('hospitalization.discharge_note')" rows="2" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" :disabled="isSubmitting"></textarea>
-        <button
-          @click="submitDischarge"
-          :disabled="isSubmitting || !dischargeDisposition"
-          class="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 transition disabled:opacity-40 disabled:cursor-not-allowed"
-        >
-          {{ t('hospitalization.confirm') }}
-        </button>
+      <div v-if="showDischargeForm" class="grid gap-3 rounded-card border border-tone-neutral-border bg-tone-neutral-bg p-4">
+        <FormField id="hosp-discharge" :label="t('hospitalization.discharge_disposition_label')" required v-slot="{ describedBy }">
+          <select id="hosp-discharge" v-model="dischargeDisposition" :aria-describedby="describedBy" :class="fieldClass" :disabled="isSubmitting">
+            <option value="" disabled>{{ t('hospitalization.discharge_disposition_label') }}</option>
+            <option v-for="d in DISCHARGE_DISPOSITIONS" :key="d" :value="d">{{ t(`hospitalization.disposition.${d}`) }}</option>
+          </select>
+        </FormField>
+        <FormField id="hosp-discharge-note" :label="t('hospitalization.discharge_note')" v-slot="{ describedBy }">
+          <textarea id="hosp-discharge-note" v-model="dischargeNote" rows="2" :aria-describedby="describedBy" :class="[fieldClass, 'py-2']" :disabled="isSubmitting"></textarea>
+        </FormField>
+        <div>
+          <AppButton
+            variant="danger"
+            @click="submitDischarge"
+            :disabled="isSubmitting || !dischargeDisposition"
+          >
+            {{ t('hospitalization.confirm') }}
+          </AppButton>
+        </div>
       </div>
     </div>
 
-    <div v-if="hospitalizationStore.patientHistory.length > 0" class="mt-6 pt-4 border-t border-gray-100">
-      <h4 class="text-xs font-bold text-gray-500 uppercase mb-2">{{ t('hospitalization.history_title') }}</h4>
-      <div class="space-y-3">
-        <div v-for="stay in hospitalizationStore.patientHistory" :key="stay.id" class="text-xs">
-          <div class="flex justify-between items-center text-gray-600">
-            <span>{{ formatDate(stay.admitted_at) }} → {{ stay.discharged_at ? formatDate(stay.discharged_at) : '…' }}</span>
-            <div class="flex items-center gap-2">
+    <div v-if="hospitalizationStore.patientHistory.length > 0" class="mt-6 border-t border-tone-neutral-border pt-4">
+      <h4 class="mb-3 text-base font-semibold text-ink">{{ t('hospitalization.history_title') }}</h4>
+      <ul class="space-y-4">
+        <li v-for="stay in hospitalizationStore.patientHistory" :key="stay.id" class="text-base">
+          <div class="flex flex-col gap-2 text-ink sm:flex-row sm:items-center sm:justify-between">
+            <span>{{ formatDate(stay.admitted_at) }} - {{ stay.discharged_at ? formatDate(stay.discharged_at) : '...' }}</span>
+            <div class="flex flex-wrap items-center gap-2">
               <span v-if="stay.discharge_disposition" class="font-medium">{{ t(`hospitalization.disposition.${stay.discharge_disposition}`) }}</span>
-              <button
+              <AppButton
                 v-if="stay.discharge_disposition"
+                variant="secondary"
                 @click="downloadLetter(stay.id)"
                 :disabled="downloadingLetterId === stay.id"
-                class="px-2 py-0.5 text-xs font-medium rounded-sm bg-gray-100 text-gray-700 hover:bg-gray-200 transition disabled:opacity-40"
+                :loading="downloadingLetterId === stay.id"
               >
                 {{ t('hospitalization.download_letter') }}
-              </button>
+              </AppButton>
             </div>
           </div>
-          <div v-if="stay.discharge_disposition" class="text-gray-400">
+          <div v-if="stay.discharge_disposition" class="text-sm text-ink-muted">
             {{ t('hospitalization.discharged_by') }} {{ stay.discharged_by_name || t('hospitalization.unknown_user') }}
           </div>
-          <div v-if="stay.status_updates?.length" class="mt-1 pl-3 border-l-2 border-gray-100 space-y-1">
-            <div v-for="u in stay.status_updates" :key="u.id" class="flex items-start gap-2">
-              <span class="font-medium shrink-0" :class="statusColorClass(u.status)">{{ t(`hospitalization.status.${u.status}`) }}</span>
-              <span class="text-gray-400 shrink-0">{{ formatDate(u.created_at) }}</span>
-              <span v-if="u.note" class="text-gray-500 italic truncate">— {{ u.note }}</span>
-            </div>
-          </div>
-        </div>
-      </div>
+          <ul v-if="stay.status_updates?.length" class="mt-2 space-y-2 border-l-2 border-tone-neutral-border pl-3">
+            <li v-for="u in stay.status_updates" :key="u.id" class="flex flex-col gap-1 sm:flex-row sm:flex-wrap sm:items-center sm:gap-2">
+              <StatusBadge :tone="statusTone(u.status)" :label="t(`hospitalization.status.${u.status}`)" />
+              <span class="text-sm text-ink-muted">{{ formatDate(u.created_at) }}</span>
+              <span v-if="u.note" class="italic text-ink">{{ u.note }}</span>
+            </li>
+          </ul>
+        </li>
+      </ul>
     </div>
-  </div>
+  </AppCard>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import dayjs from 'dayjs';
+import { ExclamationTriangleIcon } from '@heroicons/vue/24/outline';
 import { useHospitalizationStore, DISCHARGE_DISPOSITIONS, CLINICAL_STATUSES } from '@/stores/hospitalizationStore';
 import { HospitalizationGateway } from '@/services/HospitalizationGateway';
+import { AppButton, AppCard, FormField, StatusBadge } from '@/components/ui';
 
 const { t } = useI18n();
 const hospitalizationStore = useHospitalizationStore();
@@ -146,6 +162,9 @@ const props = defineProps({
     required: true,
   },
 });
+
+// Style commun des champs : zone tactile >= 44 px, focus visible.
+const fieldClass = 'block w-full min-h-11 rounded-control border border-tone-neutral-border bg-white px-3 text-base text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand-600';
 
 const showAdmitForm = ref(false);
 const admissionReason = ref('');
@@ -170,10 +189,11 @@ function formatDate(d) {
 function daysSince(d) {
   return dayjs().diff(dayjs(d), 'day');
 }
-function statusColorClass(status) {
-  if (status === 'AMELIORATION') return 'text-emerald-700';
-  if (status === 'AGGRAVATION') return 'text-red-700';
-  return 'text-gray-700';
+// Vert = amelioration, rouge = aggravation (alerte), neutre sinon.
+function statusTone(status) {
+  if (status === 'AMELIORATION') return 'success';
+  if (status === 'AGGRAVATION') return 'danger';
+  return 'neutral';
 }
 
 async function submitAdmit() {

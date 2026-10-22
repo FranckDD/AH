@@ -27,3 +27,70 @@ html, body, #app {
   padding: 0;
   overflow: hidden; /* Important pour éviter les doubles barres de défilement */
 }
+
+/* ------------------------------------------------------------------
+   Refonte UX de l'espace médical — jetons de design (ajouts seulement).
+   Noms nouveaux uniquement : aucun autre espace n'est modifié.
+   ------------------------------------------------------------------ */
+@theme {
+  /* Marque : vert-teal (action principale) */
+  --color-brand-50: #f0fdfa;
+  --color-brand-100: #ccfbf1;
+  --color-brand-500: #14b8a6;
+  --color-brand-600: #0f766e;
+  --color-brand-700: #115e59;
+  --color-brand-800: #134e4a;
+
+  /* Menu : bleu nuit */
+  --color-nav-800: #12305a;
+  --color-nav-900: #0b1f3a;
+  --color-nav-text: #e2e8f0;
+
+  /* Texte et fond de page (neutres froids) */
+  --color-ink: #0f172a;
+  --color-ink-muted: #475569;
+  --color-page: #f4f7fa;
+
+  /* États : rouge = urgent/erreur, orange = attention, vert = fait, bleu = information */
+  --color-tone-danger-bg: #fef2f2;
+  --color-tone-danger-text: #991b1b;
+  --color-tone-danger-border: #fca5a5;
+  --color-tone-warning-bg: #fffbeb;
+  --color-tone-warning-text: #92400e;
+  --color-tone-warning-border: #fcd34d;
+  --color-tone-success-bg: #ecfdf5;
+  --color-tone-success-text: #065f46;
+  --color-tone-success-border: #6ee7b7;
+  --color-tone-info-bg: #eff6ff;
+  --color-tone-info-text: #1e40af;
+  --color-tone-info-border: #93c5fd;
+  --color-tone-neutral-bg: #f1f5f9;
+  --color-tone-neutral-text: #334155;
+  --color-tone-neutral-border: #cbd5e1;
+
+  --radius-card: 12px;
+  --radius-control: 8px;
+  --shadow-card: 0 1px 2px rgb(15 23 42 / 0.06), 0 2px 8px rgb(15 23 42 / 0.06);
+
+  /* Nommée --font-brand (et non --font-sans) pour ne pas changer la police des autres espaces */
+  --font-brand: 'Inter Variable', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --text-base-app: 1rem;
+}
+
+/* Taille et police de base limitées au conteneur de la refonte (posé par MedicalLayout et la connexion). */
+.app-refonte {
+  font-family: var(--font-brand);
+  font-size: var(--text-base-app);
+  line-height: 1.6;
+  color: var(--color-ink);
+}
+
+/* Police locale (aucun CDN : application installable/hors ligne). Sous-ensemble latin seulement (accents français inclus). */
+@font-face {
+  font-family: 'Inter Variable';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url('@fontsource-variable/inter/files/inter-latin-wght-normal.woff2') format('woff2-variations');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}

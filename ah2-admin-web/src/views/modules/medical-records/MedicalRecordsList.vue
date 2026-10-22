@@ -1,159 +1,141 @@
 <template>
-  <div class="space-y-6 w-full">
+  <div class="grid w-full gap-6">
 
-    <div class="flex flex-col md:flex-row justify-between items-center bg-white p-6 rounded-2xl shadow-xs border border-gray-100 gap-4">
-      <div>
-        <h1 class="text-2xl font-extrabold text-gray-800 tracking-tight">
-          {{ t('medicalRecords.title') }}
-        </h1>
-        <p class="text-sm text-gray-500">{{ t('medicalRecords.subtitle') }}</p>
-      </div>
+    <PageHeader :title="t('medicalRecords.title')" :subtitle="t('medicalRecords.subtitle')">
+      <template #actions>
+        <AppButton :icon="PlusCircleIcon" @click="openCreateModal">
+          {{ t('medicalRecords.new_record') }}
+        </AppButton>
+      </template>
+    </PageHeader>
 
-      <button
-        @click="openCreateModal"
-        class="flex items-center px-6 py-2.5 bg-teal-600 text-white rounded-xl hover:bg-teal-700 shadow-md shadow-teal-200 transition font-semibold"
-      >
-        <PlusCircleIcon class="h-5 w-5 mr-2" />
-        {{ t('medicalRecords.new_record') }}
-      </button>
-    </div>
+    <section class="grid gap-4 rounded-card border border-tone-neutral-border bg-white p-4 shadow-card md:grid-cols-2 lg:flex lg:flex-wrap lg:items-end">
 
-    <div class="bg-white p-4 rounded-2xl shadow-xs border border-gray-100 flex flex-wrap gap-4 items-end">
-
-      <div class="flex-1 min-w-[220px]">
-        <label class="text-xs font-bold text-gray-500 uppercase mb-1 block">{{ t('medicalRecords.search_label') }}</label>
-        <div class="relative">
-          <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <MagnifyingGlassIcon class="h-5 w-5 text-gray-400" />
+      <div class="md:col-span-2 lg:min-w-[220px] lg:flex-1">
+        <FormField id="mr-search" :label="t('medicalRecords.search_label')" v-slot="{ describedBy }">
+          <div class="relative">
+            <MagnifyingGlassIcon class="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-ink-muted" aria-hidden="true" />
+            <input
+              id="mr-search"
+              v-model="searchQuery"
+              type="text"
+              :aria-describedby="describedBy"
+              :placeholder="t('medicalRecords.search_placeholder')"
+              :class="[fieldClass, 'bg-white pl-10']"
+            >
           </div>
-          <input
-            v-model="searchQuery"
-            type="text"
-            :placeholder="t('medicalRecords.search_placeholder')"
-            class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg bg-gray-50 focus:ring-teal-500 focus:border-teal-500 sm:text-sm"
-          >
-        </div>
+        </FormField>
       </div>
 
-      <div class="w-full md:w-44">
-        <label class="text-xs font-bold text-gray-500 uppercase mb-1 block">{{ t('medicalRecords.motif_label') }}</label>
-        <select v-model="motifFilter" class="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-hidden focus:ring-teal-500 focus:border-teal-500 sm:text-sm rounded-lg">
-          <option value="">{{ t('medicalRecords.motif_all') }}</option>
-          <option v-for="m in medicalRecordStore.motifs" :key="m.code" :value="m.code">{{ m.label_fr }}</option>
-        </select>
+      <div class="lg:w-44">
+        <FormField id="mr-motif-filter" :label="t('medicalRecords.motif_label')" v-slot="{ describedBy }">
+          <select id="mr-motif-filter" v-model="motifFilter" :aria-describedby="describedBy" :class="[fieldClass, 'bg-white']">
+            <option value="">{{ t('medicalRecords.motif_all') }}</option>
+            <option v-for="m in medicalRecordStore.motifs" :key="m.code" :value="m.code">{{ m.label_fr }}</option>
+          </select>
+        </FormField>
       </div>
 
-      <div class="w-full md:w-40">
-        <label class="text-xs font-bold text-gray-500 uppercase mb-1 block">{{ t('medicalRecords.severity_label') }}</label>
-        <select v-model="severityFilter" class="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-hidden focus:ring-teal-500 focus:border-teal-500 sm:text-sm rounded-lg">
-          <option value="">{{ t('medicalRecords.severity_all') }}</option>
-          <option value="low">{{ t('medicalRecords.severity_low') }}</option>
-          <option value="medium">{{ t('medicalRecords.severity_medium') }}</option>
-          <option value="high">{{ t('medicalRecords.severity_high') }}</option>
-        </select>
+      <div class="lg:w-40">
+        <FormField id="mr-severity-filter" :label="t('medicalRecords.severity_label')" v-slot="{ describedBy }">
+          <select id="mr-severity-filter" v-model="severityFilter" :aria-describedby="describedBy" :class="[fieldClass, 'bg-white']">
+            <option value="">{{ t('medicalRecords.severity_all') }}</option>
+            <option value="low">{{ t('medicalRecords.severity_low') }}</option>
+            <option value="medium">{{ t('medicalRecords.severity_medium') }}</option>
+            <option value="high">{{ t('medicalRecords.severity_high') }}</option>
+          </select>
+        </FormField>
       </div>
 
-      <div class="w-full md:w-40">
-        <label class="text-xs font-bold text-gray-500 uppercase mb-1 block">{{ t('medicalRecords.date_from') }}</label>
-        <input v-model="dateFrom" type="date" class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500 sm:text-sm" />
+      <div class="lg:w-40">
+        <FormField id="mr-date-from" :label="t('medicalRecords.date_from')" v-slot="{ describedBy }">
+          <input id="mr-date-from" v-model="dateFrom" type="date" :aria-describedby="describedBy" :class="[fieldClass, 'bg-white']" />
+        </FormField>
       </div>
 
-      <div class="w-full md:w-40">
-        <label class="text-xs font-bold text-gray-500 uppercase mb-1 block">{{ t('medicalRecords.date_to') }}</label>
-        <input v-model="dateTo" type="date" class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500 sm:text-sm" />
+      <div class="lg:w-40">
+        <FormField id="mr-date-to" :label="t('medicalRecords.date_to')" v-slot="{ describedBy }">
+          <input id="mr-date-to" v-model="dateTo" type="date" :aria-describedby="describedBy" :class="[fieldClass, 'bg-white']" />
+        </FormField>
       </div>
-    </div>
+    </section>
 
-    <div class="bg-white rounded-2xl shadow-xs border border-gray-100 overflow-hidden">
+    <section class="grid gap-3">
 
-      <div class="p-4 border-b border-gray-100 flex items-center justify-between">
-        <div class="text-sm text-gray-500">
-          {{ medicalRecordStore.pagination.total }} {{ t('medicalRecords.results_count') }}
-        </div>
-      </div>
+      <p class="text-base text-ink-muted" aria-live="polite">
+        {{ medicalRecordStore.pagination.total }} {{ t('medicalRecords.results_count') }}
+      </p>
 
-      <div v-if="medicalRecordStore.isLoading" class="p-10 text-center">
-        <span class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600"></span>
-        <p class="mt-2 text-gray-500">{{ t('common.loading') }}</p>
-      </div>
+      <ResponsiveTable
+        :columns="columns"
+        :rows="medicalRecordStore.records"
+        row-key="record_id"
+        :loading="medicalRecordStore.isLoading"
+        :empty-title="t('medicalRecords.empty')"
+      >
+        <template #cell-patient="{ row: rec }">
+          <div class="text-base font-medium text-ink">{{ patientName(rec) }}</div>
+          <div class="text-sm text-ink-muted">{{ rec.patient?.code_patient }}</div>
+        </template>
+        <template #cell-date="{ row: rec }"><span class="font-mono">{{ (rec.consultation_date || '').substring(0, 10) }}</span></template>
+        <template #cell-motif="{ row: rec }">{{ motifLabel(rec.motif_code) }}</template>
+        <template #cell-severity="{ row: rec }">
+          <StatusBadge :tone="severityTone(rec.severity)" :label="severityLabel(rec.severity)" />
+        </template>
+        <template #cell-diagnosis="{ row: rec }">
+          <span class="block lg:max-w-xs lg:truncate" :title="rec.diagnosis">{{ rec.diagnosis || '-' }}</span>
+        </template>
+        <template #cell-treatment="{ row: rec }">
+          <span class="block lg:max-w-xs lg:truncate" :title="rec.treatment">{{ rec.treatment || '-' }}</span>
+        </template>
 
-      <div v-else class="overflow-x-auto">
-        <table class="min-w-full text-left border-collapse">
-          <thead>
-            <tr class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
-              <th class="px-6 py-4 font-semibold">{{ t('medicalRecords.table.patient') }}</th>
-              <th class="px-6 py-4 font-semibold">{{ t('medicalRecords.table.date') }}</th>
-              <th class="px-6 py-4 font-semibold">{{ t('medicalRecords.table.motif') }}</th>
-              <th class="px-6 py-4 font-semibold">{{ t('medicalRecords.table.severity') }}</th>
-              <th class="px-6 py-4 font-semibold">{{ t('medicalRecords.table.diagnosis') }}</th>
-              <th class="px-6 py-4 font-semibold">{{ t('medicalRecords.table.treatment') }}</th>
-              <th class="px-6 py-4 font-semibold text-right">{{ t('medicalRecords.table.actions') }}</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-gray-100">
-            <tr v-for="rec in medicalRecordStore.records" :key="rec.record_id || rec.local_id" class="hover:bg-gray-50 transition">
-              <td class="px-6 py-4">
-                <div class="text-sm font-medium text-gray-900">{{ patientName(rec) }}</div>
-                <div class="text-xs text-gray-500">{{ rec.patient?.code_patient }}</div>
-              </td>
-              <td class="px-6 py-4 text-sm text-gray-600 font-mono">{{ (rec.consultation_date || '').substring(0, 10) }}</td>
-              <td class="px-6 py-4 text-sm text-gray-600">{{ motifLabel(rec.motif_code) }}</td>
-              <td class="px-6 py-4">
-                <span class="px-2 py-1 rounded-sm text-xs font-semibold" :class="severityClass(rec.severity)">
-                  {{ severityLabel(rec.severity) }}
-                </span>
-              </td>
-              <td class="px-6 py-4 text-sm text-gray-600 max-w-xs truncate" :title="rec.diagnosis">{{ rec.diagnosis || '—' }}</td>
-              <td class="px-6 py-4 text-sm text-gray-600 max-w-xs truncate" :title="rec.treatment">{{ rec.treatment || '—' }}</td>
-              <td class="px-6 py-4 text-right">
-                <span v-if="!isRecordEditable(rec, medicalRecordStore.records)"
-                      class="inline-block px-2 py-0.5 text-[11px] font-semibold rounded-full bg-gray-200 text-gray-700">
-                  {{ t('medical.readonly.badge') }}
-                </span>
-                <div v-else class="flex justify-end gap-2">
-                  <button
-                    @click="openEditModal(rec)"
-                    :disabled="!rec.record_id"
-                    :title="rec.record_id ? '' : 'En attente de synchronisation'"
-                    class="px-3 py-1.5 text-xs font-medium rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition disabled:opacity-40 disabled:cursor-not-allowed"
-                  >
-                    {{ t('medicalRecords.actions.edit') }}
-                  </button>
-                  <button
-                    @click="handleDelete(rec)"
-                    :disabled="!rec.record_id"
-                    :title="rec.record_id ? '' : 'En attente de synchronisation'"
-                    class="px-3 py-1.5 text-xs font-medium rounded-lg bg-red-50 text-red-700 hover:bg-red-100 transition disabled:opacity-40 disabled:cursor-not-allowed"
-                  >
-                    {{ t('medicalRecords.actions.delete') }}
-                  </button>
-                </div>
-              </td>
-            </tr>
-            <tr v-if="medicalRecordStore.records.length === 0">
-              <td colspan="7" class="px-6 py-8 text-center text-gray-500 italic">
-                {{ t('medicalRecords.empty') }}
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+        <template #actions="{ row: rec }">
+          <!-- Consultation passee : lecture seule, on affiche le badge a la place des boutons -->
+          <StatusBadge v-if="!isRecordEditable(rec, medicalRecordStore.records)" tone="neutral" :label="t('medical.readonly.badge')" />
+          <template v-else>
+            <AppButton
+              variant="secondary"
+              @click="openEditModal(rec)"
+              :disabled="!rec.record_id"
+              :title="rec.record_id ? '' : 'En attente de synchronisation'"
+            >
+              {{ t('medicalRecords.actions.edit') }}
+            </AppButton>
+            <AppButton
+              variant="danger"
+              @click="handleDelete(rec)"
+              :disabled="!rec.record_id"
+              :title="rec.record_id ? '' : 'En attente de synchronisation'"
+            >
+              {{ t('medicalRecords.actions.delete') }}
+            </AppButton>
+          </template>
+        </template>
+      </ResponsiveTable>
 
-      <div v-if="medicalRecordStore.pagination.total_pages > 1" class="p-4 flex justify-between items-center border-t border-gray-100 bg-gray-50">
-        <p class="text-sm text-gray-700">
+      <div v-if="medicalRecordStore.pagination.total_pages > 1" class="flex items-center justify-between gap-3 rounded-card border border-tone-neutral-border bg-white p-3">
+        <p class="text-base text-ink">
           {{ t('common.page') }} {{ medicalRecordStore.pagination.page }} / {{ medicalRecordStore.pagination.total_pages }}
         </p>
-        <div class="flex space-x-2">
-          <button @click="goToPage(medicalRecordStore.pagination.page - 1)" :disabled="medicalRecordStore.pagination.page === 1" class="px-3 py-1 border rounded-sm bg-white disabled:opacity-50">
-            <ChevronLeftIcon class="h-5 w-5" />
-          </button>
-          <button @click="goToPage(medicalRecordStore.pagination.page + 1)" :disabled="medicalRecordStore.pagination.page === medicalRecordStore.pagination.total_pages" class="px-3 py-1 border rounded-sm bg-white disabled:opacity-50">
-            <ChevronRightIcon class="h-5 w-5" />
-          </button>
+        <div class="flex gap-2">
+          <AppButton
+            variant="secondary"
+            :icon="ChevronLeftIcon"
+            :aria-label="t('medicalRecords.prev_page')"
+            @click="goToPage(medicalRecordStore.pagination.page - 1)"
+            :disabled="medicalRecordStore.pagination.page === 1"
+          />
+          <AppButton
+            variant="secondary"
+            :icon="ChevronRightIcon"
+            :aria-label="t('medicalRecords.next_page')"
+            @click="goToPage(medicalRecordStore.pagination.page + 1)"
+            :disabled="medicalRecordStore.pagination.page === medicalRecordStore.pagination.total_pages"
+          />
         </div>
       </div>
 
-    </div>
+    </section>
 
     <MedicalRecordModal
       v-if="showModal"
@@ -171,6 +153,7 @@ import { useMedicalRecordStore } from '@/stores/medicalRecordStore';
 import { useI18n } from 'vue-i18n';
 import MedicalRecordModal from '@/components/medical-records/MedicalRecordModal.vue';
 import { isRecordEditable } from '@/utils/consultationLock';
+import { AppButton, PageHeader, FormField, StatusBadge, ResponsiveTable } from '@/components/ui';
 import {
   PlusCircleIcon,
   MagnifyingGlassIcon,
@@ -180,6 +163,17 @@ import {
 
 const { t } = useI18n();
 const medicalRecordStore = useMedicalRecordStore();
+
+// Colonnes du tableau (cartes empilees sous lg) et style commun des champs de filtre.
+const columns = computed(() => [
+  { key: 'patient', label: t('medicalRecords.table.patient') },
+  { key: 'date', label: t('medicalRecords.table.date') },
+  { key: 'motif', label: t('medicalRecords.table.motif') },
+  { key: 'severity', label: t('medicalRecords.table.severity') },
+  { key: 'diagnosis', label: t('medicalRecords.table.diagnosis') },
+  { key: 'treatment', label: t('medicalRecords.table.treatment') },
+]);
+const fieldClass = 'block w-full min-h-11 rounded-control border border-tone-neutral-border px-3 text-base text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand-600';
 
 onMounted(() => {
   medicalRecordStore.fetchMedicalRecords();
@@ -219,28 +213,28 @@ function goToPage(page) {
 
 function patientName(rec) {
   const p = rec.patient;
-  if (!p) return '—';
+  if (!p) return '-';
   return [p.first_name, p.last_name].filter(Boolean).join(' ');
 }
 
 function motifLabel(code) {
   const m = medicalRecordStore.motifs.find((x) => x.code === code);
-  return m ? m.label_fr : (code || '—');
+  return m ? m.label_fr : (code || '-');
 }
 
-// Coloration par gravite - port exact de mr_list_view.py (rouge/jaune/vert).
-function severityClass(severity) {
-  if (severity === 'high') return 'bg-red-100 text-red-700';
-  if (severity === 'medium') return 'bg-yellow-100 text-yellow-700';
-  if (severity === 'low') return 'bg-emerald-100 text-emerald-700';
-  return 'bg-gray-100 text-gray-500';
+// Coloration par gravite (rouge / orange / vert), toujours accompagnee du texte.
+function severityTone(severity) {
+  if (severity === 'high') return 'danger';
+  if (severity === 'medium') return 'warning';
+  if (severity === 'low') return 'success';
+  return 'neutral';
 }
 
 function severityLabel(severity) {
   if (severity === 'high') return t('medicalRecords.severity_high');
   if (severity === 'medium') return t('medicalRecords.severity_medium');
   if (severity === 'low') return t('medicalRecords.severity_low');
-  return '—';
+  return '-';
 }
 
 const showModal = ref(false);

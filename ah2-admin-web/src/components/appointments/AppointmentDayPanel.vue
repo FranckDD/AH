@@ -1,72 +1,71 @@
 <template>
-  <div class="bg-white rounded-2xl shadow-xs border border-gray-100 overflow-hidden h-fit">
-    <div class="p-4 border-b border-gray-100 flex items-center justify-between">
-      <h3 class="text-sm font-bold text-gray-700">
+  <section class="h-fit overflow-hidden rounded-card border border-tone-neutral-border bg-white shadow-card">
+    <div class="flex items-center justify-between gap-2 border-b border-tone-neutral-border px-4 py-3">
+      <h3 class="text-lg font-semibold text-ink">
         {{ t('appointments.calendar.day_panel_title') }} {{ formattedDate }}
       </h3>
-      <button @click="$emit('close')" class="p-1 rounded-lg hover:bg-gray-100 transition">
-        <XMarkIcon class="h-5 w-5 text-gray-400" />
+      <button
+        type="button"
+        @click="$emit('close')"
+        class="inline-flex min-h-11 min-w-11 items-center justify-center rounded-control text-ink-muted hover:bg-tone-neutral-bg focus-visible:outline-2 focus-visible:outline-brand-600"
+        :aria-label="t('ui.close')"
+      >
+        <XMarkIcon class="h-5 w-5" aria-hidden="true" />
       </button>
     </div>
 
-    <div v-if="appointments.length === 0" class="p-6 text-sm text-gray-500 italic text-center">
-      {{ t('appointments.calendar.day_panel_empty') }}
-    </div>
+    <EmptyState v-if="appointments.length === 0" :title="t('appointments.calendar.day_panel_empty')" />
 
-    <div v-else class="divide-y divide-gray-100">
-      <div v-for="appt in appointments" :key="appt.id" class="p-4 space-y-2">
-        <div class="flex items-center justify-between">
-          <div>
-            <div class="text-sm font-semibold text-gray-900">{{ patientLabel(appt) }}</div>
-            <div class="text-xs text-gray-500 font-mono">{{ (appt.appointment_time || '').substring(0, 5) }}</div>
+    <ul v-else class="divide-y divide-tone-neutral-border">
+      <li v-for="appt in appointments" :key="appt.id" class="space-y-3 p-4">
+        <div class="flex items-start justify-between gap-3">
+          <div class="min-w-0">
+            <p class="text-base font-semibold text-ink">{{ patientLabel(appt) }}</p>
+            <p class="font-mono text-sm text-ink-muted">{{ (appt.appointment_time || '').substring(0, 5) }}</p>
           </div>
           <StatusBadge :status="appt.status" />
         </div>
-        <div v-if="appt.reason" class="text-xs text-gray-600">{{ appt.reason }}</div>
+        <p v-if="appt.reason" class="text-base text-ink">{{ appt.reason }}</p>
 
-        <div class="flex flex-wrap gap-2 pt-1">
-          <button
-            v-if="appt.status === 'pending'"
-            @click="$emit('complete', appt)"
-            :disabled="!appt.server_id"
-            class="px-3 py-1.5 text-xs font-medium rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            {{ t('appointments.actions.complete') }}
-          </button>
-          <button
-            v-if="appt.status === 'pending'"
-            @click="$emit('cancel', appt)"
-            :disabled="!appt.server_id"
-            class="px-3 py-1.5 text-xs font-medium rounded-lg bg-red-50 text-red-700 hover:bg-red-100 transition disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            {{ t('appointments.actions.cancel') }}
-          </button>
-          <button
-            v-if="appt.status === 'pending'"
-            @click="$emit('view-dossier', appt)"
-            :disabled="!appt.patient_id"
-            class="px-3 py-1.5 text-xs font-medium rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 transition disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            {{ t('appointments.actions.view_dossier') }}
-          </button>
-          <button
+        <div class="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+          <AppButton
             v-if="appt.status === 'pending'"
             @click="$emit('start-consultation', appt)"
             :disabled="!appt.patient_id || !appt.server_id"
-            class="px-3 py-1.5 text-xs font-medium rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {{ t('appointments.actions.start_consultation') }}
-          </button>
-          <button
-            @click="$emit('edit', appt)"
-            class="px-3 py-1.5 text-xs font-medium rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition"
+          </AppButton>
+          <AppButton
+            v-if="appt.status === 'pending'"
+            variant="secondary"
+            @click="$emit('complete', appt)"
+            :disabled="!appt.server_id"
           >
+            {{ t('appointments.actions.complete') }}
+          </AppButton>
+          <AppButton
+            v-if="appt.status === 'pending'"
+            variant="secondary"
+            @click="$emit('view-dossier', appt)"
+            :disabled="!appt.patient_id"
+          >
+            {{ t('appointments.actions.view_dossier') }}
+          </AppButton>
+          <AppButton variant="ghost" @click="$emit('edit', appt)">
             {{ t('appointments.actions.edit') }}
-          </button>
+          </AppButton>
+          <AppButton
+            v-if="appt.status === 'pending'"
+            variant="danger"
+            @click="$emit('cancel', appt)"
+            :disabled="!appt.server_id"
+          >
+            {{ t('appointments.actions.cancel') }}
+          </AppButton>
         </div>
-      </div>
-    </div>
-  </div>
+      </li>
+    </ul>
+  </section>
 </template>
 
 <script setup>
@@ -75,6 +74,7 @@ import { useI18n } from 'vue-i18n';
 import dayjs from 'dayjs';
 import { XMarkIcon } from '@heroicons/vue/24/outline';
 import StatusBadge from '@/components/appointments/StatusBadge.vue';
+import { AppButton, EmptyState } from '@/components/ui';
 
 const { t } = useI18n();
 
@@ -94,6 +94,6 @@ defineEmits(['close', 'edit', 'cancel', 'complete', 'view-dossier', 'start-consu
 const formattedDate = computed(() => dayjs(props.date).format('DD/MM/YYYY'));
 
 function patientLabel(appt) {
-  return [appt.first_name, appt.last_name].filter(Boolean).join(' ') || '—';
+  return [appt.first_name, appt.last_name].filter(Boolean).join(' ') || '-';
 }
 </script>

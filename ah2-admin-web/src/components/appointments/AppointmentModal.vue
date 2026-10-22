@@ -1,90 +1,105 @@
 <template>
-  <div class="fixed inset-0 bg-gray-600/50 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
-    <div class="relative mx-auto p-6 border w-full max-w-md shadow-xl rounded-2xl bg-white">
+  <!-- Panneau plein ecran sur telephone, fenetre centree des sm -->
+  <div class="fixed inset-0 z-50 flex items-end justify-center bg-ink/50 sm:items-center sm:p-4" role="dialog" aria-modal="true" aria-labelledby="appointment-modal-title">
+    <div class="app-refonte flex max-h-dvh w-full max-w-lg flex-col overflow-hidden bg-white shadow-card sm:rounded-card">
 
-      <div class="flex justify-between items-center mb-6">
-        <h3 class="text-xl font-bold text-gray-900">
+      <div class="flex items-center justify-between gap-3 border-b border-tone-neutral-border px-4 py-3 md:px-5">
+        <h3 id="appointment-modal-title" class="text-xl font-bold text-ink">
           {{ isEdit ? t('appointments.modal.title_edit') : t('appointments.modal.title_new') }}
         </h3>
-        <button @click="$emit('close')" class="text-gray-400 hover:text-gray-500 transition">
-          <span class="text-2xl">&times;</span>
+        <button
+          type="button"
+          @click="$emit('close')"
+          class="inline-flex min-h-11 min-w-11 items-center justify-center rounded-control text-ink-muted hover:bg-tone-neutral-bg focus-visible:outline-2 focus-visible:outline-brand-600"
+          :aria-label="t('ui.close')"
+        >
+          <XMarkIcon class="h-6 w-6" aria-hidden="true" />
         </button>
       </div>
 
-      <form @submit.prevent="handleSubmit" class="space-y-5">
+      <form @submit.prevent="handleSubmit" class="flex min-h-0 flex-1 flex-col">
+        <div class="flex-1 space-y-4 overflow-y-auto p-4 md:p-5">
 
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('appointments.modal.patient_code') }}</label>
-          <input
-            v-model="patientCode"
-            @blur="lookupPatient"
-            type="text"
-            required
-            :readonly="isEdit"
-            placeholder="Ex: AH2-000818AQ"
-            :class="[
-              'block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm',
-              isEdit ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''
-            ]"
-          />
-          <p class="mt-1 text-xs" :class="patientId ? 'text-emerald-600' : 'text-gray-400'">
-            {{ patientLookupMessage }}
-          </p>
+          <FormSection :title="t('appointments.modal.section_patient')">
+            <div class="md:col-span-2">
+              <FormField
+                id="appt-patient-code"
+                :label="t('appointments.modal.patient_code')"
+                required
+                :help="patientId ? patientLookupMessage : t('appointments.modal.patient_code_help')"
+                :error="patientId ? '' : patientLookupMessage"
+                v-slot="{ describedBy, invalid }"
+              >
+                <input
+                  id="appt-patient-code"
+                  v-model="patientCode"
+                  @blur="lookupPatient"
+                  type="text"
+                  required
+                  :readonly="isEdit"
+                  :aria-describedby="describedBy"
+                  :aria-invalid="invalid"
+                  placeholder="Ex: AH2-000818AQ"
+                  :class="[inputClass, isEdit ? 'cursor-not-allowed bg-tone-neutral-bg text-ink-muted' : 'bg-white']"
+                />
+              </FormField>
+            </div>
+          </FormSection>
+
+          <FormSection :title="t('appointments.modal.section_appointment')">
+            <FormField id="appt-specialty" :label="t('appointments.modal.specialty')" v-slot="{ describedBy }">
+              <select id="appt-specialty" v-model="form.specialty" :aria-describedby="describedBy" :class="[inputClass, 'bg-white']">
+                <option value="">{{ t('appointments.modal.specialty_none') }}</option>
+                <option v-for="spec in appointmentStore.specialties" :key="spec" :value="spec">{{ spec }}</option>
+              </select>
+            </FormField>
+
+            <FormField id="appt-doctor" :label="t('appointments.modal.doctor')" v-slot="{ describedBy }">
+              <select id="appt-doctor" v-model="form.doctorId" :aria-describedby="describedBy" :class="[inputClass, 'bg-white']">
+                <option value="">{{ t('appointments.modal.doctor_unassigned') }}</option>
+                <option v-for="d in doctors" :key="d.user_id" :value="d.user_id">{{ d.full_name }}</option>
+              </select>
+            </FormField>
+
+            <FormField id="appt-date" :label="t('appointments.modal.date')" required v-slot="{ describedBy }">
+              <input
+                id="appt-date"
+                v-model="form.appointmentDate"
+                type="date"
+                required
+                :aria-describedby="describedBy"
+                :class="[inputClass, 'bg-white']"
+              />
+            </FormField>
+
+            <FormField id="appt-time" :label="t('appointments.modal.time')" required v-slot="{ describedBy }">
+              <select id="appt-time" v-model="form.appointmentTime" required :aria-describedby="describedBy" :class="[inputClass, 'bg-white']">
+                <option value="" disabled>--:--</option>
+                <option v-for="slot in timeSlots" :key="slot" :value="slot">{{ slot }}</option>
+              </select>
+            </FormField>
+
+            <div class="md:col-span-2">
+              <FormField id="appt-reason" :label="t('appointments.modal.reason')" v-slot="{ describedBy }">
+                <textarea
+                  id="appt-reason"
+                  v-model="form.reason"
+                  rows="2"
+                  :aria-describedby="describedBy"
+                  placeholder="Ex: Consultation de suivi..."
+                  :class="[inputClass, 'bg-white py-2']"
+                ></textarea>
+              </FormField>
+            </div>
+          </FormSection>
         </div>
 
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('appointments.modal.specialty') }}</label>
-          <select v-model="form.specialty" class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm">
-            <option value="">{{ t('appointments.modal.specialty_none') }}</option>
-            <option v-for="spec in appointmentStore.specialties" :key="spec" :value="spec">{{ spec }}</option>
-          </select>
-        </div>
-
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('appointments.modal.doctor') }}</label>
-          <select v-model="form.doctorId" class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm">
-            <option value="">{{ t('appointments.modal.doctor_unassigned') }}</option>
-            <option v-for="d in doctors" :key="d.user_id" :value="d.user_id">{{ d.full_name }}</option>
-          </select>
-        </div>
-
-        <div class="grid grid-cols-2 gap-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('appointments.modal.date') }}</label>
-            <input
-              v-model="form.appointmentDate"
-              type="date"
-              required
-              class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm"
-            />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('appointments.modal.time') }}</label>
-            <select v-model="form.appointmentTime" required class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm">
-              <option value="" disabled>--:--</option>
-              <option v-for="slot in timeSlots" :key="slot" :value="slot">{{ slot }}</option>
-            </select>
-          </div>
-        </div>
-
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('appointments.modal.reason') }}</label>
-          <textarea
-            v-model="form.reason"
-            rows="2"
-            placeholder="Ex: Consultation de suivi..."
-            class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm"
-          ></textarea>
-        </div>
-
-        <div class="flex justify-end space-x-3 mt-6 pt-4 border-t border-gray-100">
-          <button type="button" @click="$emit('close')" class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition shadow-xs">
-            {{ t('appointments.modal.cancel') }}
-          </button>
-          <button type="submit" class="px-4 py-2 text-white rounded-lg shadow-md font-medium transition bg-emerald-600 hover:bg-emerald-700">
-            {{ t('appointments.modal.save') }}
-          </button>
-        </div>
+        <ActionBar>
+          <template #secondary>
+            <AppButton variant="ghost" @click="$emit('close')">{{ t('appointments.modal.cancel') }}</AppButton>
+          </template>
+          <AppButton type="submit">{{ t('appointments.modal.save') }}</AppButton>
+        </ActionBar>
       </form>
 
     </div>
@@ -97,6 +112,11 @@ import { useI18n } from 'vue-i18n';
 import { useAppointmentStore } from '@/stores/appointmentStore';
 import { db, waitForInitialSync } from '@/powersync-client/client';
 import api from '@/services/api';
+import { XMarkIcon } from '@heroicons/vue/24/outline';
+import { AppButton, FormField, FormSection, ActionBar } from '@/components/ui';
+
+// Style commun des champs : zone tactile >= 44 px, focus visible.
+const inputClass = 'block w-full min-h-11 rounded-control border border-tone-neutral-border px-3 text-base text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand-600';
 
 const { t } = useI18n();
 const appointmentStore = useAppointmentStore();

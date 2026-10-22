@@ -1,47 +1,55 @@
 <!-- ah2-admin-web/src/components/nurseshift/NurseShiftDayPanel.vue -->
 <template>
-  <div class="bg-white rounded-2xl shadow-xs border border-gray-100 overflow-hidden h-fit">
-    <div class="p-4 border-b border-gray-100 flex items-center justify-between">
-      <h3 class="text-sm font-bold text-gray-700">{{ t('nurseShift.day_panel_title') }} {{ formattedDate }}</h3>
-      <button @click="$emit('close')" class="p-1 rounded-lg hover:bg-gray-100 transition">
-        <XMarkIcon class="h-5 w-5 text-gray-400" />
+  <section class="h-fit overflow-hidden rounded-card border border-tone-neutral-border bg-white shadow-card">
+    <div class="flex items-center justify-between gap-2 border-b border-tone-neutral-border px-4 py-3">
+      <h3 class="text-lg font-semibold text-ink">{{ t('nurseShift.day_panel_title') }} {{ formattedDate }}</h3>
+      <button
+        type="button"
+        @click="$emit('close')"
+        class="inline-flex min-h-11 min-w-11 items-center justify-center rounded-control text-ink-muted hover:bg-tone-neutral-bg focus-visible:outline-2 focus-visible:outline-brand-600"
+        :aria-label="t('ui.close')"
+      >
+        <XMarkIcon class="h-5 w-5" aria-hidden="true" />
       </button>
     </div>
 
-    <p v-if="!canManage" class="px-4 pt-3 text-xs text-gray-400 italic">{{ t('nurseShift.read_only_note') }}</p>
+    <p v-if="!canManage" class="px-4 pt-3 text-base text-ink-muted">{{ t('nurseShift.read_only_note') }}</p>
 
-    <div class="p-4 space-y-4">
+    <div class="space-y-5 p-4">
       <div v-for="st in SHIFT_TYPES" :key="st">
-        <h4 class="text-xs font-bold text-gray-500 uppercase mb-2">{{ t(`nurseShift.shift.${st}`) }}</h4>
+        <h4 class="mb-2 text-base font-semibold text-ink">{{ t(`nurseShift.shift.${st}`) }}</h4>
 
-        <div v-if="shiftsFor(st).length === 0" class="text-xs text-gray-400 italic mb-2">
+        <p v-if="shiftsFor(st).length === 0" class="mb-2 text-base text-ink-muted">
           {{ t('nurseShift.no_assignment') }}
-        </div>
-        <div v-for="s in shiftsFor(st)" :key="s.id" class="flex items-center justify-between text-sm py-1">
+        </p>
+        <div v-for="s in shiftsFor(st)" :key="s.id" class="flex items-center justify-between gap-2 py-1 text-base text-ink">
           <span>{{ s.nurse_name }}</span>
-          <button v-if="canManage" @click="$emit('remove', s.id)" class="text-xs text-red-600 hover:underline">
+          <AppButton v-if="canManage" variant="ghost" @click="$emit('remove', s.id)">
             {{ t('nurseShift.remove') }}
-          </button>
+          </AppButton>
         </div>
 
-        <div v-if="canManage" class="flex gap-2 mt-1">
-          <select v-model="selectedNurseByShift[st]" class="flex-1 px-2 py-1 border border-gray-300 rounded-lg text-xs">
+        <div v-if="canManage" class="mt-2 flex flex-col gap-2 sm:flex-row">
+          <select
+            v-model="selectedNurseByShift[st]"
+            :aria-label="t('nurseShift.select_nurse')"
+            class="block min-h-11 w-full flex-1 rounded-control border border-tone-neutral-border bg-white px-3 text-base text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand-600"
+          >
             <option value="" disabled>{{ t('nurseShift.select_nurse') }}</option>
             <option v-for="n in unassignedNursesFor(st)" :key="n.user_id" :value="n.user_id">
               {{ n.full_name }}{{ n.is_head_nurse ? ` (${t('nurseShift.head_nurse_badge')})` : '' }}
             </option>
           </select>
-          <button
+          <AppButton
             @click="handleAdd(st)"
             :disabled="!selectedNurseByShift[st]"
-            class="px-3 py-1 text-xs font-medium rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 transition disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {{ t('nurseShift.add_nurse') }}
-          </button>
+          </AppButton>
         </div>
       </div>
     </div>
-  </div>
+  </section>
 </template>
 
 <script setup>
@@ -50,6 +58,7 @@ import { useI18n } from 'vue-i18n';
 import dayjs from 'dayjs';
 import { XMarkIcon } from '@heroicons/vue/24/outline';
 import { SHIFT_TYPES } from '@/stores/nurseShiftStore';
+import { AppButton } from '@/components/ui';
 
 const { t } = useI18n();
 

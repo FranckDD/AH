@@ -33,7 +33,12 @@ function rootTarget() {
 const routes = [
   // --- ROUTES PUBLIQUES ---
   { path: '/login', component: LoginView },
-  { path: '/forbidden', component: ForbiddenView }, 
+  { path: '/forbidden', component: ForbiddenView },
+
+  // Guide de style de la refonte UX : développement uniquement (absent du build de production)
+  ...(import.meta.env.DEV
+    ? [{ path: '/dev/styleguide', component: () => import('@/views/dev/StyleGuideView.vue') }]
+    : []),
   
   // --- ROUTE PARENT : /dashboard ---
   {

@@ -1,35 +1,38 @@
 <template>
-  <div class="bg-white rounded-2xl shadow-xs border border-gray-100 overflow-hidden">
+  <div class="overflow-hidden rounded-card border border-tone-neutral-border bg-white shadow-card">
 
-    <div class="p-4 border-b border-gray-100 flex items-center justify-between">
-      <div class="flex items-center gap-2">
+    <div class="flex flex-wrap items-center justify-between gap-2 border-b border-tone-neutral-border p-3 md:p-4">
+      <div class="flex items-center gap-1 md:gap-2">
         <button
+          type="button"
           @click="goToPreviousMonth"
-          class="p-2 rounded-lg hover:bg-gray-100 transition"
-          :aria-label="t('appointments.calendar.today')"
+          class="inline-flex min-h-11 min-w-11 items-center justify-center rounded-control text-ink-muted hover:bg-tone-neutral-bg focus-visible:outline-2 focus-visible:outline-brand-600"
+          :aria-label="t('appointments.calendar.prev_month')"
         >
-          <ChevronLeftIcon class="h-5 w-5 text-gray-500" />
+          <ChevronLeftIcon class="h-5 w-5" aria-hidden="true" />
         </button>
-        <h2 class="text-lg font-bold text-gray-800 w-40 text-center capitalize">
+        <h2 class="w-40 text-center text-lg font-semibold capitalize text-ink" aria-live="polite">
           {{ monthLabel }}
         </h2>
-        <button @click="goToNextMonth" class="p-2 rounded-lg hover:bg-gray-100 transition">
-          <ChevronRightIcon class="h-5 w-5 text-gray-500" />
+        <button
+          type="button"
+          @click="goToNextMonth"
+          class="inline-flex min-h-11 min-w-11 items-center justify-center rounded-control text-ink-muted hover:bg-tone-neutral-bg focus-visible:outline-2 focus-visible:outline-brand-600"
+          :aria-label="t('appointments.calendar.next_month')"
+        >
+          <ChevronRightIcon class="h-5 w-5" aria-hidden="true" />
         </button>
       </div>
-      <button
-        @click="goToToday"
-        class="px-4 py-1.5 text-sm font-medium rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition"
-      >
+      <AppButton variant="secondary" @click="goToToday">
         {{ t('appointments.calendar.today') }}
-      </button>
+      </AppButton>
     </div>
 
-    <div class="grid grid-cols-7 border-b border-gray-100 bg-gray-50">
+    <div class="grid grid-cols-7 border-b border-tone-neutral-border bg-tone-neutral-bg">
       <div
         v-for="label in weekdayLabels"
         :key="label"
-        class="px-2 py-2 text-center text-xs font-semibold text-gray-500 uppercase"
+        class="px-1 py-2 text-center text-sm font-semibold text-tone-neutral-text"
       >
         {{ label }}
       </div>
@@ -41,26 +44,36 @@
         :key="day.dateStr"
         type="button"
         @click="$emit('day-click', day.dateStr)"
-        class="min-h-26 border-b border-r border-gray-100 p-2 text-left align-top hover:bg-gray-50 transition focus:outline-hidden focus:bg-emerald-50/50"
+        :aria-label="dayAriaLabel(day)"
+        class="min-h-14 border-b border-r border-tone-neutral-border p-1 text-left align-top transition hover:bg-brand-50 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand-600 md:min-h-26 md:p-2"
         :class="{
-          'bg-gray-50/60 text-gray-400': !day.inCurrentMonth,
-          'ring-2 ring-inset ring-emerald-500': day.isToday,
+          'bg-tone-neutral-bg text-ink-muted': !day.inCurrentMonth,
+          'ring-2 ring-inset ring-brand-600': day.isToday,
         }"
       >
-        <div class="text-xs font-semibold mb-1" :class="day.isToday ? 'text-emerald-700' : ''">
+        <div class="mb-1 text-sm font-semibold" :class="day.isToday ? 'text-brand-700' : ''">
           {{ day.dayOfMonth }}
         </div>
-        <div class="space-y-1">
+
+        <!-- Telephone : un compteur (les etiquettes ne tiennent pas, texte jamais sous 13 px) -->
+        <span
+          v-if="day.total > 0"
+          class="inline-flex min-w-6 items-center justify-center rounded-full border px-1.5 text-sm font-semibold md:hidden"
+          :class="toneClasses('info')"
+        >{{ day.total }}</span>
+
+        <!-- Tablette et PC : etiquettes par rendez-vous -->
+        <div class="hidden space-y-1 md:block">
           <div
             v-for="appt in day.visibleAppointments"
             :key="appt.id"
-            class="text-[11px] leading-tight px-1.5 py-0.5 rounded-sm truncate"
-            :class="chipClass(appt.status)"
-            :title="`${(appt.appointment_time || '').substring(0, 5)} — ${patientLabel(appt)}`"
+            class="truncate rounded-control border px-1.5 py-0.5 text-sm leading-tight"
+            :class="[toneClasses(chipTone(appt.status)), appt.status === 'cancelled' ? 'line-through' : '']"
+            :title="`${(appt.appointment_time || '').substring(0, 5)} ${patientLabel(appt)}`"
           >
             {{ (appt.appointment_time || '').substring(0, 5) }} {{ patientLabel(appt) }}
           </div>
-          <div v-if="day.overflowCount > 0" class="text-[11px] text-gray-500 px-1.5">
+          <div v-if="day.overflowCount > 0" class="px-1.5 text-sm text-ink-muted">
             +{{ day.overflowCount }} {{ t('appointments.calendar.more') }}
           </div>
         </div>
@@ -76,6 +89,8 @@ import { useI18n } from 'vue-i18n';
 import dayjs from 'dayjs';
 import 'dayjs/locale/fr';
 import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/vue/24/outline';
+import { AppButton } from '@/components/ui';
+import { toneClasses } from '@/design/tones';
 
 const { t, locale } = useI18n();
 
@@ -162,6 +177,7 @@ const daysGrid = computed(() => {
       dayOfMonth: cursor.date(),
       inCurrentMonth: cursor.isSame(monthStart, 'month'),
       isToday: dateStr === today,
+      total: dayAppointments.length,
       visibleAppointments: dayAppointments.slice(0, MAX_VISIBLE_PER_DAY),
       overflowCount: Math.max(0, dayAppointments.length - MAX_VISIBLE_PER_DAY),
     });
@@ -171,12 +187,21 @@ const daysGrid = computed(() => {
 });
 
 function patientLabel(appt) {
-  return [appt.first_name, appt.last_name].filter(Boolean).join(' ') || '—';
+  return [appt.first_name, appt.last_name].filter(Boolean).join(' ') || '-';
 }
 
-function chipClass(status) {
-  if (status === 'completed') return 'bg-emerald-100 text-emerald-800';
-  if (status === 'cancelled') return 'bg-red-100 text-red-800 line-through';
-  return 'bg-yellow-100 text-yellow-800';
+// Vert = termine, rouge = annule, orange = en attente (couleur selon le sens).
+function chipTone(status) {
+  if (status === 'completed') return 'success';
+  if (status === 'cancelled') return 'danger';
+  return 'warning';
+}
+
+// Libelle lu par les lecteurs d'ecran : la date et le nombre de rendez-vous du jour.
+function dayAriaLabel(day) {
+  const date = dayjs(day.dateStr).format('DD/MM/YYYY');
+  return day.total > 0
+    ? `${date}, ${t('appointments.calendar.appointments_count', { n: day.total }, day.total)}`
+    : date;
 }
 </script>

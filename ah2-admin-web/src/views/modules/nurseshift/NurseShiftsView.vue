@@ -1,18 +1,15 @@
 <!-- ah2-admin-web/src/views/modules/nurseshift/NurseShiftsView.vue -->
 <template>
-  <div class="space-y-6 w-full">
+  <div class="grid w-full gap-6">
 
-    <div class="bg-white p-6 rounded-2xl shadow-xs border border-gray-100">
-      <h1 class="text-2xl font-extrabold text-gray-800 tracking-tight">{{ t('nurseShift.title') }}</h1>
-      <p class="text-sm text-gray-500">{{ t('nurseShift.subtitle') }}</p>
-    </div>
+    <PageHeader :title="t('nurseShift.title')" :subtitle="t('nurseShift.subtitle')" />
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+    <div class="grid grid-cols-1 items-start gap-6 lg:grid-cols-3">
       <div class="lg:col-span-2">
         <NurseShiftCalendar :shifts="nurseShiftStore.shifts" @day-click="handleDayClick" @month-change="handleMonthChange" />
       </div>
       <div v-if="selectedDate" class="space-y-2">
-        <p v-if="actionError" class="text-sm text-red-600">{{ actionError }}</p>
+        <p v-if="actionError" role="alert" class="text-base font-medium text-tone-danger-text">{{ actionError }}</p>
         <NurseShiftDayPanel
           :date="selectedDate"
           :shifts="selectedDateShifts"
@@ -35,6 +32,7 @@ import { useNurseShiftStore } from '@/stores/nurseShiftStore';
 import { useAuthStore } from '@/stores/auth';
 import NurseShiftCalendar from '@/components/nurseshift/NurseShiftCalendar.vue';
 import NurseShiftDayPanel from '@/components/nurseshift/NurseShiftDayPanel.vue';
+import { PageHeader } from '@/components/ui';
 
 const { t } = useI18n();
 const nurseShiftStore = useNurseShiftStore();

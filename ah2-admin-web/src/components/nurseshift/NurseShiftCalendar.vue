@@ -1,51 +1,128 @@
 <!-- ah2-admin-web/src/components/nurseshift/NurseShiftCalendar.vue -->
 <template>
-  <div class="bg-white rounded-2xl shadow-xs border border-gray-100 overflow-hidden">
+  <div class="overflow-hidden rounded-card border border-tone-neutral-border bg-white shadow-card">
 
-    <div class="p-4 border-b border-gray-100 flex items-center justify-between">
-      <div class="flex items-center gap-2">
-        <button @click="goToPreviousMonth" class="p-2 rounded-lg hover:bg-gray-100 transition">
-          <ChevronLeftIcon class="h-5 w-5 text-gray-500" />
+    <div class="flex flex-wrap items-center justify-between gap-2 border-b border-tone-neutral-border p-3 md:p-4">
+      <div class="flex items-center gap-1 md:gap-2">
+        <button
+          type="button"
+          @click="goToPreviousMonth"
+          class="inline-flex min-h-11 min-w-11 items-center justify-center rounded-control text-ink-muted hover:bg-tone-neutral-bg focus-visible:outline-2 focus-visible:outline-brand-600"
+          :aria-label="view === 'week' ? t('nurseShift.prev_week') : t('nurseShift.prev_month')"
+        >
+          <ChevronLeftIcon class="h-5 w-5" aria-hidden="true" />
         </button>
-        <h2 class="text-lg font-bold text-gray-800 w-40 text-center capitalize">{{ monthLabel }}</h2>
-        <button @click="goToNextMonth" class="p-2 rounded-lg hover:bg-gray-100 transition">
-          <ChevronRightIcon class="h-5 w-5 text-gray-500" />
+        <h2 class="min-w-40 text-center text-lg font-semibold capitalize text-ink" aria-live="polite">{{ periodLabel }}</h2>
+        <button
+          type="button"
+          @click="goToNextMonth"
+          class="inline-flex min-h-11 min-w-11 items-center justify-center rounded-control text-ink-muted hover:bg-tone-neutral-bg focus-visible:outline-2 focus-visible:outline-brand-600"
+          :aria-label="view === 'week' ? t('nurseShift.next_week') : t('nurseShift.next_month')"
+        >
+          <ChevronRightIcon class="h-5 w-5" aria-hidden="true" />
         </button>
       </div>
-      <button @click="goToToday" class="px-4 py-1.5 text-sm font-medium rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition">
-        {{ t('nurseShift.today') }}
-      </button>
-    </div>
 
-    <div class="grid grid-cols-7 border-b border-gray-100 bg-gray-50">
-      <div v-for="label in weekdayLabels" :key="label" class="px-2 py-2 text-center text-xs font-semibold text-gray-500 uppercase">
-        {{ label }}
+      <div class="flex flex-wrap items-center gap-2">
+        <!-- Semaine (noms complets, lecture facile) ou Mois (vue d'ensemble) -->
+        <div class="flex rounded-control bg-tone-neutral-bg p-1" role="group">
+          <button
+            type="button"
+            @click="view = 'week'"
+            :aria-pressed="view === 'week'"
+            class="min-h-11 rounded-control px-4 text-base font-medium transition focus-visible:outline-2 focus-visible:outline-brand-600 md:min-h-9"
+            :class="view === 'week' ? 'bg-white text-ink shadow-card' : 'text-ink-muted hover:text-ink'"
+          >{{ t('nurseShift.view_week') }}</button>
+          <button
+            type="button"
+            @click="view = 'month'"
+            :aria-pressed="view === 'month'"
+            class="min-h-11 rounded-control px-4 text-base font-medium transition focus-visible:outline-2 focus-visible:outline-brand-600 md:min-h-9"
+            :class="view === 'month' ? 'bg-white text-ink shadow-card' : 'text-ink-muted hover:text-ink'"
+          >{{ t('nurseShift.view_month') }}</button>
+        </div>
+        <AppButton variant="secondary" @click="goToToday">
+          {{ t('nurseShift.today') }}
+        </AppButton>
       </div>
     </div>
 
-    <div class="grid grid-cols-7">
+    <!-- VUE SEMAINE : un jour par ligne, une colonne par rotation, noms complets un par ligne -->
+    <div v-if="view === 'week'" data-view="week">
+      <div class="hidden border-b border-tone-neutral-border bg-tone-neutral-bg text-base font-semibold text-tone-neutral-text lg:grid lg:grid-cols-[9rem_repeat(3,minmax(0,1fr))]">
+        <div class="px-4 py-3">{{ t('nurseShift.day_column') }}</div>
+        <div v-for="st in SHIFT_TYPES" :key="st" class="px-4 py-3">{{ t(`nurseShift.shift.${st}`) }}</div>
+      </div>
+
       <button
-        v-for="day in daysGrid"
+        v-for="day in weekGrid"
         :key="day.dateStr"
         type="button"
         @click="$emit('day-click', day.dateStr)"
-        class="min-h-28 border-b border-r border-gray-100 p-2 text-left align-top hover:bg-gray-50 transition focus:outline-hidden focus:bg-emerald-50/50"
-        :class="{
-          'bg-gray-50/60 text-gray-400': !day.inCurrentMonth,
-          'ring-2 ring-inset ring-emerald-500': day.isToday,
-        }"
+        :aria-label="dayAriaLabel(day)"
+        class="grid w-full gap-3 border-b border-tone-neutral-border px-4 py-3 text-left transition last:border-b-0 hover:bg-brand-50 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand-600 lg:grid-cols-[9rem_repeat(3,minmax(0,1fr))]"
+        :class="day.isToday ? 'bg-brand-50 ring-2 ring-inset ring-brand-600' : ''"
       >
-        <div class="text-xs font-semibold mb-1" :class="day.isToday ? 'text-emerald-700' : ''">
-          {{ day.dayOfMonth }}
+        <div class="flex flex-wrap items-center gap-2 lg:block">
+          <p class="text-base font-semibold capitalize text-ink">{{ day.label }}</p>
+          <StatusBadge v-if="day.isToday" tone="info" :label="t('nurseShift.today')" />
         </div>
-        <div class="space-y-0.5">
-          <div v-for="st in SHIFT_TYPES" :key="st" class="text-[10px] leading-tight truncate">
-            <span class="text-gray-400">{{ t(`nurseShift.shift.${st}`) }}:</span>
-            <span v-if="day.nursesByShift[st].length" class="text-gray-700"> {{ day.nursesByShift[st].join(', ') }}</span>
-            <span v-else class="text-gray-300"> —</span>
-          </div>
+
+        <div v-for="st in SHIFT_TYPES" :key="st">
+          <p class="mb-1 text-base font-semibold text-ink-muted lg:hidden">{{ t(`nurseShift.shift.${st}`) }}</p>
+          <ul v-if="day.nursesByShift[st].length" class="space-y-1">
+            <li v-for="name in day.nursesByShift[st]" :key="name" class="text-base font-medium text-ink">{{ name }}</li>
+          </ul>
+          <p v-else class="text-base text-ink-muted">
+            <span aria-hidden="true">-</span>
+            <span class="sr-only">{{ t('nurseShift.no_assignment') }}</span>
+          </p>
         </div>
       </button>
+    </div>
+
+    <!-- VUE MOIS : vue d'ensemble (compteur sur telephone, une ligne par rotation des la tablette) -->
+    <div v-else data-view="month">
+      <div class="grid grid-cols-7 border-b border-tone-neutral-border bg-tone-neutral-bg">
+        <div v-for="label in weekdayLabels" :key="label" class="px-1 py-2 text-center text-sm font-semibold text-tone-neutral-text">
+          {{ label }}
+        </div>
+      </div>
+
+      <div class="grid grid-cols-7">
+        <button
+          v-for="day in daysGrid"
+          :key="day.dateStr"
+          type="button"
+          @click="$emit('day-click', day.dateStr)"
+          :aria-label="dayAriaLabel(day)"
+          class="min-h-14 border-b border-r border-tone-neutral-border p-1 text-left align-top transition hover:bg-brand-50 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand-600 md:min-h-28 md:p-2"
+          :class="{
+            'bg-tone-neutral-bg text-ink-muted': !day.inCurrentMonth,
+            'ring-2 ring-inset ring-brand-600': day.isToday,
+          }"
+        >
+          <div class="mb-1 text-sm font-semibold" :class="day.isToday ? 'text-brand-700' : ''">
+            {{ day.dayOfMonth }}
+          </div>
+
+          <!-- Telephone : nombre d'infirmiers du jour (les noms ne tiennent pas, texte jamais sous 13 px) -->
+          <span
+            v-if="day.total > 0"
+            class="inline-flex min-w-6 items-center justify-center rounded-full border px-1.5 text-sm font-semibold md:hidden"
+            :class="toneClasses('info')"
+          >{{ day.total }}</span>
+
+          <!-- Tablette et PC : une ligne par rotation -->
+          <div class="hidden space-y-0.5 md:block">
+            <div v-for="st in SHIFT_TYPES" :key="st" class="truncate text-sm leading-tight">
+              <span class="text-ink-muted">{{ t(`nurseShift.shift.${st}`) }}:</span>
+              <span v-if="day.nursesByShift[st].length" class="text-ink"> {{ day.nursesByShift[st].join(', ') }}</span>
+              <span v-else class="text-ink-muted"> -</span>
+            </div>
+          </div>
+        </button>
+      </div>
     </div>
 
   </div>
@@ -58,6 +135,9 @@ import dayjs from 'dayjs';
 import 'dayjs/locale/fr';
 import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/vue/24/outline';
 import { SHIFT_TYPES } from '@/stores/nurseShiftStore';
+import { AppButton, StatusBadge } from '@/components/ui';
+import { toneClasses } from '@/design/tones';
+import { periodRange, shiftAnchor, weekDays } from '@/utils/nurseShiftRange';
 
 const { t, locale } = useI18n();
 
@@ -72,45 +152,45 @@ const emit = defineEmits(['day-click', 'month-change']);
 
 watch(locale, (lang) => dayjs.locale(lang === 'en' ? 'en' : 'fr'), { immediate: true });
 
-const currentMonth = ref(dayjs().startOf('month'));
+// 'week' (par defaut : noms complets) ou 'month'. anchor = un jour de la periode affichee.
+const view = ref('week');
+const anchor = ref(dayjs());
 
-const monthLabel = computed(() => currentMonth.value.format('MMMM YYYY'));
+const currentMonth = computed(() => anchor.value.startOf('month'));
+const gridRange = computed(() => periodRange(view.value, anchor.value));
+
+const periodLabel = computed(() => {
+  if (view.value === 'month') return currentMonth.value.format('MMMM YYYY');
+  const start = dayjs(gridRange.value.start);
+  const end = dayjs(gridRange.value.end);
+  return `${start.format('D MMM')} - ${end.format('D MMM YYYY')}`;
+});
+
 const weekdayLabels = computed(() =>
   locale.value === 'en'
     ? ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
     : ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim']
 );
 
-const gridRange = computed(() => {
-  const monthStart = currentMonth.value;
-  const monthEnd = monthStart.endOf('month');
-  const startOffset = (monthStart.day() + 6) % 7;
-  const endOffset = (6 - ((monthEnd.day() + 6) % 7));
-  return {
-    gridStart: monthStart.subtract(startOffset, 'day'),
-    gridEnd: monthEnd.add(endOffset, 'day'),
-  };
-});
-
+// Le parent (re)charge les rotations de la plage affichee : evenement conserve sous son nom d'origine.
 function emitMonthRange() {
-  emit('month-change', {
-    start: gridRange.value.gridStart.format('YYYY-MM-DD'),
-    end: gridRange.value.gridEnd.format('YYYY-MM-DD'),
-  });
+  emit('month-change', { ...gridRange.value });
 }
 
 function goToPreviousMonth() {
-  currentMonth.value = currentMonth.value.subtract(1, 'month');
+  anchor.value = shiftAnchor(view.value, anchor.value, -1);
   emitMonthRange();
 }
 function goToNextMonth() {
-  currentMonth.value = currentMonth.value.add(1, 'month');
+  anchor.value = shiftAnchor(view.value, anchor.value, 1);
   emitMonthRange();
 }
 function goToToday() {
-  currentMonth.value = dayjs().startOf('month');
+  anchor.value = dayjs();
   emitMonthRange();
 }
+// Changer de vue change la plage a charger (semaine ou grille du mois).
+watch(view, () => emitMonthRange());
 
 const shiftsByDate = computed(() => {
   const map = new Map();
@@ -121,31 +201,46 @@ const shiftsByDate = computed(() => {
   return map;
 });
 
+function buildDay(dateStr, monthStart) {
+  const dayShifts = shiftsByDate.value.get(dateStr) || [];
+  const nursesByShift = {};
+  for (const st of SHIFT_TYPES) {
+    nursesByShift[st] = dayShifts.filter((s) => s.shift_type === st).map((s) => s.nurse_name);
+  }
+  const date = dayjs(dateStr);
+  return {
+    dateStr,
+    dayOfMonth: date.date(),
+    label: date.format('ddd D MMM'),
+    inCurrentMonth: monthStart ? date.isSame(monthStart, 'month') : true,
+    isToday: dateStr === dayjs().format('YYYY-MM-DD'),
+    nursesByShift,
+    total: dayShifts.length,
+  };
+}
+
+const weekGrid = computed(() => weekDays(gridRange.value.start).map((d) => buildDay(d)));
+
 const daysGrid = computed(() => {
   const monthStart = currentMonth.value;
-  const { gridStart, gridEnd } = gridRange.value;
-
-  const today = dayjs().format('YYYY-MM-DD');
+  const { start, end } = periodRange('month', anchor.value);
   const days = [];
-  let cursor = gridStart;
+  let cursor = dayjs(start);
+  const gridEnd = dayjs(end);
   while (!cursor.isAfter(gridEnd, 'day')) {
-    const dateStr = cursor.format('YYYY-MM-DD');
-    const dayShifts = shiftsByDate.value.get(dateStr) || [];
-    const nursesByShift = {};
-    for (const st of SHIFT_TYPES) {
-      nursesByShift[st] = dayShifts.filter((s) => s.shift_type === st).map((s) => s.nurse_name);
-    }
-    days.push({
-      dateStr,
-      dayOfMonth: cursor.date(),
-      inCurrentMonth: cursor.isSame(monthStart, 'month'),
-      isToday: dateStr === today,
-      nursesByShift,
-    });
+    days.push(buildDay(cursor.format('YYYY-MM-DD'), monthStart));
     cursor = cursor.add(1, 'day');
   }
   return days;
 });
+
+// Libelle lu par les lecteurs d'ecran : la date et le nombre d'infirmiers planifies.
+function dayAriaLabel(day) {
+  const date = dayjs(day.dateStr).format('DD/MM/YYYY');
+  return day.total > 0
+    ? `${date}, ${t('nurseShift.nurses_count', { n: day.total }, day.total)}`
+    : date;
+}
 
 emitMonthRange();
 </script>

@@ -9,7 +9,7 @@ const EXPECTED = {
     toxicomanager: '/dashboard/toxico-dashboard', assistant: '/dashboard/toxico-dashboard',
     laborantin: '/dashboard/labo/overviewlab', biologiste: '/dashboard/labo/overviewlab',
     stockcontroller: '/dashboard/stock-control',
-    medecin: '/medical/doctors', nurse: '/medical/doctors',
+    medecin: '/medical/doctors', nurse: '/medical/patients',
     secretaire: '/secretariat/',
 };
 
@@ -18,7 +18,7 @@ test('mapping role -> page d\'accueil', () => {
 });
 test('insensible a la casse, role inconnu ou vide -> defaut inchange', () => {
     assert.equal(getPostLoginPath('Medecin'), '/medical/doctors');
-    assert.equal(getPostLoginPath('Nurse'), '/medical/doctors');
+    assert.equal(getPostLoginPath('Nurse'), '/medical/patients');
     assert.equal(getPostLoginPath(undefined), '/dashboard/toxico-dashboard');
     assert.equal(getPostLoginPath('inconnu'), '/dashboard/toxico-dashboard');
 });
@@ -29,7 +29,12 @@ test('le medecin et le nurse sont rediriges vers une route que leur role peut ou
     const block = src.slice(i, src.indexOf('}', src.indexOf('meta:', i) + 20) + 1);
     assert.match(block, /roles:\s*\[[^\]]*ROLES\.MEDECIN/);
     assert.match(block, /roles:\s*\[[^\]]*ROLES\.NURSE/);
-    assert.equal(getPostLoginPath('nurse'), getPostLoginPath('medecin'));
+    // L'infirmiere a sa propre accueil (liste des patients) : meme controle sur cette route.
+    const j = src.indexOf("name: 'medical-patients'");
+    assert.ok(j > 0);
+    const patientsBlock = src.slice(j, src.indexOf('}', src.indexOf('meta:', j) + 20) + 1);
+    assert.match(patientsBlock, /roles:\s*\[[^\]]*ROLES\.NURSE/);
+    assert.equal(getPostLoginPath('nurse'), '/medical/patients');
 });
 
 const ALL_ROLES = ['admin', 'promoteur', 'secretaire', 'medecin', 'nurse', 'laborantin',
@@ -42,7 +47,7 @@ test('resolveRootPath : chaque role connu atterrit comme au login (casse DB incl
     for (const r of ALL_ROLES) assert.equal(resolveRootPath(r, true), getPostLoginPath(r), r);
     assert.equal(resolveRootPath('admin', true), '/dashboard/overview');
     assert.equal(resolveRootPath('medecin', true), '/medical/doctors');
-    assert.equal(resolveRootPath('nurse', true), '/medical/doctors');
+    assert.equal(resolveRootPath('nurse', true), '/medical/patients');
 });
 test('resolveRootPath : role inconnu ou vide -> /forbidden (jamais une route refusee)', () => {
     assert.equal(resolveRootPath('inconnu', true), '/forbidden');
@@ -57,6 +62,7 @@ test('resolveRootPath : la cible de chaque role est ouvrable par ce role (meta.r
         '/dashboard/labo/overviewlab': "path: 'overviewlab'",
         '/dashboard/stock-control': "path: 'stock-control'",
         '/medical/doctors': "path: 'doctors'",
+        '/medical/patients': "name: 'medical-patients'",
         '/secretariat/': "name: 'secretariat-home'",
     };
     const norm = (x) => x.replace(/ROLES\.(\w+)/g, (_, k) => ({

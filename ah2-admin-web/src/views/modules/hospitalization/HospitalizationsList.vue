@@ -1,70 +1,73 @@
 <template>
-  <div class="space-y-6 w-full">
+  <div class="grid w-full gap-6">
 
-    <div class="bg-white p-6 rounded-2xl shadow-xs border border-gray-100">
-      <h1 class="text-2xl font-extrabold text-gray-800 tracking-tight">{{ t('hospitalization.title') }}</h1>
-      <p class="text-sm text-gray-500">{{ t('hospitalization.subtitle') }}</p>
-    </div>
+    <PageHeader :title="t('hospitalization.title')" :subtitle="t('hospitalization.subtitle')" />
 
-    <div class="bg-white rounded-2xl shadow-xs border border-gray-100 overflow-hidden">
-      <div v-if="hospitalizationStore.isLoading" class="p-10 text-center">
-        <span class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></span>
-      </div>
+    <ResponsiveTable
+      :columns="columns"
+      :rows="hospitalizationStore.current"
+      row-key="id"
+      :loading="hospitalizationStore.isLoading"
+      :empty-title="t('hospitalization.empty_list')"
+      :empty-message="' '"
+    >
+      <template #cell-patient="{ row: stay }">
+        <div class="flex items-center gap-2">
+          <!-- Aggravation : icone + texte (badge d'etat), jamais la couleur seule -->
+          <ExclamationTriangleIcon
+            v-if="latestStatusOf(stay) === 'AGGRAVATION'"
+            class="h-5 w-5 shrink-0 text-tone-danger-text"
+            aria-hidden="true"
+          />
+          <button
+            type="button"
+            @click="goToDossier(stay.patient_id)"
+            class="text-left text-base font-semibold text-brand-700 hover:underline focus-visible:outline-2 focus-visible:outline-brand-600"
+          >
+            {{ stay.patient_first_name }} {{ stay.patient_last_name }}
+          </button>
+        </div>
+      </template>
+      <template #cell-admitted="{ row: stay }"><span class="font-mono">{{ formatDate(stay.admitted_at) }}</span></template>
+      <template #cell-days="{ row: stay }">{{ daysSince(stay.admitted_at) }}</template>
+      <template #cell-status="{ row: stay }">
+        <StatusBadge
+          :tone="statusTone(latestStatusOf(stay))"
+          :label="latestStatusOf(stay) ? t(`hospitalization.status.${latestStatusOf(stay)}`) : t('hospitalization.no_status_yet')"
+        />
+      </template>
+      <template #cell-admitted_by="{ row: stay }">{{ stay.admitted_by_name || t('hospitalization.unknown_user') }}</template>
 
-      <div v-else class="overflow-x-auto">
-        <table class="min-w-full text-left border-collapse">
-          <thead>
-            <tr class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
-              <th class="px-6 py-4 font-semibold">{{ t('hospitalization.table.patient') }}</th>
-              <th class="px-6 py-4 font-semibold">{{ t('hospitalization.table.admitted_since') }}</th>
-              <th class="px-6 py-4 font-semibold">{{ t('hospitalization.table.days') }}</th>
-              <th class="px-6 py-4 font-semibold">{{ t('hospitalization.table.current_status') }}</th>
-              <th class="px-6 py-4 font-semibold">{{ t('hospitalization.table.admitted_by') }}</th>
-              <th class="px-6 py-4 font-semibold text-right">{{ t('appointments.table.actions') }}</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-gray-100">
-            <tr v-for="stay in hospitalizationStore.current" :key="stay.id" class="hover:bg-gray-50 transition">
-              <td class="px-6 py-4">
-                <button @click="goToDossier(stay.patient_id)" class="text-sm font-medium text-emerald-700 hover:underline">
-                  {{ stay.patient_first_name }} {{ stay.patient_last_name }}
-                </button>
-              </td>
-              <td class="px-6 py-4 text-sm text-gray-600 font-mono">{{ formatDate(stay.admitted_at) }}</td>
-              <td class="px-6 py-4 text-sm text-gray-600">{{ daysSince(stay.admitted_at) }}</td>
-              <td class="px-6 py-4 text-sm" :class="statusColorClass(latestStatusOf(stay))">
-                {{ latestStatusOf(stay) ? t(`hospitalization.status.${latestStatusOf(stay)}`) : t('hospitalization.no_status_yet') }}
-              </td>
-              <td class="px-6 py-4 text-sm text-gray-600">{{ stay.admitted_by_name || t('hospitalization.unknown_user') }}</td>
-              <td class="px-6 py-4 text-right">
-                <button @click="goToDossier(stay.patient_id)" class="px-3 py-1.5 text-xs font-medium rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition">
-                  {{ t('appointments.actions.view_dossier') }}
-                </button>
-              </td>
-            </tr>
-            <tr v-if="hospitalizationStore.current.length === 0">
-              <td colspan="6" class="px-6 py-8 text-center text-gray-500 italic">
-                {{ t('hospitalization.empty_list') }}
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
+      <template #actions="{ row: stay }">
+        <AppButton variant="secondary" @click="goToDossier(stay.patient_id)">
+          {{ t('appointments.actions.view_dossier') }}
+        </AppButton>
+      </template>
+    </ResponsiveTable>
 
   </div>
 </template>
 
 <script setup>
-import { onMounted } from 'vue';
+import { computed, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import dayjs from 'dayjs';
+import { ExclamationTriangleIcon } from '@heroicons/vue/24/outline';
 import { useHospitalizationStore } from '@/stores/hospitalizationStore';
+import { AppButton, PageHeader, StatusBadge, ResponsiveTable } from '@/components/ui';
 
 const { t } = useI18n();
 const router = useRouter();
 const hospitalizationStore = useHospitalizationStore();
+
+const columns = computed(() => [
+  { key: 'patient', label: t('hospitalization.table.patient') },
+  { key: 'admitted', label: t('hospitalization.table.admitted_since') },
+  { key: 'days', label: t('hospitalization.table.days') },
+  { key: 'status', label: t('hospitalization.table.current_status') },
+  { key: 'admitted_by', label: t('hospitalization.table.admitted_by') },
+]);
 
 function formatDate(d) {
   return dayjs(d).format('DD/MM/YYYY HH:mm');
@@ -75,10 +78,11 @@ function daysSince(d) {
 function latestStatusOf(stay) {
   return stay.status_updates?.length ? stay.status_updates[0].status : null;
 }
-function statusColorClass(status) {
-  if (status === 'AMELIORATION') return 'text-emerald-700 font-medium';
-  if (status === 'AGGRAVATION') return 'text-red-700 font-medium';
-  return 'text-gray-600';
+// Vert = amelioration, rouge = aggravation (alerte), neutre sinon.
+function statusTone(status) {
+  if (status === 'AMELIORATION') return 'success';
+  if (status === 'AGGRAVATION') return 'danger';
+  return 'neutral';
 }
 function goToDossier(patientId) {
   router.push(`/medical/patients/${patientId}`);

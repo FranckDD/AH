@@ -1,86 +1,76 @@
 <template>
-  <div class="relative pl-4 border-l-2 border-gray-200 space-y-8">
-    
+  <div class="relative pl-4 border-l-2 border-tone-neutral-border space-y-8">
+
     <div v-for="record in records" :key="record.record_id" class="relative">
-        <div class="absolute left-[-21px] top-1 h-4 w-4 rounded-full bg-emerald-500 border-2 border-white ring-2 ring-emerald-100"></div>
-        
-        <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-xs hover:shadow-md transition">
-            <div class="flex justify-between items-start mb-2">
-                <div>
-                    <h4 class="font-bold text-gray-900 text-lg">{{ record.diagnosis || 'Consultation Générale' }}</h4>
-                    <p class="text-sm text-gray-500">
+        <div class="absolute left-[-21px] top-1 h-4 w-4 rounded-full bg-brand-600 border-2 border-white ring-2 ring-brand-100"></div>
+
+        <div class="bg-white p-4 rounded-card border border-tone-neutral-border shadow-card">
+            <div class="flex justify-between items-start gap-3 mb-2">
+                <div class="min-w-0">
+                    <h4 class="font-bold text-ink text-lg">{{ record.diagnosis || 'Consultation Générale' }}</h4>
+                    <p class="text-base text-ink-muted">
                         {{ formatDate(record.consultation_date) }} • {{ authorLabel(record) }}
                     </p>
                     <p v-if="record.needs_doctor_review" class="mt-1">
-                        <span
-                            class="inline-block px-2 py-0.5 text-[11px] font-semibold rounded-full"
-                            :class="record.reviewed_at ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'"
-                        >
-                            {{ record.reviewed_at ? 'Pris en charge' : (record.assigned_doctor_id ? 'À transmettre — assigné' : 'À transmettre — file d\'attente') }}
-                        </span>
+                        <StatusBadge
+                            :tone="record.reviewed_at ? 'success' : 'warning'"
+                            :label="record.reviewed_at ? 'Pris en charge' : (record.assigned_doctor_id ? 'À transmettre (assigné)' : 'À transmettre (file d\'attente)')"
+                        />
                     </p>
                     <p v-if="!editable(record)" class="mt-1">
-                        <span class="inline-block px-2 py-0.5 text-[11px] font-semibold rounded-full bg-gray-200 text-gray-700">
-                            {{ t('medical.readonly.badge') }}
-                        </span>
+                        <StatusBadge tone="neutral" :label="t('medical.readonly.badge')" />
                     </p>
                 </div>
-                <span class="px-2 py-1 text-xs font-bold rounded-sm bg-gray-100 text-gray-600">
+                <span class="shrink-0 px-2 py-1 text-sm font-bold rounded-control bg-tone-neutral-bg text-tone-neutral-text">
                     {{ record.motif_code }}
                 </span>
             </div>
 
-            <div class="grid grid-cols-3 gap-2 mb-3 bg-gray-50 p-2 rounded-lg text-xs">
+            <div class="grid grid-cols-3 gap-2 mb-3 bg-tone-neutral-bg p-2 rounded-control text-sm">
                 <div class="text-center">
-                    <span class="block text-gray-400">Tension</span>
-                    <span class="font-bold text-gray-700">{{ record.bp || '-' }}</span>
+                    <span class="block text-ink-muted">Tension</span>
+                    <span class="font-bold text-ink">{{ record.bp || '-' }}</span>
                 </div>
-                <div class="text-center border-l border-gray-200">
-                    <span class="block text-gray-400">Poids</span>
-                    <span class="font-bold text-gray-700">{{ record.weight ? record.weight + ' kg' : '-' }}</span>
+                <div class="text-center border-l border-tone-neutral-border">
+                    <span class="block text-ink-muted">Poids</span>
+                    <span class="font-bold text-ink">{{ record.weight ? record.weight + ' kg' : '-' }}</span>
                 </div>
-                <div class="text-center border-l border-gray-200">
-                    <span class="block text-gray-400">Temp</span>
-                    <span class="font-bold text-gray-700">{{ record.temperature ? record.temperature + '°' : '-' }}</span>
+                <div class="text-center border-l border-tone-neutral-border">
+                    <span class="block text-ink-muted">Temp</span>
+                    <span class="font-bold text-ink">{{ record.temperature ? record.temperature + '°' : '-' }}</span>
                 </div>
             </div>
 
-            <p class="text-gray-700 text-sm whitespace-pre-line">{{ record.notes || record.symptoms || 'Aucune note' }}</p>
+            <p class="text-ink text-base whitespace-pre-line">{{ record.notes || record.symptoms || 'Aucune note' }}</p>
 
-            <div v-if="record.allergies || record.medical_history" class="mt-2 grid grid-cols-2 gap-2 text-xs">
+            <div v-if="record.allergies || record.medical_history" class="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2 text-base">
                 <div v-if="record.allergies">
-                    <p class="font-bold text-gray-500 uppercase">Allergies</p>
-                    <p class="text-gray-700">{{ record.allergies }}</p>
+                    <p class="text-sm font-bold text-ink-muted uppercase">Allergies</p>
+                    <p class="text-ink">{{ record.allergies }}</p>
                 </div>
                 <div v-if="record.medical_history">
-                    <p class="font-bold text-gray-500 uppercase">Antécédents</p>
-                    <p class="text-gray-700">{{ record.medical_history }}</p>
+                    <p class="text-sm font-bold text-ink-muted uppercase">Antécédents</p>
+                    <p class="text-ink">{{ record.medical_history }}</p>
                 </div>
             </div>
 
-            <div v-if="record.treatment" class="mt-3 pt-3 border-t border-gray-100">
-                <p class="text-xs font-bold text-gray-500 uppercase">Traitement prescrit</p>
-                <p class="text-sm text-gray-800">{{ record.treatment }}</p>
+            <div v-if="record.treatment" class="mt-3 pt-3 border-t border-tone-neutral-border">
+                <p class="text-sm font-bold text-ink-muted uppercase">Traitement prescrit</p>
+                <p class="text-base text-ink">{{ record.treatment }}</p>
             </div>
 
-            <div v-if="canManage && editable(record)" class="mt-3 pt-3 border-t border-gray-100 flex gap-2">
-                <button
-                    @click="$emit('edit', record)"
-                    class="px-3 py-1.5 text-xs font-medium rounded-lg bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 transition"
-                >
+            <div v-if="canManage && editable(record)" class="mt-3 pt-3 border-t border-tone-neutral-border flex flex-col gap-2 sm:flex-row">
+                <AppButton variant="secondary" @click="$emit('edit', record)">
                     Modifier
-                </button>
-                <button
-                    @click="$emit('prescribe', record)"
-                    class="px-3 py-1.5 text-xs font-medium rounded-lg bg-purple-600 text-white hover:bg-purple-700 transition"
-                >
+                </AppButton>
+                <AppButton @click="$emit('prescribe', record)">
                     Prescrire
-                </button>
+                </AppButton>
             </div>
         </div>
     </div>
 
-    <div v-if="records.length === 0" class="text-gray-500 italic pl-2">
+    <div v-if="records.length === 0" class="text-ink-muted text-base pl-2">
         Aucun historique médical disponible.
     </div>
 
@@ -92,6 +82,7 @@ import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '@/stores/auth';
 import { isRecordEditable } from '@/utils/consultationLock';
+import { AppButton, StatusBadge } from '@/components/ui';
 
 const props = defineProps({
     records: { type: Array, default: () => [] }

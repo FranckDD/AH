@@ -1,6 +1,6 @@
 // Page d'accueil de chaque role apres connexion (fonction pure, testee).
 // Le medecin arrive sur son tableau de bord (/medical/doctors, DoctorKpiView).
-// L'infirmiere partage la meme interface et la meme page d'accueil (certaines\n// fonctions reservees au medecin sont simplement masquees pour elle).
+// L'infirmiere a sa propre page d'accueil : la liste des patients (voir plus bas).
 export function getPostLoginPath(role) {
     // Normalisation reelle (registre L4e, chantier L4b-e)
     const userRole = (role || '').toLowerCase();
@@ -24,8 +24,11 @@ export function getPostLoginPath(role) {
             return '/dashboard/stock-control';
 
         case 'medecin':
-        case 'nurse':
             return '/medical/doctors';
+
+        // L'infirmiere commence par les patients (accueil, enregistrement, parametres).
+        case 'nurse':
+            return '/medical/patients';
 
         case 'secretaire':
             return '/secretariat/';
