@@ -80,9 +80,9 @@ test('(c) la zone stockAdminScreens existe et n’a ni tiret long ni points de s
 
 // --- (d) la refonte n'a touché que les fichiers autorisés, jamais les données ni les règles de stock ---
 const BASE = '132351c'; // juste avant la Tâche 1 de ce lot
-// Dernier commit des Tâches 1 à 4. null = arbre de travail (tant que ces tâches ne sont pas commitées) ;
-// à renseigner avec le hash du commit pour que les chantiers suivants ne fassent pas échouer ce contrôle.
-const FIN = null;
+// Dernier commit des Tâches 1 à 4 (57727cb). null = arbre de travail ;
+// renseigné pour que les chantiers suivants ne fassent pas échouer ce contrôle.
+const FIN = '57727cb';
 
 const AUTORISES = new Set([
     ...REFONDUS,
