@@ -1,125 +1,102 @@
 <!-- src/views/modules/caisse/DiscountRequestsHistory.vue -->
 <template>
-  <div class="space-y-6 w-full">
-    <div class="flex flex-col md:flex-row justify-between items-center bg-white p-6 rounded-2xl shadow-xs border border-gray-100 gap-4">
-      <div>
-        <h1 class="text-2xl font-extrabold text-gray-800 tracking-tight">{{ t('discount_history.title') }}</h1>
-        <p class="text-sm text-gray-500">{{ pagination.total }} {{ t('discount_history.results') }}</p>
-      </div>
+  <div class="grid w-full gap-6">
+    <PageHeader :title="t('discount_history.title')" :subtitle="`${pagination.total} ${t('discount_history.results')}`" />
+
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <StatTile :title="t('discount_history.kpi.approved')" :value="kpi.approved_count" tone="success" />
+      <StatTile :title="t('discount_history.kpi.refused')" :value="kpi.refused_count" tone="danger" />
+      <StatTile :title="t('discount_history.kpi.pending')" :value="kpi.pending_count" tone="warning" />
+      <StatTile :title="t('discount_history.kpi.total_reduced')" :value="formatCurrency(kpi.total_reduced_amount)" />
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-      <div class="bg-white p-5 rounded-2xl shadow-xs border border-gray-100">
-        <p class="text-xs text-gray-500 font-medium uppercase">{{ t('discount_history.kpi.approved') }}</p>
-        <p class="text-2xl font-bold text-green-700 mt-1">{{ kpi.approved_count }}</p>
-      </div>
-      <div class="bg-white p-5 rounded-2xl shadow-xs border border-gray-100">
-        <p class="text-xs text-gray-500 font-medium uppercase">{{ t('discount_history.kpi.refused') }}</p>
-        <p class="text-2xl font-bold text-red-600 mt-1">{{ kpi.refused_count }}</p>
-      </div>
-      <div class="bg-white p-5 rounded-2xl shadow-xs border border-gray-100">
-        <p class="text-xs text-gray-500 font-medium uppercase">{{ t('discount_history.kpi.pending') }}</p>
-        <p class="text-2xl font-bold text-amber-600 mt-1">{{ kpi.pending_count }}</p>
-      </div>
-      <div class="bg-white p-5 rounded-2xl shadow-xs border border-gray-100">
-        <p class="text-xs text-gray-500 font-medium uppercase">{{ t('discount_history.kpi.total_reduced') }}</p>
-        <p class="text-2xl font-bold text-gray-900 mt-1">{{ formatCurrency(kpi.total_reduced_amount) }}</p>
-      </div>
-    </div>
-
-    <div class="bg-white p-4 rounded-2xl shadow-xs border border-gray-100 flex flex-wrap gap-3 items-end">
-      <div class="flex gap-2">
-        <button v-for="preset in periodPresets" :key="preset.key" @click="applyPreset(preset.key)"
-                :class="activePreset === preset.key ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
-                class="px-3 py-2 rounded-lg text-sm font-medium transition">
+    <section :aria-label="t('discountScreens.filters')" class="grid gap-4 rounded-card border border-tone-neutral-border bg-white p-4 shadow-card md:grid-cols-2 lg:flex lg:flex-wrap lg:items-end">
+      <div class="flex flex-wrap gap-2 md:col-span-2" role="group">
+        <button v-for="preset in periodPresets" :key="preset.key" type="button" @click="applyPreset(preset.key)"
+                :aria-pressed="activePreset === preset.key"
+                :class="activePreset === preset.key ? 'bg-brand-600 text-white border-transparent' : 'bg-white text-ink border-tone-neutral-border hover:bg-tone-neutral-bg'"
+                class="min-h-11 rounded-control border px-4 text-base font-medium transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600">
           {{ t(preset.labelKey) }}
         </button>
       </div>
-      <div class="w-full md:w-40">
-        <label class="text-xs font-bold text-gray-500 uppercase mb-1 block">{{ t('caisse.table.date') }} ({{ t('discount_history.from') }})</label>
-        <input v-model="dateFrom" type="date" @change="onCustomDateChange"
-               class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" />
+      <div class="lg:w-48">
+        <FormField id="dh-from" :label="`${t('caisse.table.date')} (${t('discount_history.from')})`" v-slot="{ describedBy }">
+          <input id="dh-from" v-model="dateFrom" type="date" @change="onCustomDateChange" :aria-describedby="describedBy" :class="fieldClass" />
+        </FormField>
       </div>
-      <div class="w-full md:w-40">
-        <label class="text-xs font-bold text-gray-500 uppercase mb-1 block">{{ t('discount_history.to') }}</label>
-        <input v-model="dateTo" type="date" @change="onCustomDateChange"
-               class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" />
+      <div class="lg:w-48">
+        <FormField id="dh-to" :label="t('discount_history.to')" v-slot="{ describedBy }">
+          <input id="dh-to" v-model="dateTo" type="date" @change="onCustomDateChange" :aria-describedby="describedBy" :class="fieldClass" />
+        </FormField>
       </div>
-      <div class="w-full md:w-48">
-        <label class="text-xs font-bold text-gray-500 uppercase mb-1 block">{{ t('caisse.table.status') }}</label>
-        <select v-model="statusFilter" @change="fetchAll"
-                class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
-          <option value="">{{ t('caisse.status.all') }}</option>
-          <option value="approved">{{ t('discount_history.status.approved') }}</option>
-          <option value="refused">{{ t('discount_history.status.refused') }}</option>
-          <option value="pending">{{ t('discount_history.status.pending') }}</option>
-          <option value="cancelled">{{ t('discount_history.status.cancelled') }}</option>
-        </select>
+      <div class="lg:w-56">
+        <FormField id="dh-status" :label="t('caisse.table.status')" v-slot="{ describedBy }">
+          <select id="dh-status" v-model="statusFilter" @change="fetchAll" :aria-describedby="describedBy" :class="fieldClass">
+            <option value="">{{ t('caisse.status.all') }}</option>
+            <option value="approved">{{ t('discount_history.status.approved') }}</option>
+            <option value="refused">{{ t('discount_history.status.refused') }}</option>
+            <option value="pending">{{ t('discount_history.status.pending') }}</option>
+            <option value="cancelled">{{ t('discount_history.status.cancelled') }}</option>
+          </select>
+        </FormField>
       </div>
-    </div>
+    </section>
 
-    <div class="bg-white rounded-2xl shadow-xs border border-gray-100 overflow-hidden">
-      <div v-if="isLoading" class="p-10 text-center">
-        <span class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></span>
-      </div>
-      <div v-else class="overflow-x-auto">
-        <table class="min-w-full text-left border-collapse">
-          <thead>
-            <tr class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
-              <th class="px-6 py-4 font-semibold">{{ t('discount_history.table.date') }}</th>
-              <th class="px-6 py-4 font-semibold">{{ t('caisse.table.patient') }}</th>
-              <th class="px-6 py-4 font-semibold">{{ t('discount_history.table.requested_by') }}</th>
-              <th class="px-6 py-4 font-semibold">{{ t('discount_history.table.decided_by') }}</th>
-              <th class="px-6 py-4 font-semibold text-right">{{ t('discount_history.table.invoice_amount') }}</th>
-              <th class="px-6 py-4 font-semibold text-right">%</th>
-              <th class="px-6 py-4 font-semibold text-right">{{ t('discount_history.table.reduced_amount') }}</th>
-              <th class="px-6 py-4 font-semibold">{{ t('caisse.table.status') }}</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-gray-100">
-            <tr v-for="r in rows" :key="r.id" class="hover:bg-gray-50 transition">
-              <td class="px-6 py-4 text-sm text-gray-600 font-mono">{{ formatDate(r.created_at) }}</td>
-              <td class="px-6 py-4 text-sm text-gray-900">{{ r.patient_label || '—' }}</td>
-              <td class="px-6 py-4 text-sm text-gray-700">{{ r.requested_by_name || '—' }}</td>
-              <td class="px-6 py-4 text-sm text-gray-700">{{ r.decided_by_name || '—' }}</td>
-              <td class="px-6 py-4 text-right text-sm font-medium">{{ formatCurrency(r.original_amount) }}</td>
-              <td class="px-6 py-4 text-right text-sm">{{ r.decision_percent ? `${r.decision_percent}%` : '—' }}</td>
-              <td class="px-6 py-4 text-right text-sm font-semibold text-green-700">{{ r.reduced_amount ? formatCurrency(r.reduced_amount) : '—' }}</td>
-              <td class="px-6 py-4">
-                <span :class="statusBadgeClass(r.status)" class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium">
-                  {{ t(`discount_history.status.${r.status}`) }}
-                </span>
-              </td>
-            </tr>
-            <tr v-if="rows.length === 0">
-              <td colspan="8" class="px-6 py-8 text-center text-gray-500 italic">{{ t('discount_history.empty') }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+    <section class="grid gap-3">
+      <ResponsiveTable
+        :columns="columns"
+        :rows="rows"
+        row-key="id"
+        :loading="isLoading"
+        :empty-title="t('discount_history.empty')"
+        :empty-message="' '"
+      >
+        <template #cell-date="{ row: r }"><span class="font-mono">{{ formatDate(r.created_at) }}</span></template>
+        <template #cell-patient="{ row: r }">{{ r.patient_label || '-' }}</template>
+        <template #cell-requested_by="{ row: r }">{{ r.requested_by_name || '-' }}</template>
+        <template #cell-decided_by="{ row: r }">{{ r.decided_by_name || '-' }}</template>
+        <template #cell-invoice_amount="{ row: r }"><span class="font-medium">{{ formatCurrency(r.original_amount) }}</span></template>
+        <template #cell-percent="{ row: r }">{{ r.decision_percent ? `${r.decision_percent}%` : '-' }}</template>
+        <template #cell-reduced_amount="{ row: r }">
+          <span class="font-semibold text-tone-success-text">{{ r.reduced_amount ? formatCurrency(r.reduced_amount) : '-' }}</span>
+        </template>
+        <template #cell-status="{ row: r }">
+          <StatusBadge :tone="statusTone(r.status)" :label="t(`discount_history.status.${r.status}`)" />
+        </template>
+      </ResponsiveTable>
 
-      <div v-if="pagination.total_pages > 1" class="p-4 flex justify-between items-center border-t border-gray-100 bg-gray-50">
-        <p class="text-sm text-gray-700">Page {{ pagination.page }} / {{ pagination.total_pages }}</p>
-        <div class="flex space-x-2">
-          <button @click="goToPage(pagination.page - 1)" :disabled="pagination.page === 1" class="px-3 py-1 border rounded-sm bg-white disabled:opacity-50">
-            <ChevronLeftIcon class="h-5 w-5" />
-          </button>
-          <button @click="goToPage(pagination.page + 1)" :disabled="pagination.page === pagination.total_pages" class="px-3 py-1 border rounded-sm bg-white disabled:opacity-50">
-            <ChevronRightIcon class="h-5 w-5" />
-          </button>
+      <div v-if="pagination.total_pages > 1" class="flex items-center justify-between gap-3 rounded-card border border-tone-neutral-border bg-white p-3">
+        <p class="text-base text-ink">Page {{ pagination.page }} / {{ pagination.total_pages }}</p>
+        <div class="flex gap-2">
+          <AppButton variant="secondary" :icon="ChevronLeftIcon" :aria-label="t('discountScreens.prev_page')" @click="goToPage(pagination.page - 1)" :disabled="pagination.page === 1" />
+          <AppButton variant="secondary" :icon="ChevronRightIcon" :aria-label="t('discountScreens.next_page')" @click="goToPage(pagination.page + 1)" :disabled="pagination.page === pagination.total_pages" />
         </div>
       </div>
-    </div>
+    </section>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/vue/24/outline';
 import { DiscountRequestGateway } from '@/services/DiscountRequestGateway';
+import { AppButton, PageHeader, FormField, StatTile, StatusBadge, ResponsiveTable } from '@/components/ui';
 
 const { t } = useI18n();
+
+// Colonnes du tableau (cartes sous lg) et style commun des champs.
+const columns = computed(() => [
+  { key: 'date', label: t('discount_history.table.date') },
+  { key: 'patient', label: t('caisse.table.patient') },
+  { key: 'requested_by', label: t('discount_history.table.requested_by') },
+  { key: 'decided_by', label: t('discount_history.table.decided_by') },
+  { key: 'invoice_amount', label: t('discount_history.table.invoice_amount'), align: 'right' },
+  { key: 'percent', label: '%', align: 'right' },
+  { key: 'reduced_amount', label: t('discount_history.table.reduced_amount'), align: 'right' },
+  { key: 'status', label: t('caisse.table.status') },
+]);
+const fieldClass = 'block w-full min-h-11 rounded-control border border-tone-neutral-border bg-white px-3 text-base text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand-600';
 
 const rows = ref([]);
 const isLoading = ref(false);
@@ -163,14 +140,15 @@ const onCustomDateChange = () => {
 };
 
 const formatCurrency = (v) => new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XAF' }).format(v || 0).replace('XOF', 'FCFA');
-const formatDate = (iso) => (iso ? new Date(iso).toLocaleString('fr-FR') : '—');
+const formatDate = (iso) => (iso ? new Date(iso).toLocaleString('fr-FR') : '-');
 
-const statusBadgeClass = (status) => ({
-  approved: 'bg-green-100 text-green-800',
-  refused: 'bg-red-100 text-red-800',
-  pending: 'bg-amber-100 text-amber-800',
-  cancelled: 'bg-gray-200 text-gray-600',
-}[status] || 'bg-gray-200 text-gray-600');
+// Vert = approuve, rouge = refuse, orange = en attente, neutre = annule (toujours avec le texte du statut).
+const statusTone = (status) => ({
+  approved: 'success',
+  refused: 'danger',
+  pending: 'warning',
+  cancelled: 'neutral',
+}[status] || 'neutral');
 
 const currentParams = () => ({
   date_from: dateFrom.value || undefined,

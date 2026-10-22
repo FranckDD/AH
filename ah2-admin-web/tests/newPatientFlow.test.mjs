@@ -4,7 +4,6 @@ import { readFileSync } from 'node:fs';
 import {
     pollPatientCode,
     codeDialogState,
-    runsNewPatientFlow,
     patientPrefillFromCreated,
 } from '../src/utils/newPatientFlow.js';
 import { getPostLoginPath, resolveRootPath } from '../src/utils/postLoginRoute.js';
@@ -93,16 +92,6 @@ test('codeDialogState : priorité code > hors ligne > en retard > attente', () =
 });
 
 // --- qui déclenche le parcours ---
-test('runsNewPatientFlow : infirmière seulement, patient créé localement seulement', () => {
-    assert.equal(runsNewPatientFlow('nurse', { localUuid: 'u' }), true);
-    assert.equal(runsNewPatientFlow('Nurse', { localUuid: 'u' }), true);
-    assert.equal(runsNewPatientFlow('medecin', { localUuid: 'u' }), false);
-    assert.equal(runsNewPatientFlow('secretaire', { localUuid: 'u' }), false);
-    assert.equal(runsNewPatientFlow('nurse', null), false);
-    assert.equal(runsNewPatientFlow('nurse', {}), false);
-    assert.equal(runsNewPatientFlow(undefined, { localUuid: 'u' }), false);
-});
-
 // --- pré-remplissage du formulaire de paramètres ---
 test('patientPrefillFromCreated : code connu -> identifiant serveur ; sinon uuid local', () => {
     assert.deepEqual(
@@ -122,7 +111,7 @@ const record = readFileSync(new URL('../src/components/medical-records/MedicalRe
 
 test('PatientList : le médecin garde le comportement existant (fiche du patient créé)', () => {
     assert.match(list, /router\.push\(`\$\{route\.path\}\/\$\{created\.localUuid\}`\)/);
-    assert.match(list, /runsNewPatientFlow\(/);
+    assert.match(list, /showsCodeDialog\(/);
 });
 
 test('la fenêtre du code ne se ferme que par OK (ni clic à côté ni Échap)', () => {
@@ -149,4 +138,105 @@ test('clés newPatient.* présentes en FR et EN', () => {
         }
     }
     assert.match(msgs.fr.newPatient.offline, /Code attribué à la synchronisation, il apparaîtra dans la liste/);
+});
+
+// --- Secrétaire : le code s'affiche aussi, mais jamais le formulaire de paramètres (action médicale) ---
+import { showsCodeDialog, goesToVitalsAfterCode, shouldRefreshAfterSync } from '../src/utils/newPatientFlow.js';
+
+test('showsCodeDialog : infirmière et secrétaire voient le code d’un patient qu’elles viennent de créer', () => {
+    assert.equal(showsCodeDialog('nurse', { localUuid: 'u' }), true);
+    assert.equal(showsCodeDialog('Nurse', { localUuid: 'u' }), true);
+    assert.equal(showsCodeDialog('secretaire', { localUuid: 'u' }), true);
+    assert.equal(showsCodeDialog('medecin', { localUuid: 'u' }), false);
+    assert.equal(showsCodeDialog('admin', { localUuid: 'u' }), false);
+    assert.equal(showsCodeDialog('secretaire', null), false);
+    assert.equal(showsCodeDialog('secretaire', {}), false);
+    assert.equal(showsCodeDialog(undefined, { localUuid: 'u' }), false);
+});
+
+test('goesToVitalsAfterCode : seule l’infirmière enchaîne sur le formulaire de paramètres (pas la secrétaire)', () => {
+    assert.equal(goesToVitalsAfterCode('nurse'), true);
+    assert.equal(goesToVitalsAfterCode('Nurse'), true);
+    assert.equal(goesToVitalsAfterCode('secretaire'), false);
+    assert.equal(goesToVitalsAfterCode('medecin'), false);
+    assert.equal(goesToVitalsAfterCode(undefined), false);
+});
+
+// --- Liste : recharger quand un patient « en attente » vient d'être confirmé par le serveur ---
+test('shouldRefreshAfterSync : recharge quand le nombre de patients en attente diminue', () => {
+    assert.equal(shouldRefreshAfterSync(1, 0), true);
+    assert.equal(shouldRefreshAfterSync(3, 2), true);
+    assert.equal(shouldRefreshAfterSync(0, 0), false);
+    assert.equal(shouldRefreshAfterSync(0, 1), false); // un nouveau patient en attente : rien à recharger
+    assert.equal(shouldRefreshAfterSync(2, 2), false);
+    assert.equal(shouldRefreshAfterSync(null, 0), false); // premier relevé : pas de comparaison
+    assert.equal(shouldRefreshAfterSync(undefined, 1), false);
+});
+
+test('PatientList : le code s’affiche aussi pour la secrétaire, et la liste se recharge quand l’envoi aboutit', () => {
+    assert.match(list, /showsCodeDialog\(authStore\.userRole, created\)/);
+    assert.match(list, /goesToVitalsAfterCode\(authStore\.userRole\)/);
+    assert.match(list, /shouldRefreshAfterSync\(/);
+    assert.match(list, /db\.watch\(/);
+    assert.match(list, /signal: watchController\.signal/);
+    assert.match(list, /watchController\.abort\(\)/);
+});
+
+test('PatientList : la secrétaire n’ouvre jamais le formulaire de paramètres (MedicalRecordModal derrière le test de rôle)', () => {
+    const onOk = list.slice(list.indexOf('const onCodeOk'), list.indexOf('const handleRecordSave'));
+    assert.match(onOk, /if \(!goesToVitalsAfterCode\(authStore\.userRole\)\)/);
+    assert.ok(onOk.indexOf('goesToVitalsAfterCode') < onOk.indexOf('recordPrefill.value ='), 'le test de rôle doit précéder l’ouverture du formulaire');
+});
+
+// --- Patient refusé par le serveur (doublon de numéro d'identité) : la fenêtre doit le dire ---
+import { quarantineReason } from '../src/utils/newPatientFlow.js';
+
+test('codeDialogState : un patient refusé n’a jamais de code, la fenêtre le dit au lieu d’attendre', () => {
+    assert.equal(codeDialogState({ code: '', rejected: true }), 'rejected');
+    assert.equal(codeDialogState({ code: '', rejected: true, offline: true, timedOut: true }), 'rejected');
+    assert.equal(codeDialogState({ code: 'P-1', rejected: true }), 'ready'); // un code reçu l'emporte toujours
+    assert.equal(codeDialogState({ code: '', rejected: false, offline: true }), 'offline');
+});
+
+test('quarantineReason : texte du serveur, liste de validation, vide', () => {
+    assert.equal(quarantineReason('Un patient avec le même national_id existe déjà.'), 'Un patient avec le même national_id existe déjà.');
+    assert.equal(
+        quarantineReason(JSON.stringify([{ loc: ['body', 'birth_date'], msg: 'Input should be a valid date' }])),
+        'birth_date : Input should be a valid date',
+    );
+    assert.equal(quarantineReason(JSON.stringify([{ loc: ['body', 'a'], msg: 'x' }, { loc: ['body', 'b'], msg: 'y' }])), 'a : x ; b : y');
+    assert.equal(quarantineReason(''), '');
+    assert.equal(quarantineReason(null), '');
+    assert.equal(quarantineReason(undefined), '');
+    assert.equal(quarantineReason('[pas du json'), '[pas du json');
+});
+
+test('NewPatientCodeModal : surveille la quarantaine du patient et le signale (sans rester sur « en attente »)', () => {
+    assert.match(modal, /sync_quarantine/);
+    assert.match(modal, /kind = 'patient' AND local_id = \?/);
+    assert.match(modal, /db\.watch\(/);
+    assert.match(modal, /rejected:\s*rejected\.value|rejected: rejected\.value/);
+    assert.match(modal, /controller\.abort\(\)/);
+    assert.match(modal, /failuresPath/);
+    assert.match(modal, /dialogState === 'rejected'/);
+});
+
+test('PatientList : un patient refusé ne déclenche jamais le formulaire de paramètres et la liste est rechargée', () => {
+    const onOk = list.slice(list.indexOf('const onCodeOk'), list.indexOf('const handleRecordSave'));
+    assert.match(onOk, /rejected/);
+    assert.ok(onOk.indexOf('rejected') < onOk.indexOf('recordPrefill.value ='), 'le refus doit être testé avant d’ouvrir le formulaire');
+    assert.match(list, /:failuresPath="failuresPath"/);
+    assert.match(list, /\/secretariat\/sync-failures/);
+    assert.match(list, /\/medical\/sync-failures/);
+});
+
+test('clés newPatient.* du refus en FR et EN', () => {
+    const msgs = i18n.global.messages.value;
+    for (const locale of ['fr', 'en']) {
+        for (const k of ['title_rejected', 'rejected', 'rejected_unknown', 'rejected_help', 'see_failures']) {
+            assert.equal(typeof msgs[locale].newPatient[k], 'string', `${locale}.newPatient.${k}`);
+            assert.doesNotMatch(msgs[locale].newPatient[k], /[—–…·]/);
+        }
+    }
+    assert.match(msgs.fr.newPatient.rejected, /\{reason\}/);
 });

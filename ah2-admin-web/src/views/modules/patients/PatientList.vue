@@ -144,6 +144,7 @@
         :localUuid="codeDialog.localUuid"
         :firstName="codeDialog.firstName"
         :lastName="codeDialog.lastName"
+        :failuresPath="failuresPath"
         @ok="onCodeOk"
     />
 
@@ -167,7 +168,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, onBeforeUnmount, ref } from 'vue';
 import { usePatientStore } from '@/stores/patientStore';
 import { useRouter, useRoute } from 'vue-router';
 import { useI18n } from 'vue-i18n';
@@ -181,7 +182,8 @@ import NewPatientCodeModal from '@/components/patients/NewPatientCodeModal.vue';
 import MedicalRecordModal from '@/components/medical-records/MedicalRecordModal.vue';
 import { useMedicalRecordStore } from '@/stores/medicalRecordStore';
 import { useToastStore } from '@/stores/toastStore';
-import { runsNewPatientFlow, patientPrefillFromCreated } from '@/utils/newPatientFlow';
+import { showsCodeDialog, goesToVitalsAfterCode, shouldRefreshAfterSync, patientPrefillFromCreated } from '@/utils/newPatientFlow';
+import { db } from '@/powersync-client/client';
 import ExportModal from '@/components/common/ExportModal.vue';
 import { AppButton, PageHeader, StatusBadge, ResponsiveTable } from '@/components/ui';
 import { toneClasses } from '@/design/tones';
@@ -262,6 +264,7 @@ const openEditModal = async (patient) => {
 
 const closeModal = () => {
     showModal.value = false;
+    if (route.query.nouveau) router.replace({ query: {} });
     patientBeingEdited.value = null;
     modalError.value = '';
 };
@@ -295,9 +298,10 @@ const handleSave = async (payload) => {
         } else {
             const created = await patientStore.addPatient(payload);
             closeModal();
-            // Infirmiere : code a noter sur le carnet (fenetre qui attend OK), puis formulaire
-            // des parametres du patient. Medecin/secretaire : comportement inchange ci-dessous.
-            if (runsNewPatientFlow(authStore.userRole, created)) {
+            // Infirmiere et secretaire : code a noter sur le carnet (fenetre qui attend OK). L'infirmiere
+            // enchaine ensuite sur les parametres du patient, pas la secretaire (voir onCodeOk).
+            // Medecin : comportement inchange ci-dessous (fiche du patient).
+            if (showsCodeDialog(authStore.userRole, created)) {
                 codeDialog.value = {
                     localUuid: created.localUuid,
                     firstName: payload.firstName,
@@ -324,12 +328,28 @@ const handleSave = async (payload) => {
 
 // Parcours nouveau patient (infirmiere) : fenetre du code -> OK -> formulaire des parametres.
 const codeDialog = ref(null);
+// « Echecs de synchronisation » de l'espace de l'utilisateur (le patient refuse s'y resout).
+const failuresPath = computed(() => (authStore.hasRole(['secretaire']) ? '/secretariat/sync-failures' : '/medical/sync-failures'));
 const recordPrefill = ref(null);
 
-const onCodeOk = ({ code, patientId }) => {
+const onCodeOk = ({ code, patientId, rejected }) => {
     const { localUuid, firstName, lastName } = codeDialog.value;
-    recordPrefill.value = patientPrefillFromCreated({ localUuid, patientId, code, firstName, lastName });
     codeDialog.value = null;
+    // Patient refuse par le serveur (doublon...) : il n'existe pas, donc pas de parametres a saisir.
+    // La liste est rechargee pour ne plus y montrer la ligne « en attente ».
+    if (rejected) {
+        patientStore.fetchPatients();
+        patientStore.fetchCounts();
+        return;
+    }
+    // Secretaire : le formulaire de parametres est une action medicale, elle revient simplement a la liste
+    // (rechargee pour y voir le patient avec son code).
+    if (!goesToVitalsAfterCode(authStore.userRole)) {
+        patientStore.fetchPatients();
+        patientStore.fetchCounts();
+        return;
+    }
+    recordPrefill.value = patientPrefillFromCreated({ localUuid, patientId, code, firstName, lastName });
 };
 
 const handleRecordSave = async (data) => {
@@ -356,8 +376,37 @@ const confirmDelete = async (patient) => {
 };
 
 // 🟢 Chargement initial
+// Patients crees localement et pas encore confirmes par le serveur : quand leur nombre baisse, le serveur
+// vient de les confirmer, on recharge la liste pour y voir leur version confirmee (avec le code).
+const watchController = new AbortController();
+let lastPendingCount = null;
+const watchPendingPatients = async () => {
+    try {
+        for await (const result of db.watch(
+            'SELECT COUNT(*) AS n FROM patients WHERE server_id IS NULL',
+            [],
+            { signal: watchController.signal }
+        )) {
+            const current = result.rows?._array?.[0]?.n ?? 0;
+            if (shouldRefreshAfterSync(lastPendingCount, current)) {
+                patientStore.fetchPatients();
+                patientStore.fetchCounts();
+            }
+            lastPendingCount = current;
+        }
+    } catch (err) {
+        if (!watchController.signal.aborted) console.error('Surveillance des patients en attente interrompue:', err);
+    }
+};
+
+onBeforeUnmount(() => watchController.abort());
+
 onMounted(() => {
+    if (authStore.hasRole(['medecin', 'nurse', 'secretaire'])) watchPendingPatients();
     patientStore.fetchPatients();
+    // Action rapide de l'accueil du secretariat (?nouveau=1) : ouvre directement le formulaire.
+    // Le parametre est retire a la FERMETURE du formulaire (le retirer ici remonterait la page et fermerait le formulaire).
+    if (route.query.nouveau === '1') openCreateModal();
     // 🟢 Charger les compteurs globaux au montage
     patientStore.fetchCounts();
 });

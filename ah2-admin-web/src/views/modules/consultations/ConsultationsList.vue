@@ -1,77 +1,74 @@
 <template>
-  <div class="space-y-6 w-full">
+  <div class="grid w-full gap-6">
 
-    <div class="flex flex-col md:flex-row justify-between items-center bg-white p-6 rounded-2xl shadow-xs border border-gray-100 gap-4">
-      <div>
-        <h1 class="text-2xl font-extrabold text-gray-800 tracking-tight">{{ t('consultations.title') }}</h1>
-        <p class="text-sm text-gray-500">{{ t('consultations.subtitle') }}</p>
-      </div>
-
-      <div class="flex items-center gap-3 w-full md:w-auto">
-        <input
-          v-model.lazy="searchQuery"
-          @keyup.enter="consultationStore.fetchConsultations()"
-          type="text"
-          :placeholder="t('consultations.search_placeholder')"
-          class="block w-full md:w-64 px-3 py-2.5 border border-gray-300 rounded-xl bg-gray-50 focus:ring-teal-500 focus:border-teal-500 sm:text-sm"
-        />
-        <button @click="showExportModal = true" class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition">
+    <PageHeader :title="t('consultations.title')" :subtitle="t('consultations.subtitle')">
+      <template #actions>
+        <AppButton variant="secondary" @click="showExportModal = true">
           {{ t('export.confirm') }}
-        </button>
-        <button @click="openModal(null)" class="shrink-0 px-4 py-2.5 bg-teal-600 text-white rounded-xl hover:bg-teal-700 text-sm font-semibold">
+        </AppButton>
+        <AppButton :icon="PlusIcon" @click="openModal(null)">
           {{ t('consultations.new_consultation') }}
-        </button>
-      </div>
+        </AppButton>
+      </template>
+    </PageHeader>
+
+    <div class="relative w-full md:max-w-md">
+      <label for="cs-search" class="sr-only">{{ t('consultations.search_placeholder') }}</label>
+      <MagnifyingGlassIcon class="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-ink-muted" aria-hidden="true" />
+      <input
+        id="cs-search"
+        v-model.lazy="searchQuery"
+        @keyup.enter="consultationStore.fetchConsultations()"
+        type="text"
+        :placeholder="t('consultations.search_placeholder')"
+        class="block w-full min-h-11 rounded-control border border-tone-neutral-border bg-white pl-10 pr-3 text-base text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand-600"
+      />
     </div>
 
-    <div class="bg-white rounded-2xl shadow-xs border border-gray-100 overflow-hidden">
-      <div v-if="consultationStore.isLoading" class="p-10 text-center text-gray-500">
-        {{ t('common.loading') }}
-      </div>
-      <table v-else class="min-w-full divide-y divide-gray-100">
-        <thead class="bg-gray-50">
-          <tr>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{{ t('consultations.table.patient') }}</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{{ t('consultations.table.type') }}</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{{ t('consultations.table.date') }}</th>
-            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">{{ t('consultations.table.actions') }}</th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-gray-100">
-          <tr v-if="consultationStore.consultations.length === 0">
-            <td colspan="4" class="px-6 py-8 text-center text-gray-400">{{ t('consultations.empty') }}</td>
-          </tr>
-          <tr v-for="rec in consultationStore.consultations" :key="rec.consultation_id" class="hover:bg-gray-50">
-            <td class="px-6 py-4 text-sm text-gray-700">
-              <div class="font-medium text-gray-800">{{ rec.patient_name || `#${rec.patient_id}` }}</div>
-              <div v-if="rec.patient_code" class="text-xs text-gray-400">{{ rec.patient_code }}</div>
-            </td>
-            <td class="px-6 py-4 text-sm text-gray-700">
-              {{ rec.type_consultation === 'Spiritual' ? t('consultations.type_spiritual') : t('consultations.type_family_restoration') }}
-            </td>
-            <td class="px-6 py-4 text-sm text-gray-500">{{ (rec.consultation_date || '').slice(0, 10) }}</td>
-            <td class="px-6 py-4 text-right text-sm space-x-2">
-              <button @click="openModal(rec)" class="text-teal-600 hover:text-teal-800">{{ t('consultations.actions.edit') }}</button>
-              <button @click="handleDelete(rec)" class="text-red-500 hover:text-red-700">{{ t('consultations.actions.delete') }}</button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+    <section class="grid gap-3">
+      <ResponsiveTable
+        :columns="columns"
+        :rows="consultationStore.consultations"
+        row-key="consultation_id"
+        :loading="consultationStore.isLoading"
+        :empty-title="t('consultations.empty')"
+        :empty-message="' '"
+      >
+        <template #cell-patient="{ row: rec }">
+          <div class="font-medium text-ink">{{ rec.patient_name || `#${rec.patient_id}` }}</div>
+          <div v-if="rec.patient_code" class="text-sm text-ink-muted">{{ rec.patient_code }}</div>
+        </template>
+        <template #cell-type="{ row: rec }">
+          <StatusBadge
+            tone="neutral"
+            :label="rec.type_consultation === 'Spiritual' ? t('consultations.type_spiritual') : t('consultations.type_family_restoration')"
+          />
+        </template>
+        <template #cell-date="{ row: rec }">{{ (rec.consultation_date || '').slice(0, 10) }}</template>
+        <template #actions="{ row: rec }">
+          <AppButton variant="secondary" @click="openModal(rec)">{{ t('consultations.actions.edit') }}</AppButton>
+          <AppButton variant="danger" @click="handleDelete(rec)">{{ t('consultations.actions.delete') }}</AppButton>
+        </template>
+      </ResponsiveTable>
 
-      <div class="p-4 flex justify-between items-center border-t border-gray-100 bg-gray-50">
-        <button
+      <div class="flex items-center justify-between gap-3 rounded-card border border-tone-neutral-border bg-white p-3">
+        <AppButton
+          variant="secondary"
+          :icon="ChevronLeftIcon"
+          :aria-label="t('consultationsScreens.prev_page')"
           @click="consultationStore.setPage(consultationStore.pagination.page - 1)"
           :disabled="consultationStore.pagination.page === 1"
-          class="px-3 py-1 border rounded-sm bg-white disabled:opacity-50"
-        >&laquo;</button>
-        <span class="text-sm text-gray-500">{{ consultationStore.pagination.page }}</span>
-        <button
+        />
+        <span class="text-base font-medium text-ink">{{ t('consultationsScreens.page_label', { n: consultationStore.pagination.page }) }}</span>
+        <AppButton
+          variant="secondary"
+          :icon="ChevronRightIcon"
+          :aria-label="t('consultationsScreens.next_page')"
           @click="consultationStore.setPage(consultationStore.pagination.page + 1)"
           :disabled="!consultationStore.hasNextPage"
-          class="px-3 py-1 border rounded-sm bg-white disabled:opacity-50"
-        >&raquo;</button>
+        />
       </div>
-    </div>
+    </section>
 
     <ConsultationModal
       v-if="showModal"
@@ -82,7 +79,7 @@
 
     <ExportModal
       v-if="showExportModal"
-      :title="t('export.confirm') + ' — ' + t('consultations.title')"
+      :title="t('export.confirm') + ' : ' + t('consultations.title')"
       :formats="[{ value: 'pdf', label: 'PDF' }, { value: 'csv', label: 'CSV' }]"
       :onExport="exportConsultations"
       @close="showExportModal = false"
@@ -96,10 +93,19 @@ import { useI18n } from 'vue-i18n';
 import { useConsultationStore } from '@/stores/consultationStore';
 import ConsultationModal from '@/components/consultations/ConsultationModal.vue';
 import ExportModal from '@/components/common/ExportModal.vue';
+import { AppButton, PageHeader, StatusBadge, ResponsiveTable } from '@/components/ui';
+import { PlusIcon, MagnifyingGlassIcon, ChevronLeftIcon, ChevronRightIcon } from '@heroicons/vue/24/outline';
 import api from '@/services/api';
 
 const { t } = useI18n();
 const consultationStore = useConsultationStore();
+
+// Colonnes du tableau (cartes sous lg).
+const columns = computed(() => [
+  { key: 'patient', label: t('consultations.table.patient') },
+  { key: 'type', label: t('consultations.table.type') },
+  { key: 'date', label: t('consultations.table.date') },
+]);
 
 const showModal = ref(false);
 const editingConsultation = ref(null);

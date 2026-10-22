@@ -8,3 +8,4 @@ export { default as FormSection } from './FormSection.vue';
 export { default as ActionBar } from './ActionBar.vue';
 export { default as ResponsiveTable } from './ResponsiveTable.vue';
 export { default as FullScreenPanel } from './FullScreenPanel.vue';
+export { default as StatTile } from './StatTile.vue';

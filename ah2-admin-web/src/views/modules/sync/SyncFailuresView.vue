@@ -27,6 +27,7 @@
       </p>
 
       <div class="grid gap-3 border-t border-tone-neutral-border pt-3 sm:grid-cols-[1fr_auto] sm:items-end">
+        <p class="text-base font-semibold text-ink sm:col-span-2">{{ t('syncFailures.attach_title') }}</p>
         <FormField :id="`code-${g.patientUuid}`" label="Code du patient existant (AH2-...)" v-slot="{ describedBy }">
           <input :id="`code-${g.patientUuid}`" v-model="codes[g.patientUuid]" type="text" :aria-describedby="describedBy"
                  class="block w-full min-h-11 rounded-control border border-tone-neutral-border bg-white px-3 text-base text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand-600" />
@@ -35,6 +36,25 @@
           {{ busy[g.patientUuid] ? 'Rattachement...' : 'Rattacher à ce patient' }}
         </AppButton>
       </div>
+      <!-- Le numero d'identite est faux : on le corrige et on renvoie le patient (meme uuid, sans doublon) -->
+      <div class="grid gap-3 border-t border-tone-neutral-border pt-3 sm:grid-cols-[1fr_auto] sm:items-end">
+        <p class="text-base font-semibold text-ink sm:col-span-2">{{ t('syncFailures.fix_title') }}</p>
+        <FormField :id="`fix-${g.patientUuid}`" :label="t('syncFailures.fix_label')" v-slot="{ describedBy }">
+          <input :id="`fix-${g.patientUuid}`" v-model="fixIds[g.patientUuid]" type="text" :aria-describedby="describedBy"
+                 class="block w-full min-h-11 rounded-control border border-tone-neutral-border bg-white px-3 text-base text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand-600" />
+        </FormField>
+        <AppButton variant="secondary" @click="handleFix(g)" :disabled="busy[g.patientUuid]" :loading="busy[g.patientUuid]">
+          {{ t('syncFailures.fix_button') }}
+        </AppButton>
+      </div>
+
+      <!-- Le patient n'existe pas et ne doit pas etre envoye : on retire l'entree (definitif, confirme) -->
+      <div class="flex justify-end border-t border-tone-neutral-border pt-3">
+        <AppButton variant="danger" :icon="TrashIcon" @click="handleDiscard(g)" :disabled="busy[g.patientUuid]">
+          {{ t('syncFailures.discard_button') }}
+        </AppButton>
+      </div>
+
       <p v-if="messages[g.patientUuid]" role="status" class="text-base font-medium" :class="messages[g.patientUuid].ok ? 'text-tone-success-text' : 'text-tone-danger-text'">
         {{ messages[g.patientUuid].text }}
       </p>
@@ -88,7 +108,10 @@
 import { ref, reactive, onMounted } from 'vue';
 import api from '@/services/api';
 import { useI18n } from 'vue-i18n';
-import { listQuarantine, reattachToExistingPatient, dismissQuarantineEntry } from '@/powersync-client/syncQuarantine';
+import { listQuarantine, reattachToExistingPatient, dismissQuarantineEntry, discardQuarantinedPatient } from '@/powersync-client/syncQuarantine';
+import { buildResendPayload, validateNationalIdCorrection } from '@/utils/quarantinePatient';
+import { describeServerError } from '@/utils/serverError';
+import { TrashIcon } from '@heroicons/vue/24/outline';
 import { AppButton, PageHeader, FormField, StatusBadge, EmptyState } from '@/components/ui';
 
 const { t } = useI18n();
@@ -105,6 +128,7 @@ const isLoading = ref(false);
 const groups = ref([]);
 const labOrphans = ref([]);
 const codes = reactive({});
+const fixIds = reactive({});
 const busy = reactive({});
 const messages = reactive({});
 
@@ -121,6 +145,7 @@ async function load() {
         name: [payload.first_name, payload.last_name].filter(Boolean).join(' ') || 'Patient sans nom',
         birthDate: payload.birth_date,
         nationalId: payload.national_id,
+        patientPayload: payload,
         error: p.error,
         recordCount: children.filter((c) => c.kind === 'medical_record').length,
         prescriptionCount: children.filter((c) => c.kind === 'prescription').length,
@@ -193,6 +218,54 @@ async function handleReattach(g) {
     messages[g.patientUuid] = {
       ok: false,
       text: err.response ? 'Erreur serveur, réessayez.' : 'Connexion requise pour rattacher un patient.',
+    };
+  } finally {
+    busy[g.patientUuid] = false;
+  }
+}
+
+// Supprime le patient refuse et tout ce qui etait retenu pour lui (definitif, confirme en annoncant les pertes).
+async function handleDiscard(g) {
+  const confirmed = window.confirm(t('syncFailures.discard_confirm', {
+    name: g.name,
+    records: g.recordCount,
+    prescriptions: g.prescriptionCount,
+    labs: g.labResultCount,
+  }));
+  if (!confirmed) return;
+  busy[g.patientUuid] = true;
+  messages[g.patientUuid] = null;
+  try {
+    await discardQuarantinedPatient(g.patientUuid);
+    await load();
+  } catch (err) {
+    console.error("Suppression de l'entree de quarantaine echouee :", err);
+    messages[g.patientUuid] = { ok: false, text: t('syncFailures.discard_error') };
+  } finally {
+    busy[g.patientUuid] = false;
+  }
+}
+
+// Numero d'identite faux : on renvoie le patient avec le numero corrige et le MEME uuid (le serveur traite un
+// rejeu sans doublon). Une fois accepte, ce qui etait retenu (consultations, prescriptions) part vers lui.
+async function handleFix(g) {
+  const check = validateNationalIdCorrection(g.nationalId, fixIds[g.patientUuid]);
+  if (!check.ok) {
+    messages[g.patientUuid] = { ok: false, text: t(`syncFailures.fix_err_${check.error}`) };
+    return;
+  }
+  busy[g.patientUuid] = true;
+  messages[g.patientUuid] = null;
+  try {
+    const res = await api.post('/patients/', buildResendPayload(g.patientPayload, fixIds[g.patientUuid], g.patientUuid));
+    await reattachToExistingPatient(g.patientUuid, res.data.patient_id);
+    messages[g.patientUuid] = { ok: true, text: t('syncFailures.fix_done', { code: res.data.code_patient }) };
+    fixIds[g.patientUuid] = '';
+    await load();
+  } catch (err) {
+    messages[g.patientUuid] = {
+      ok: false,
+      text: err.response ? describeServerError(err, t('syncFailures.fix_failed')) : t('syncFailures.fix_offline'),
     };
   } finally {
     busy[g.patientUuid] = false;

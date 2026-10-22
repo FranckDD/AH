@@ -1,74 +1,89 @@
 <template>
-  <div class="space-y-8 w-full">
+  <div class="grid w-full gap-6">
 
-    <div class="flex flex-col md:flex-row md:items-center md:justify-between bg-white p-6 rounded-2xl shadow-xs border border-gray-100">
-      <h1 class="text-3xl font-extrabold text-gray-800 tracking-tight">{{ t('secretariat.home.title') }}</h1>
+    <PageHeader :title="t('secretariat.home.title')" />
 
-      <div class="mt-4 md:mt-0 flex flex-col md:flex-row space-y-3 md:space-y-0 md:space-x-3 items-end">
-        <div class="flex flex-col">
-          <label class="text-xs font-medium text-gray-500 mb-1">{{ t('secretariat.home.period_from') }}</label>
-          <input type="date" v-model="homeStore.filters.startDate" @change="applyFilters" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-teal-500 focus:border-teal-500" />
-        </div>
-        <div class="flex flex-col">
-          <label class="text-xs font-medium text-gray-500 mb-1">{{ t('secretariat.home.period_to') }}</label>
-          <input type="date" v-model="homeStore.filters.endDate" @change="applyFilters" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-teal-500 focus:border-teal-500" />
-        </div>
+    <!-- 1. Actions rapides : le geste le plus frequent en un clic -->
+    <section :aria-label="t('secretariatHome.quick_title')">
+      <h2 class="mb-3 text-lg font-semibold text-ink">{{ t('secretariatHome.quick_title') }}</h2>
+      <div class="grid gap-3 sm:grid-cols-3">
+        <router-link to="/secretariat/caisse?nouveau=1" :class="buttonClasses('primary', 'lg')">
+          <BanknotesIcon class="h-6 w-6" aria-hidden="true" />
+          {{ t('secretariatHome.quick_invoice') }}
+        </router-link>
+        <router-link to="/secretariat/retrait?nouveau=1" :class="buttonClasses('secondary', 'lg')">
+          <ArrowUpTrayIcon class="h-6 w-6" aria-hidden="true" />
+          {{ t('secretariatHome.quick_withdrawal') }}
+        </router-link>
+        <router-link to="/secretariat/patients?nouveau=1" :class="buttonClasses('secondary', 'lg')">
+          <UserPlusIcon class="h-6 w-6" aria-hidden="true" />
+          {{ t('secretariatHome.quick_patient') }}
+        </router-link>
       </div>
-    </div>
+    </section>
 
-    <div v-if="homeStore.isLoading" class="p-10 text-center text-gray-500">{{ t('common.loading') }}</div>
+    <p v-if="homeStore.isLoading" class="p-10 text-center text-base text-ink-muted" role="status">{{ t('common.loading') }}</p>
 
     <template v-else>
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <StatCard :title="t('secretariat.home.total_paid')" :value="valeurAffichee('totalPaid', formatCurrency(homeStore.stats.totalPaid))" :icon="BanknotesIcon" colorClass="bg-green-50" iconColor="text-green-600" />
-        <StatCard :title="t('secretariat.home.total_withdrawn')" :value="valeurAffichee('totalWithdrawn', formatCurrency(homeStore.stats.totalWithdrawn))" :icon="ArrowTrendingDownIcon" colorClass="bg-red-50" iconColor="text-red-600" />
-        <StatCard :title="t('secretariat.home.balance')" :value="soldeAffiche" :icon="ArrowTrendingUpIcon" colorClass="bg-blue-50" iconColor="text-blue-600" />
-        <StatCard :title="t('secretariat.home.remaining_due')" :value="valeurAffichee('remainingDue', formatCurrency(homeStore.stats.remainingDue))" :icon="ExclamationTriangleIcon" colorClass="bg-orange-50" iconColor="text-orange-600" />
-      </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <StatCard :title="t('secretariat.home.critical_stock')" :value="homeStore.stats.criticalStockCount" :icon="CubeIcon" colorClass="bg-red-50" iconColor="text-red-600" />
-        <StatCard :title="t('secretariat.home.expiring_stock')" :value="homeStore.stats.expiringStockCount" :icon="ClockIcon" colorClass="bg-amber-50" iconColor="text-amber-600" />
-        <StatCard :title="t('secretariat.home.consultations_period')" :value="homeStore.stats.consultationsCount" :icon="SparklesIcon" colorClass="bg-teal-50" iconColor="text-teal-600" />
-      </div>
+      <!-- 2. Argent de la periode, avec le choix de la periode -->
+      <AppCard :title="t('secretariatHome.money_title')">
+        <template #actions>
+          <FormField id="home-start" :label="t('secretariat.home.period_from')" v-slot="{ describedBy }">
+            <input id="home-start" type="date" v-model="homeStore.filters.startDate" @change="applyFilters" :aria-describedby="describedBy" :class="fieldClass" />
+          </FormField>
+          <FormField id="home-end" :label="t('secretariat.home.period_to')" v-slot="{ describedBy }">
+            <input id="home-end" type="date" v-model="homeStore.filters.endDate" @change="applyFilters" :aria-describedby="describedBy" :class="fieldClass" />
+          </FormField>
+        </template>
 
-      <div class="bg-white rounded-2xl shadow-xs border border-gray-100 overflow-hidden">
-        <div class="px-6 py-4 border-b border-gray-100 flex items-center gap-2">
-          <CubeIcon class="h-5 w-5 text-red-600" />
-          <h3 class="text-sm font-bold text-gray-700 uppercase tracking-wide">{{ t('secretariat.home.critical_stock_table_title') }}</h3>
+        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <StatTile :title="t('secretariat.home.total_paid')" :value="valeurAffichee('totalPaid', formatCurrency(homeStore.stats.totalPaid))" :icon="BanknotesIcon" tone="success" />
+          <StatTile :title="t('secretariat.home.total_withdrawn')" :value="valeurAffichee('totalWithdrawn', formatCurrency(homeStore.stats.totalWithdrawn))" :icon="ArrowTrendingDownIcon" />
+          <StatTile :title="t('secretariat.home.balance')" :value="soldeAffiche" :icon="ArrowTrendingUpIcon" tone="info" />
+          <StatTile :title="t('secretariat.home.remaining_due')" :value="valeurAffichee('remainingDue', formatCurrency(homeStore.stats.remainingDue))" :icon="ExclamationTriangleIcon" tone="warning" />
         </div>
-        <div v-if="homeStore.indisponibles.includes('criticalStockItems')" class="px-6 py-6 text-center text-sm text-amber-700 bg-amber-50">
+      </AppCard>
+
+      <!-- 3. Stock et activite -->
+      <AppCard :title="t('secretariatHome.stock_title')">
+        <div class="grid gap-4 sm:grid-cols-3">
+          <StatTile :title="t('secretariat.home.critical_stock')" :value="homeStore.stats.criticalStockCount" :icon="CubeIcon" :tone="homeStore.stats.criticalStockCount > 0 ? 'danger' : 'neutral'" />
+          <StatTile :title="t('secretariat.home.expiring_stock')" :value="homeStore.stats.expiringStockCount" :icon="ClockIcon" :tone="homeStore.stats.expiringStockCount > 0 ? 'warning' : 'neutral'" />
+          <StatTile :title="t('secretariat.home.consultations_period')" :value="homeStore.stats.consultationsCount" :icon="SparklesIcon" />
+        </div>
+
+        <h3 class="mb-3 mt-6 text-base font-semibold text-ink">{{ t('secretariat.home.critical_stock_table_title') }}</h3>
+        <p
+          v-if="homeStore.indisponibles.includes('criticalStockItems')"
+          role="alert"
+          class="rounded-card border px-4 py-3 text-base font-medium"
+          :class="toneClasses('warning')"
+        >
           {{ t('secretariat.home.critical_stock_table_error') }}
-        </div>
-        <div v-else-if="homeStore.criticalStockItems.length === 0" class="px-6 py-6 text-center text-sm text-gray-400">
-          {{ t('secretariat.home.critical_stock_table_empty') }}
-        </div>
-        <table v-else class="w-full text-sm text-left">
-          <thead class="bg-gray-50 text-gray-500 uppercase text-xs">
-            <tr>
-              <th class="px-6 py-3">{{ t('secretariat.home.critical_stock_table.product') }}</th>
-              <th class="px-6 py-3">{{ t('secretariat.home.critical_stock_table.category') }}</th>
-              <th class="px-6 py-3 text-right">{{ t('secretariat.home.critical_stock_table.quantity') }}</th>
-              <th class="px-6 py-3 text-right">{{ t('secretariat.home.critical_stock_table.threshold') }}</th>
-              <th class="px-6 py-3">{{ t('secretariat.home.critical_stock_table.status') }}</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-gray-100">
-            <tr v-for="item in homeStore.criticalStockItems" :key="item.medication_id">
-              <td class="px-6 py-3 font-medium text-gray-800">{{ item.drug_name }}</td>
-              <td class="px-6 py-3 text-gray-500">{{ item.medication_type }}</td>
-              <td class="px-6 py-3 text-right" :class="item.quantity === 0 ? 'text-red-600 font-bold' : 'text-gray-700'">{{ item.quantity }}</td>
-              <td class="px-6 py-3 text-right text-gray-400">{{ item.threshold }}</td>
-              <td class="px-6 py-3">
-                <span class="px-2 py-1 rounded-full text-xs font-bold"
-                      :class="item.quantity === 0 ? 'bg-red-100 text-red-700' : 'bg-orange-100 text-orange-700'">
-                  {{ item.quantity === 0 ? t('secretariat.home.critical_stock_table.out_of_stock') : t('secretariat.home.critical_stock_table.low_stock') }}
-                </span>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+        </p>
+        <ResponsiveTable
+          v-else
+          :columns="stockColumns"
+          :rows="homeStore.criticalStockItems"
+          row-key="medication_id"
+          :empty-title="t('secretariat.home.critical_stock_table_empty')"
+          :empty-message="' '"
+        >
+          <template #cell-product="{ row: item }"><span class="font-medium text-ink">{{ item.drug_name }}</span></template>
+          <template #cell-category="{ row: item }">{{ item.medication_type }}</template>
+          <template #cell-quantity="{ row: item }">
+            <span :class="item.quantity === 0 ? 'font-bold text-tone-danger-text' : ''">{{ item.quantity }}</span>
+          </template>
+          <template #cell-threshold="{ row: item }"><span class="text-ink-muted">{{ item.threshold }}</span></template>
+          <template #cell-status="{ row: item }">
+            <StatusBadge
+              :tone="item.quantity === 0 ? 'danger' : 'warning'"
+              :label="item.quantity === 0 ? t('secretariat.home.critical_stock_table.out_of_stock') : t('secretariat.home.critical_stock_table.low_stock')"
+            />
+          </template>
+        </ResponsiveTable>
+      </AppCard>
     </template>
   </div>
 </template>
@@ -77,14 +92,26 @@
 import { computed, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useSecretariatHomeStore } from '@/stores/secretariatHomeStore';
-import StatCard from '@/components/dashboard/StatCard.vue';
+import { PageHeader, AppCard, FormField, StatTile, StatusBadge, ResponsiveTable } from '@/components/ui';
+import { buttonClasses } from '@/utils/ui';
+import { toneClasses } from '@/design/tones';
 import {
-  BanknotesIcon, ArrowTrendingDownIcon, ArrowTrendingUpIcon,
+  BanknotesIcon, ArrowTrendingDownIcon, ArrowTrendingUpIcon, ArrowUpTrayIcon, UserPlusIcon,
   ExclamationTriangleIcon, CubeIcon, ClockIcon, SparklesIcon,
 } from '@heroicons/vue/24/outline';
 
 const { t } = useI18n();
 const homeStore = useSecretariatHomeStore();
+
+// Colonnes du tableau des stocks critiques (cartes sous lg) et style des champs de periode.
+const stockColumns = computed(() => [
+  { key: 'product', label: t('secretariat.home.critical_stock_table.product') },
+  { key: 'category', label: t('secretariat.home.critical_stock_table.category') },
+  { key: 'quantity', label: t('secretariat.home.critical_stock_table.quantity'), align: 'right' },
+  { key: 'threshold', label: t('secretariat.home.critical_stock_table.threshold'), align: 'right' },
+  { key: 'status', label: t('secretariat.home.critical_stock_table.status') },
+]);
+const fieldClass = 'min-h-11 rounded-control border border-tone-neutral-border bg-white px-3 text-base text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand-600';
 
 const formatCurrency = (value) => {
   return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XAF', minimumFractionDigits: 0 }).format(value).replace('XOF', 'FCFA');

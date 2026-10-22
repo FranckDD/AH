@@ -19,6 +19,7 @@ const read = (p) => readFileSync(new URL(p, root), 'utf8');
 // aussi : leur refonte a été décidée avec l'utilisateur (liste, fiche et formulaire patient, échecs de synchronisation).
 const REFONDUS = [
     'src/components/layout/MedicalLayout.vue',
+    'src/components/layout/AppShell.vue',
     'src/views/LoginView.vue',
     'src/views/modules/doctors/DoctorKpiView.vue',
     'src/views/modules/appointments/AppointmentsList.vue',
@@ -54,6 +55,7 @@ const REFONDUS = [
 
 // Fichiers qui n'importent aucun composant ui/, avec la raison.
 const SANS_COMPOSANT_UI = {
+    'src/components/layout/MedicalLayout.vue': 'enveloppe de configuration (groupes de menu) : tout le gabarit vit dans AppShell.vue, qui utilise ui/ConnectionStatus',
     'src/components/patients/medical/VitalsCard.vue': 'carte purement présentative (aucun composant ui/ n’apporte rien) ; ses couleurs viennent des jetons',
 };
 

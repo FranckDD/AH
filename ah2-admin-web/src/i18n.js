@@ -962,6 +962,7 @@ const messages = {
       modal: {
         add_title: "Ajouter un Produit",
         edit_title: "Modifier le Produit",
+        form: "Forme",
         name: "Nom du produit",
         category: "Catégorie",
         qty: "Quantité actuelle",
@@ -1788,6 +1789,59 @@ const messages = {
       late: "Le code n'est pas encore arrivé. Il apparaîtra dans la liste dès que la synchronisation sera terminée.",
       ok: "OK",
       saved: "Paramètres enregistrés.",
+      title_rejected: "Patient refusé",
+      rejected: "Le serveur a refusé ce patient : {reason}",
+      rejected_unknown: "motif non précisé",
+      rejected_help: "Vérifiez s'il existe déjà dans la liste. Vous pouvez aussi le rattacher à un patient existant depuis « Échecs de synchronisation ».",
+      see_failures: "Voir les échecs de synchronisation",
+    },
+    syncFailures: {
+      attach_title: "Le patient existe déjà : rattacher ses données",
+      fix_title: "Le numéro d'identité est faux : le corriger",
+      fix_label: "Nouveau numéro d'identité",
+      fix_button: "Corriger et renvoyer",
+      fix_done: "Patient renvoyé au serveur (code {code}).",
+      fix_err_empty: "Saisissez le nouveau numéro d'identité.",
+      fix_err_same: "Ce numéro est identique à l'ancien : saisissez le numéro corrigé.",
+      fix_failed: "Le serveur a refusé le patient, réessayez.",
+      fix_offline: "Connexion requise pour renvoyer le patient.",
+      discard_button: "Supprimer cette entrée",
+      discard_confirm: "Supprimer {name} ? Seront perdues : {records} consultation(s), {prescriptions} prescription(s), {labs} dossier(s) labo. Cette action est définitive.",
+      discard_error: "Impossible de supprimer cette entrée.",
+      discard_done: "Entrée supprimée."
+    },
+    discountScreens: {
+      prev_page: "Page précédente",
+      next_page: "Page suivante",
+      filters: "Filtres"
+    },
+    consultationsScreens: {
+      prev_page: "Page précédente",
+      next_page: "Page suivante",
+      page_label: "Page {n}",
+      section_patient: "Patient"
+    },
+    stockScreens: {
+      stock_change: "{before} vers {after}",
+      prev_page: "Page précédente",
+      next_page: "Page suivante",
+      filter_reset: "Réinitialiser les filtres",
+      section_product: "Produit",
+      section_stock: "Stock et alerte"
+    },
+    secretariatHome: {
+      quick_title: "Actions rapides",
+      quick_invoice: "Nouvelle facture",
+      quick_withdrawal: "Nouveau retrait",
+      quick_patient: "Ajouter un patient",
+      money_title: "Argent de la période",
+      stock_title: "Stock et activité"
+    },
+    secretariatShell: {
+      sections: {
+        daily: "Au quotidien",
+        follow: "Suivi"
+      }
     },
     loginPage: {
       title: "Connexion au SIH",
@@ -2774,6 +2828,7 @@ const messages = {
       modal: {
         add_title: "Add Product",
         edit_title: "Edit Product",
+        form: "Form",
         name: "Product Name",
         category: "Category",
         qty: "Current Quantity",
@@ -3600,6 +3655,59 @@ const messages = {
       late: "The code has not arrived yet. It will appear in the list once synchronization is complete.",
       ok: "OK",
       saved: "Measurements saved.",
+      title_rejected: "Patient rejected",
+      rejected: "The server rejected this patient: {reason}",
+      rejected_unknown: "no reason given",
+      rejected_help: "Check whether the patient already exists in the list. You can also attach the record to an existing patient from \"Sync failures\".",
+      see_failures: "See sync failures",
+    },
+    syncFailures: {
+      attach_title: "The patient already exists: attach the data",
+      fix_title: "The identity number is wrong: correct it",
+      fix_label: "New identity number",
+      fix_button: "Correct and resend",
+      fix_done: "Patient sent to the server (code {code}).",
+      fix_err_empty: "Enter the new identity number.",
+      fix_err_same: "This number is the same as the old one: enter the corrected number.",
+      fix_failed: "The server rejected the patient, try again.",
+      fix_offline: "A connection is required to resend the patient.",
+      discard_button: "Delete this entry",
+      discard_confirm: "Delete {name}? The following will be lost: {records} consultation(s), {prescriptions} prescription(s), {labs} lab record(s). This cannot be undone.",
+      discard_error: "Unable to delete this entry.",
+      discard_done: "Entry deleted."
+    },
+    discountScreens: {
+      prev_page: "Previous page",
+      next_page: "Next page",
+      filters: "Filters"
+    },
+    consultationsScreens: {
+      prev_page: "Previous page",
+      next_page: "Next page",
+      page_label: "Page {n}",
+      section_patient: "Patient"
+    },
+    stockScreens: {
+      stock_change: "{before} to {after}",
+      prev_page: "Previous page",
+      next_page: "Next page",
+      filter_reset: "Reset filters",
+      section_product: "Product",
+      section_stock: "Stock and alert"
+    },
+    secretariatHome: {
+      quick_title: "Quick actions",
+      quick_invoice: "New invoice",
+      quick_withdrawal: "New withdrawal",
+      quick_patient: "Add a patient",
+      money_title: "Money for the period",
+      stock_title: "Stock and activity"
+    },
+    secretariatShell: {
+      sections: {
+        daily: "Daily work",
+        follow: "Follow-up"
+      }
     },
     loginPage: {
       title: "Sign in to the HIS",

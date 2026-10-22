@@ -1,6 +1,6 @@
 # Suivi d'avancement — AH2 / Glostone-Kare
 
-**Dernière mise à jour :** 2026-10-22 (refonte UX de l'espace médical livrée, Tâches 1 à 12 ; à vérifier par l'utilisateur dans le navigateur)
+**Dernière mise à jour :** 2026-10-22 (refonte UX du secrétariat, Tâches 1 à 6 ; échecs de synchronisation : suppression et correction du numéro d'identité)
 **But de ce document :** état d'avancement des chantiers de remise en service et de sécurisation, et registre des découvertes faites en cours de route mais non encore traitées. Pour le contexte général du projet, voir `docs/superpowers/CONTEXTE-PROJET.md`. Pour le détail d'un chantier, voir les fichiers correspondants dans `docs/superpowers/specs/` et `docs/superpowers/plans/`.
 
 ## Feuille de route
@@ -1309,3 +1309,14 @@ Spec `specs/2026-10-22-refonte-ux-medical-design.md` · Plan `plans/2026-10-22-r
 ### Autres décisions de la session (2026-10-22)
 
 Accueil après connexion : le médecin arrive sur `/medical/doctors` et l'infirmière sur `/medical/patients` (changé le 2026-10-22, voir la refonte UX) ; recharger `/` ou `/dashboard` ramène chaque rôle sur son accueil. Consultations passées en lecture seule (voir section dédiée). Évaluation toxico réservée au psychologue. Sortie toxico validable par le promoteur. Signatures sur les PDF. Réadmission des patients toxico (séjours). Exports PDF toxico. Question toujours ouverte : l'accompagnateur spirituel a-t-il une évaluation distincte ? (laissée de côté à la demande de l'utilisateur). Backlog restant : migration des autres espaces vers la refonte UX (espace médical livré), onglet Rapports (après la refonte), documentation par rôle (après la refonte, simple, avec la responsabilité de chaque rôle), chantier 8 (déploiement sur le VPS OVH Londres).
+
+### Refonte UX du secrétariat : Tâches 1 à 6 livrées, point de contrôle (2026-10-22)
+
+Plan : `docs/superpowers/plans/2026-10-22-refonte-ux-secretariat.md` ; protocole de test : `docs/superpowers/usability-test-protocol-secretariat.md`. Livré : cadre commun `AppShell`, menu du secrétariat, accueil (actions rapides et statistiques, `StatTile`), stock, consultations, historique des réductions. Reste : caisse (T7 à T9) et garde finale (T10).
+
+**Corrections de la session**
+- Patient créé par la secrétaire : fenêtre du code (comme l'infirmière) puis retour à la liste, sans formulaire de paramètres (action médicale, interdite à la secrétaire) ; la liste se recharge quand le serveur confirme le patient.
+- Patient refusé par le serveur (doublon de numéro d'identité) : la fenêtre le détecte et renvoie vers Échecs de synchronisation.
+- Échecs de synchronisation : bouton « Supprimer cette entrée » (confirmation chiffrée, suppression locale définitive) et « Corriger le numéro d'identité et renvoyer » (même uuid, donc sans doublon ; les données retenues sont rattachées au patient une fois accepté).
+
+**Décision (utilisateur, 2026-10-22) : le type du patient reste calculé, sans exception.** Le type n'est jamais stocké : CLINIQUE = dossier médical ou hospitalisation, TOXICO = dossier toxico, SPIRITUEL = au moins une consultation spirituelle. Un patient tout juste créé (par la secrétaire comme par l'infirmière) n'a aucun dossier : il apparaît seulement dans « Tous », étiqueté NOUVEAU, et entre dans l'onglet Spirituel à sa première consultation spirituelle. Pas de type provisoire. À reprendre tel quel dans la documentation par rôle.

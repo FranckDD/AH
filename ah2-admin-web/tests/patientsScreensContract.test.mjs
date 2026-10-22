@@ -35,7 +35,7 @@ check('PatientList', list, [
     "authStore.hasRole(['medecin', 'nurse'])", "tousLesOnglets.filter((t) => t.value !== 'TOXICO' && t.value !== 'SPIRITUEL')",
     "value: 'ALL'", "value: 'CLINIQUE'", "value: 'TOXICO'", "value: 'SPIRITUEL'",
     'disableDetailLink', 'router.push(`${route.path}/${patientId}`)', 'router.push(`${route.path}/${created.localUuid}`)',
-    'runsNewPatientFlow(authStore.userRole, created)', 'patient.pending', "'En attente de synchronisation'",
+    'showsCodeDialog(authStore.userRole, created)', 'patient.pending', "'En attente de synchronisation'",
     'Voulez-vous vraiment supprimer ${patient.firstName} ${patient.lastName} ?', "t('staffDiscount.badge')", 'patient.is_staff',
     "api.get('/patients/export'", 'ExportModal', 'NewPatientCodeModal', 'MedicalRecordModal', ':defaultNeedsDoctorReview="true"',
     '@close="closeModal"', '@save="handleSave"', 'viewPatientDossier(patient.id)',

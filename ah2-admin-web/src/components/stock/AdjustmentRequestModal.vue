@@ -1,50 +1,65 @@
 <!-- src/components/stock/AdjustmentRequestModal.vue -->
 <!-- Demande de reapprovisionnement / correction de stock (secretaire). -->
 <template>
-  <div class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-    <form @submit.prevent="submit" class="bg-white rounded-xl shadow-xl w-full max-w-lg p-6 space-y-3 max-h-[90vh] overflow-y-auto">
-      <h3 class="text-lg font-semibold text-gray-800">{{ $t('stockAdjust.modal_title') }}</h3>
-      <p class="text-sm text-gray-600">
-        <span class="font-medium">{{ product.name }}</span>
-        — {{ $t('stockAdjust.current_stock') }} : {{ product.quantity }}
-      </p>
-      <div v-if="error" class="bg-red-50 border-l-4 border-red-500 p-3 rounded-sm text-sm text-red-700">{{ error }}</div>
+  <!-- Panneau plein ecran sur telephone et tablette, grande fenetre centree sur PC -->
+  <FullScreenPanel :title="$t('stockAdjust.modal_title')" @close="$emit('close')">
 
-      <label class="block text-sm">{{ $t('stockAdjust.col_kind') }}
-        <select v-model="form.kind" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg">
+    <form id="adjustment-form" @submit.prevent="submit" class="space-y-4">
+      <p class="text-base text-ink">
+        <span class="font-semibold">{{ product.name }}</span>,
+        {{ $t('stockAdjust.current_stock') }} : {{ product.quantity }}
+      </p>
+      <p v-if="error" role="alert" class="flex items-start gap-2 rounded-control border p-3 text-base" :class="toneClasses('danger')">
+        <ExclamationCircleIcon class="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
+        <span>{{ error }}</span>
+      </p>
+
+      <FormField id="adjust-kind" :label="$t('stockAdjust.col_kind')" :help="$t(`stockAdjust.kind_help.${form.kind}`)" v-slot="{ describedBy }">
+        <select id="adjust-kind" v-model="form.kind" :aria-describedby="describedBy" :class="fieldClass">
           <option v-for="k in ADJUSTMENT_KINDS" :key="k" :value="k">{{ $t(`stockAdjust.kind.${k}`) }}</option>
         </select>
-      </label>
-      <p class="text-xs text-gray-500">{{ $t(`stockAdjust.kind_help.${form.kind}`) }}</p>
+      </FormField>
 
-      <label class="block text-sm">{{ $t('stockOps.col_quantity') }}
-        <input v-model.number="form.quantity" type="number" :min="form.kind === 'correction' ? 0 : 1" step="1"
-               class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg" />
-      </label>
-      <label class="block text-sm">{{ $t('stockOps.col_reason') }}
-        <textarea v-model="form.reason" rows="3" maxlength="2000" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg"></textarea>
-      </label>
+      <FormField id="adjust-quantity" :label="$t('stockOps.col_quantity')" required v-slot="{ describedBy }">
+        <input id="adjust-quantity" v-model.number="form.quantity" type="number" :min="form.kind === 'correction' ? 0 : 1" step="1"
+               inputmode="numeric" :aria-describedby="describedBy" :class="fieldClass" />
+      </FormField>
 
-      <div class="flex justify-end gap-2 pt-2">
-        <button type="button" @click="$emit('close')" class="px-4 py-2 bg-gray-200 rounded-lg text-sm">{{ $t('stockOps.close') }}</button>
-        <button type="submit" :disabled="saving" class="px-4 py-2 bg-amber-600 text-white rounded-lg text-sm font-medium disabled:opacity-50">
-          {{ saving ? $t('stockOps.saving') : $t('stockAdjust.send') }}
-        </button>
-      </div>
+      <FormField id="adjust-reason" :label="$t('stockOps.col_reason')" required v-slot="{ describedBy }">
+        <textarea id="adjust-reason" v-model="form.reason" rows="3" maxlength="2000" :aria-describedby="describedBy" :class="[fieldClass, 'py-2']"></textarea>
+      </FormField>
     </form>
-  </div>
+
+    <template #footer>
+      <ActionBar>
+        <template #secondary>
+          <AppButton variant="ghost" @click="$emit('close')">{{ $t('stockOps.close') }}</AppButton>
+        </template>
+        <AppButton type="submit" form="adjustment-form" :disabled="saving" :loading="saving">
+          {{ saving ? $t('stockOps.saving') : $t('stockAdjust.send') }}
+        </AppButton>
+      </ActionBar>
+    </template>
+
+  </FullScreenPanel>
 </template>
 
 <script setup>
 import { reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { ExclamationCircleIcon } from '@heroicons/vue/20/solid';
 import { StockOpsGateway, describeStockError } from '@/services/StockOpsGateway';
 import { ADJUSTMENT_KINDS, validateAdjustmentRequest } from '@/utils/adjustmentRequest';
+import { AppButton, FormField, ActionBar, FullScreenPanel } from '@/components/ui';
+import { toneClasses } from '@/design/tones';
 
 // product : { id, name, quantity }
 const props = defineProps({ product: { type: Object, required: true } });
 const emit = defineEmits(['close', 'created']);
 const { t } = useI18n();
+
+// Style commun des champs : zone tactile >= 44 px, focus visible.
+const fieldClass = 'block w-full min-h-11 rounded-control border border-tone-neutral-border bg-white px-3 text-base text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand-600';
 
 const form = reactive({ kind: 'reapprovisionnement', quantity: null, reason: '' });
 const error = ref('');

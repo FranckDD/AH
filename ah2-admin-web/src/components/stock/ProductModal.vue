@@ -1,102 +1,100 @@
 <template>
-  <Modal @close="$emit('close')">
-    <h3 class="text-xl font-bold text-gray-800 mb-6 border-b pb-3">
-        {{ isEditing ? t('stock.modal.edit_title') : t('stock.modal.add_title') }}
-    </h3>
+  <!-- Panneau plein ecran sur telephone et tablette, grande fenetre centree sur PC -->
+  <FullScreenPanel :title="isEditing ? t('stock.modal.edit_title') : t('stock.modal.add_title')" @close="$emit('close')">
 
-    <form @submit.prevent="handleSubmit" class="space-y-4">
-        
-        <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('stock.modal.name') }}</label>
-            <input v-model="form.name" type="text" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500" />
-        </div>
+    <form id="product-form" @submit.prevent="handleSubmit" class="space-y-4">
 
-        <div class="grid grid-cols-2 gap-4">
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('stock.modal.category') }}</label>
-                <select v-model="form.category" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 bg-white">
+        <FormSection :title="t('stockScreens.section_product')">
+            <div class="md:col-span-2">
+                <FormField id="product-name" :label="t('stock.modal.name')" required v-slot="{ describedBy }">
+                    <input id="product-name" v-model="form.name" type="text" required :aria-describedby="describedBy" :class="[fieldClass, 'bg-white']" />
+                </FormField>
+            </div>
+
+            <FormField id="product-category" :label="t('stock.modal.category')" v-slot="{ describedBy }">
+                <select id="product-category" v-model="form.category" :aria-describedby="describedBy" :class="[fieldClass, 'bg-white']">
                     <option value="PHARMA">{{ t('stock.categories.PHARMA') }}</option>
                     <option value="NATUREL">{{ t('stock.categories.NATUREL') }}</option>
                     <option value="MATERIEL">{{ t('stock.categories.MATERIEL') }}</option>
                 </select>
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('stock.modal.price') }}</label>
-                <div class="relative">
-                    <input v-model.number="form.price" type="number" required min="0" class="w-full pl-3 pr-12 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 text-right" />
-                    <span class="absolute right-3 top-2 text-gray-400 text-sm">FCFA</span>
-                </div>
-            </div>
-        </div>
+            </FormField>
 
-        <div v-if="form.category === 'PHARMA'" class="grid grid-cols-2 gap-4 bg-blue-50 p-3 rounded-lg border border-blue-100 animate-fade-in">
-            <div>
-                <label class="block text-xs font-bold text-blue-700 mb-1 uppercase">
-                    {{ t('stock.modal.form') || 'Forme' }} </label>
-                <select 
-                    v-model="form.forme" 
-                    class="w-full px-2 py-1.5 border border-blue-200 rounded-sm text-sm focus:ring-blue-500 bg-white"
-                >
-                    <option 
-                        v-for="opt in formOptions" 
-                        :key="opt.value" 
-                        :value="opt.value"
-                    >
-                        {{ t(opt.labelKey) }}
-                    </option>
-                </select>
-            </div>
-            <div>
-                <label class="block text-xs font-bold text-blue-700 mb-1 uppercase">Dosage (mg/ml)</label>
-                <input v-model="form.dosage" type="text" placeholder="Ex: 500mg" class="w-full px-2 py-1.5 border border-blue-200 rounded-sm text-sm focus:ring-blue-500" />
-            </div>
-        </div>
+            <FormField id="product-price" :label="t('stock.modal.price') + ' (FCFA)'" required v-slot="{ describedBy }">
+                <input id="product-price" v-model.number="form.price" type="number" required min="0" inputmode="numeric" :aria-describedby="describedBy" :class="[fieldClass, 'bg-white text-right']" />
+            </FormField>
 
-        <div class="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg border border-gray-200">
-            <div>
-                <label class="block text-sm font-bold text-gray-700 mb-1">{{ t('stock.modal.qty') }}</label>
-                <input v-if="canEditQuantity" v-model.number="form.quantity" type="number" required min="0" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 font-mono" />
+            <template v-if="form.category === 'PHARMA'">
+                <FormField id="product-forme" :label="t('stock.modal.form')" v-slot="{ describedBy }">
+                    <select id="product-forme" v-model="form.forme" :aria-describedby="describedBy" :class="[fieldClass, 'bg-white']">
+                        <option
+                            v-for="opt in formOptions"
+                            :key="opt.value"
+                            :value="opt.value"
+                        >
+                            {{ t(opt.labelKey) }}
+                        </option>
+                    </select>
+                </FormField>
+                <FormField id="product-dosage" label="Dosage (mg/ml)" v-slot="{ describedBy }">
+                    <input id="product-dosage" v-model="form.dosage" type="text" placeholder="Ex: 500mg" :aria-describedby="describedBy" :class="[fieldClass, 'bg-white']" />
+                </FormField>
+            </template>
+        </FormSection>
+
+        <FormSection :title="t('stockScreens.section_stock')">
+            <FormField id="product-quantity" :label="t('stock.modal.qty')" :required="canEditQuantity" v-slot="{ describedBy }">
+                <input v-if="canEditQuantity" id="product-quantity" v-model.number="form.quantity" type="number" required min="0" inputmode="numeric" :aria-describedby="describedBy" :class="[fieldClass, 'bg-white font-mono']" />
                 <template v-else>
-                    <p class="px-3 py-2 font-mono text-gray-700">{{ form.quantity ?? 0 }}</p>
-                    <p class="text-xs text-gray-500">{{ product ? t('stockAdjust.qty_readonly_edit') : t('stockAdjust.qty_readonly_create') }}</p>
+                    <p :id="'product-quantity'" class="px-1 py-2 font-mono text-base text-ink">{{ form.quantity ?? 0 }}</p>
+                    <p class="text-sm text-ink-muted">{{ product ? t('stockAdjust.qty_readonly_edit') : t('stockAdjust.qty_readonly_create') }}</p>
                 </template>
-            </div>
-            <div>
-                <label class="block text-sm font-bold text-gray-700 mb-1">Seuil Alerte</label>
-                <input v-model.number="form.minThreshold" type="number" required min="0" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-red-500 focus:border-red-500 font-mono text-red-600" />
-            </div>
-        </div>
+            </FormField>
 
-        <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('stock.modal.expiry') }}</label>
-            <input v-model="form.expiryDate" type="date" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500" />
-            <p v-if="form.category === 'MATERIEL'" class="text-xs text-gray-500 mt-1 italic">
-                Optionnel pour le matériel non périssable.
-            </p>
-        </div>
+            <FormField id="product-threshold" label="Seuil Alerte" required v-slot="{ describedBy }">
+                <input id="product-threshold" v-model.number="form.minThreshold" type="number" required min="0" inputmode="numeric" :aria-describedby="describedBy" :class="[fieldClass, 'bg-white font-mono']" />
+            </FormField>
 
-        <div class="pt-4 flex justify-end space-x-3 border-t mt-6">
-            <button type="button" @click="$emit('close')" class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition">
-                {{ t('common.cancel') }}
-            </button>
-            <button type="submit" class="px-6 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 shadow-md transition flex items-center">
-                <span v-if="isEditing">Mettre à jour</span>
-                <span v-else>{{ t('common.save') }}</span>
-            </button>
-        </div>
+            <div class="md:col-span-2">
+                <FormField
+                    id="product-expiry"
+                    :label="t('stock.modal.expiry')"
+                    :help="form.category === 'MATERIEL' ? 'Optionnel pour le matériel non périssable.' : ''"
+                    v-slot="{ describedBy }"
+                >
+                    <input id="product-expiry" v-model="form.expiryDate" type="date" :aria-describedby="describedBy" :class="[fieldClass, 'bg-white']" />
+                </FormField>
+            </div>
+        </FormSection>
 
     </form>
-  </Modal>
+
+    <!-- Barre d'actions fixe : Enregistrer (principal) et Annuler (discret) -->
+    <template #footer>
+      <ActionBar>
+        <template #secondary>
+          <AppButton variant="ghost" @click="$emit('close')">{{ t('common.cancel') }}</AppButton>
+        </template>
+        <AppButton type="submit" form="product-form">
+          <span v-if="isEditing">Mettre à jour</span>
+          <span v-else>{{ t('common.save') }}</span>
+        </AppButton>
+      </ActionBar>
+    </template>
+
+  </FullScreenPanel>
 </template>
 
 <script setup>
 import { reactive, watch, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
-import Modal from '@/components/common/Modal.vue';
+import { AppButton, FormField, FormSection, ActionBar, FullScreenPanel } from '@/components/ui';
 
 const props = defineProps({ product: Object, canEditQuantity: { type: Boolean, default: true } });
 const emit = defineEmits(['close', 'save']);
 const { t } = useI18n();
+
+// Style commun des champs : zone tactile >= 44 px, focus visible.
+const fieldClass = 'block w-full min-h-11 rounded-control border border-tone-neutral-border px-3 text-base text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand-600';
 
 // 🟢 Définition des options de forme avec clés de traduction
 // 'value' est ce qui est stocké en BDD (on garde le français pour compatibilité)
@@ -119,8 +117,8 @@ const form = reactive({
     minThreshold: 10,
     price: 0,
     expiryDate: '',
-    forme: 'Comprimé', 
-    dosage: '' 
+    forme: 'Comprimé',
+    dosage: ''
 });
 
 const isEditing = computed(() => !!form.id);
@@ -130,13 +128,13 @@ watch(() => props.product, (newVal) => {
         Object.assign(form, newVal);
         if (!form.forme) form.forme = 'Autre';
     } else {
-        Object.assign(form, { 
-            id: null, 
-            name: '', 
-            category: 'PHARMA', 
-            quantity: 0, 
-            minThreshold: 10, 
-            price: 0, 
+        Object.assign(form, {
+            id: null,
+            name: '',
+            category: 'PHARMA',
+            quantity: 0,
+            minThreshold: 10,
+            price: 0,
             expiryDate: '',
             forme: 'Comprimé',
             dosage: ''
@@ -146,19 +144,9 @@ watch(() => props.product, (newVal) => {
 
 const handleSubmit = () => {
     if (form.category !== 'PHARMA') {
-        form.forme = 'Autre'; 
+        form.forme = 'Autre';
         form.dosage = '';
     }
     emit('save', { ...form });
 };
 </script>
-
-<style scoped>
-.animate-fade-in {
-  animation: fadeIn 0.3s ease-out;
-}
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-5px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-</style>

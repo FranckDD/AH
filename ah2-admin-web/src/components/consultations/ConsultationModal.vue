@@ -1,138 +1,124 @@
 <template>
-  <div class="fixed inset-0 bg-gray-600/50 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
-    <div class="relative mx-auto p-6 border w-full max-w-2xl shadow-xl rounded-2xl bg-white max-h-[90vh] overflow-y-auto">
+  <!-- Panneau plein ecran sur telephone et tablette, grande fenetre centree sur PC -->
+  <FullScreenPanel :title="isEdit ? t('consultations.modal.title_edit') : t('consultations.modal.title_new')" @close="$emit('close')">
 
-      <div class="flex justify-between items-center mb-6">
-        <h3 class="text-xl font-bold text-gray-900">
-          {{ isEdit ? t('consultations.modal.title_edit') : t('consultations.modal.title_new') }}
-        </h3>
-        <button @click="$emit('close')" class="text-gray-400 hover:text-gray-500 transition">
-          <span class="text-2xl">&times;</span>
-        </button>
-      </div>
+    <form id="consultation-form" @submit.prevent="handleSubmit" class="space-y-4">
 
-      <form @submit.prevent="handleSubmit" class="space-y-5">
-
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('consultations.modal.patient_code') }}</label>
-          <input
-            v-model="patientCode"
-            @blur="lookupPatient"
-            type="text"
+      <FormSection :title="t('consultationsScreens.section_patient')">
+        <div class="md:col-span-2">
+          <FormField
+            id="cs-patient-code"
+            :label="t('consultations.modal.patient_code')"
             required
-            :readonly="isEdit"
-            :class="[
-              'block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500 sm:text-sm',
-              isEdit ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''
-            ]"
-            placeholder="Ex: AH2-000818AQ"
-          />
-          <p v-if="patientLookupMessage" class="text-sm mt-1" :class="patientId ? 'text-green-600' : 'text-red-500'">
-            {{ patientLookupMessage }}
-          </p>
+            :error="patientId ? '' : patientLookupMessage"
+            :help="patientId ? patientLookupMessage : ''"
+            v-slot="{ describedBy, invalid }"
+          >
+            <input
+              id="cs-patient-code"
+              v-model="patientCode"
+              @blur="lookupPatient"
+              type="text"
+              required
+              :readonly="isEdit"
+              :aria-describedby="describedBy"
+              :aria-invalid="invalid"
+              :class="[fieldClass, isEdit ? 'cursor-not-allowed bg-tone-neutral-bg text-ink-muted' : 'bg-white']"
+              placeholder="Ex: AH2-000818AQ"
+            />
+          </FormField>
         </div>
+      </FormSection>
 
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('consultations.modal.type_label') }}</label>
-          <select v-model="form.typeConsultation" required class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500 sm:text-sm">
+      <FormSection :title="t('consultations.modal.type_label')">
+        <FormField id="cs-type" :label="t('consultations.modal.type_label')" required v-slot="{ describedBy }">
+          <select id="cs-type" v-model="form.typeConsultation" required :aria-describedby="describedBy" :class="[fieldClass, 'bg-white']">
             <option value="Spiritual">{{ t('consultations.type_spiritual') }}</option>
             <option value="FamilyRestoration">{{ t('consultations.type_family_restoration') }}</option>
           </select>
-        </div>
+        </FormField>
+        <FormField id="cs-date" :label="t('consultations.modal.consultation_date')" v-slot="{ describedBy }">
+          <input id="cs-date" v-model="form.consultationDate" type="datetime-local" :aria-describedby="describedBy" :class="[fieldClass, 'bg-white']" />
+        </FormField>
+      </FormSection>
 
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('consultations.modal.consultation_date') }}</label>
-          <input v-model="form.consultationDate" type="datetime-local" class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500 sm:text-sm" />
-        </div>
+      <template v-if="form.typeConsultation === 'Spiritual'">
+        <FormSection :title="t('consultations.modal.section_spiritual')">
+          <FormField id="cs-mp" :label="t('consultations.modal.prayer_book_type')" v-slot="{ describedBy }">
+            <select id="cs-mp" v-model="form.mpType" :aria-describedby="describedBy" :class="[fieldClass, 'bg-white']">
+              <option value="">{{ t('consultations.modal.prayer_book_none') }}</option>
+              <option v-for="pbt in consultationStore.prayerBookTypes" :key="pbt.type_code" :value="pbt.type_code">
+                {{ pbt.label || pbt.type_code }}
+              </option>
+            </select>
+          </FormField>
 
-        <template v-if="form.typeConsultation === 'Spiritual'">
-          <fieldset class="border border-gray-200 rounded-lg p-4 space-y-4">
-            <legend class="text-sm font-semibold text-gray-600 px-1">{{ t('consultations.modal.section_spiritual') }}</legend>
+          <FormField id="cs-psaume" :label="t('consultations.modal.psaume')" v-slot="{ describedBy }">
+            <input id="cs-psaume" v-model="form.psaume" type="text" :aria-describedby="describedBy" :class="[fieldClass, 'bg-white']" />
+          </FormField>
 
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('consultations.modal.prayer_book_type') }}</label>
-              <select v-model="form.mpType" class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500 sm:text-sm">
-                <option value="">{{ t('consultations.modal.prayer_book_none') }}</option>
-                <option v-for="pbt in consultationStore.prayerBookTypes" :key="pbt.type_code" :value="pbt.type_code">
-                  {{ pbt.label || pbt.type_code }}
-                </option>
-              </select>
-            </div>
-
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('consultations.modal.psaume') }}</label>
-              <input v-model="form.psaume" type="text" class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500 sm:text-sm" />
-            </div>
-
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('consultations.modal.presc_generic') }}</label>
-              <div class="flex gap-4">
-                <label v-for="opt in ['Hony', 'Massage', 'Prayer']" :key="opt" class="flex items-center gap-1.5 text-sm">
-                  <input type="checkbox" :value="opt" v-model="form.prescGeneric" class="rounded-sm border-gray-300" />
-                  {{ opt }}
-                </label>
-              </div>
-            </div>
-
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('consultations.modal.presc_med_spirituel') }}</label>
-              <div class="flex gap-4">
-                <label v-for="opt in ['SE', 'TIS', 'AE']" :key="opt" class="flex items-center gap-1.5 text-sm">
-                  <input type="checkbox" :value="opt" v-model="form.prescMedSpirituel" class="rounded-sm border-gray-300" />
-                  {{ opt }}
-                </label>
-              </div>
+          <fieldset class="md:col-span-2">
+            <legend class="mb-1 text-base font-medium text-ink">{{ t('consultations.modal.presc_generic') }}</legend>
+            <div class="flex flex-wrap gap-x-6">
+              <label v-for="opt in ['Hony', 'Massage', 'Prayer']" :key="opt" class="flex min-h-11 cursor-pointer items-center gap-2 text-base text-ink">
+                <input type="checkbox" :value="opt" v-model="form.prescGeneric" class="h-5 w-5 rounded-control border-tone-neutral-border accent-brand-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600" />
+                {{ opt }}
+              </label>
             </div>
           </fieldset>
-        </template>
 
-        <template v-else-if="form.typeConsultation === 'FamilyRestoration'">
-          <fieldset class="border border-gray-200 rounded-lg p-4 space-y-4">
-            <legend class="text-sm font-semibold text-gray-600 px-1">{{ t('consultations.modal.section_family_restoration') }}</legend>
-
-            <div class="grid grid-cols-2 gap-4">
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('consultations.modal.fr_registered_at') }}</label>
-                <input v-model="form.frRegisteredAt" type="date" required class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500 sm:text-sm" />
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('consultations.modal.fr_appointment_at') }}</label>
-                <input v-model="form.frAppointmentAt" type="date" required class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500 sm:text-sm" />
-              </div>
-            </div>
-
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('consultations.modal.fr_amount_paid') }}</label>
-              <input v-model="form.frAmountPaid" type="number" min="0" step="0.01" required class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500 sm:text-sm" />
-            </div>
-
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('consultations.modal.fr_observation') }}</label>
-              <textarea v-model="form.frObservation" rows="2" class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500 sm:text-sm"></textarea>
+          <fieldset class="md:col-span-2">
+            <legend class="mb-1 text-base font-medium text-ink">{{ t('consultations.modal.presc_med_spirituel') }}</legend>
+            <div class="flex flex-wrap gap-x-6">
+              <label v-for="opt in ['SE', 'TIS', 'AE']" :key="opt" class="flex min-h-11 cursor-pointer items-center gap-2 text-base text-ink">
+                <input type="checkbox" :value="opt" v-model="form.prescMedSpirituel" class="h-5 w-5 rounded-control border-tone-neutral-border accent-brand-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600" />
+                {{ opt }}
+              </label>
             </div>
           </fieldset>
-        </template>
+        </FormSection>
+      </template>
 
-        <fieldset class="border border-gray-200 rounded-lg p-4 space-y-4">
-          <legend class="text-sm font-semibold text-gray-600 px-1">{{ t('consultations.modal.section_common') }}</legend>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('consultations.modal.notes') }}</label>
-            <textarea v-model="form.notes" rows="2" class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500 sm:text-sm"></textarea>
+      <template v-else-if="form.typeConsultation === 'FamilyRestoration'">
+        <FormSection :title="t('consultations.modal.section_family_restoration')">
+          <FormField id="cs-fr-registered" :label="t('consultations.modal.fr_registered_at')" required v-slot="{ describedBy }">
+            <input id="cs-fr-registered" v-model="form.frRegisteredAt" type="date" required :aria-describedby="describedBy" :class="[fieldClass, 'bg-white']" />
+          </FormField>
+          <FormField id="cs-fr-appointment" :label="t('consultations.modal.fr_appointment_at')" required v-slot="{ describedBy }">
+            <input id="cs-fr-appointment" v-model="form.frAppointmentAt" type="date" required :aria-describedby="describedBy" :class="[fieldClass, 'bg-white']" />
+          </FormField>
+          <FormField id="cs-fr-amount" :label="t('consultations.modal.fr_amount_paid')" required v-slot="{ describedBy }">
+            <input id="cs-fr-amount" v-model="form.frAmountPaid" type="number" min="0" step="0.01" required inputmode="decimal" :aria-describedby="describedBy" :class="[fieldClass, 'bg-white']" />
+          </FormField>
+          <div class="md:col-span-2">
+            <FormField id="cs-fr-observation" :label="t('consultations.modal.fr_observation')" v-slot="{ describedBy }">
+              <textarea id="cs-fr-observation" v-model="form.frObservation" rows="3" :aria-describedby="describedBy" :class="[fieldClass, 'bg-white py-2']"></textarea>
+            </FormField>
           </div>
-        </fieldset>
+        </FormSection>
+      </template>
 
-        <div class="flex justify-end gap-3 pt-2">
-          <button type="button" @click="$emit('close')" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 text-sm font-medium">
-            {{ t('consultations.modal.cancel') }}
-          </button>
-          <button type="submit" class="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 text-sm font-medium">
-            {{ t('consultations.modal.save') }}
-          </button>
+      <FormSection :title="t('consultations.modal.section_common')">
+        <div class="md:col-span-2">
+          <FormField id="cs-notes" :label="t('consultations.modal.notes')" v-slot="{ describedBy }">
+            <textarea id="cs-notes" v-model="form.notes" rows="3" :aria-describedby="describedBy" :class="[fieldClass, 'bg-white py-2']"></textarea>
+          </FormField>
         </div>
-      </form>
-    </div>
-  </div>
+      </FormSection>
+
+    </form>
+
+    <!-- Barre d'actions fixe : Enregistrer (principal) et Annuler (discret) -->
+    <template #footer>
+      <ActionBar>
+        <template #secondary>
+          <AppButton variant="ghost" @click="$emit('close')">{{ t('consultations.modal.cancel') }}</AppButton>
+        </template>
+        <AppButton type="submit" form="consultation-form">{{ t('consultations.modal.save') }}</AppButton>
+      </ActionBar>
+    </template>
+
+  </FullScreenPanel>
 </template>
 
 <script setup>
@@ -140,9 +126,13 @@ import { ref, reactive, computed, onMounted, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { usePatientLookup } from '@/composables/usePatientLookup.js';
 import { useConsultationStore } from '@/stores/consultationStore';
+import { AppButton, FormField, FormSection, ActionBar, FullScreenPanel } from '@/components/ui';
 
 const { t } = useI18n();
 const consultationStore = useConsultationStore();
+
+// Style commun des champs : zone tactile >= 44 px, focus visible.
+const fieldClass = 'block w-full min-h-11 rounded-control border border-tone-neutral-border px-3 text-base text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand-600';
 
 const props = defineProps({ consultation: { type: Object, default: null } });
 const emit = defineEmits(['close', 'save']);

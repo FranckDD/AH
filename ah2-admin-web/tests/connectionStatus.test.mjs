@@ -78,7 +78,10 @@ test('clés medicalShell.* présentes en FR et EN', () => {
 });
 
 // --- Contrat du gabarit : aucune entrée de menu, aucune action de la barre ne doit disparaître ---
-const layout = readFileSync(new URL('../src/components/layout/MedicalLayout.vue', import.meta.url), 'utf8');
+// Le cadre médical = sa configuration (MedicalLayout.vue) + le cadre partagé (AppShell.vue) : le contrat porte sur les deux.
+const layout = ['MedicalLayout.vue', 'AppShell.vue']
+    .map((f) => readFileSync(new URL(`../src/components/layout/${f}`, import.meta.url), 'utf8'))
+    .join('\n');
 
 const MENU = [
     ['/medical/appointments', 'appointments.title'],
@@ -119,7 +122,7 @@ test('le bouton de réduction du menu (icônes seules) est conservé', () => {
 test('barre du haut : langue, cloche, compte, déconnexion et connexion conservés', () => {
     for (const needle of [
         'changeLanguage', "localStorage.setItem('lang'",
-        "authStore.hasRole(['medecin', 'nurse'])", '<NotificationBell',
+        "bell-roles=\"['medecin', 'nurse']\"", 'authStore.hasRole(bellRoles)', '<NotificationBell',
         'AccountModal', 'showAccountModal',
         'handleLogout', 'await authStore.logout()',
         '<ConnectionStatus', 'resolveAssetUrl', 'fetchStructureInfo', "common.welcome",

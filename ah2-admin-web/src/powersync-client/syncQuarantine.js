@@ -1,3 +1,4 @@
+import { discardPlan } from '@/utils/quarantinePatient';
 import { db } from '@/powersync-client/client';
 
 // Quarantaine locale (table localOnly sync_quarantine, jamais synchronisee
@@ -113,6 +114,28 @@ export async function reattachToExistingPatient(patientUuid, existingPatientId) 
       );
     }
 
+    await tx.execute('DELETE FROM patients WHERE id = ?', [patientUuid]);
+    await tx.execute(
+      "DELETE FROM sync_quarantine WHERE patient_uuid = ? OR (kind = 'patient' AND local_id = ?)",
+      [patientUuid, patientUuid]
+    );
+  });
+}
+
+// Supprime un patient refuse par le serveur ET tout ce qui avait ete retenu pour lui (consultations,
+// prescriptions, dossiers labo) : lignes locales, fiche locale du patient et entrees de quarantaine, dans une
+// seule transaction. Definitif : l'appelant demande confirmation en annoncant ce qui sera perdu.
+export async function discardQuarantinedPatient(patientUuid) {
+  const children = await db.getAll(
+    "SELECT kind, local_id FROM sync_quarantine WHERE patient_uuid = ? AND kind != 'patient'",
+    [patientUuid]
+  );
+  const plan = discardPlan(children);
+
+  await db.writeTransaction(async (tx) => {
+    for (const { table, id } of plan) {
+      await tx.execute(`DELETE FROM ${table} WHERE id = ?`, [id]);
+    }
     await tx.execute('DELETE FROM patients WHERE id = ?', [patientUuid]);
     await tx.execute(
       "DELETE FROM sync_quarantine WHERE patient_uuid = ? OR (kind = 'patient' AND local_id = ?)",
