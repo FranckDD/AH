@@ -75,9 +75,9 @@ test('(c) la zone configScreens existe et n’a ni tiret long ni points de suspe
 
 // --- (d) la refonte n'a touché que les fichiers autorisés, jamais les données ni l'impression ---
 const BASE = '45deaa4'; // juste avant la Tâche 1 de ce lot
-// Dernier commit des Tâches 1 à 2. null = arbre de travail (tant que ces tâches ne sont pas commitées) ;
-// à renseigner avec le hash du commit pour que les chantiers suivants ne fassent pas échouer ce contrôle.
-const FIN = null;
+// Dernier commit des Tâches 1 à 2 (a76f1b3). null = arbre de travail ;
+// renseigné pour que les chantiers suivants ne fassent pas échouer ce contrôle.
+const FIN = 'a76f1b3';
 
 const AUTORISES = new Set([...REFONDUS, 'src/i18n.js']);
 
