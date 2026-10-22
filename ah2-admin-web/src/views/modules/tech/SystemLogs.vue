@@ -1,145 +1,129 @@
 <template>
-  <div class="space-y-6 w-full">
-    
-    <div class="flex flex-col md:flex-row justify-between items-center bg-white p-6 rounded-2xl shadow-xs border border-gray-100">
-      <div>
-        <h1 class="text-2xl font-extrabold text-gray-800 tracking-tight">
-          {{ t('tech.title') }}
-        </h1>
-        <p class="text-sm text-gray-500">{{ t('tech.subtitle') }}</p>
+  <div class="grid w-full gap-6">
+
+    <PageHeader :title="t('tech.title')" :subtitle="t('tech.subtitle')">
+      <template #actions>
+        <div class="md:w-52">
+          <FormField id="logs-from" :label="t('techScreens.date_from')" v-slot="{ describedBy }">
+            <input id="logs-from" type="date"
+                   :value="currentTab === 'ACCESS' ? auditStore.accessFilters.dateFrom : auditStore.actionFilters.dateFrom"
+                   @change="handleDateChange($event.target.value, 'dateFrom')"
+                   :aria-describedby="describedBy" :class="fieldClass" />
+          </FormField>
+        </div>
+      </template>
+    </PageHeader>
+
+    <div role="tablist" :aria-label="t('techScreens.tabs_label')" class="flex flex-col gap-1 border-b border-tone-neutral-border sm:flex-row sm:gap-2">
+      <button
+        type="button" role="tab" id="logs-tab-access" aria-controls="logs-panel-access"
+        :aria-selected="currentTab === 'ACCESS'"
+        @click="currentTab = 'ACCESS'"
+        :class="[
+          currentTab === 'ACCESS' ? 'border-brand-600 text-brand-700 font-semibold' : 'border-transparent text-ink-muted hover:border-tone-neutral-border hover:text-ink',
+          'flex min-h-11 items-center gap-2 border-b-4 px-3 text-base focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand-600'
+        ]"
+      >
+        <ShieldCheckIcon class="h-5 w-5 shrink-0" aria-hidden="true" />
+        {{ t('tech.tabs.access') }} ({{ auditStore.accessPagination.total }})
+      </button>
+
+      <button
+        type="button" role="tab" id="logs-tab-actions" aria-controls="logs-panel-actions"
+        :aria-selected="currentTab === 'ACTIONS'"
+        @click="currentTab = 'ACTIONS'"
+        :class="[
+          currentTab === 'ACTIONS' ? 'border-brand-600 text-brand-700 font-semibold' : 'border-transparent text-ink-muted hover:border-tone-neutral-border hover:text-ink',
+          'flex min-h-11 items-center gap-2 border-b-4 px-3 text-base focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand-600'
+        ]"
+      >
+        <CommandLineIcon class="h-5 w-5 shrink-0" aria-hidden="true" />
+        {{ t('tech.tabs.actions') }} ({{ auditStore.actionPagination.total }})
+      </button>
+    </div>
+
+    <section v-if="currentTab === 'ACCESS'" id="logs-panel-access" role="tabpanel" aria-labelledby="logs-tab-access" class="grid gap-3">
+      <ResponsiveTable
+        :columns="accessColumns"
+        :rows="auditStore.accessLogs"
+        row-key="id"
+        :loading="auditStore.isLoading"
+        :empty-title="t('techScreens.empty')"
+        :empty-message="' '"
+        striped
+      >
+        <template #cell-date="{ row: log }"><span class="font-mono">{{ formatDate(log.timestamp) }}</span></template>
+        <template #cell-user="{ row: log }"><span class="font-medium">{{ log.user_name || 'N/A' }}</span></template>
+        <template #cell-action="{ row: log }"><StatusBadge :tone="getAccessBadge(log.action_type)" :label="String(log.action_type ?? '-')" /></template>
+        <template #cell-ip="{ row: log }">{{ log.ip_address }}</template>
+        <template #cell-details="{ row: log }">{{ log.details || '-' }}</template>
+      </ResponsiveTable>
+
+      <div v-if="auditStore.accessPagination.total_pages > 1" class="flex items-center justify-between gap-3 rounded-card border border-tone-neutral-border bg-white p-3">
+        <p class="text-base text-ink">{{ t('techScreens.page_label', { n: auditStore.accessPagination.page, total: auditStore.accessPagination.total_pages, count: auditStore.accessPagination.total }) }}</p>
+        <div class="flex gap-2">
+          <AppButton variant="secondary" :icon="ChevronLeftIcon" :aria-label="t('techScreens.prev_page')" @click="auditStore.setAccessPage(auditStore.accessPagination.page - 1)" :disabled="auditStore.accessPagination.page <= 1" />
+          <AppButton variant="secondary" :icon="ChevronRightIcon" :aria-label="t('techScreens.next_page')" @click="auditStore.setAccessPage(auditStore.accessPagination.page + 1)" :disabled="auditStore.accessPagination.page >= auditStore.accessPagination.total_pages" />
+        </div>
       </div>
-      <div class="mt-4 md:mt-0">
-          <input 
-              type="date" 
-              :placeholder="t('tech.filter.date_from')"
-              :value="currentTab === 'ACCESS' ? auditStore.accessFilters.dateFrom : auditStore.actionFilters.dateFrom"
-              @change="handleDateChange($event.target.value, 'dateFrom')"
-              class="border border-gray-300 rounded-md p-2 text-sm focus:ring-indigo-500 focus:border-indigo-500"
-          />
+    </section>
+
+    <section v-else id="logs-panel-actions" role="tabpanel" aria-labelledby="logs-tab-actions" class="grid gap-3">
+      <ResponsiveTable
+        :columns="actionColumns"
+        :rows="auditStore.actionLogs"
+        row-key="id"
+        :loading="auditStore.isLoading"
+        :empty-title="t('techScreens.empty')"
+        :empty-message="' '"
+        striped
+      >
+        <template #cell-date="{ row: act }"><span class="font-mono">{{ formatDate(act.timestamp) }}</span></template>
+        <template #cell-user="{ row: act }"><span class="font-medium">{{ act.user_name || act.username || 'N/A' }}</span></template>
+        <template #cell-resource="{ row: act }"><StatusBadge tone="neutral" :label="String(act.resource_type ?? '-')" /></template>
+        <template #cell-action="{ row: act }"><StatusBadge :tone="getActionBadge(act.action_performed)" :label="String(act.action_performed ?? '-')" /></template>
+        <template #cell-details="{ row: act }">
+          <span class="block max-w-xs truncate" :title="act.new_values?.details || act.details">{{ act.new_values?.details || act.details || '-' }}</span>
+        </template>
+      </ResponsiveTable>
+
+      <div v-if="auditStore.actionPagination.total_pages > 1" class="flex items-center justify-between gap-3 rounded-card border border-tone-neutral-border bg-white p-3">
+        <p class="text-base text-ink">{{ t('techScreens.page_label', { n: auditStore.actionPagination.page, total: auditStore.actionPagination.total_pages, count: auditStore.actionPagination.total }) }}</p>
+        <div class="flex gap-2">
+          <AppButton variant="secondary" :icon="ChevronLeftIcon" :aria-label="t('techScreens.prev_page')" @click="auditStore.setActionPage(auditStore.actionPagination.page - 1)" :disabled="auditStore.actionPagination.page <= 1" />
+          <AppButton variant="secondary" :icon="ChevronRightIcon" :aria-label="t('techScreens.next_page')" @click="auditStore.setActionPage(auditStore.actionPagination.page + 1)" :disabled="auditStore.actionPagination.page >= auditStore.actionPagination.total_pages" />
+        </div>
       </div>
-    </div>
+    </section>
 
-    <div class="border-b border-gray-200">
-      <nav class="-mb-px flex space-x-8">
-        <button 
-          @click="currentTab = 'ACCESS'"
-          :class="[
-            currentTab === 'ACCESS'
-              ? 'border-indigo-500 text-indigo-600'
-              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
-            'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center'
-          ]"
-        >
-          <ShieldCheckIcon class="h-5 w-5 mr-2" />
-          {{ t('tech.tabs.access') }} ({{ auditStore.accessPagination.total }})
-        </button>
-
-        <button 
-          @click="currentTab = 'ACTIONS'"
-          :class="[
-            currentTab === 'ACTIONS'
-              ? 'border-indigo-500 text-indigo-600'
-              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
-            'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center'
-          ]"
-        >
-          <CommandLineIcon class="h-5 w-5 mr-2" />
-          {{ t('tech.tabs.actions') }} ({{ auditStore.actionPagination.total }})
-        </button>
-      </nav>
-    </div>
-
-    <div class="bg-white rounded-2xl shadow-xs border border-gray-100 overflow-hidden">
-        
-        <div v-if="auditStore.isLoading" class="p-10 text-center text-gray-500">
-            <span class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mb-2"></span>
-            <p>{{ t('common.loading') }}</p>
-        </div>
-
-        <div v-else-if="currentTab === 'ACCESS'">
-            <div class="overflow-x-auto">
-                <table class="min-w-full text-left border-collapse">
-                    <thead>
-                        <tr class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
-                            <th class="px-6 py-3 font-semibold">{{ t('tech.table.date') }}</th>
-                            <th class="px-6 py-3 font-semibold">{{ t('tech.table.user') }}</th>
-                            <th class="px-6 py-3 font-semibold">{{ t('tech.table.action') }}</th>
-                            <th class="px-6 py-3 font-semibold">{{ t('tech.table.ip') }}</th>
-                            <th class="px-6 py-3 font-semibold">{{ t('tech.table.details') }}</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-100">
-                        <tr v-for="log in auditStore.accessLogs" :key="log.id" class="hover:bg-gray-50 transition">
-                            <td class="px-6 py-4 text-sm text-gray-600 font-mono">{{ formatDate(log.timestamp) }}</td>
-                            <td class="px-6 py-4 font-medium text-gray-900">{{ log.user_name || 'N/A' }}</td>
-                            <td class="px-6 py-4">
-                                <span :class="getAccessBadge(log.action_type)" class="px-2 py-1 text-xs font-bold rounded-md border">
-                                    {{ log.action_type }}
-                                </span>
-                            </td>
-                            <td class="px-6 py-4 text-sm text-gray-500">{{ log.ip_address }}</td>
-                            <td class="px-6 py-4 text-sm text-gray-600">{{ log.details || '—' }}</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-            
-            <Pagination 
-                :pagination="auditStore.accessPagination"
-                @page-change="(p) => auditStore.setAccessPage(p)"
-            />
-        </div>
-
-        <div v-else>
-            <div class="overflow-x-auto">
-                <table class="min-w-full text-left border-collapse">
-                    <thead>
-                        <tr class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
-                            <th class="px-6 py-3 font-semibold">{{ t('tech.table.date') }}</th>
-                            <th class="px-6 py-3 font-semibold">{{ t('tech.table.user') }}</th>
-                            <th class="px-6 py-3 font-semibold">{{ t('tech.table.resource') }}</th>
-                            <th class="px-6 py-3 font-semibold">{{ t('tech.table.action') }}</th>
-                            <th class="px-6 py-3 font-semibold">{{ t('tech.table.details') }}</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-100">
-                        <tr v-for="act in auditStore.actionLogs" :key="act.id" class="hover:bg-gray-50 transition">
-                            <td class="px-6 py-4 text-sm text-gray-600 font-mono">{{ formatDate(act.timestamp) }}</td>
-                            <td class="px-6 py-4 font-medium text-gray-900">{{ act.user_name || act.username || 'N/A' }}</td>
-                            <td class="px-6 py-4">
-                                <span class="bg-gray-100 text-gray-700 px-2 py-1 rounded-sm text-xs font-bold">{{ act.resource_type }}</span>
-                            </td>
-                            <td class="px-6 py-4">
-                                <span :class="getActionBadge(act.action_performed)" class="px-2 py-1 text-xs font-bold rounded-md border">
-                                    {{ act.action_performed }}
-                                </span>
-                            </td>
-                            <td class="px-6 py-4 text-sm text-gray-600 truncate max-w-xs" :title="act.new_values?.details || act.details">
-                                {{ act.new_values?.details || act.details || '—' }}
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-
-            <Pagination 
-                :pagination="auditStore.actionPagination"
-                @page-change="(p) => auditStore.setActionPage(p)"
-            />
-        </div>
-
-    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useAuditStore } from '@/stores/auditStore';
 import { useI18n } from 'vue-i18n';
-import { ShieldCheckIcon, CommandLineIcon } from '@heroicons/vue/24/outline';
-import Pagination from '@/components/common/Pagination.vue'; 
+import { ShieldCheckIcon, CommandLineIcon, ChevronLeftIcon, ChevronRightIcon } from '@heroicons/vue/24/outline';
+import { AppButton, PageHeader, FormField, StatusBadge, ResponsiveTable } from '@/components/ui';
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
+
+// Colonnes de chaque onglet (cartes empilees sous lg) et style commun des champs.
+const accessColumns = computed(() => [
+    { key: 'date', label: t('tech.table.date') },
+    { key: 'user', label: t('tech.table.user') },
+    { key: 'action', label: t('tech.table.action') },
+    { key: 'ip', label: t('tech.table.ip') },
+    { key: 'details', label: t('tech.table.details') },
+]);
+const actionColumns = computed(() => [
+    { key: 'date', label: t('tech.table.date') },
+    { key: 'user', label: t('tech.table.user') },
+    { key: 'resource', label: t('tech.table.resource') },
+    { key: 'action', label: t('tech.table.action') },
+    { key: 'details', label: t('tech.table.details') },
+]);
+const fieldClass = 'block w-full min-h-11 lg:min-h-10 rounded-control border border-tone-neutral-border bg-white px-3 text-base text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand-600';
 const auditStore = useAuditStore();
 const currentTab = ref('ACCESS');
 
@@ -171,26 +155,26 @@ const handleDateChange = (value, filterKey) => {
 const formatDate = (timestamp) => {
     if (!timestamp) return 'N/A';
     try {
-        return new Date(timestamp).toLocaleString();
+        return new Date(timestamp).toLocaleString(locale.value === 'en' ? 'en-GB' : 'fr-FR');
     } catch { return timestamp; }
 };
 
 // Styles
 const getAccessBadge = (type) => {
     switch(type) {
-        case 'LOGIN': return 'bg-green-100 text-green-700 border-green-200';
-        case 'LOGOUT': return 'bg-gray-100 text-gray-700 border-gray-200';
-        case 'LOGIN_FAILED': return 'bg-red-100 text-red-700 border-red-200';
-        default: return 'bg-gray-50 text-gray-600';
+        case 'LOGIN': return 'success';
+        case 'LOGOUT': return 'neutral';
+        case 'LOGIN_FAILED': return 'danger';
+        default: return 'neutral';
     }
 };
 
 const getActionBadge = (action) => {
     switch(action) {
-        case 'CREATE': return 'bg-blue-100 text-blue-700 border-blue-200';
-        case 'UPDATE': return 'bg-orange-100 text-orange-700 border-orange-200';
-        case 'DELETE': return 'bg-red-100 text-red-700 border-red-200';
-        default: return 'bg-gray-50 text-gray-600';
+        case 'CREATE': return 'info';
+        case 'UPDATE': return 'warning';
+        case 'DELETE': return 'danger';
+        default: return 'neutral';
     }
 };
 </script>

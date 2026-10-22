@@ -1,150 +1,112 @@
 <template>
-  <div class="fixed inset-0 bg-gray-900/50 overflow-y-auto h-full w-full z-50 flex items-center justify-center backdrop-blur-xs">
-    <div class="relative mx-auto w-full max-w-2xl bg-white shadow-2xl rounded-2xl flex flex-col max-h-[90vh]">
+  <FullScreenPanel :title="isEditing ? t('users.modal.edit_title') : t('users.modal.new_title')" @close="$emit('close')">
+    <form @submit.prevent="handleSubmit" id="userForm" class="grid gap-4">
 
-      <div class="flex justify-between items-center p-6 border-b border-gray-100">
-        <h3 class="text-xl font-bold text-gray-800">
-          {{ isEditing ? t('users.modal.edit_title') : t('users.modal.new_title') }}
-        </h3>
-        <button @click="$emit('close')" class="text-gray-400 hover:text-gray-600 transition p-2 rounded-full hover:bg-gray-100">
-          <span class="text-2xl leading-none">&times;</span>
-        </button>
-      </div>
+      <FormSection compact :title="t('usersScreens.identity')">
+        <FormField id="user-firstname" :label="t('users.modal.firstname')" required v-slot="{ describedBy }">
+          <input id="user-firstname" v-model="form.firstName" type="text" required :aria-describedby="describedBy" :class="fieldClass" />
+        </FormField>
+        <FormField id="user-lastname" :label="t('users.modal.lastname')" required v-slot="{ describedBy }">
+          <input id="user-lastname" v-model="form.lastName" type="text" required :aria-describedby="describedBy" :class="fieldClass" />
+        </FormField>
+        <FormField id="user-username" :label="t('usersScreens.username')" required v-slot="{ describedBy }">
+          <input id="user-username" v-model="form.username" type="text" required autocomplete="off" :aria-describedby="describedBy" :class="fieldClass" />
+        </FormField>
+        <FormField id="user-email" :label="t('users.modal.email')" required v-slot="{ describedBy }">
+          <input id="user-email" v-model="form.email" type="email" required :aria-describedby="describedBy" :class="fieldClass" />
+        </FormField>
+        <FormField id="user-phone" :label="t('users.modal.phone')" v-slot="{ describedBy }">
+          <input id="user-phone" v-model="form.phone" type="tel" :aria-describedby="describedBy" :class="fieldClass" />
+        </FormField>
 
-      <div class="p-6 overflow-y-auto custom-scrollbar">
-        <form @submit.prevent="handleSubmit" id="userForm" class="space-y-6">
-
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <div>
-              <label class="block text-sm font-semibold text-gray-700 mb-1.5">{{ t('users.modal.firstname') }}</label>
-              <input v-model="form.firstName" type="text" required class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 transition" />
+        <div v-if="!isEditing">
+          <FormField id="user-password" :label="t('usersScreens.password')" required v-slot="{ describedBy }">
+            <div class="flex gap-2">
+              <input id="user-password" v-model="form.password" :type="showPassword ? 'text' : 'password'" required autocomplete="new-password"
+                     :aria-describedby="describedBy" :class="fieldClass" />
+              <AppButton variant="secondary" :icon="showPassword ? EyeSlashIcon : EyeIcon"
+                         :aria-label="showPassword ? t('usersScreens.hide_password') : t('usersScreens.show_password')" @click="showPassword = !showPassword" />
             </div>
-            <div>
-              <label class="block text-sm font-semibold text-gray-700 mb-1.5">{{ t('users.modal.lastname') }}</label>
-              <input v-model="form.lastName" type="text" required class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 transition" />
+          </FormField>
+        </div>
+        <div v-else>
+          <FormField id="user-password" :label="t('usersScreens.new_password_optional')" v-slot="{ describedBy }">
+            <div class="flex gap-2">
+              <input id="user-password" v-model="form.password" :type="showPassword ? 'text' : 'password'" autocomplete="new-password"
+                     :aria-describedby="describedBy" :class="fieldClass" />
+              <AppButton variant="secondary" :icon="showPassword ? EyeSlashIcon : EyeIcon"
+                         :aria-label="showPassword ? t('usersScreens.hide_password') : t('usersScreens.show_password')" @click="showPassword = !showPassword" />
             </div>
-          </div>
+          </FormField>
+        </div>
+      </FormSection>
 
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <div>
-               <label class="block text-sm font-semibold text-gray-700 mb-1.5">Username</label>
-               <input v-model="form.username" type="text" required class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 transition" />
-            </div>
-            <div>
-               <label class="block text-sm font-semibold text-gray-700 mb-1.5">{{ t('users.modal.email') }}</label>
-               <input v-model="form.email" type="email" required class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 transition" />
-            </div>
-          </div>
+      <FormSection compact :title="t('usersScreens.permissions')">
+        <FormField id="user-group" :label="t('users.groups.label')" required v-slot="{ describedBy }">
+          <select id="user-group" v-model="form.postgres_role" @change="handlePostgresRoleChange" required :aria-describedby="describedBy" :class="fieldClass">
+            <option value="app_admin">{{ t('users.groups.app_admin') }}</option>
+            <option value="app_medical">{{ t('users.groups.app_medical') }}</option>
+            <option value="app_secretaire">{{ t('users.groups.app_secretaire') }}</option>
+            <option value="app_laborantin">{{ t('users.groups.app_laborantin') }}</option>
+          </select>
+        </FormField>
 
-          <div>
-             <label class="block text-sm font-semibold text-gray-700 mb-1.5">{{ t('users.modal.phone') }}</label>
-             <input v-model="form.phone" type="tel" class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 transition" />
-          </div>
+        <div v-if="availableRoles.length">
+          <FormField id="user-role" :label="t('users.table.role')" required v-slot="{ describedBy }">
+            <select id="user-role" v-model="form.role_id" @change="handleRoleChange" required :aria-describedby="describedBy" :class="fieldClass">
+              <option :value="null" disabled>{{ t('usersScreens.select_role') }}</option>
+              <option v-for="r in availableRoles" :key="r.id || r.role_id" :value="r.id || r.role_id">
+                {{ prettyRole(r.role_name) }}
+              </option>
+            </select>
+          </FormField>
+        </div>
 
-          <div v-if="!isEditing">
-            <label class="block text-sm font-semibold text-gray-700 mb-1.5">Mot de passe</label>
-            <div class="relative">
-                <input 
-                    v-model="form.password" 
-                    :type="showPassword ? 'text' : 'password'" 
-                    required 
-                    class="w-full px-4 py-2.5 pr-10 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 transition"
-                />
-                <button type="button" @click="showPassword = !showPassword" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 focus:outline-hidden">
-                    <EyeIcon v-if="!showPassword" class="h-5 w-5" />
-                    <EyeSlashIcon v-else class="h-5 w-5" />
-                </button>
-            </div>
-          </div>
-          <div v-else>
-             <label class="block text-sm font-semibold text-gray-700 mb-1.5">Nouveau mot de passe (optionnel)</label>
-             <div class="relative">
-                 <input 
-                    v-model="form.password" 
-                    :type="showPassword ? 'text' : 'password'" 
-                    class="w-full px-4 py-2.5 pr-10 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 bg-gray-50 transition" 
-                    placeholder="••••••••" 
-                 />
-                 <button type="button" @click="showPassword = !showPassword" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 focus:outline-hidden">
-                    <EyeIcon v-if="!showPassword" class="h-5 w-5" />
-                    <EyeSlashIcon v-else class="h-5 w-5" />
-                </button>
-             </div>
-          </div>
+        <div v-if="showSpecialtyField">
+          <FormField id="user-specialty" :label="t('users.specialty.label')" required v-slot="{ describedBy }">
+            <select id="user-specialty" v-model="form.specialty_id" required :aria-describedby="describedBy" :class="fieldClass">
+              <option :value="null" disabled>{{ t('users.specialty.placeholder') }}</option>
+              <option v-for="s in medicalSpecialties" :key="s.specialty_id" :value="s.specialty_id">
+                {{ s.name }}
+              </option>
+            </select>
+          </FormField>
+        </div>
 
-          <div class="bg-gray-50 p-5 rounded-xl border border-gray-200 space-y-4">
-              <h4 class="text-sm font-bold text-gray-900 uppercase tracking-wide border-b border-gray-200 pb-2 mb-2">
-                Habilitations
-              </h4>
-              
-              <div>
-                <label class="block text-sm font-semibold text-gray-700 mb-1.5">{{ t('users.groups.label') }}</label>
-                <select v-model="form.postgres_role" @change="handlePostgresRoleChange" required class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 bg-white">
-                    <option value="app_admin">{{ t('users.groups.app_admin') }}</option>
-                    <option value="app_medical">{{ t('users.groups.app_medical') }}</option>
-                    <option value="app_secretaire">{{ t('users.groups.app_secretaire') }}</option>
-                    <option value="app_laborantin">{{ t('users.groups.app_laborantin') }}</option>
-                </select>
-              </div>
+        <label v-if="showHeadNurseField" class="flex min-h-11 items-center gap-3 text-base font-medium text-ink md:col-span-2">
+          <input type="checkbox" v-model="form.is_head_nurse" class="h-5 w-5 accent-brand-600" />
+          <span>{{ t('users.modal.is_head_nurse') }}</span>
+        </label>
 
-              <div v-if="availableRoles.length">
-                <label class="block text-sm font-semibold text-gray-700 mb-1.5">{{ t('users.table.role') }}</label>
-                <select v-model="form.role_id" @change="handleRoleChange" required class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 bg-white">
-                    <option :value="null" disabled>— Sélectionner un rôle —</option>
-                    <option v-for="r in availableRoles" :key="r.id || r.role_id" :value="r.id || r.role_id">
-                        {{ prettyRole(r.role_name) }}
-                    </option>
-                </select>
-              </div>
+        <label class="flex min-h-11 items-center gap-3 text-base font-medium text-ink md:col-span-2">
+          <input type="checkbox" v-model="form.is_active" class="h-5 w-5 accent-brand-600" />
+          <span>{{ t('users.modal.is_active') }}</span>
+        </label>
+      </FormSection>
 
-              <div v-if="showSpecialtyField" class="animate-fade-in-down">
-                <label class="block text-sm font-semibold text-gray-700 mb-1.5">{{ t('users.specialty.label') }}</label>
-                <select v-model="form.specialty_id" required class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 bg-white">
-                    <option :value="null" disabled>{{ t('users.specialty.placeholder') }}</option>
-                    <option v-for="s in medicalSpecialties" :key="s.specialty_id" :value="s.specialty_id">
-                        {{ s.name }}
-                    </option>
-                </select>
-              </div>
+    </form>
 
-              <div v-if="showHeadNurseField" class="animate-fade-in-down">
-                <label class="inline-flex items-center cursor-pointer">
-                  <input type="checkbox" v-model="form.is_head_nurse" class="sr-only peer">
-                  <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-hidden peer-focus:ring-4 peer-focus:ring-green-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:inset-s-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
-                  <span class="ms-3 text-sm font-medium text-gray-900">{{ t('users.modal.is_head_nurse') }}</span>
-                </label>
-              </div>
-          </div>
-
-          <div class="flex items-center">
-             <label class="inline-flex items-center cursor-pointer">
-                <input type="checkbox" v-model="form.is_active" class="sr-only peer">
-                <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-hidden peer-focus:ring-4 peer-focus:ring-green-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:inset-s-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
-                <span class="ms-3 text-sm font-medium text-gray-900">{{ t('users.modal.is_active') }}</span>
-            </label>
-          </div>
-
-        </form>
-      </div>
-
-      <div class="p-6 border-t border-gray-100 flex justify-end gap-3 bg-gray-50 rounded-b-2xl">
-        <button type="button" @click="$emit('close')" class="px-5 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 font-medium transition shadow-xs">
-          {{ t('users.modal.cancel') }}
-        </button>
-        <button type="submit" form="userForm" class="px-5 py-2.5 bg-green-600 text-white rounded-xl hover:bg-green-700 font-medium shadow-lg shadow-green-200 transition transform active:scale-95">
-          {{ isEditing ? t('users.modal.update') : t('users.modal.create') }}
-        </button>
-      </div>
-    </div>
-  </div>
+    <template #footer>
+      <ActionBar>
+        <template #secondary>
+          <AppButton variant="ghost" @click="$emit('close')">{{ t('users.modal.cancel') }}</AppButton>
+        </template>
+        <AppButton type="submit" form="userForm">{{ isEditing ? t('users.modal.update') : t('users.modal.create') }}</AppButton>
+      </ActionBar>
+    </template>
+  </FullScreenPanel>
 </template>
 
 <script setup>
 import { reactive, computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { EyeIcon, EyeSlashIcon } from '@heroicons/vue/24/outline'
+import { AppButton, FormField, FormSection, ActionBar, FullScreenPanel } from '@/components/ui'
 
 const { t } = useI18n()
+
+// Style commun des champs : zone tactile >= 44 px, focus visible.
+const fieldClass = 'block w-full min-h-11 lg:min-h-10 rounded-control border border-tone-neutral-border bg-white px-3 text-base text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand-600'
 
 const props = defineProps({
   userToEdit: Object,
@@ -277,13 +239,3 @@ const handleSubmit = () => {
   emit('save', payload)
 }
 </script>
-
-<style scoped>
-.animate-fade-in-down {
-  animation: fadeInDown 0.3s ease-out;
-}
-@keyframes fadeInDown {
-  from { opacity: 0; transform: translateY(-10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-</style>

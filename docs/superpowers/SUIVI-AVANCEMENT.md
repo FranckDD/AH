@@ -1,6 +1,6 @@
 # Suivi d'avancement — AH2 / Glostone-Kare
 
-**Dernière mise à jour :** 2026-10-22 (refonte UX de l'admin et du promoteur livrée, Tâches 1 à 6 ; à vérifier par l'utilisateur dans le navigateur)
+**Dernière mise à jour :** 2026-10-22 (refonte UX des comptes et des journaux techniques livrée ; à vérifier par l'utilisateur dans le navigateur)
 **But de ce document :** état d'avancement des chantiers de remise en service et de sécurisation, et registre des découvertes faites en cours de route mais non encore traitées. Pour le contexte général du projet, voir `docs/superpowers/CONTEXTE-PROJET.md`. Pour le détail d'un chantier, voir les fichiers correspondants dans `docs/superpowers/specs/` et `docs/superpowers/plans/`.
 
 ## Feuille de route
@@ -1393,3 +1393,34 @@ Plan `plans/2026-10-22-refonte-ux-admin-promoteur.md`. Base `f050a08` (palettes 
 - Le test d'utilisation avec les membres du personnel (admin et promoteur) n'est pas fait.
 
 **Reste à migrer** (non commencé) : administration (utilisateurs, configuration, journaux), stock admin (lots, réceptions, avaries, contrôle, mouvements, demandes d'ajustement), stock du labo (vue promoteur), laboratoire, toxicologie, stock-control ; puis la documentation d'utilisation par rôle, l'onglet Rapports et le chantier 8 (déploiement).
+
+
+### Refonte UX des comptes et des journaux techniques : livrée (Tâches 1 à 4), à vérifier par l'utilisateur (2026-10-22)
+
+Plan `plans/2026-10-22-refonte-ux-utilisateurs-journaux.md`. Base `237015c`. **Vérifié** : 2551 tests `node` (dont `refonteUsersLogsGuard.test.mjs`, vu échouer sur une couleur en dur ajoutée puis retirée) et `vite build`. **Jamais vérifié dans un navigateur par un agent** : le rendu est à contrôler par l'utilisateur avec la checklist ci-dessous.
+
+**Livré**
+- **Liste des comptes** (`UserManagement`) : en-tête avec « Nouveau compte » et le nombre d'utilisateurs, recherche étiquetée, tableau à lignes alternées (initiales, nom, identifiant, rôle et spécialité, contact, statut), rôle et statut en badges avec texte, Modifier (contour) et Supprimer (rouge), pagination.
+- **Formulaire de compte** (`UserModal`) : panneau avec deux sections (identité du compte, habilitations), champs étiquetés, mot de passe avec bouton afficher/masquer nommé, vraies cases à cocher pour « compte actif » et « chef infirmier » à la place des interrupteurs faits main, barre d'actions fixe.
+- **Journaux techniques** (`SystemLogs`) : vrais onglets accessibles (connexions, actions), un tableau par onglet à lignes alternées, badges avec texte (LOGIN, LOGOUT, LOGIN_FAILED, CREATE, UPDATE, DELETE), filtre de date étiqueté, pagination commune, dates suivant la langue.
+
+**Décisions et rulings**
+- `getRoleColor` (comptes) et `getAccessBadge` / `getActionBadge` (journaux) renvoient maintenant une tonalité du thème au lieu de classes de couleur en dur (mêmes conditions) : les couleurs par rôle et par action changent légèrement, le texte reste affiché.
+- La clé `tech.filter.date_from` citée par l'ancien écran n'existait pas (placeholder d'un champ date sans effet) : remplacée par un vrai libellé `techScreens.date_from`. Le tiret long de « pas de détail » devient « - ».
+- `components/common/Pagination.vue` n'est plus utilisé par `SystemLogs` (remplacé par les commandes de page communes) ; le fichier n'a pas été modifié ni supprimé.
+- Données jamais modifiées : `userStore`, `auditStore`, `api.js` ; routeur et cadre intacts (garde-fou).
+- Garde-fou : la constante `FIN` de `refonteUsersLogsGuard.test.mjs` est renseignée avec le commit de ce lot.
+
+**Checklist à vérifier par l'utilisateur** (admin ; chaque ligne à 360, 768 et 1280 px)
+| Écran | Points précis |
+|---|---|
+| Comptes, liste | Recherche ; badges de rôle et de statut lisibles ; Modifier et Supprimer (confirmation avant suppression) ; pagination avec beaucoup de comptes ; liste vide |
+| Comptes, formulaire | Création d'un médecin (spécialité obligatoire), d'une infirmière (case chef infirmier), d'une secrétaire, d'un laborantin ; modification sans toucher au mot de passe, puis avec un nouveau ; bouton œil ; Échap ; barre d'actions visible avec le clavier mobile |
+| Journaux | Les deux onglets et leurs totaux ; filtre de date sur chacun ; pagination ; ligne LOGIN_FAILED en rouge ; dates en anglais quand la langue est EN ; admin et ToxicoManager |
+
+**Résiduels**
+- La Configuration système (`SystemConfig`, 530 lignes) garde son ancien style (lot à part).
+- Les messages de la suppression d'un compte (confirmation) restent écrits en français dans le script, comme avant.
+- Le test d'utilisation avec les membres du personnel n'est pas fait.
+
+**Reste à migrer** (non commencé) : configuration système, stock admin (lots, réceptions, avaries, contrôle, mouvements, demandes d'ajustement), stock du labo (vue promoteur), laboratoire, toxicologie, stock-control ; puis la documentation d'utilisation par rôle, l'onglet Rapports et le chantier 8 (déploiement).

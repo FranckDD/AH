@@ -1840,6 +1840,35 @@ const messages = {
       description_placeholder: "Ex: Achat de matériel, Consultation M. X...",
       type_group: "Type de transaction"
     },
+    techScreens: {
+      date_from: "Date de début",
+      tabs_label: "Journaux",
+      page_label: "Page {n} sur {total} ({count} entrées)",
+      prev_page: "Page précédente",
+      next_page: "Page suivante",
+      empty: "Aucune entrée trouvée."
+    },
+    usersScreens: {
+      count: "{n} utilisateurs enregistrés",
+      search_label: "Recherche",
+      active: "Actif",
+      inactive: "Inactif",
+      edit: "Modifier",
+      delete_user: "Supprimer",
+      empty: "Aucun utilisateur trouvé",
+      empty_help: "Ajoutez un nouvel utilisateur pour commencer.",
+      page_label: "Page {n} sur {total}",
+      prev_page: "Page précédente",
+      next_page: "Page suivante",
+      username: "Identifiant",
+      password: "Mot de passe",
+      new_password_optional: "Nouveau mot de passe (optionnel)",
+      identity: "Identité du compte",
+      permissions: "Habilitations",
+      select_role: "-- Sélectionner un rôle --",
+      show_password: "Afficher le mot de passe",
+      hide_password: "Masquer le mot de passe"
+    },
     adminDashboard: {
       filters: "Période",
       income_note: "Recettes",
@@ -3797,6 +3826,35 @@ const messages = {
       select_category: "-- Select --",
       description_placeholder: "E.g.: Equipment purchase, Consultation Mr X...",
       type_group: "Transaction type"
+    },
+    techScreens: {
+      date_from: "Start date",
+      tabs_label: "Logs",
+      page_label: "Page {n} of {total} ({count} entries)",
+      prev_page: "Previous page",
+      next_page: "Next page",
+      empty: "No entries found."
+    },
+    usersScreens: {
+      count: "{n} registered users",
+      search_label: "Search",
+      active: "Active",
+      inactive: "Inactive",
+      edit: "Edit",
+      delete_user: "Delete",
+      empty: "No users found",
+      empty_help: "Add a new user to get started.",
+      page_label: "Page {n} of {total}",
+      prev_page: "Previous page",
+      next_page: "Next page",
+      username: "Username",
+      password: "Password",
+      new_password_optional: "New password (optional)",
+      identity: "Account identity",
+      permissions: "Permissions",
+      select_role: "-- Select a role --",
+      show_password: "Show password",
+      hide_password: "Hide password"
     },
     adminDashboard: {
       filters: "Period",
