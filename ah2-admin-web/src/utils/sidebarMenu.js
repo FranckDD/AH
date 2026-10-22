@@ -37,3 +37,17 @@ export function buildMenu(items, { isAdmin, hasRole, groups = {} }) {
 export function groupContainsPath(group, path) {
     return group.children.some((c) => path.includes(c.path));
 }
+
+// Adapte la sortie de buildMenu (liens et groupes) a la prop menuGroups d'AppShell : un seul intertitre-less groupe.
+// Un lien devient { path, labelKey, icon, separator? } ; un groupe devient { key, labelKey, icon, children: [lien] }
+// (sous-menu repliable). Une liste vide donne [] (aucun groupe affiche).
+export function toShellGroups(entries, { key = 'main', labelKey } = {}) {
+    const asLink = (item) => ({
+        path: item.path, labelKey: item.labelKey, icon: item.icon,
+        ...(item.separator ? { separator: true } : {}),
+    });
+    const items = (entries || []).map((e) => (e.type === 'group'
+        ? { key: `g-${e.key}`, labelKey: e.labelKey, icon: e.icon, children: e.children.map(asLink) }
+        : asLink(e.item)));
+    return items.length ? [{ key, ...(labelKey ? { labelKey } : {}), items }] : [];
+}

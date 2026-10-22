@@ -1,60 +1,62 @@
 <!-- src/views/modules/caisse/DiscountReview.vue -->
 <template>
-  <div class="max-w-3xl mx-auto p-6">
-    <h2 class="text-xl font-bold text-gray-800 mb-4">{{ $t('discount_review.title') }}</h2>
+  <div class="grid w-full max-w-3xl gap-4">
+    <PageHeader :title="$t('discount_review.title')" />
 
-    <div v-if="pending.length === 0" class="text-center text-gray-400 py-12">
+    <p v-if="pending.length === 0" role="status" class="rounded-card border border-tone-neutral-border bg-white p-8 text-center text-base text-ink-muted">
       {{ $t('discount_review.empty') }}
-    </div>
+    </p>
 
-    <div v-for="req in pending" :key="req.id" class="bg-white rounded-xl shadow-xs border border-gray-200 p-5 mb-4">
-      <div class="flex justify-between items-center mb-1">
-        <span class="font-bold text-gray-800">{{ formatCurrency(req.original_amount) }}</span>
-        <span class="text-xs text-gray-400">{{ formatDate(req.created_at) }}</span>
-      </div>
-      <div class="text-sm text-gray-600 mb-1">
-        <span class="font-medium">{{ req.patient_label || $t('discount_review.unknown_patient') }}</span>
-        <span v-if="req.items_summary" class="text-gray-400"> — {{ req.items_summary }}</span>
-      </div>
-      <div class="text-xs text-gray-500 mb-3">{{ $t('discount_review.requested_by', { name: req.requested_by_name || '?' }) }}</div>
+    <AppCard v-for="req in pending" :key="req.id" :title="formatCurrency(req.original_amount)" :subtitle="formatDate(req.created_at)">
+      <div class="grid gap-4">
+        <div>
+          <p class="text-base text-ink">
+            <span class="font-medium">{{ req.patient_label || $t('discount_review.unknown_patient') }}</span>
+            <span v-if="req.items_summary" class="text-ink-muted"> : {{ req.items_summary }}</span>
+          </p>
+          <p class="text-base text-ink-muted">{{ $t('discount_review.requested_by', { name: req.requested_by_name || '?' }) }}</p>
+        </div>
 
-      <div class="grid grid-cols-3 gap-2 mb-3">
-        <button
-          v-for="pct in [10, 20, 50, 100]"
-          :key="pct"
-          @click="selectedPercent[req.id] = pct"
-          :class="selectedPercent[req.id] === pct ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-700'"
-          class="py-2 rounded-lg text-sm font-medium"
-        >{{ pct }}%</button>
-      </div>
+        <div class="grid gap-1.5">
+          <span class="text-base font-medium text-ink">{{ $t('discountReviewScreens.percent_label') }}</span>
+          <div class="grid grid-cols-2 gap-2 sm:grid-cols-4" role="group" :aria-label="$t('discountReviewScreens.percent_group')">
+            <AppButton
+              v-for="pct in [10, 20, 50, 100]"
+              :key="pct"
+              :variant="selectedPercent[req.id] === pct ? 'primary' : 'secondary'"
+              :aria-pressed="selectedPercent[req.id] === pct"
+              @click="selectedPercent[req.id] = pct"
+            >{{ pct }}%</AppButton>
+          </div>
+        </div>
 
-      <div class="mb-3">
-        <label class="block text-xs text-gray-500 mb-1">{{ $t('discount_review.echelonne_deadline') }}</label>
-        <input type="date" v-model="selectedDeadline[req.id]" class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm" />
-      </div>
+        <FormField :id="`review-deadline-${req.id}`" :label="$t('discount_review.echelonne_deadline')" v-slot="{ describedBy }">
+          <input :id="`review-deadline-${req.id}`" type="date" v-model="selectedDeadline[req.id]" :aria-describedby="describedBy" :class="fieldClass" />
+        </FormField>
 
-      <div class="mb-3">
-        <label class="block text-xs text-gray-500 mb-1">{{ $t('discount_review.password_confirm') }}</label>
-        <input type="password" v-model="passwordInput[req.id]" class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm w-full" />
-      </div>
+        <FormField :id="`review-password-${req.id}`" :label="$t('discount_review.password_confirm')" :help="$t('discountReviewScreens.password_help')" v-slot="{ describedBy }">
+          <input :id="`review-password-${req.id}`" type="password" autocomplete="current-password" v-model="passwordInput[req.id]" :aria-describedby="describedBy" :class="fieldClass" />
+        </FormField>
 
-      <div v-if="errorFor[req.id]" class="text-xs text-red-600 mb-2">{{ errorFor[req.id] }}</div>
+        <p v-if="errorFor[req.id]" role="alert" class="rounded-control border p-3 text-base" :class="toneClasses('danger')">{{ errorFor[req.id] }}</p>
 
-      <div class="flex gap-2">
-        <button @click="submitDecision(req, false)" class="flex-1 bg-green-600 text-white rounded-lg py-2 font-medium hover:bg-green-700">
-          {{ $t('discount_review.approve') }}
-        </button>
-        <button @click="submitDecision(req, true)" class="flex-1 bg-red-500 text-white rounded-lg py-2 font-medium hover:bg-red-600">
-          {{ $t('discount_review.refuse') }}
-        </button>
+        <div class="grid gap-2 sm:grid-cols-2">
+          <AppButton @click="submitDecision(req, false)">{{ $t('discount_review.approve') }}</AppButton>
+          <AppButton variant="danger" @click="submitDecision(req, true)">{{ $t('discount_review.refuse') }}</AppButton>
+        </div>
       </div>
-    </div>
+    </AppCard>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue';
 import api from '@/services/api';
+import { AppButton, AppCard, PageHeader, FormField } from '@/components/ui';
+import { toneClasses } from '@/design/tones';
+
+// Style commun des champs : zone tactile >= 44 px, focus visible.
+const fieldClass = 'block w-full min-h-11 lg:min-h-10 rounded-control border border-tone-neutral-border bg-white px-3 text-base text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand-600';
 
 const pending = ref([]);
 const selectedPercent = reactive({});

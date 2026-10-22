@@ -15,17 +15,18 @@ const BUTTON_BASE =
     'disabled:cursor-not-allowed disabled:opacity-60';
 
 const BUTTON_VARIANTS = {
-    primary: 'bg-brand-600 text-white border-transparent hover:bg-brand-700',
+    // Boutons pleins en degrade diagonal (couleur de base vers la meme couleur legerement assombrie, ombre douce) : le texte blanc reste lisible aux deux bouts.
+    primary: 'bg-brand-600 bg-linear-to-br from-brand-600 to-brand-700 text-white border-transparent shadow-sm hover:brightness-110 hover:shadow-md',
     secondary: 'bg-white text-brand-700 border-brand-600 hover:bg-brand-50',
-    danger: 'bg-tone-danger-text text-white border-transparent hover:opacity-90',
+    danger: 'bg-tone-danger-solid bg-linear-to-br from-tone-danger-solid to-[color-mix(in_srgb,var(--color-tone-danger-solid),black_10%)] text-white border-transparent shadow-sm hover:brightness-110 hover:shadow-md',
     ghost: 'bg-transparent text-ink-muted border-transparent hover:bg-tone-neutral-bg',
     // Boutons d'action de rubrique : meme couleur que l'onglet correspondant de la fiche patient.
-    pharma: 'bg-tab-pharma text-white border-transparent hover:opacity-90',
-    hospital: 'bg-tab-hospital text-white border-transparent hover:opacity-90',
-    lab: 'bg-tab-lab text-white border-transparent hover:opacity-90',
-    record: 'bg-tab-record text-white border-transparent hover:opacity-90',
-    toxico: 'bg-tab-toxico text-white border-transparent hover:opacity-90',
-    spirit: 'bg-tab-spirit text-white border-transparent hover:opacity-90',
+    pharma: 'bg-tab-pharma bg-linear-to-br from-tab-pharma to-[color-mix(in_srgb,var(--color-tab-pharma),black_10%)] text-white border-transparent shadow-sm hover:brightness-110 hover:shadow-md',
+    hospital: 'bg-tab-hospital bg-linear-to-br from-tab-hospital to-[color-mix(in_srgb,var(--color-tab-hospital),black_10%)] text-white border-transparent shadow-sm hover:brightness-110 hover:shadow-md',
+    lab: 'bg-tab-lab bg-linear-to-br from-tab-lab to-[color-mix(in_srgb,var(--color-tab-lab),black_10%)] text-white border-transparent shadow-sm hover:brightness-110 hover:shadow-md',
+    record: 'bg-tab-record bg-linear-to-br from-tab-record to-[color-mix(in_srgb,var(--color-tab-record),black_10%)] text-white border-transparent shadow-sm hover:brightness-110 hover:shadow-md',
+    toxico: 'bg-tab-toxico bg-linear-to-br from-tab-toxico to-[color-mix(in_srgb,var(--color-tab-toxico),black_10%)] text-white border-transparent shadow-sm hover:brightness-110 hover:shadow-md',
+    spirit: 'bg-tab-spirit bg-linear-to-br from-tab-spirit to-[color-mix(in_srgb,var(--color-tab-spirit),black_10%)] text-white border-transparent shadow-sm hover:brightness-110 hover:shadow-md',
 };
 
 // Zones tactiles >= 44 px (min-h-11) ; un peu plus compactes à partir de lg pour la souris.

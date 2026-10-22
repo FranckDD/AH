@@ -1,136 +1,77 @@
 <template>
-  <div class="fixed inset-0 bg-gray-600/50 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
-    <div class="relative mx-auto p-6 border w-full max-w-md shadow-xl rounded-2xl bg-white">
-      
-      <!-- En-tête -->
-      <div class="flex justify-between items-center mb-6">
-        <h3 class="text-xl font-bold text-gray-900">
-          {{ t('finance.modal.title_new') }}
-        </h3>
-        <button @click="$emit('close')" class="text-gray-400 hover:text-gray-500 transition">
-          <span class="text-2xl">&times;</span>
-        </button>
+  <FullScreenPanel :title="t('finance.modal.title_new')" @close="$emit('close')">
+    <form id="finance-form" @submit.prevent="handleSubmit" class="grid gap-4">
+
+      <!-- Type : Recette ou Depense (etat ecrit, pas seulement la couleur) -->
+      <div class="grid gap-1.5">
+        <span class="text-base font-medium text-ink">{{ t('finance.modal.type') }}</span>
+        <div class="grid grid-cols-2 gap-2" role="group" :aria-label="t('finance.modal.type')">
+          <AppButton :variant="form.type === 'INCOME' ? 'primary' : 'secondary'" :aria-pressed="form.type === 'INCOME'" :icon="BanknotesIcon" @click="setTransactionType('INCOME')">
+            {{ t('finance.income') }}
+          </AppButton>
+          <AppButton :variant="form.type === 'EXPENSE' ? 'danger' : 'secondary'" :aria-pressed="form.type === 'EXPENSE'" :icon="ArrowTrendingDownIcon" @click="setTransactionType('EXPENSE')">
+            {{ t('finance.expense') }}
+          </AppButton>
+        </div>
       </div>
 
-      <form @submit.prevent="handleSubmit" class="space-y-5">
-        
-        <!-- Sélecteur TYPE (Recette / Dépense) -->
-        <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">{{ t('finance.modal.type') }}</label>
-            <div class="flex rounded-md shadow-xs" role="group">
-                <button 
-                    type="button" 
-                    @click="setTransactionType('INCOME')"
-                    :class="form.type === 'INCOME' ? 'bg-green-600 text-white ring-2 ring-green-600' : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300'"
-                    class="flex-1 py-2 px-4 text-sm font-medium rounded-l-lg transition-colors flex justify-center items-center gap-2"
-                >
-                    <span>💰</span> {{ t('finance.income') }}
-                </button>
-                <button 
-                    type="button" 
-                    @click="setTransactionType('EXPENSE')"
-                    :class="form.type === 'EXPENSE' ? 'bg-red-600 text-white ring-2 ring-red-600' : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300'"
-                    class="flex-1 py-2 px-4 text-sm font-medium rounded-r-lg transition-colors flex justify-center items-center gap-2"
-                >
-                    <span>💸</span> {{ t('finance.expense') }}
-                </button>
-            </div>
-        </div>
+      <div class="grid gap-4 md:grid-cols-2">
+        <FormField id="fin-amount" :label="t('finance.modal.amount')" :help="t('financeScreens.amount_help')" required v-slot="{ describedBy }">
+          <input id="fin-amount" v-model.number="form.amount" type="number" min="1" required inputmode="decimal"
+                 :aria-describedby="describedBy" :class="[fieldClass, 'text-right']" placeholder="0" />
+        </FormField>
+        <FormField id="fin-date" :label="t('finance.modal.date')" required v-slot="{ describedBy }">
+          <input id="fin-date" v-model="form.date" type="date" required :aria-describedby="describedBy" :class="fieldClass" />
+        </FormField>
+      </div>
 
-        <!-- Montant et Date -->
-        <div class="grid grid-cols-2 gap-4">
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('finance.modal.amount') }}</label>
-                <div class="relative rounded-md shadow-xs">
-                    <input 
-                        v-model.number="form.amount" 
-                        type="number" 
-                        min="1" 
-                        required 
-                        class="block w-full pl-3 pr-12 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:outline-hidden transition sm:text-sm"
-                        :class="form.type === 'INCOME' ? 'focus:ring-green-500 focus:border-green-500' : 'focus:ring-red-500 focus:border-red-500'"
-                        placeholder="0"
-                    />
-                    <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                        <span class="text-gray-500 sm:text-sm">FCFA</span>
-                    </div>
-                </div>
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('finance.modal.date') }}</label>
-                <input 
-                    v-model="form.date" 
-                    type="date" 
-                    required 
-                    class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" 
-                />
-            </div>
-        </div>
+      <div class="grid gap-4 md:grid-cols-2">
+        <FormField id="fin-category" :label="t('finance.modal.category')" required v-slot="{ describedBy }">
+          <select id="fin-category" v-model="form.category" required :aria-describedby="describedBy" :class="fieldClass">
+            <option value="" disabled>{{ t('financeScreens.select_category') }}</option>
+            <!-- On lie la valeur a 'cat.key' (code) et on affiche 'cat.label' (traduction) -->
+            <option v-for="cat in availableCategories" :key="cat.key" :value="cat.key">
+              {{ cat.label }}
+            </option>
+          </select>
+        </FormField>
+        <FormField id="fin-method" :label="t('finance.modal.method')" v-slot="{ describedBy }">
+          <select id="fin-method" v-model="form.paymentMethod" :aria-describedby="describedBy" :class="fieldClass">
+            <option value="Espèces">{{ t('finance.payment_methods.cash') }}</option>
+            <option value="Mobile Money">{{ t('finance.payment_methods.mobile') }}</option>
+            <option value="Virement">{{ t('finance.payment_methods.transfer') }}</option>
+            <option value="Chèque">{{ t('finance.payment_methods.check') }}</option>
+          </select>
+        </FormField>
+      </div>
 
-        <!-- Catégorie -->
-        <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('finance.modal.category') }}</label>
-            <select 
-                v-model="form.category" 
-                required
-                class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-            >
-                <option value="" disabled>-- Sélectionner --</option>
-                <!-- On lie la valeur à 'cat.key' (Code) et on affiche 'cat.label' (Traduction) -->
-                <option v-for="cat in availableCategories" :key="cat.key" :value="cat.key">
-                    {{ cat.label }}
-                </option>
-            </select>
-        </div>
+      <FormField id="fin-desc" :label="t('finance.modal.desc')" required v-slot="{ describedBy }">
+        <textarea id="fin-desc" v-model="form.description" rows="3" required
+                  :placeholder="t('financeScreens.description_placeholder')" :aria-describedby="describedBy" :class="[fieldClass, 'py-2']"></textarea>
+      </FormField>
+    </form>
 
-        <!-- Moyen de Paiement -->
-        <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('finance.modal.method') }}</label>
-            <select v-model="form.paymentMethod" class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
-                <option value="Espèces">{{ t('finance.payment_methods.cash') }}</option>
-                <option value="Mobile Money">{{ t('finance.payment_methods.mobile') }}</option>
-                <option value="Virement">{{ t('finance.payment_methods.transfer') }}</option>
-                <option value="Chèque">{{ t('finance.payment_methods.check') }}</option>
-            </select>
-        </div>
-
-        <!-- Description -->
-        <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('finance.modal.desc') }}</label>
-            <textarea 
-                v-model="form.description" 
-                rows="2" 
-                required
-                placeholder="Ex: Achat de matériel, Consultation M. X..."
-                class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-            ></textarea>
-        </div>
-
-        <!-- Boutons -->
-        <div class="flex justify-end space-x-3 mt-6 pt-4 border-t border-gray-100">
-          <button type="button" @click="$emit('close')" class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition shadow-xs">
-            {{ t('finance.modal.cancel') }}
-          </button>
-          <button 
-            type="submit" 
-            class="px-4 py-2 text-white rounded-lg shadow-md font-medium transition flex items-center"
-            :class="form.type === 'INCOME' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'"
-          >
-            <!-- Petit loader si besoin, sinon texte normal -->
-            {{ t('finance.modal.save') }}
-          </button>
-        </div>
-      </form>
-
-    </div>
-  </div>
+    <template #footer>
+      <ActionBar>
+        <template #secondary>
+          <AppButton variant="ghost" @click="$emit('close')">{{ t('finance.modal.cancel') }}</AppButton>
+        </template>
+        <AppButton type="submit" form="finance-form" :variant="form.type === 'INCOME' ? 'primary' : 'danger'">{{ t('finance.modal.save') }}</AppButton>
+      </ActionBar>
+    </template>
+  </FullScreenPanel>
 </template>
 
 <script setup>
 import { reactive, computed, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { BanknotesIcon, ArrowTrendingDownIcon } from '@heroicons/vue/24/outline';
+import { AppButton, FormField, ActionBar, FullScreenPanel } from '@/components/ui';
 
 const { t } = useI18n();
+
+// Style commun des champs : zone tactile >= 44 px, focus visible.
+const fieldClass = 'block w-full min-h-11 lg:min-h-10 rounded-control border border-tone-neutral-border bg-white px-3 text-base text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand-600';
 const emit = defineEmits(['close', 'save']);
 
 // Date du jour YYYY-MM-DD

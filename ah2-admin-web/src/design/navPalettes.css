@@ -8,3 +8,27 @@
   --color-nav-800: #164840;
   --color-nav-900: #0c2f2b;
 }
+
+.nav-palette-slate {
+  --color-nav-700: #334155;
+  --color-nav-800: #1e293b;
+  --color-nav-900: #0f172a;
+}
+
+.nav-palette-lagoon {
+  --color-nav-700: #1b6b72;
+  --color-nav-800: #134b52;
+  --color-nav-900: #0b2f34;
+}
+
+.nav-palette-ember {
+  --color-nav-700: #8a4a1f;
+  --color-nav-800: #5e3015;
+  --color-nav-900: #3a1d0d;
+}
+
+.nav-palette-violet {
+  --color-nav-700: #5b3f8c;
+  --color-nav-800: #3f2a63;
+  --color-nav-900: #251840;
+}

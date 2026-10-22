@@ -13,14 +13,14 @@
       :id="sidebarId"
       :aria-label="t('medicalShell.mainNav')"
       :class="[
-        'bg-linear-to-b from-nav-900 to-nav-700 text-nav-text w-72 max-w-[85vw] shrink-0 flex flex-col',
+        'bg-linear-to-br from-nav-900 to-nav-700 text-nav-text w-72 max-w-[85vw] shrink-0 flex flex-col',
         'fixed inset-y-0 left-0 z-40 transition-all duration-200 ease-in-out',
         'md:static md:z-20 md:translate-x-0',
         isSidebarOpen ? 'md:w-64' : 'md:w-20',
         isDrawerOpen ? 'translate-x-0' : '-translate-x-full'
       ]"
     >
-      <div class="px-4 flex items-center justify-between gap-2 h-16 bg-nav-900 border-b border-nav-800 shrink-0 overflow-hidden">
+      <div class="px-4 flex items-center justify-between gap-2 h-16 border-b border-white/10 shrink-0 overflow-hidden">
         <div :class="['flex items-center gap-3 min-w-0', isSidebarOpen ? '' : 'md:hidden']">
           <img
             v-if="configStore.structureInfo.logo_url"
@@ -65,14 +65,56 @@
 
       <nav class="flex-1 overflow-y-auto py-4 px-3 custom-scrollbar">
         <div v-for="group in visibleGroups" :key="group.key" class="mb-5">
-          <p :class="['px-3 mb-1 text-sm font-semibold uppercase tracking-wide text-brand-100', isSidebarOpen ? '' : 'md:hidden']">
+          <p v-if="group.labelKey" :class="['px-3 mb-1 text-sm font-semibold uppercase tracking-wide text-brand-100', isSidebarOpen ? '' : 'md:hidden']">
             {{ t(group.labelKey) }}
           </p>
           <!-- Menu réduit : un trait remplace l'intertitre -->
-          <hr v-if="!isSidebarOpen" class="hidden md:block mx-3 mb-2 border-nav-800" />
+          <hr v-if="group.labelKey && !isSidebarOpen" class="hidden md:block mx-3 mb-2 border-nav-800" />
           <ul class="space-y-1">
-            <li v-for="item in group.items" :key="item.path">
+            <li v-for="item in group.items" :key="item.path || item.key">
+              <hr v-if="item.separator" class="mx-3 mb-3 mt-6 border-nav-800" />
+
+              <!-- Sous-menu repliable : ouvert d'office quand la page courante est un de ses enfants -->
+              <template v-if="item.children">
+                <button
+                  type="button"
+                  :aria-expanded="isGroupOpen(item)"
+                  :aria-controls="`${sidebarId}-${item.key}`"
+                  :title="!isSidebarOpen ? t(item.labelKey) : undefined"
+                  :class="[
+                    'relative flex w-full items-center gap-3 min-h-11 py-2 px-3 rounded-control border-l-4 border-transparent text-left transition-colors duration-150',
+                    isSidebarOpen ? '' : 'md:justify-center',
+                    'focus-visible:outline-2 focus-visible:outline-brand-500',
+                    groupActive(item) ? 'font-semibold text-white' : 'text-nav-text hover:bg-nav-800 hover:text-white'
+                  ]"
+                  @click="onGroupClick(item)"
+                >
+                  <component :is="item.icon" class="h-6 w-6 shrink-0" aria-hidden="true" />
+                  <span :class="['text-base flex-1', isSidebarOpen ? '' : 'md:sr-only']">{{ t(item.labelKey) }}</span>
+                  <ChevronDownIcon v-if="isSidebarOpen" :class="['h-5 w-5 shrink-0 transition-transform', isGroupOpen(item) ? 'rotate-180' : '']" aria-hidden="true" />
+                </button>
+                <ul v-if="isSidebarOpen && isGroupOpen(item)" :id="`${sidebarId}-${item.key}`" class="mt-1 space-y-1 pl-4">
+                  <li v-for="child in item.children" :key="child.path">
+                    <router-link
+                      :to="child.path"
+                      :aria-current="isActive(child) ? 'page' : undefined"
+                      :class="[
+                        'flex items-center gap-3 min-h-11 py-2 px-3 rounded-control border-l-4 transition-colors duration-150',
+                        'focus-visible:outline-2 focus-visible:outline-brand-500',
+                        isActive(child)
+                          ? 'bg-nav-800 border-brand-500 font-semibold text-white'
+                          : 'border-transparent text-nav-text hover:bg-nav-800 hover:text-white'
+                      ]"
+                    >
+                      <component :is="child.icon" class="h-5 w-5 shrink-0" aria-hidden="true" />
+                      <span class="text-base">{{ t(child.labelKey) }}</span>
+                    </router-link>
+                  </li>
+                </ul>
+              </template>
+
               <router-link
+                v-else
                 :to="item.path"
                 :aria-current="isActive(item) ? 'page' : undefined"
                 :title="!isSidebarOpen ? t(item.labelKey) : undefined"
@@ -186,7 +228,7 @@
 // que sa configuration : groupes de menu, roles qui voient la cloche, nom de repli de la structure.
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
 import { useAuthStore } from '@/stores/auth';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useConfigStore } from '@/stores/configStore';
 import { resolveAssetUrl } from '@/services/api';
@@ -194,12 +236,14 @@ import AccountModal from '@/components/account/AccountModal.vue';
 import NotificationBell from '@/components/notifications/NotificationBell.vue';
 import ConnectionStatus from '@/components/ui/ConnectionStatus.vue';
 import { navPaletteClass } from '@/design/navPalettes';
+import { groupContainsPath } from '@/utils/sidebarMenu';
 import { useSyncQuarantineCount } from '@/composables/useSyncQuarantineCount';
 import {
   Bars3Icon,
   Bars3CenterLeftIcon,
   XMarkIcon,
   UserCircleIcon,
+  ChevronDownIcon,
 } from '@heroicons/vue/24/outline';
 
 const props = defineProps({
@@ -226,6 +270,22 @@ const isSidebarOpen = ref(true);
 const showAccountModal = ref(false);
 
 const quarantineCount = useSyncQuarantineCount();
+
+// Sous-menus repliables (item avec children) : ouvert d'office si la page courante est un enfant, sinon au clic.
+const router = useRouter();
+const openGroups = ref({});
+const groupActive = (item) => groupContainsPath(item, route.path);
+const isGroupOpen = (item) => groupActive(item) || !!openGroups.value[item.key];
+const onGroupClick = (item) => {
+  // Menu reduit (icones) : on va directement au premier enfant.
+  if (!isSidebarOpen.value) {
+    router.push(item.children[0].path);
+    return;
+  }
+  // Un groupe ouvert d'office par la route reste ouvert (pas de fermeture).
+  if (groupActive(item)) return;
+  openGroups.value = { ...openGroups.value, [item.key]: !openGroups.value[item.key] };
+};
 
 // Une entree « echecs de synchronisation » n'apparait que s'il y a quelque chose a resoudre ;
 // un intertitre sans entree visible n'est pas affiche.

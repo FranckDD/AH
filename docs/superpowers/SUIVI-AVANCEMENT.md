@@ -1,6 +1,6 @@
 # Suivi d'avancement — AH2 / Glostone-Kare
 
-**Dernière mise à jour :** 2026-10-22 (refonte UX du secrétariat livrée, Tâches 1 à 10 ; à vérifier par l'utilisateur dans le navigateur)
+**Dernière mise à jour :** 2026-10-22 (refonte UX de l'admin et du promoteur livrée, Tâches 1 à 6 ; à vérifier par l'utilisateur dans le navigateur)
 **But de ce document :** état d'avancement des chantiers de remise en service et de sécurisation, et registre des découvertes faites en cours de route mais non encore traitées. Pour le contexte général du projet, voir `docs/superpowers/CONTEXTE-PROJET.md`. Pour le détail d'un chantier, voir les fichiers correspondants dans `docs/superpowers/specs/` et `docs/superpowers/plans/`.
 
 ## Feuille de route
@@ -1356,3 +1356,40 @@ Plan `plans/2026-10-22-refonte-ux-secretariat.md` · Protocole du test d'utilisa
 - Le test d'utilisation avec la secrétaire (protocole prêt) n'est pas fait ; l'état réduit du menu n'est pas mémorisé.
 
 **Reste à migrer** (non commencé) : administrateur et promoteur, laboratoire, toxicologie, stock-control (lots, réceptions, avaries), finance admin ; puis la documentation d'utilisation par rôle, l'onglet Rapports et le chantier 8 (déploiement).
+
+
+### Refonte UX de l'admin et du promoteur : livrée (Tâches 1 à 6), à vérifier par l'utilisateur (2026-10-22)
+
+Plan `plans/2026-10-22-refonte-ux-admin-promoteur.md`. Base `f050a08` (palettes de menu du secrétariat) ; les Tâches 1 à 6 sont dans l'arbre de travail, **non commitées**. **Vérifié** : 2313 tests `node` (dont `refonteAdminGuard.test.mjs`, vu échouer sur une couleur en dur ajoutée puis retirée) et `vite build`. **Jamais vérifié dans un navigateur par un agent** : le rendu est à contrôler par l'utilisateur avec la checklist ci-dessous ; l'utilisateur a déjà regardé les Tâches 1 à 4 (retours pris en compte : boutons moins sombres, dates traduites).
+
+**Livré**
+- **Cadre partagé** : `MainLayout` (admin, promoteur, laboratoire, toxicologie, stock-control) passe sur `AppShell` une seule fois pour tous les rôles ; il ne garde que la configuration (entrées de menu, rôles) et le chargement du jeton d'impression pour admin et promoteur. `AppShell` gagne les sous-menus repliables (Stock, Stock du labo), le séparateur (Configuration) et un intertitre facultatif ; `toShellGroups` (dans `utils/sidebarMenu.js`) adapte le menu par rôle. Le menu de chaque rôle est identique à l'ancien (relevé figé dans `mainLayoutContract.test.mjs`).
+- **Une couleur de menu par espace**, en dégradé diagonal (`nav-900` vers `nav-700`), `design/navPalettes.{css,js}` : admin et promoteur ardoise, laborantin lagon, ToxicoManager, Psychologist, SpiritualCounsellor et Assistant braise, StockController violet, médical bleu nuit, secrétariat vert forêt ; `paletteForRole(role)`. Contraste vérifié par test pour chaque palette.
+- **Boutons pleins en dégradé** diagonal (couleur de base vers la même couleur assombrie de 10 %, ombre douce) ; nouveau jeton `tone-danger-solid` (rouge plus vif, texte blanc 4,8:1) pour le bouton rouge.
+- **Tableau de bord** admin et promoteur (`DashboardOverview`) : période, 4 tuiles (recettes, retraits, solde, admissions toxico), 3 tuiles (utilisateurs, alertes, lits), activités récentes en tableau, actions rapides ; règle « Indisponible, jamais 0 » figée ; dates suivant la langue.
+- **Finance** : liste des transactions (tuiles, filtres, tableau à lignes alternées, filtre de type à état écrit) et formulaire de transaction en panneau.
+- **Réductions à valider** (cartes, pourcentages en groupe à état écrit, mot de passe) et **règles de réduction du personnel** (règles par catégorie, membres du personnel).
+
+**Décisions et rulings**
+- Le tableau de la finance avait une cellule de date en double (6 cellules sous 5 titres) : supprimée, un test impose une cellule par colonne.
+- `ToxicoAdmissionModal` (côté toxicologie) n'est pas refondue ici : elle s'ouvre toujours depuis les actions rapides du tableau de bord, avec son ancien style.
+- Argent, données et impression jamais modifiés : `financialStore`, `dashboardStore`, `FinanceGateway`, `StaffDiscountGateway`, `DiscountRequestGateway`, `invoiceTotals`, `staffDiscount`, `receiptLines`, `caisseStore`, `CaisseGateway`, `PrinterBridgeGateway`, `printer_bridge/` ; vérifié par le garde-fou.
+- Garde-fou : la constante `FIN` de `refonteAdminGuard.test.mjs` vaut `null` (compare à l'arbre de travail). **À renseigner avec le hash du commit des Tâches 1 à 6** une fois commité.
+
+**Checklist à vérifier par l'utilisateur** (chaque ligne à 360, 768 et 1280 px)
+| Écran | Points précis |
+|---|---|
+| Cadre, **chaque rôle** | Admin, promoteur, laborantin, ToxicoManager, Psychologist, SpiritualCounsellor, Assistant, StockController : couleur propre du menu, entrées attendues, sous-menus Stock et Stock du labo (ouverts d'office, menu réduit), séparateur avant Configuration, cloche, déconnexion, tiroir sous 768 px ; laboratoire avec son cadre imbriqué |
+| Impression | Jeton d'impression chargé pour admin et promoteur (tickets de la caisse) |
+| Tableau de bord (admin, promoteur) | Période et filtres ; un bloc en échec affiche « Indisponible » ; solde négatif ; actions rapides (la nouvelle admission toxico garde l'ancien style) ; dates en anglais quand la langue est EN |
+| Finance (admin) | Création d'une recette et d'une dépense (aussi depuis la carte « Encaisser un paiement » du tableau de bord) ; filtres de type, catégorie et dates ; chaque colonne contient la bonne information |
+| Réductions à valider | Approuver avec un pourcentage et une échéance, refuser, mot de passe faux ; admin et promoteur |
+| Règles du personnel | Modifier et enregistrer une règle (taux invalide : message), rechercher un patient, le marquer puis le retirer du personnel |
+| Boutons | Dégradé et couleurs de tous les boutons pleins sur les écrans déjà refondus (caisse, retraits, stock, médical) |
+
+**Résiduels**
+- Les écrans qui ne sont pas encore refondus (utilisateurs, configuration, journaux, stock admin, stock du labo, laboratoire, toxicologie, stock-control) s'ouvrent dans le nouveau cadre mais gardent leur ancien style (fonds clairs, boutons d'avant) : un décalage visuel temporaire est normal.
+- Certains textes restent en dur dans des écrans partagés (messages d'erreur, « Facture n° » de la caisse) ; des dates peuvent rester figées en français dans les écrans non refondus.
+- Le test d'utilisation avec les membres du personnel (admin et promoteur) n'est pas fait.
+
+**Reste à migrer** (non commencé) : administration (utilisateurs, configuration, journaux), stock admin (lots, réceptions, avaries, contrôle, mouvements, demandes d'ajustement), stock du labo (vue promoteur), laboratoire, toxicologie, stock-control ; puis la documentation d'utilisation par rôle, l'onglet Rapports et le chantier 8 (déploiement).

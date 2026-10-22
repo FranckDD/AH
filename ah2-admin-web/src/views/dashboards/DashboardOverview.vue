@@ -1,202 +1,125 @@
 <template>
-  <div class="space-y-8 w-full">
-    
-    <div class="flex flex-col md:flex-row md:items-center md:justify-between bg-white p-6 rounded-2xl shadow-xs border border-gray-100">
-      <div>
-        <h1 class="text-3xl font-extrabold text-gray-800 tracking-tight">
-          {{ $t('dashboard.title') }}
-        </h1>
-        <p class="mt-2 text-gray-500 flex items-center">
-          <span class="inline-block w-2 h-2 rounded-full bg-green-500 mr-2 animate-pulse"></span>
-          {{ $t('dashboard.subtitle') }} {{ currentDate }}
-        </p>
-      </div>
-      
-      <div class="mt-4 md:mt-0 flex flex-col md:flex-row space-y-3 md:space-y-0 md:space-x-3 items-end">
-        <div class="flex flex-col">
-          <label class="text-xs font-medium text-gray-500 mb-1">{{ $t('dashboard.filters.start_date') }}</label>
-          <input type="date" v-model="dashboardStore.filters.startDate" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-green-500 focus:border-green-500" />
-        </div>
+  <div class="grid w-full gap-6">
 
-        <div class="flex flex-col">
-          <label class="text-xs font-medium text-gray-500 mb-1">{{ $t('dashboard.filters.end_date') }}</label>
-          <input type="date" v-model="dashboardStore.filters.endDate" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-green-500 focus:border-green-500" />
-        </div>
+    <PageHeader :title="$t('dashboard.title')" :subtitle="`${$t('dashboard.subtitle')} ${currentDate}`" />
 
-        <div class="flex space-x-3 mt-auto">
-             <button @click="resetToToday" class="flex items-center px-4 py-2 bg-gray-50 text-gray-700 rounded-lg hover:bg-gray-100 border border-gray-200 transition font-medium text-sm">
-                <span>🔄 {{ $t('dashboard.actions.refresh') }}</span>
-             </button>
-            
-            <button @click="applyFilters" class="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 shadow-md transition font-medium text-sm">
-                <span>🔍 {{ $t('dashboard.filters.apply') }}</span>
-            </button>
-        </div>
+    <!-- Periode -->
+    <section :aria-label="$t('adminDashboard.filters')" class="grid gap-4 rounded-card border border-tone-neutral-border bg-white p-4 shadow-card md:grid-cols-2 lg:flex lg:flex-wrap lg:items-end">
+      <div class="lg:w-48">
+        <FormField id="dash-start" :label="$t('dashboard.filters.start_date')" v-slot="{ describedBy }">
+          <input id="dash-start" type="date" v-model="dashboardStore.filters.startDate" :aria-describedby="describedBy" :class="fieldClass" />
+        </FormField>
       </div>
-    </div>
-    
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-      
-      <StatCard
+      <div class="lg:w-48">
+        <FormField id="dash-end" :label="$t('dashboard.filters.end_date')" v-slot="{ describedBy }">
+          <input id="dash-end" type="date" v-model="dashboardStore.filters.endDate" :aria-describedby="describedBy" :class="fieldClass" />
+        </FormField>
+      </div>
+      <div class="flex flex-col gap-2 md:col-span-2 md:flex-row lg:ml-auto">
+        <AppButton variant="secondary" :icon="ArrowPathIcon" @click="resetToToday">{{ $t('dashboard.actions.refresh') }}</AppButton>
+        <AppButton :icon="MagnifyingGlassIcon" @click="applyFilters">{{ $t('dashboard.filters.apply') }}</AppButton>
+      </div>
+    </section>
+
+    <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <StatTile
         :title="$t('dashboard.stats.income')"
         :value="valeurAffichee('income', formatCurrency(dashboardStore.stats.income))"
+        :note="$t('adminDashboard.income_note')"
         :icon="BanknotesIcon"
-        colorClass="bg-green-50"
-        iconColor="text-green-600"
-        trend="Recettes"
-        :trendIsPositive="true"
+        tone="success"
       />
 
-      <StatCard
+      <StatTile
         :title="$t('dashboard.stats.withdrawals')"
         :value="valeurAffichee('expense', formatCurrency(dashboardStore.stats.withdrawals))"
+        :note="$t('adminDashboard.expense_note')"
         :icon="ArrowTrendingDownIcon"
-        colorClass="bg-red-50"
-        iconColor="text-red-600"
-        trend="Dépenses"
-        :trendIsPositive="false"
+        tone="danger"
       />
 
-      <StatCard
+      <StatTile
         :title="$t('finance.balance')"
         :value="soldeAffiche"
+        :note="$t('adminDashboard.balance_note')"
         :icon="dashboardStore.stats.income >= dashboardStore.stats.withdrawals ? ArrowTrendingUpIcon : ArrowTrendingDownIcon"
-        :colorClass="dashboardStore.stats.income >= dashboardStore.stats.withdrawals ? 'bg-blue-50' : 'bg-orange-50'"
-        :iconColor="dashboardStore.stats.income >= dashboardStore.stats.withdrawals ? 'text-blue-600' : 'text-orange-600'"
-        trend="Solde Période"
-        :trendIsPositive="dashboardStore.stats.income >= dashboardStore.stats.withdrawals"
+        :tone="dashboardStore.stats.income >= dashboardStore.stats.withdrawals ? 'info' : 'warning'"
       />
 
-      <StatCard
+      <StatTile
         :title="$t('dashboard.stats.patients')"
         :value="valeurAffichee('toxico', dashboardStore.stats.toxicoAdmissionsThisMonth)"
+        :note="$t('adminDashboard.toxico_note')"
         :icon="UserGroupIcon"
-        colorClass="bg-indigo-50"
-        iconColor="text-indigo-600"
-        trend="Module Toxico"
-        :trendIsPositive="true"
       />
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-      
-      <div class="bg-white rounded-2xl p-6 shadow-xs border border-gray-100 flex items-center justify-between">
-        <div class="flex items-center">
-          <div class="p-3 bg-indigo-50 rounded-xl mr-4">
-             <SignalIcon class="h-6 w-6 text-indigo-600" />
-          </div>
-          <div>
-            <p class="text-sm text-gray-500 font-medium">{{ $t('dashboard.stats.users_online') }}</p>
-            <p class="text-xl font-bold text-gray-900">{{ valeurAffichee('users', `${dashboardStore.stats.onlineUsers} inscrits`) }}</p>
-          </div>
-        </div>
-      </div>
+    <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+      <StatTile
+        :title="$t('dashboard.stats.users_online')"
+        :value="valeurAffichee('users', `${dashboardStore.stats.onlineUsers} inscrits`)"
+        :icon="SignalIcon"
+      />
 
-       <div class="bg-white rounded-2xl p-6 shadow-xs border border-gray-100 flex items-center justify-between cursor-pointer hover:bg-gray-50 transition" @click="$router.push('/dashboard/toxico')">
-        <div class="flex items-center">
-          <div class="p-3 bg-red-50 rounded-xl mr-4">
-             <ExclamationTriangleIcon class="h-6 w-6 text-red-600" />
-          </div>
-          <div>
-            <p class="text-sm text-gray-500 font-medium">{{ $t('dashboard.stats.alerts') }}</p> 
-            <p class="text-xl font-bold text-gray-900">Voir Alertes</p>
-          </div>
-        </div>
-      </div>
+      <button type="button"
+              class="flex min-h-11 items-start justify-between gap-3 rounded-card border border-tone-neutral-border bg-white p-4 text-left shadow-card transition hover:bg-brand-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
+              @click="$router.push('/dashboard/toxico')">
+        <span class="min-w-0">
+          <span class="block text-sm font-medium text-ink-muted">{{ $t('dashboard.stats.alerts') }}</span>
+          <span class="mt-1 block text-2xl font-bold text-ink">{{ $t('adminDashboard.see_alerts') }}</span>
+        </span>
+        <span :class="['flex h-11 w-11 shrink-0 items-center justify-center rounded-control border', toneClasses('danger')]">
+          <ExclamationTriangleIcon class="h-6 w-6" aria-hidden="true" />
+        </span>
+      </button>
 
-       <div class="bg-white rounded-2xl p-6 shadow-xs border border-gray-100 flex items-center justify-between">
-        <div class="flex items-center">
-          <div class="p-3 bg-purple-50 rounded-xl mr-4">
-             <HomeModernIcon class="h-6 w-6 text-purple-600" />
-          </div>
-          <div>
-            <p class="text-sm text-gray-500 font-medium">{{ $t('dashboard.stats.bed_occupancy') }}</p>
-            <p class="text-xl font-bold text-gray-900">{{ valeurAffichee('hospitalized', dashboardStore.stats.hospitalizedCount) }}</p>
-          </div>
-        </div>
-      </div>
+      <StatTile
+        :title="$t('dashboard.stats.bed_occupancy')"
+        :value="valeurAffichee('hospitalized', dashboardStore.stats.hospitalizedCount)"
+        :icon="HomeModernIcon"
+      />
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-      
-      <div class="lg:col-span-2 bg-white rounded-2xl shadow-xs border border-gray-100 overflow-hidden">
-        <div class="p-6 border-b border-gray-100 flex justify-between items-center">
-          <h3 class="text-lg font-bold text-gray-900">
-            {{ $t('dashboard.table_title', 'Dernières Activités Financières') }}
-          </h3>
-          <button @click="$router.push('/dashboard/finance')" class="text-sm text-green-600 hover:text-green-700 font-medium">
-            Voir tout
-          </button>
-        </div>
-        
-        <div class="overflow-x-auto">
-          <div v-if="dashboardStore.isLoading" class="p-6 text-center text-gray-500">Chargement...</div>
-          
-          <table v-else class="w-full text-left border-collapse">
-            <thead>
-              <tr class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
-                <th class="px-6 py-4 font-semibold">Description</th> 
-                <th class="px-6 py-4 font-semibold">Date</th>
-                <th class="px-6 py-4 font-semibold text-right">Montant</th>
-                <th class="px-6 py-4 font-semibold">Type</th>
-                <th class="px-6 py-4 font-semibold">Statut</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-100">
-              <tr v-for="item in dashboardStore.recentActivities" :key="item.id" class="hover:bg-gray-50 transition">
-                <td class="px-6 py-4 font-medium text-gray-900">
-                    {{ item.label }}
-                    <span v-if="item.description && item.description !== item.label" class="block text-xs text-gray-500 font-normal truncate max-w-[200px]">{{ item.description }}</span>
-                </td>
-                <td class="px-6 py-4 text-gray-500 text-sm">{{ formatDate(item.date) }}</td>
-                <td class="px-6 py-4 font-bold text-gray-900 text-right">{{ formatCurrency(item.amount) }}</td>
-                <td class="px-6 py-4 text-sm">
-                    <span v-if="item.type === 'INCOME'" class="text-green-600 bg-green-50 px-2 py-1 rounded-sm text-xs font-bold">Entrée</span>
-                    <span v-else class="text-red-600 bg-red-50 px-2 py-1 rounded-sm text-xs font-bold">Sortie</span>
-                </td>
-                <td class="px-6 py-4">
-                    <span class="h-2 w-2 rounded-full inline-block mr-2" :class="item.status === 'active' || item.status === 'Validé' ? 'bg-green-500' : 'bg-gray-400'"></span>
-                    <span class="text-xs text-gray-600">{{ item.status }}</span>
-                </td>
-              </tr>
-              <tr v-if="dashboardStore.recentActivities.length === 0">
-                  <td colspan="5" class="px-6 py-4 text-center text-gray-500 italic">
-                      <span v-if="dashboardStore.indisponibles.includes('activites')" class="text-red-600 not-italic font-medium">Activités indisponibles (erreur de chargement).</span>
-                      <span v-else>Aucune activité récente.</span>
-                  </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
+    <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
 
-      <div class="bg-linear-to-br from-green-600 to-emerald-800 rounded-2xl shadow-lg p-6 text-white flex flex-col justify-between">
-        <div>
-          <h3 class="text-xl font-bold mb-2">Actions Rapides</h3>
-          <p class="text-green-100 text-sm mb-6">Accès direct aux fonctions clés.</p>
-          
-          <div class="space-y-3">
-            <button @click="$router.push('/dashboard/users')" class="w-full flex items-center p-3 bg-white/10 hover:bg-white/20 backdrop-blur-xs rounded-xl transition border border-white/10">
-              <UserGroupIcon class="h-5 w-5 mr-3 text-green-200" />
-              <span class="font-medium">{{ $t('dashboard.actions.manage_staff') }}</span>
-            </button>
-            
-            <button @click="showAdmissionModal = true" class="w-full flex items-center p-3 bg-white/10 hover:bg-white/20 backdrop-blur-xs rounded-xl transition border border-white/10">
-              <PlusCircleIcon class="h-5 w-5 mr-3 text-green-200" />
-              <span class="font-medium">{{ $t('dashboard.actions.new_admission') }}</span>
-            </button>
+      <AppCard class="lg:col-span-2" :title="$t('dashboard.table_title', 'Dernières Activités Financières')">
+        <template #actions>
+          <AppButton variant="secondary" @click="$router.push('/dashboard/finance')">{{ $t('adminDashboard.see_all') }}</AppButton>
+        </template>
 
-            <button @click="showFinanceModal = true" class="w-full flex items-center p-3 bg-white/10 hover:bg-white/20 backdrop-blur-xs rounded-xl transition border border-white/10">
-              <BanknotesIcon class="h-5 w-5 mr-3 text-green-200" />
-              <span class="font-medium">{{ $t('dashboard.actions.payment') }}</span>
-            </button>
-          </div>
+        <ResponsiveTable
+          :columns="activityColumns"
+          :rows="dashboardStore.recentActivities"
+          row-key="id"
+          :loading="dashboardStore.isLoading"
+          :empty-title="dashboardStore.indisponibles.includes('activites') ? 'Activités indisponibles (erreur de chargement).' : 'Aucune activité récente.'"
+          :empty-message="' '"
+          striped
+        >
+          <template #cell-label="{ row: item }">
+            <span class="font-medium">{{ item.label }}</span>
+            <span v-if="item.description && item.description !== item.label" class="block max-w-xs truncate text-sm font-normal text-ink-muted">{{ item.description }}</span>
+          </template>
+          <template #cell-date="{ row: item }">{{ formatDate(item.date) }}</template>
+          <template #cell-amount="{ row: item }"><span class="font-bold">{{ formatCurrency(item.amount) }}</span></template>
+          <template #cell-type="{ row: item }">
+            <StatusBadge v-if="item.type === 'INCOME'" tone="success" :label="$t('adminDashboard.entry')" />
+            <StatusBadge v-else tone="danger" :label="$t('adminDashboard.sortie')" />
+          </template>
+          <template #cell-status="{ row: item }">
+            <StatusBadge :tone="item.status === 'active' || item.status === 'Validé' ? 'success' : 'neutral'" :label="String(item.status ?? '-')" />
+          </template>
+        </ResponsiveTable>
+      </AppCard>
+
+      <AppCard :title="$t('adminDashboard.quick_actions')" :subtitle="$t('adminDashboard.quick_actions_help')">
+        <div class="grid gap-3">
+          <AppButton variant="secondary" :icon="UserGroupIcon" @click="$router.push('/dashboard/users')">{{ $t('dashboard.actions.manage_staff') }}</AppButton>
+          <AppButton variant="secondary" :icon="PlusCircleIcon" @click="showAdmissionModal = true">{{ $t('dashboard.actions.new_admission') }}</AppButton>
+          <AppButton :icon="BanknotesIcon" @click="showFinanceModal = true">{{ $t('dashboard.actions.payment') }}</AppButton>
         </div>
-        
-        <div class="mt-8 pt-6 border-t border-white/20 text-center text-xs text-green-200">
-          Support technique : 674 69 79 08
-        </div>
-      </div>
+        <p class="mt-5 border-t border-tone-neutral-border pt-4 text-center text-base text-ink-muted">Support technique : 674 69 79 08</p>
+      </AppCard>
 
     </div>
 
@@ -219,7 +142,8 @@
 import { computed, ref, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useDashboardStore } from '@/stores/dashboardStore'; 
-import StatCard from '@/components/dashboard/StatCard.vue';
+import { AppButton, AppCard, PageHeader, FormField, StatTile, StatusBadge, ResponsiveTable } from '@/components/ui';
+import { toneClasses } from '@/design/tones';
 
 // 🟢 IMPORTS DES MODALES EXISTANTES
 // Assurez-vous que les chemins correspondent exactement à votre arborescence
@@ -231,10 +155,20 @@ import { useFinancialStore } from '@/stores/financialStore';
 import { 
   BanknotesIcon, UserGroupIcon, HomeModernIcon, 
   ArrowTrendingDownIcon, ArrowTrendingUpIcon, ClockIcon, 
-  SignalIcon, PlusCircleIcon, MagnifyingGlassIcon, ExclamationTriangleIcon
+  SignalIcon, PlusCircleIcon, MagnifyingGlassIcon, ExclamationTriangleIcon, ArrowPathIcon
 } from '@heroicons/vue/24/outline';
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
+
+// Colonnes du tableau des activites (cartes empilees sous lg) et style commun des champs.
+const activityColumns = computed(() => [
+  { key: 'label', label: t('adminDashboard.col_description') },
+  { key: 'date', label: t('adminDashboard.col_date') },
+  { key: 'amount', label: t('adminDashboard.col_amount'), align: 'right' },
+  { key: 'type', label: t('adminDashboard.col_type') },
+  { key: 'status', label: t('adminDashboard.col_status') },
+]);
+const fieldClass = 'block w-full min-h-11 lg:min-h-10 rounded-control border border-tone-neutral-border bg-white px-3 text-base text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand-600';
 const dashboardStore = useDashboardStore();
 const financialStore = useFinancialStore();
 
@@ -294,8 +228,10 @@ onMounted(() => {
 });
 
 // --- HELPERS D'AFFICHAGE ---
+// Les dates suivent la langue choisie (FR/EN) ; les montants gardent le format FCFA.
+const dateLocale = computed(() => (locale.value === 'en' ? 'en-GB' : 'fr-FR'));
 const currentDate = computed(() => {
-  return new Date().toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  return new Date().toLocaleDateString(dateLocale.value, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 });
 
 const formatCurrency = (value) => {
@@ -322,7 +258,7 @@ const formatDate = (dateStr) => {
     if(!dateStr) return '-';
     try {
         const date = new Date(dateStr);
-        return date.toLocaleDateString('fr-FR') + ' ' + date.toLocaleTimeString('fr-FR', {hour: '2-digit', minute:'2-digit'});
+        return date.toLocaleDateString(dateLocale.value) + ' ' + date.toLocaleTimeString(dateLocale.value, {hour: '2-digit', minute:'2-digit'});
     } catch (e) { return dateStr; }
 };
 </script>

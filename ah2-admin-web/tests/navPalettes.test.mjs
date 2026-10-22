@@ -60,7 +60,7 @@ test('chaque espace choisit sa palette : médical bleu nuit (défaut), secrétar
 });
 
 test('le menu est un dégradé vertical nav-900 vers nav-700, avec le survol (nav-800) plus sombre que le bas du menu', () => {
-    assert.match(shell, /bg-linear-to-b from-nav-900 to-nav-700/);
+    assert.match(shell, /bg-linear-to-br from-nav-900 to-nav-700/);
     const all = { night: { 'nav-700': tokens['nav-700'], 'nav-800': tokens['nav-800'], 'nav-900': tokens['nav-900'] }, ...Object.fromEntries(Object.entries(NAV_PALETTES).filter(([, c]) => c).map(([n, c]) => [n, palettes[c]])) };
     for (const [name, p] of Object.entries(all)) {
         assert.ok(lum(p['nav-900']) < lum(p['nav-800']) && lum(p['nav-800']) < lum(p['nav-700']), `${name} : ordre 900 < 800 < 700`);

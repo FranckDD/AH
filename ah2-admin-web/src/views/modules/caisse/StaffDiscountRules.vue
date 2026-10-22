@@ -1,124 +1,109 @@
 <!-- src/views/modules/caisse/StaffDiscountRules.vue -->
 <template>
-  <div class="max-w-4xl mx-auto p-6 space-y-8">
-    <h2 class="text-xl font-bold text-gray-800">{{ $t('staffDiscount.title') }}</h2>
+  <div class="grid w-full max-w-5xl gap-6">
+    <PageHeader :title="$t('staffDiscount.title')" />
 
     <!-- Section 1 : regles par categorie -->
-    <section class="bg-white rounded-xl shadow-xs border border-gray-200 p-5">
-      <h3 class="text-lg font-semibold text-gray-800 mb-1">{{ $t('staffDiscount.rules_title') }}</h3>
-      <p class="text-xs text-gray-500 mb-4">{{ $t('staffDiscount.rules_hint') }}</p>
+    <AppCard :title="$t('staffDiscount.rules_title')" :subtitle="$t('staffDiscount.rules_hint')">
+      <div class="grid gap-3">
+        <p v-if="rulesLoadError" role="alert" class="rounded-control border p-3 text-base" :class="toneClasses('danger')">
+          {{ rulesLoadError }}
+        </p>
 
-      <div v-if="rulesLoadError" class="bg-red-50 border-l-4 border-red-500 p-3 rounded-sm text-sm text-red-700 mb-3">
-        {{ rulesLoadError }}
-      </div>
-
-      <table class="w-full text-sm">
-        <thead>
-          <tr class="text-left text-xs text-gray-500 uppercase border-b">
-            <th class="py-2">{{ $t('staffDiscount.col_category') }}</th>
-            <th class="py-2">{{ $t('staffDiscount.col_min_amount') }}</th>
-            <th class="py-2">{{ $t('staffDiscount.col_rate') }}</th>
-            <th class="py-2">{{ $t('staffDiscount.col_active') }}</th>
-            <th class="py-2">{{ $t('staffDiscount.col_action') }}</th>
-          </tr>
-        </thead>
-        <tbody>
-          <template v-for="cat in CATEGORIES" :key="cat">
-            <tr class="border-b last:border-0">
-              <td class="py-2 font-medium text-gray-800">{{ $t(`staffDiscount.categories.${cat}`) }}</td>
-              <td class="py-2 pr-2">
-                <input v-model.number="rows[cat].min_invoice_amount" type="number" min="0" step="1"
-                       class="w-36 px-2 py-1 border border-gray-300 rounded-sm" />
-              </td>
-              <td class="py-2 pr-2">
-                <input v-model.number="rows[cat].rate_percent" type="number" min="1" max="100" step="1"
-                       class="w-20 px-2 py-1 border border-gray-300 rounded-sm" />
-              </td>
-              <td class="py-2">
-                <input v-model="rows[cat].is_active" type="checkbox" class="h-4 w-4" />
-              </td>
-              <td class="py-2">
-                <button type="button" @click="saveRule(cat)" :disabled="rows[cat].saving"
-                        class="px-3 py-1 bg-green-600 text-white rounded-lg text-xs font-medium hover:bg-green-700 disabled:opacity-50">
-                  {{ rows[cat].saving ? $t('staffDiscount.saving') : $t('staffDiscount.save') }}
-                </button>
-              </td>
-            </tr>
-            <tr v-if="rows[cat].message">
-              <td colspan="5" class="pb-2 text-xs" :class="rows[cat].isError ? 'text-red-700' : 'text-green-700'">
-                {{ rows[cat].message }}
-              </td>
-            </tr>
+        <ResponsiveTable :columns="ruleColumns" :rows="ruleRows" row-key="cat" striped>
+          <template #cell-category="{ row: { cat } }"><span class="font-medium">{{ $t(`staffDiscount.categories.${cat}`) }}</span></template>
+          <template #cell-min="{ row: { cat } }">
+            <input v-model.number="rows[cat].min_invoice_amount" type="number" min="0" step="1" inputmode="numeric"
+                   :aria-label="$t('staffDiscount.col_min_amount')" :class="[fieldClass, 'text-right lg:w-40']" />
           </template>
-        </tbody>
-      </table>
-      <p class="text-xs text-gray-500 mt-3">{{ $t('staffDiscount.matching_hint') }}</p>
-    </section>
+          <template #cell-rate="{ row: { cat } }">
+            <input v-model.number="rows[cat].rate_percent" type="number" min="1" max="100" step="1" inputmode="numeric"
+                   :aria-label="$t('staffDiscount.col_rate')" :class="[fieldClass, 'text-right lg:w-24']" />
+          </template>
+          <template #cell-active="{ row: { cat } }">
+            <label class="inline-flex min-h-11 items-center gap-2 text-base text-ink">
+              <input v-model="rows[cat].is_active" type="checkbox" class="h-5 w-5 accent-brand-600" />
+              <span>{{ $t('staffDiscountScreens.rule_active_label') }}</span>
+            </label>
+          </template>
+          <template #cell-action="{ row: { cat } }">
+            <div class="grid gap-2">
+              <AppButton @click="saveRule(cat)" :disabled="rows[cat].saving" :loading="rows[cat].saving">
+                {{ rows[cat].saving ? $t('staffDiscount.saving') : $t('staffDiscount.save') }}
+              </AppButton>
+              <p v-if="rows[cat].message" :role="rows[cat].isError ? 'alert' : 'status'" class="text-base font-medium"
+                 :class="rows[cat].isError ? 'text-tone-danger-text' : 'text-tone-success-text'">
+                {{ rows[cat].message }}
+              </p>
+            </div>
+          </template>
+        </ResponsiveTable>
+        <p class="text-base text-ink-muted">{{ $t('staffDiscount.matching_hint') }}</p>
+      </div>
+    </AppCard>
 
     <!-- Section 2 : membres du personnel (seul endroit ou le promoteur gere "Personnel") -->
-    <section class="bg-white rounded-xl shadow-xs border border-gray-200 p-5">
-      <h3 class="text-lg font-semibold text-gray-800 mb-4">{{ $t('staffDiscount.members_title') }}</h3>
+    <AppCard :title="$t('staffDiscount.members_title')">
+      <div class="grid gap-4">
+        <p v-if="membersError" role="alert" class="rounded-control border p-3 text-base" :class="toneClasses('danger')">
+          {{ membersError }}
+        </p>
 
-      <div v-if="membersError" class="bg-red-50 border-l-4 border-red-500 p-3 rounded-sm text-sm text-red-700 mb-3">
-        {{ membersError }}
+        <FormField id="staff-search" :label="$t('staffDiscountScreens.search_label')" v-slot="{ describedBy }">
+          <input id="staff-search" v-model="searchQuery" @input="onSearchInput" type="search" autocomplete="off"
+                 :placeholder="$t('staffDiscount.search_placeholder')" :aria-describedby="describedBy" :class="fieldClass" />
+        </FormField>
+
+        <ResponsiveTable v-if="searchQuery.trim().length >= 2" :columns="memberColumns" :rows="searchResults" row-key="patient_id"
+                         :loading="isSearching" :empty-title="$t('staffDiscount.search_empty')" :empty-message="' '" striped>
+          <template #cell-code="{ row: p }"><span class="font-mono">{{ p.code_patient }}</span></template>
+          <template #cell-name="{ row: p }">{{ p.first_name }} {{ p.last_name }}</template>
+          <template #cell-staff="{ row: p }"><StatusBadge v-if="p.is_staff" tone="success" :label="$t('staffDiscount.col_staff')" /></template>
+          <template #actions="{ row: p }">
+            <AppButton :variant="p.is_staff ? 'secondary' : 'primary'" @click="toggleStaff(p)" :disabled="togglingId === p.patient_id">
+              {{ p.is_staff ? $t('staffDiscount.unmark_staff') : $t('staffDiscount.mark_staff') }}
+            </AppButton>
+          </template>
+        </ResponsiveTable>
+
+        <ResponsiveTable :columns="memberColumns" :rows="members" row-key="patient_id" :empty-title="$t('staffDiscount.members_empty')" :empty-message="' '" striped>
+          <template #cell-code="{ row: p }"><span class="font-mono">{{ p.code_patient }}</span></template>
+          <template #cell-name="{ row: p }">{{ p.first_name }} {{ p.last_name }}</template>
+          <template #cell-staff="{ row: p }"><StatusBadge tone="success" :label="$t('staffDiscount.col_staff')" /></template>
+          <template #actions="{ row: p }">
+            <AppButton variant="secondary" @click="toggleStaff(p)" :disabled="togglingId === p.patient_id">{{ $t('staffDiscount.unmark_staff') }}</AppButton>
+          </template>
+        </ResponsiveTable>
       </div>
-
-      <input v-model="searchQuery" @input="onSearchInput" type="text"
-             :placeholder="$t('staffDiscount.search_placeholder')"
-             class="block w-full px-3 py-2 border border-gray-300 rounded-lg text-sm mb-3" />
-
-      <div v-if="searchQuery.trim().length >= 2" class="mb-6">
-        <div v-if="searchResults.length === 0 && !isSearching" class="text-sm text-gray-400">{{ $t('staffDiscount.search_empty') }}</div>
-        <table v-else class="w-full text-sm">
-          <tbody>
-            <tr v-for="p in searchResults" :key="p.patient_id" class="border-b last:border-0">
-              <td class="py-2 font-mono text-gray-600">{{ p.code_patient }}</td>
-              <td class="py-2">{{ p.first_name }} {{ p.last_name }}</td>
-              <td class="py-2 text-right">
-                <button type="button" @click="toggleStaff(p)" :disabled="togglingId === p.patient_id"
-                        :class="p.is_staff ? 'bg-gray-200 text-gray-700' : 'bg-emerald-600 text-white'"
-                        class="px-3 py-1 rounded-lg text-xs font-medium disabled:opacity-50">
-                  {{ p.is_staff ? $t('staffDiscount.unmark_staff') : $t('staffDiscount.mark_staff') }}
-                </button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <div v-if="members.length === 0" class="text-sm text-gray-400">{{ $t('staffDiscount.members_empty') }}</div>
-      <table v-else class="w-full text-sm">
-        <thead>
-          <tr class="text-left text-xs text-gray-500 uppercase border-b">
-            <th class="py-2">{{ $t('staffDiscount.col_code') }}</th>
-            <th class="py-2">{{ $t('staffDiscount.col_name') }}</th>
-            <th class="py-2 text-right">{{ $t('staffDiscount.col_staff') }}</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="p in members" :key="p.patient_id" class="border-b last:border-0">
-            <td class="py-2 font-mono text-gray-600">{{ p.code_patient }}</td>
-            <td class="py-2">{{ p.first_name }} {{ p.last_name }}</td>
-            <td class="py-2 text-right">
-              <button type="button" @click="toggleStaff(p)" :disabled="togglingId === p.patient_id"
-                      class="px-3 py-1 bg-gray-200 text-gray-700 rounded-lg text-xs font-medium disabled:opacity-50">
-                {{ $t('staffDiscount.unmark_staff') }}
-              </button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </section>
+    </AppCard>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { StaffDiscountGateway } from '@/services/StaffDiscountGateway';
 import { CATEGORIES } from '@/utils/staffDiscount';
+import { AppButton, AppCard, PageHeader, FormField, StatusBadge, ResponsiveTable } from '@/components/ui';
+import { toneClasses } from '@/design/tones';
 
 const { t } = useI18n();
+
+// Colonnes des tableaux (cartes empilees sous lg) et style commun des champs.
+const ruleColumns = computed(() => [
+  { key: 'category', label: t('staffDiscount.col_category') },
+  { key: 'min', label: t('staffDiscount.col_min_amount') },
+  { key: 'rate', label: t('staffDiscount.col_rate') },
+  { key: 'active', label: t('staffDiscount.col_active') },
+  { key: 'action', label: t('staffDiscount.col_action') },
+]);
+const ruleRows = CATEGORIES.map((cat) => ({ cat }));
+const memberColumns = computed(() => [
+  { key: 'code', label: t('staffDiscount.col_code') },
+  { key: 'name', label: t('staffDiscount.col_name') },
+  { key: 'staff', label: t('staffDiscount.col_staff') },
+]);
+const fieldClass = 'block w-full min-h-11 lg:min-h-10 rounded-control border border-tone-neutral-border bg-white px-3 text-base text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand-600';
 
 // Message d'erreur visible, jamais avale : detail serveur (422 texte ou
 // liste Pydantic), 403 explicite, sinon message generique.

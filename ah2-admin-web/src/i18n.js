@@ -1810,6 +1810,54 @@ const messages = {
       discard_error: "Impossible de supprimer cette entrée.",
       discard_done: "Entrée supprimée."
     },
+    discountReviewScreens: {
+      percent_label: "Pourcentage de remise",
+      percent_group: "Choisir le pourcentage de remise",
+      password_help: "Votre mot de passe confirme la décision."
+    },
+    staffDiscountScreens: {
+      search_label: "Rechercher un patient",
+      rule_active_label: "Active"
+    },
+    financeScreens: {
+      subtitle: "Suivi de la trésorerie en temps réel",
+      search_label: "Recherche",
+      from: "Du",
+      to: "Au",
+      all_types: "Tout",
+      entries: "Entrées",
+      exits: "Sorties",
+      all_categories: "Toutes les catégories",
+      reset: "Réinitialiser",
+      results: "{n} transactions trouvées",
+      load_error: "Erreur de chargement",
+      empty: "Aucune transaction trouvée pour ces critères.",
+      page_label: "Page {n} sur {total}",
+      prev_page: "Page précédente",
+      next_page: "Page suivante",
+      amount_help: "Montant en FCFA, supérieur à zéro.",
+      select_category: "-- Sélectionner --",
+      description_placeholder: "Ex: Achat de matériel, Consultation M. X...",
+      type_group: "Type de transaction"
+    },
+    adminDashboard: {
+      filters: "Période",
+      income_note: "Recettes",
+      expense_note: "Dépenses",
+      balance_note: "Solde de la période",
+      toxico_note: "Module toxicologie",
+      see_all: "Voir tout",
+      see_alerts: "Voir les alertes",
+      entry: "Entrée",
+      sortie: "Sortie",
+      col_description: "Description",
+      col_date: "Date",
+      col_amount: "Montant",
+      col_type: "Type",
+      col_status: "Statut",
+      quick_actions: "Actions rapides",
+      quick_actions_help: "Accès direct aux fonctions clés."
+    },
     retraitScreens: {
       count: "{n} retraits",
       empty: "Aucun retrait trouvé.",
@@ -3719,6 +3767,54 @@ const messages = {
       discard_confirm: "Delete {name}? The following will be lost: {records} consultation(s), {prescriptions} prescription(s), {labs} lab record(s). This cannot be undone.",
       discard_error: "Unable to delete this entry.",
       discard_done: "Entry deleted."
+    },
+    discountReviewScreens: {
+      percent_label: "Discount percentage",
+      percent_group: "Choose the discount percentage",
+      password_help: "Your password confirms the decision."
+    },
+    staffDiscountScreens: {
+      search_label: "Search a patient",
+      rule_active_label: "Active"
+    },
+    financeScreens: {
+      subtitle: "Real-time cash tracking",
+      search_label: "Search",
+      from: "From",
+      to: "To",
+      all_types: "All",
+      entries: "Income",
+      exits: "Expenses",
+      all_categories: "All categories",
+      reset: "Reset",
+      results: "{n} transactions found",
+      load_error: "Loading error",
+      empty: "No transactions found for these criteria.",
+      page_label: "Page {n} of {total}",
+      prev_page: "Previous page",
+      next_page: "Next page",
+      amount_help: "Amount in FCFA, greater than zero.",
+      select_category: "-- Select --",
+      description_placeholder: "E.g.: Equipment purchase, Consultation Mr X...",
+      type_group: "Transaction type"
+    },
+    adminDashboard: {
+      filters: "Period",
+      income_note: "Revenue",
+      expense_note: "Expenses",
+      balance_note: "Balance for the period",
+      toxico_note: "Toxicology module",
+      see_all: "See all",
+      see_alerts: "See alerts",
+      entry: "Income",
+      sortie: "Expense",
+      col_description: "Description",
+      col_date: "Date",
+      col_amount: "Amount",
+      col_type: "Type",
+      col_status: "Status",
+      quick_actions: "Quick actions",
+      quick_actions_help: "Direct access to key functions."
     },
     retraitScreens: {
       count: "{n} withdrawals",

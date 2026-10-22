@@ -57,6 +57,8 @@ html, body, #app {
   --color-tone-danger-bg: #fef2f2;
   --color-tone-danger-text: #991b1b;
   --color-tone-danger-border: #fca5a5;
+  /* Fond des boutons rouges pleins : plus vif que le texte rouge, texte blanc lisible (4,8:1) */
+  --color-tone-danger-solid: #dc2626;
   --color-tone-warning-bg: #fffbeb;
   --color-tone-warning-text: #92400e;
   --color-tone-warning-border: #fcd34d;

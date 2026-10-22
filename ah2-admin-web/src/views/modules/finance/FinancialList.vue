@@ -1,179 +1,98 @@
 <template>
-  <div class="space-y-6 w-full">
-    
-    <div class="flex flex-col md:flex-row justify-between items-center bg-white p-6 rounded-2xl shadow-xs border border-gray-100 gap-4">
-      <div>
-        <h1 class="text-2xl font-extrabold text-gray-800 tracking-tight">
-          {{ t('finance.title') }}
-        </h1>
-        <p class="text-sm text-gray-500">Suivi de la trésorerie en temps réel</p>
+  <div class="grid w-full gap-6">
+
+    <PageHeader :title="t('finance.title')" :subtitle="t('financeScreens.subtitle')">
+      <template #actions>
+        <AppButton :icon="PlusCircleIcon" @click="showModal = true">{{ t('finance.new_transaction') }}</AppButton>
+      </template>
+    </PageHeader>
+
+    <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+      <StatTile :title="t('finance.income')" :value="kpiAffiche(formatCurrency(financialStore.totalIncome))" :icon="ArrowTrendingUpIcon" tone="success" />
+      <StatTile :title="t('finance.expense')" :value="kpiAffiche(formatCurrency(financialStore.totalExpenses))" :icon="ArrowTrendingDownIcon" tone="danger" />
+      <StatTile :title="t('finance.balance')" :value="kpiAffiche(formatCurrency(financialStore.currentBalance))" :icon="BanknotesIcon" tone="info" />
+    </div>
+
+    <section :aria-label="t('financeScreens.search_label')" class="grid gap-4 rounded-card border border-tone-neutral-border bg-white p-4 shadow-card md:grid-cols-2 lg:flex lg:flex-wrap lg:items-end">
+      <div class="md:col-span-2 lg:min-w-64 lg:flex-1">
+        <FormField id="fin-search" :label="t('financeScreens.search_label')" v-slot="{ describedBy }">
+          <input id="fin-search" v-model="searchQuery" type="search" :placeholder="t('finance.search_placeholder')" :aria-describedby="describedBy" :class="fieldClass" />
+        </FormField>
       </div>
-      
-      <button 
-        @click="showModal = true"
-        class="flex items-center px-6 py-2.5 bg-green-600 text-white rounded-xl hover:bg-green-700 shadow-md shadow-green-200 transition font-semibold"
+      <div class="lg:w-56">
+        <FormField id="fin-category" :label="t('finance.modal.category')" v-slot="{ describedBy }">
+          <select id="fin-category" v-model="categoryFilter" :aria-describedby="describedBy" :class="fieldClass">
+            <option value="">{{ t('financeScreens.all_categories') }}</option>
+            <option v-for="cat in availableCategories" :key="cat" :value="cat">{{ cat }}</option>
+          </select>
+        </FormField>
+      </div>
+      <div class="lg:w-44">
+        <FormField id="fin-from" :label="t('financeScreens.from')" v-slot="{ describedBy }">
+          <input id="fin-from" v-model="startDate" type="date" :aria-describedby="describedBy" :class="fieldClass" />
+        </FormField>
+      </div>
+      <div class="lg:w-44">
+        <FormField id="fin-to" :label="t('financeScreens.to')" v-slot="{ describedBy }">
+          <input id="fin-to" v-model="endDate" type="date" :aria-describedby="describedBy" :class="fieldClass" />
+        </FormField>
+      </div>
+      <div class="md:col-span-2 lg:col-span-1">
+        <AppButton variant="secondary" @click="resetFilters">{{ t('financeScreens.reset') }}</AppButton>
+      </div>
+    </section>
+
+    <section class="grid gap-3">
+      <div class="flex flex-col gap-3 rounded-card border border-tone-neutral-border bg-white p-3 sm:flex-row sm:items-center sm:justify-between">
+        <div class="grid grid-cols-3 gap-2 sm:flex" role="group" :aria-label="t('financeScreens.type_group')">
+          <AppButton :variant="typeFilter === 'ALL' ? 'primary' : 'secondary'" :aria-pressed="typeFilter === 'ALL'" @click="typeFilter = 'ALL'">{{ t('financeScreens.all_types') }}</AppButton>
+          <AppButton :variant="typeFilter === 'INCOME' ? 'primary' : 'secondary'" :aria-pressed="typeFilter === 'INCOME'" @click="typeFilter = 'INCOME'">{{ t('financeScreens.entries') }}</AppButton>
+          <AppButton :variant="typeFilter === 'EXPENSE' ? 'danger' : 'secondary'" :aria-pressed="typeFilter === 'EXPENSE'" @click="typeFilter = 'EXPENSE'">{{ t('financeScreens.exits') }}</AppButton>
+        </div>
+        <p class="text-base text-ink-muted">
+          <span v-if="financialStore.loadError" class="font-medium text-tone-danger-text">{{ t('financeScreens.load_error') }}</span>
+          <span v-else>{{ t('financeScreens.results', { n: financialStore.pagination.total }) }}</span>
+        </p>
+      </div>
+
+      <ResponsiveTable
+        :columns="columns"
+        :rows="financialStore.transactions"
+        row-key="id"
+        :loading="financialStore.isLoading"
+        :empty-title="t('financeScreens.empty')"
+        :empty-message="' '"
+        striped
       >
-        <PlusCircleIcon class="h-5 w-5 mr-2" />
-        {{ t('finance.new_transaction') }}
-      </button>
-    </div>
+        <template #cell-date="{ row: tx }"><span class="font-mono">{{ tx.date }}</span></template>
+        <template #cell-desc="{ row: tx }">
+          <span class="font-medium">{{ tx.description }}</span>
+          <span class="block text-sm text-ink-muted">{{ tx.paymentMethod }}</span>
+        </template>
+        <template #cell-category="{ row: tx }">{{ tx.category }}</template>
+        <template #cell-amount="{ row: tx }">
+          <span class="font-bold" :class="tx.type === 'INCOME' ? 'text-tone-success-text' : 'text-tone-danger-text'">
+            {{ tx.type === 'INCOME' ? '+' : '-' }} {{ formatCurrency(tx.amount) }}
+          </span>
+        </template>
+        <template #cell-status="{ row: tx }">
+          <StatusBadge v-if="tx.status === 'Validé'" tone="success" label="Validé" />
+          <StatusBadge v-else tone="warning" :label="String(tx.status ?? '-')" />
+        </template>
+      </ResponsiveTable>
 
-    <div class="bg-white p-4 rounded-2xl shadow-xs border border-gray-100 flex flex-wrap gap-4 items-end">
-        
-        <div class="flex-1 min-w-[200px]">
-            <label class="text-xs font-bold text-gray-500 uppercase mb-1 block">Recherche</label>
-            <div class="relative">
-                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <MagnifyingGlassIcon class="h-5 w-5 text-gray-400" />
-                </div>
-                <input 
-                    v-model="searchQuery"
-                    type="text" 
-                    :placeholder="t('finance.search_placeholder')"
-                    class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg bg-gray-50 focus:ring-green-500 focus:border-green-500 sm:text-sm"
-                >
-            </div>
+      <div v-if="financialStore.pagination.total_pages > 1" class="flex items-center justify-between gap-3 rounded-card border border-tone-neutral-border bg-white p-3">
+        <p class="text-base text-ink">{{ t('financeScreens.page_label', { n: financialStore.pagination.page, total: financialStore.pagination.total_pages }) }}</p>
+        <div class="flex gap-2">
+          <AppButton variant="secondary" :icon="ChevronLeftIcon" :aria-label="t('financeScreens.prev_page')" @click="goToPage(financialStore.pagination.page - 1)" :disabled="financialStore.pagination.page === 1" />
+          <AppButton variant="secondary" :icon="ChevronRightIcon" :aria-label="t('financeScreens.next_page')" @click="goToPage(financialStore.pagination.page + 1)" :disabled="financialStore.pagination.page === financialStore.pagination.total_pages" />
         </div>
+      </div>
+    </section>
 
-        <div class="w-full md:w-48">
-            <label class="text-xs font-bold text-gray-500 uppercase mb-1 block">{{ t('finance.modal.category') }}</label>
-            <select v-model="categoryFilter" class="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-hidden focus:ring-green-500 focus:border-green-500 sm:text-sm rounded-lg">
-                <option value="">Toutes les catégories</option>
-                <option v-for="cat in availableCategories" :key="cat" :value="cat">{{ cat }}</option>
-            </select>
-        </div>
-
-        <div class="w-full md:w-40">
-            <label class="text-xs font-bold text-gray-500 uppercase mb-1 block">Du</label>
-            <input v-model="startDate" type="date" class="block w-full pl-3 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500 sm:text-sm" />
-        </div>
-
-        <div class="w-full md:w-40">
-            <label class="text-xs font-bold text-gray-500 uppercase mb-1 block">Au</label>
-            <input v-model="endDate" type="date" class="block w-full pl-3 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500 sm:text-sm" />
-        </div>
-
-        <div>
-            <button @click="resetFilters" class="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition h-[38px]">
-                Réinitialiser
-            </button>
-        </div>
-    </div>
-
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div class="bg-white p-6 rounded-2xl shadow-xs border border-gray-100 flex items-center">
-            <div class="p-3 bg-green-50 rounded-full mr-4">
-                <ArrowTrendingUpIcon class="h-8 w-8 text-green-600" />
-            </div>
-            <div>
-                <p class="text-sm text-gray-500 font-medium uppercase">{{ t('finance.income') }}</p>
-                <p class="text-2xl font-bold text-gray-900">{{ kpiAffiche(formatCurrency(financialStore.totalIncome)) }}</p>
-            </div>
-        </div>
-
-        <div class="bg-white p-6 rounded-2xl shadow-xs border border-gray-100 flex items-center">
-            <div class="p-3 bg-red-50 rounded-full mr-4">
-                <ArrowTrendingDownIcon class="h-8 w-8 text-red-600" />
-            </div>
-            <div>
-                <p class="text-sm text-gray-500 font-medium uppercase">{{ t('finance.expense') }}</p>
-                <p class="text-2xl font-bold text-gray-900">{{ kpiAffiche(formatCurrency(financialStore.totalExpenses)) }}</p>
-            </div>
-        </div>
-
-        <div class="bg-linear-to-r from-gray-800 to-gray-900 p-6 rounded-2xl shadow-lg text-white flex items-center justify-between">
-            <div>
-                <p class="text-sm text-gray-400 font-medium uppercase">{{ t('finance.balance') }}</p>
-                <p class="text-3xl font-bold text-white">{{ kpiAffiche(formatCurrency(financialStore.currentBalance)) }}</p>
-            </div>
-            <BanknotesIcon class="h-10 w-10 text-gray-500 opacity-50" />
-        </div>
-    </div>
-
-    <div class="bg-white rounded-2xl shadow-xs border border-gray-100 overflow-hidden">
-        
-        <div class="p-4 border-b border-gray-100 flex items-center justify-between">
-            <div class="flex space-x-2">
-                <button @click="typeFilter = 'ALL'" :class="typeFilter === 'ALL' ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-600'" class="px-3 py-1 text-sm rounded-lg font-medium transition">Tout</button>
-                <button @click="typeFilter = 'INCOME'" :class="typeFilter === 'INCOME' ? 'bg-green-600 text-white' : 'bg-green-50 text-green-700'" class="px-3 py-1 text-sm rounded-lg font-medium transition">Entrées</button>
-                <button @click="typeFilter = 'EXPENSE'" :class="typeFilter === 'EXPENSE' ? 'bg-red-600 text-white' : 'bg-red-50 text-red-700'" class="px-3 py-1 text-sm rounded-lg font-medium transition">Sorties</button>
-            </div>
-            <div class="text-sm text-gray-500">
-                <span v-if="financialStore.loadError" class="text-red-600 font-medium">Erreur de chargement</span>
-                <span v-else>{{ financialStore.pagination.total }} transactions trouvées</span>
-            </div>
-        </div>
-
-        <div v-if="financialStore.isLoading" class="p-10 text-center">
-            <span class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></span>
-            <p class="mt-2 text-gray-500">{{ t('common.loading') }}</p>
-        </div>
-
-        <div v-else class="overflow-x-auto">
-            <table class="min-w-full text-left border-collapse">
-                <thead>
-                    <tr class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
-                        <th class="px-6 py-4 font-semibold">{{ t('finance.table.date') }}</th>
-                        <th class="px-6 py-4 font-semibold">{{ t('finance.table.desc') }}</th>
-                        <th class="px-6 py-4 font-semibold">{{ t('finance.table.category') }}</th>
-                        <th class="px-6 py-4 font-semibold text-right">{{ t('finance.table.amount') }}</th>
-                        <th class="px-6 py-4 font-semibold">{{ t('finance.table.status') }}</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-gray-100">
-                    <tr v-for="tx in financialStore.transactions" :key="tx.id" class="hover:bg-gray-50 transition">
-                        <td class="px-6 py-4 text-sm text-gray-600 font-mono">{{ tx.date }}</td>
-                        <td class="px-6 py-4">
-                            <div class="text-sm font-medium text-gray-900">{{ tx.description }}</div>
-                            <div class="text-xs text-gray-500">{{ tx.paymentMethod }}</div>
-                        </td>
-                        <td class="px-6 py-4">
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-lg text-xs font-medium bg-gray-100 text-gray-800 border border-gray-200">
-                                {{ tx.category }}
-                            </span>
-                        </td>
-                        <td class="px-6 py-4 text-right font-bold text-sm">
-                            <span :class="tx.type === 'INCOME' ? 'text-green-600' : 'text-red-600'">
-                                {{ tx.type === 'INCOME' ? '+' : '-' }} {{ formatCurrency(tx.amount) }}
-                            </span>
-                        </td>
-                        <td class="px-6 py-4">
-                            <span v-if="tx.status === 'Validé'" class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-green-100 text-green-800">
-                                <CheckCircleIcon class="h-3 w-3 mr-1" /> Validé
-                            </span>
-                            <span v-else class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-yellow-100 text-yellow-800">
-                                <ClockIcon class="h-3 w-3 mr-1" /> {{ tx.status }}
-                            </span>
-                        </td>
-                    </tr>
-                    <tr v-if="financialStore.transactions.length === 0">
-                        <td colspan="5" class="px-6 py-8 text-center text-gray-500 italic">
-                            Aucune transaction trouvée pour ces critères.
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-
-        <div v-if="financialStore.pagination.total_pages > 1" class="p-4 flex justify-between items-center border-t border-gray-100 bg-gray-50">
-            <p class="text-sm text-gray-700">
-                Page {{ financialStore.pagination.page }} sur {{ financialStore.pagination.total_pages }}
-            </p>
-            <div class="flex space-x-2">
-                <button @click="goToPage(financialStore.pagination.page - 1)" :disabled="financialStore.pagination.page === 1" class="px-3 py-1 border rounded-sm bg-white disabled:opacity-50">
-                    <ChevronLeftIcon class="h-5 w-5" />
-                </button>
-                <button @click="goToPage(financialStore.pagination.page + 1)" :disabled="financialStore.pagination.page === financialStore.pagination.total_pages" class="px-3 py-1 border rounded-sm bg-white disabled:opacity-50">
-                    <ChevronRightIcon class="h-5 w-5" />
-                </button>
-            </div>
-        </div>
-
-    </div>
-
-    <FinanceModal 
-        v-if="showModal" 
-        @close="showModal = false" 
+    <FinanceModal
+        v-if="showModal"
+        @close="showModal = false"
         @save="handleSaveTransaction"
     />
 
@@ -186,20 +105,29 @@ import { useFinancialStore } from '@/stores/financialStore';
 import { FinanceGateway } from '@/services/FinanceGateway';
 import { useI18n } from 'vue-i18n';
 import FinanceModal from '@/components/finance/FinanceModal.vue';
+import { AppButton, PageHeader, FormField, StatTile, StatusBadge, ResponsiveTable } from '@/components/ui';
 import { 
     PlusCircleIcon, 
     ArrowTrendingUpIcon, 
     ArrowTrendingDownIcon, 
     BanknotesIcon,
     MagnifyingGlassIcon,
-    CheckCircleIcon,
-    ClockIcon,
     ChevronLeftIcon,  // 🟢 Ajout icône
     ChevronRightIcon  // 🟢 Ajout icône
 } from '@heroicons/vue/24/outline';
 
 const { t } = useI18n();
 const financialStore = useFinancialStore();
+
+// Colonnes du tableau (cartes empilees sous lg) et style commun des champs.
+const columns = computed(() => [
+    { key: 'date', label: t('finance.table.date') },
+    { key: 'desc', label: t('finance.table.desc') },
+    { key: 'category', label: t('finance.table.category') },
+    { key: 'amount', label: t('finance.table.amount'), align: 'right' },
+    { key: 'status', label: t('finance.table.status') },
+]);
+const fieldClass = 'block w-full min-h-11 lg:min-h-10 rounded-control border border-tone-neutral-border bg-white px-3 text-base text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand-600';
 
 // --- ETATS ---
 const showModal = ref(false);

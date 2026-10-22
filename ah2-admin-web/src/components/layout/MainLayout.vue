@@ -1,191 +1,35 @@
 <template>
-  <div class="flex w-full h-screen bg-gray-50">
-
-    <aside 
-      :class="[
-        'bg-gray-800 text-white shrink-0 transition-all duration-300 ease-in-out flex flex-col z-20',
-        isSidebarOpen ? 'w-64' : 'w-20'
-      ]"
-    >
-      <div class="p-4 flex items-center justify-between h-16 bg-gray-900 overflow-hidden">
-        <div v-if="isSidebarOpen" class="flex items-center space-x-2 min-w-0">
-           <img 
-            v-if="configStore.structureInfo.logo_url"
-            :src="resolveAssetUrl(configStore.structureInfo.logo_url)"
-            class="h-8 w-8 object-contain bg-white rounded-full p-0.5 shrink-0" 
-            alt="Logo"
-          />
-          <div v-else class="h-8 w-8 rounded-full bg-green-600 flex items-center justify-center font-bold text-xs shrink-0">
-            {{ (configStore.structureInfo.name || 'AH').substring(0,2).toUpperCase() }}
-          </div>
-          
-          <h2 class="text-lg font-bold truncate">{{ configStore.structureInfo.name || 'AH2 Dashboard' }}</h2>
-        </div>
-
-        <button 
-          @click="toggleSidebar" 
-          :class="[
-            'p-1 rounded-sm hover:bg-gray-700 text-gray-400 hover:text-white transition-colors',
-            isSidebarOpen ? 'ml-auto' : 'mx-auto'
-          ]"
-        >
-          <Bars3CenterLeftIcon v-if="isSidebarOpen" class="h-6 w-6" />
-          <Bars3Icon v-else class="h-6 w-6" />
-        </button>
-      </div>
-      
-      <nav class="flex-1 overflow-y-auto py-4 space-y-2 px-2 custom-scrollbar">
-        
-        <template v-for="entry in menuEntries" :key="entry.type === 'group' ? 'g-' + entry.key : entry.item.path">
-
-            <div v-if="entry.type === 'link' && entry.item.separator" class="mt-8 pt-4 border-t border-gray-700 mx-2"></div>
-
-            <router-link
-              v-if="entry.type === 'link'"
-              :to="entry.item.path"
-              :class="[
-                'flex items-center py-2 px-3 rounded-sm transition duration-150 group',
-                isActive(entry.item.path)
-                  ? 'bg-gray-700 font-semibold text-white'
-                  : 'text-gray-400 hover:bg-gray-700 hover:text-white'
-              ]"
-              :title="!isSidebarOpen ? t(entry.item.labelKey) : ''"
-            >
-              <component
-                :is="entry.item.icon"
-                class="h-6 w-6 shrink-0"
-                :class="isSidebarOpen ? 'mr-3' : 'mx-auto'"
-              />
-              <span v-if="isSidebarOpen" class="whitespace-nowrap transition-opacity duration-200">
-                {{ t(entry.item.labelKey) }}
-              </span>
-            </router-link>
-
-            <div v-else>
-              <button
-                type="button"
-                @click="onGroupClick(entry)"
-                :class="[
-                  'w-full flex items-center py-2 px-3 rounded-sm transition duration-150 group',
-                  groupActive(entry) ? 'text-white font-semibold' : 'text-gray-400 hover:bg-gray-700 hover:text-white'
-                ]"
-                :title="!isSidebarOpen ? t(entry.labelKey) : ''"
-                :aria-expanded="isGroupOpen(entry)"
-              >
-                <component
-                  :is="entry.icon"
-                  class="h-6 w-6 shrink-0"
-                  :class="isSidebarOpen ? 'mr-3' : 'mx-auto'"
-                />
-                <template v-if="isSidebarOpen">
-                  <span class="whitespace-nowrap flex-1 text-left">{{ t(entry.labelKey) }}</span>
-                  <ChevronDownIcon class="h-4 w-4 shrink-0 transition-transform" :class="isGroupOpen(entry) ? 'rotate-180' : ''" />
-                </template>
-              </button>
-              <ul v-if="isSidebarOpen && isGroupOpen(entry)" class="mt-1 ml-4 pl-2 border-l border-gray-700 space-y-1">
-                <li v-for="child in entry.children" :key="child.path">
-                  <router-link
-                    :to="child.path"
-                    :class="[
-                      'flex items-center py-1.5 px-3 rounded-sm text-sm transition duration-150',
-                      isActive(child.path)
-                        ? 'bg-gray-700 font-semibold text-white'
-                        : 'text-gray-400 hover:bg-gray-700 hover:text-white'
-                    ]"
-                  >
-                    <component :is="child.icon" class="h-5 w-5 shrink-0 mr-2" />
-                    <span class="whitespace-nowrap">{{ t(child.labelKey) }}</span>
-                  </router-link>
-                </li>
-              </ul>
-            </div>
-
-        </template>
-
-      </nav>
-    </aside>
-
-    <div class="flex-1 flex flex-col overflow-hidden w-full">
-      
-      <header class="bg-white shadow-md p-4 flex justify-between items-center relative z-40">
-        
-        <h1 class="text-lg font-semibold text-gray-800">
-          {{ $t('common.welcome') }}, <span class="text-green-600">{{ authStore.user?.username || 'Utilisateur' }}</span>
-          <span class="text-xs text-gray-400 ml-2 font-normal">({{ authStore.userRole }})</span>
-        </h1>
-        
-        <div class="flex items-center space-x-4">
-          <div class="flex bg-gray-100 rounded-lg p-1">
-            <button 
-              @click="changeLanguage('fr')"
-              :class="locale === 'fr' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'"
-              class="px-3 py-1 rounded-md text-sm font-medium transition-all duration-200"
-            >FR</button>
-            <button 
-              @click="changeLanguage('en')"
-              :class="locale === 'en' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'"
-              class="px-3 py-1 rounded-md text-sm font-medium transition-all duration-200"
-            >EN</button>
-          </div>
-
-          <NotificationBell v-if="authStore.hasRole(['admin', 'promoteur', 'secretaire', 'Assistant', 'StockController', 'laborantin', 'ToxicoManager'])" />
-
-          <button
-            @click="showAccountModal = true"
-            class="flex items-center text-gray-600 hover:text-gray-900 text-sm font-medium transition"
-            :title="$t('common.my_account')"
-          >
-            <UserCircleIcon class="h-6 w-6" />
-          </button>
-
-          <button
-            @click="handleLogout"
-            class="bg-red-500 hover:bg-red-600 text-white text-sm font-semibold py-2 px-4 rounded-sm transition duration-150"
-          >
-            {{ $t('common.logout') }}
-          </button>
-        </div>
-      </header>
-
-      <main class="flex-1 overflow-x-hidden overflow-y-auto p-6 bg-gray-100 w-full">
-        <router-view :key="route.fullPath" />
-      </main>
-
-      <AccountModal v-if="showAccountModal" @close="showAccountModal = false" />
-    </div>
-  </div>
+  <AppShell
+    :menu-groups="menuGroups"
+    :bell-roles="['admin', 'promoteur', 'secretaire', 'Assistant', 'StockController', 'laborantin', 'ToxicoManager']"
+    brand-fallback="AH2 Dashboard"
+    sidebar-id="dashboard-sidebar"
+    :palette="paletteForRole(authStore.userRole)"
+  />
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue';
-import { useRouter } from 'vue-router';
-import { buildMenu, groupContainsPath } from '@/utils/sidebarMenu';
+// Cadre partage de l'admin, du promoteur, du laboratoire, de la toxicologie et du stock-control : ce fichier ne
+// garde que la configuration (entrees de menu et roles) ; tout le gabarit (menu, barre du haut, tiroir, compte,
+// langue, deconnexion, cloche) vit dans AppShell.vue. La couleur du menu depend du role (design/navPalettes.js).
+import { onMounted, computed } from 'vue';
+import { buildMenu, toShellGroups } from '@/utils/sidebarMenu';
+import { paletteForRole } from '@/design/navPalettes';
 import { useAuthStore } from '@/stores/auth';
-import { useRoute } from 'vue-router';
-import { useI18n } from 'vue-i18n'; 
 import { useConfigStore } from '@/stores/configStore';
-import { resolveAssetUrl } from '@/services/api';
-import AccountModal from '@/components/account/AccountModal.vue';
-import NotificationBell from '@/components/notifications/NotificationBell.vue';
+import AppShell from '@/components/layout/AppShell.vue';
 
-// J'ai ajouté ExclamationCircleIcon pour Toxico, pour laisser BeakerIcon au Labo
 import {
   HomeIcon, UsersIcon, ClipboardDocumentListIcon, BanknotesIcon,
   BeakerIcon, ChartBarIcon, CogIcon, ShieldCheckIcon, CubeIcon,
-  Bars3Icon, Bars3CenterLeftIcon, ExclamationCircleIcon, UserCircleIcon,
+  ExclamationCircleIcon,
   CheckBadgeIcon, ClockIcon, ReceiptPercentIcon,
   ClipboardDocumentCheckIcon, ArrowsRightLeftIcon, AdjustmentsHorizontalIcon,
-  ShoppingCartIcon, ChevronDownIcon
+  ShoppingCartIcon
 } from '@heroicons/vue/24/outline';
 
 const authStore = useAuthStore();
 const configStore = useConfigStore();
-const route = useRoute();
-const router = useRouter();
-const { locale, t } = useI18n();
-
-const isSidebarOpen = ref(true);
-const showAccountModal = ref(false);
 
 // --- 1. DÉFINITION DES RÔLES (Constantes) ---
 const ROLES = {
@@ -395,44 +239,10 @@ const menuEntries = computed(() => buildMenu(menuItems, {
     groups: MENU_GROUPS
 }));
 
-// Etat ouvert/ferme par groupe (manuel) ; un groupe est ouvert d'office
-// si la route courante est l'un de ses enfants.
-const openGroups = ref({});
-const groupActive = (g) => groupContainsPath(g, route.path);
-const isGroupOpen = (g) => groupActive(g) || !!openGroups.value[g.key];
-const onGroupClick = (g) => {
-    // Sidebar repliee : on navigue vers le premier enfant visible.
-    if (!isSidebarOpen.value) {
-        router.push(g.children[0].path);
-        return;
-    }
-    // Un groupe ouvert d'office par la route reste ouvert (pas de fermeture).
-    if (groupActive(g)) return;
-    openGroups.value = { ...openGroups.value, [g.key]: !openGroups.value[g.key] };
-};
-
-// --- HELPER FONCTIONS ---
-const toggleSidebar = () => {
-    isSidebarOpen.value = !isSidebarOpen.value;
-};
-
-const changeLanguage = (lang) => {
-    locale.value = lang;
-    localStorage.setItem('lang', lang);
-};
-
-// authStore.logout() nettoie deja l'etat ET redirige vers /login lui-meme -
-// voir MedicalLayout.vue pour le detail de la course que ca evite.
-const handleLogout = async () => {
-    await authStore.logout();
-};
-
-const isActive = (path) => {
-    return route.path.includes(path);
-};
+// Format attendu par AppShell : un seul groupe sans intertitre, sous-menus repliables pour Stock et Stock du labo.
+const menuGroups = computed(() => toShellGroups(menuEntries.value));
 
 onMounted(() => {
-    configStore.fetchStructureInfo();
     // Seuls admin/promoteur peuvent atteindre un ecran caisse/finance
     // depuis ce shell (voir router/index.js) - on evite un appel/403
     // inutile en console pour les autres roles (medecin, nurse,
@@ -442,16 +252,3 @@ onMounted(() => {
     }
 });
 </script>
-
-<style scoped>
-.custom-scrollbar::-webkit-scrollbar {
-  width: 4px;
-}
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: #1f2937; 
-}
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #374151; 
-  border-radius: 2px;
-}
-</style>
