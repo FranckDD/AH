@@ -71,7 +71,7 @@
         </div>
       </template>
       <template #cell-type="{ row: patient }">
-        <StatusBadge :tone="typeTone(patient.type)" :label="patient.type" />
+        <StatusBadge :tone="typeTone(patient.type)" :label="typeLabel(patient.type)" />
       </template>
       <template #cell-phone="{ row: patient }">{{ patient.phone || 'N/A' }}</template>
 
@@ -431,6 +431,10 @@ const currentTab = computed({
 const goToPage = (page) => {
     patientStore.setPage(page);
 };
+
+// Un patient sans aucun dossier (type interne AUTRE) est simplement un nouveau patient : il devient CLINIQUE
+// avec sa premiere consultation (le type est calcule a partir des dossiers, jamais choisi).
+const typeLabel = (type) => (type === 'AUTRE' ? t('patients.types.nouveau').toUpperCase() : type);
 
 // Categorie du patient : le texte porte l'information, la couleur n'est qu'un repere.
 const typeTone = (type) => {

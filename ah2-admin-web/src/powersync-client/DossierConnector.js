@@ -1,4 +1,6 @@
 import { UpdateType } from '@powersync/web';
+import { resolveMedicalRecordLink } from '@/utils/medicalRecordLink';
+import { describeServerError } from '@/utils/serverError';
 import { useAuthStore } from '@/stores/auth';
 import { AppointmentGateway } from '@/services/AppointmentGateway';
 import { MedicalRecordGateway } from '@/services/MedicalRecordGateway';
@@ -227,19 +229,18 @@ export class DossierConnector {
               });
               break;
             }
-            let medicalRecordServerId = null;
-            let medicalRecordUuid = null;
+            // Uuid local OU identifiant serveur entier (consultation deja synchronisee) :
+            // un entier envoye comme uuid etait refuse en 422 (voir utils/medicalRecordLink.js).
+            let linkedServerId = null;
             if (op.opData.medical_record_id) {
               const linkedRecord = await database.getOptional(
                 'SELECT server_id FROM medical_records WHERE id = ?',
                 [op.opData.medical_record_id]
               );
-              if (linkedRecord?.server_id) {
-                medicalRecordServerId = linkedRecord.server_id;
-              } else {
-                medicalRecordUuid = op.opData.medical_record_id;
-              }
+              linkedServerId = linkedRecord?.server_id || null;
             }
+            const { serverId: medicalRecordServerId, uuid: medicalRecordUuid } =
+              resolveMedicalRecordLink(op.opData.medical_record_id, linkedServerId);
             await PrescriptionGateway.createPrescription({
               patientId: op.opData.patient_id,
               patientUuid: op.opData.patient_uuid,
@@ -275,9 +276,20 @@ export class DossierConnector {
             }
             let exams = [];
             try { exams = currentPresc.lab_exams_list ? JSON.parse(currentPresc.lab_exams_list) : []; } catch { exams = []; }
+            // Consultation liee : uuid local ou identifiant serveur entier. Le serveur n'accepte qu'un entier ici
+            // (un uuid donnait une 422) : on prend l'identifiant serveur, resolu si besoin depuis la ligne locale.
+            let patchLinkedServerId = null;
+            if (currentPresc.medical_record_id) {
+              const patchLinked = await database.getOptional(
+                'SELECT server_id FROM medical_records WHERE id = ?',
+                [currentPresc.medical_record_id]
+              );
+              patchLinkedServerId = patchLinked?.server_id || null;
+            }
+            const { serverId: patchMedicalRecordId } = resolveMedicalRecordLink(currentPresc.medical_record_id, patchLinkedServerId);
             await PrescriptionGateway.updatePrescription(currentPresc.server_id, {
               patientId: currentPresc.patient_id,
-              medicalRecordId: currentPresc.medical_record_id,
+              medicalRecordId: patchMedicalRecordId,
               isLabOrder: !!currentPresc.is_lab_order,
               medication: currentPresc.medication,
               dosage: currentPresc.dosage,
@@ -548,6 +560,8 @@ export class DossierConnector {
       await transaction.complete();
     } catch (error) {
       console.error('Erreur upload PowerSync:', lastOp, error);
+      // Le corps de la reponse dit QUEL champ est refuse (422) : on le journalise toujours.
+      console.error('Reponse du serveur :', error?.response?.status, error?.response?.data);
       if (isFatalUploadError(error)) {
         console.error(`Operation ${lastOp?.op} sur ${lastOp?.table}/${lastOp?.id} abandonnee (erreur non recuperable) - retiree de la file.`);
         // Garde-fou (registre Important, sous-projet 3) : une vente caisse
@@ -594,8 +608,8 @@ export class DossierConnector {
         }
         if (lastOp?.table === 'prescriptions' && !lockedRejection) {
           try {
-            const detail = error?.response?.data?.detail || 'Echec de synchronisation de la prescription - contacter un administrateur.';
-            useToastStore().push(`Prescription non synchronisee : ${typeof detail === 'string' ? detail : 'donnees refusees par le serveur.'}`);
+            const detail = describeServerError(error, 'Echec de synchronisation de la prescription - contacter un administrateur.');
+            useToastStore().push(`Prescription non synchronisee : ${detail}`);
           } catch (toastError) {
             console.error('Impossible d\'afficher la notification de prescription en echec:', toastError);
           }

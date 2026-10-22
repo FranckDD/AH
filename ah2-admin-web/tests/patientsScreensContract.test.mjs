@@ -171,3 +171,15 @@ test('chaque onglet de la fiche a sa propre couleur (jeton tab-*), gardée par l
     }
     assert.equal((detail.match(/tabIconClass\('/g) || []).length, 6);
 });
+
+test('un patient sans dossier s’affiche « NOUVEAU » (le type interne AUTRE ne change pas)', () => {
+    assert.match(list, /:label="typeLabel\(patient\.type\)"/);
+    assert.match(list, /type === 'AUTRE' \? t\('patients\.types\.nouveau'\)/);
+    for (const locale of ['fr', 'en']) {
+        assert.equal(typeof msgs[locale].patients.types.nouveau, 'string', `${locale}.patients.types.nouveau`);
+    }
+    assert.equal(msgs.fr.patients.types.nouveau, 'Nouveau');
+    // le calcul du type reste dans le store : rien n'y a changé
+    const store = readFileSync(new URL('../src/stores/patientStore.js', import.meta.url), 'utf8');
+    assert.match(store, /let displayType = 'AUTRE';/);
+});

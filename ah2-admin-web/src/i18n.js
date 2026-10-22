@@ -131,6 +131,7 @@ const messages = {
         clinique: "Clinique",
         toxico: "Toxicologie",
         spirituel: "Spirituel",
+        nouveau: "Nouveau",
       },
       modal: {
         section_identity: "Identité",
@@ -1941,7 +1942,8 @@ const messages = {
       types: {
         clinique: "Clinical",
         toxico: "Toxicology",
-        spirituel: "Spiritual"
+        spirituel: "Spiritual",
+        nouveau: "New"
       },
       modal: {
         section_identity: "Identity",
