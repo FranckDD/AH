@@ -1,6 +1,6 @@
 # Suivi d'avancement — AH2 / Glostone-Kare
 
-**Dernière mise à jour :** 2026-10-22 (refonte UX des comptes et des journaux techniques livrée ; à vérifier par l'utilisateur dans le navigateur)
+**Dernière mise à jour :** 2026-10-22 (refonte UX de la configuration système livrée ; à vérifier par l'utilisateur dans le navigateur)
 **But de ce document :** état d'avancement des chantiers de remise en service et de sécurisation, et registre des découvertes faites en cours de route mais non encore traitées. Pour le contexte général du projet, voir `docs/superpowers/CONTEXTE-PROJET.md`. Pour le détail d'un chantier, voir les fichiers correspondants dans `docs/superpowers/specs/` et `docs/superpowers/plans/`.
 
 ## Feuille de route
@@ -1424,3 +1424,34 @@ Plan `plans/2026-10-22-refonte-ux-utilisateurs-journaux.md`. Base `237015c`. **V
 - Le test d'utilisation avec les membres du personnel n'est pas fait.
 
 **Reste à migrer** (non commencé) : configuration système, stock admin (lots, réceptions, avaries, contrôle, mouvements, demandes d'ajustement), stock du labo (vue promoteur), laboratoire, toxicologie, stock-control ; puis la documentation d'utilisation par rôle, l'onglet Rapports et le chantier 8 (déploiement).
+
+
+### Refonte UX de la configuration système : livrée (Tâches 1 à 3), à vérifier par l'utilisateur (2026-10-22)
+
+Plan `plans/2026-10-22-refonte-ux-configuration-systeme.md`. Base `45deaa4`. **Vérifié** : 2729 tests `node` (dont `refonteConfigGuard.test.mjs`, vu échouer sur une couleur en dur ajoutée puis retirée) et `vite build`. **Jamais vérifié dans un navigateur par un agent** : le rendu est à contrôler par l'utilisateur avec la checklist ci-dessous.
+
+**Livré**
+- **Page de configuration** (`SystemConfig`) : quatre sections repliables à vrai bouton (identité de la structure, tarification des examens, livres de prières, paramètres généraux), mêmes états initiaux qu'avant. Identité : deux logos avec aperçu et sélecteur de fichier visible et nommé (avant, calque invisible), jeton d'impression avec son bouton, onze champs étiquetés ; examens : recherche étiquetée, tableau à lignes alternées avec badge de catégorie, Modifier et Supprimer ; prières : tableau ; généraux : sauvegarde et mode maintenance avec son état écrit en badge. Les textes qui étaient en dur sont traduits (FR et EN).
+- **Formulaire d'examen** (`ExamFormModal`) : panneau, quatre champs étiquetés, prix avec l'unité FCFA, code grisé et expliqué en modification, barre d'actions fixe.
+
+**Décisions et rulings**
+- Données et impression jamais modifiées : `configStore`, `api.js`, `PrinterBridgeGateway`, `printer_bridge/` ; routeur et cadre intacts (garde-fou).
+- La **sauvegarde de la base** (délai de 3 s puis alerte) et le **mode maintenance** (drapeau local sans appel serveur) sont, depuis avant la refonte, des simulations : conservés tels quels, rien d'inventé.
+- La confirmation avant la régénération du jeton et celle de la suppression d'un examen restent des boîtes de dialogue du navigateur (comportement inchangé).
+- Garde-fou : la constante `FIN` de `refonteConfigGuard.test.mjs` est renseignée avec le commit de ce lot.
+
+**Checklist à vérifier par l'utilisateur** (admin et ToxicoManager ; chaque ligne à 360, 768 et 1280 px)
+| Écran | Points précis |
+|---|---|
+| Sections | Ouverture et fermeture de chacune des quatre au clavier ; état initial (structure et examens ouverts) |
+| Identité | Changer chaque logo (aperçu mis à jour), modifier des champs, enregistrer (message de succès), enregistrer sans dénomination (champ obligatoire) ; régénérer le jeton (confirmation) ; **vérifier ensuite qu'un ticket s'imprime encore à la caisse** (jeton et logo du ticket) |
+| Examens | Recherche par nom, code, catégorie ; Modifier ; Supprimer (confirmation) ; liste vide |
+| Formulaire d'examen | Création, modification (code grisé), erreur de code déjà utilisé, Échap, clavier mobile |
+| Généraux | Sauvegarde (état de chargement puis message) ; mode maintenance (badge Actif ou Inactif) |
+
+**Résiduels**
+- Sauvegarde et mode maintenance simulés (voir plus haut) : à traiter dans un chantier à part si l'on veut qu'ils agissent réellement.
+- Les messages de confirmation et d'enregistrement (boîtes de dialogue `alert` et `confirm`) restent écrits en français dans le script.
+- Le test d'utilisation avec les membres du personnel n'est pas fait.
+
+**Reste à migrer** (non commencé) : stock admin (lots, réceptions, avaries, contrôle, mouvements, demandes d'ajustement), stock du labo (vue promoteur), laboratoire, toxicologie, stock-control ; puis la documentation d'utilisation par rôle, l'onglet Rapports et le chantier 8 (déploiement).

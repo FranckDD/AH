@@ -1,372 +1,230 @@
 <template>
-  <div class="space-y-8 w-full max-w-7xl mx-auto pb-12">
-    
-    <div class="flex flex-col md:flex-row justify-between items-center bg-white p-6 rounded-2xl shadow-xs border border-gray-100">
-      <div>
-        <h1 class="text-2xl font-extrabold text-gray-800 tracking-tight">
-          {{ t('config.title') }}
-        </h1>
-        <p class="text-sm text-gray-500">{{ t('config.subtitle') }}</p>
-      </div>
-    </div>
+  <div class="grid w-full max-w-7xl gap-6 pb-12">
 
-    <div class="bg-white rounded-2xl shadow-xs border border-gray-100 overflow-hidden transition-all">
-      <div 
-        @click="openSections.structure = !openSections.structure"
-        class="p-6 border-b border-gray-100 bg-gray-50/80 cursor-pointer hover:bg-gray-100 transition flex justify-between items-center"
-      >
-        <div>
-            <h2 class="text-lg font-bold text-gray-800 flex items-center">
-                <BuildingOfficeIcon class="h-5 w-5 mr-2 text-indigo-600" />
-                Identité de la Structure & En-tête des Documents
-            </h2>
-            <p class="text-sm text-gray-500 mt-1">
-                Ces informations seront utilisées pour générer les en-têtes de vos factures, ordonnances et rapports.
-            </p>
-        </div>
-        <ChevronDownIcon 
-            class="h-6 w-6 text-gray-400 transform transition-transform duration-200"
-            :class="{'rotate-180': openSections.structure}"
-        />
-      </div>
-      
-      <div v-show="openSections.structure" class="transition-all duration-300 ease-in-out">
-        <form @submit.prevent="saveStructureConfig" class="p-6">
-            <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
+    <PageHeader :title="t('config.title')" :subtitle="t('config.subtitle')" />
 
-                <div class="md:col-span-4 flex flex-col items-center justify-start p-4 border-2 border-dashed border-gray-200 rounded-xl bg-gray-50 hover:bg-gray-100 transition">
-                    <label class="block text-sm font-medium text-gray-700 mb-4">Logo de la Structure</label>
-                    
-                    <div class="relative group cursor-pointer w-40 h-40 mb-4">
-                        <img 
-                            :src="previewLogo || resolveAssetUrl(configStore.structureInfo.logo_url) || '/placeholder-logo.png'"
-                            class="w-full h-full object-contain rounded-lg bg-white shadow-xs border p-2"
-                            alt="Aperçu Logo"
-                        />
-                        <div class="absolute inset-0 bg-black/50 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                            <PhotoIcon class="h-8 w-8 text-white" />
-                        </div>
-                        <input type="file" accept="image/*" @change="handleLogoUpload" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
-                    </div>
-                    
-                    <p class="text-xs text-gray-500 text-center">Cliquez pour changer.<br>Format recommandé : PNG transparent.</p>
-                </div>
+    <!-- Identite de la structure et en-tete des documents -->
+    <section class="rounded-card border border-tone-neutral-border bg-white shadow-card">
+      <h2>
+        <button type="button" :aria-expanded="openSections.structure" aria-controls="cfg-structure"
+                :class="accordionButtonClass" @click="openSections.structure = !openSections.structure">
+          <span class="flex min-w-0 items-center gap-3">
+            <BuildingOfficeIcon class="h-6 w-6 shrink-0 text-brand-700" aria-hidden="true" />
+            <span class="min-w-0">
+              <span class="block text-lg font-semibold text-ink">{{ t('configScreens.structure_title') }}</span>
+              <span class="block text-base font-normal text-ink-muted">{{ t('configScreens.structure_help') }}</span>
+            </span>
+          </span>
+          <ChevronDownIcon :class="['h-6 w-6 shrink-0 text-ink-muted transition-transform', openSections.structure ? 'rotate-180' : '']" aria-hidden="true" />
+        </button>
+      </h2>
 
-                <div class="md:col-span-4 flex flex-col items-center justify-start p-4 border-2 border-dashed border-gray-200 rounded-xl bg-gray-50 hover:bg-gray-100 transition">
-                    <label class="block text-sm font-medium text-gray-700 mb-4">Logo Ticket (monochrome)</label>
+      <div v-show="openSections.structure" id="cfg-structure" class="border-t border-tone-neutral-border p-4 md:p-5">
+        <form @submit.prevent="saveStructureConfig" class="grid gap-6">
+          <div class="grid gap-6 lg:grid-cols-[18rem_1fr]">
 
-                    <div class="relative group cursor-pointer w-40 h-40 mb-4">
-                        <img
-                            :src="previewTicketLogo || resolveAssetUrl(configStore.structureInfo.ticket_logo_url) || '/placeholder-logo.png'"
-                            class="w-full h-full object-contain rounded-lg bg-white shadow-xs border p-2"
-                            alt="Aperçu Logo Ticket"
-                        />
-                        <div class="absolute inset-0 bg-black/50 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                            <PhotoIcon class="h-8 w-8 text-white" />
-                        </div>
-                        <input type="file" accept="image/*" @change="handleTicketLogoUpload" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
-                    </div>
+            <div class="grid content-start gap-4">
+              <div class="grid gap-2 rounded-card border border-dashed border-tone-neutral-border bg-tone-neutral-bg p-4">
+                <img
+                  :src="previewLogo || resolveAssetUrl(configStore.structureInfo.logo_url) || '/placeholder-logo.png'"
+                  class="mx-auto h-36 w-36 rounded-control border border-tone-neutral-border bg-white object-contain p-2"
+                  :alt="t('configScreens.logo_label')"
+                />
+                <FormField id="cfg-logo" :label="t('configScreens.logo_label')" :help="t('configScreens.logo_help')" v-slot="{ describedBy }">
+                  <input id="cfg-logo" type="file" accept="image/*" @change="handleLogoUpload" :aria-describedby="describedBy" :class="fileClass" />
+                </FormField>
+              </div>
 
-                    <p class="text-xs text-gray-500 text-center">Fichier déjà converti en monochrome, dédié à l'impression thermique.</p>
-                </div>
-
-                <div class="md:col-span-12 bg-gray-50 border border-gray-200 rounded-xl p-4 flex items-center justify-between">
-                    <div>
-                        <p class="text-sm font-medium text-gray-700">Jeton d'impression ticket</p>
-                        <p class="text-xs text-gray-500 font-mono mt-1">{{ configStore.ticketPrintToken || 'Non généré' }}</p>
-                    </div>
-                    <button type="button" @click="handleRegenerateToken" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm font-medium">
-                        Régénérer
-                    </button>
-                </div>
-
-                <div class="md:col-span-8 grid grid-cols-1 md:grid-cols-2 gap-5">
-                    
-                    <div class="md:col-span-2">
-                        <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Dénomination Sociale</label>
-                        <input v-model="formStructure.name" type="text" placeholder="Ex: Clinique Saint-Luc" class="w-full border-gray-300 rounded-lg shadow-xs focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm p-2.5 border" required />
-                    </div>
-
-                    <div class="md:col-span-2">
-                        <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Slogan / Devise (Apparaît sous le nom)</label>
-                        <input v-model="formStructure.slogan" type="text" placeholder="Ex: Votre santé, notre priorité" class="w-full border-gray-300 rounded-lg shadow-xs focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm p-2.5 border" />
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Téléphone Principal</label>
-                        <input v-model="formStructure.phone" type="tel" class="w-full border-gray-300 rounded-lg shadow-xs focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm p-2.5 border" />
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Téléphone Secondaire</label>
-                        <input v-model="formStructure.phone2" type="tel" class="w-full border-gray-300 rounded-lg shadow-xs focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm p-2.5 border" />
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Adresse Email</label>
-                        <input v-model="formStructure.email" type="email" class="w-full border-gray-300 rounded-lg shadow-xs focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm p-2.5 border" />
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Site Web</label>
-                        <input v-model="formStructure.website" type="text" placeholder="www.exemple.com" class="w-full border-gray-300 rounded-lg shadow-xs focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm p-2.5 border" />
-                    </div>
-
-                    <div class="md:col-span-2">
-                        <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Adresse Physique / Localisation</label>
-                        <input v-model="formStructure.address" type="text" placeholder="Quartier, Avenue, Ville" class="w-full border-gray-300 rounded-lg shadow-xs focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm p-2.5 border" />
-                    </div>
-                    
-                    <div>
-                        <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Ville</label>
-                        <input v-model="formStructure.city" type="text" class="w-full border-gray-300 rounded-lg shadow-xs focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm p-2.5 border" />
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Boite Postale (BP)</label>
-                        <input v-model="formStructure.po_box" type="text" class="w-full border-gray-300 rounded-lg shadow-xs focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm p-2.5 border" />
-                    </div>
-
-                    <div class="md:col-span-2 border-t pt-4 mt-2">
-                        <h3 class="text-sm font-bold text-gray-700 mb-3">Informations Légales / Fiscales</h3>
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Numéro Contribuable (NIU)</label>
-                        <input v-model="formStructure.niu" type="text" class="w-full border-gray-300 rounded-lg shadow-xs focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm p-2.5 border bg-gray-50" />
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Registre Commerce (RCCM)</label>
-                        <input v-model="formStructure.rccm" type="text" class="w-full border-gray-300 rounded-lg shadow-xs focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm p-2.5 border bg-gray-50" />
-                    </div>
-                </div>
+              <div class="grid gap-2 rounded-card border border-dashed border-tone-neutral-border bg-tone-neutral-bg p-4">
+                <img
+                  :src="previewTicketLogo || resolveAssetUrl(configStore.structureInfo.ticket_logo_url) || '/placeholder-logo.png'"
+                  class="mx-auto h-36 w-36 rounded-control border border-tone-neutral-border bg-white object-contain p-2"
+                  :alt="t('configScreens.ticket_logo_label')"
+                />
+                <FormField id="cfg-ticket-logo" :label="t('configScreens.ticket_logo_label')" :help="t('configScreens.ticket_logo_help')" v-slot="{ describedBy }">
+                  <input id="cfg-ticket-logo" type="file" accept="image/*" @change="handleTicketLogoUpload" :aria-describedby="describedBy" :class="fileClass" />
+                </FormField>
+              </div>
             </div>
 
-            <div class="mt-6 flex justify-end border-t pt-4">
-                <button 
-                    type="submit"
-                    :disabled="isSaving"
-                    class="flex items-center px-6 py-2.5 bg-gray-900 text-white rounded-xl hover:bg-gray-800 shadow-lg transition font-medium text-sm disabled:opacity-70 disabled:cursor-not-allowed"
-                >
-                    <span v-if="isSaving" class="flex items-center">
-                        <span class="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></span>
-                        Enregistrement...
-                    </span>
-                    <span v-else class="flex items-center">
-                        <CheckCircleIcon class="h-5 w-5 mr-2" />
-                        Enregistrer la Configuration Structure
-                    </span>
-                </button>
-            </div>
-        </form>
-      </div>
-    </div>
+            <div class="grid content-start gap-4">
+              <div class="flex flex-col gap-3 rounded-card border border-tone-neutral-border bg-tone-neutral-bg p-4 sm:flex-row sm:items-center sm:justify-between">
+                <div class="min-w-0">
+                  <p class="text-base font-medium text-ink">{{ t('configScreens.token_label') }}</p>
+                  <p class="break-all font-mono text-base text-ink-muted">{{ configStore.ticketPrintToken || 'Non généré' }}</p>
+                </div>
+                <AppButton variant="secondary" @click="handleRegenerateToken">{{ t('configScreens.token_regenerate') }}</AppButton>
+              </div>
 
-    <div class="bg-white rounded-2xl shadow-xs border border-gray-100 overflow-hidden transition-all">
-      <div 
-        @click="openSections.exams = !openSections.exams"
-        class="p-6 border-b border-gray-100 flex flex-col md:flex-row md:items-center justify-between gap-4 cursor-pointer hover:bg-gray-50 transition"
-      >
-        <div class="flex items-center">
-            <h2 class="text-xl font-bold text-gray-800 mr-4">{{ t('config.exams_title') }}</h2>
-            <ChevronDownIcon 
-                class="h-6 w-6 text-gray-400 transform transition-transform duration-200 md:hidden"
-                :class="{'rotate-180': openSections.exams}"
-            />
-        </div>
-        
-        <div class="flex flex-1 md:justify-end space-x-3 w-full md:w-auto transition-all" :class="{'hidden md:flex': !openSections.exams}">
-          <div class="relative w-full md:w-64" @click.stop> <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <MagnifyingGlassIcon class="h-5 w-5 text-gray-400" />
+              <div class="grid gap-4 md:grid-cols-2">
+                <div class="md:col-span-2">
+                  <FormField id="cfg-name" :label="t('configScreens.name')" required v-slot="{ describedBy }">
+                    <input id="cfg-name" v-model="formStructure.name" type="text" :placeholder="t('configScreens.name_placeholder')" required :aria-describedby="describedBy" :class="fieldClass" />
+                  </FormField>
+                </div>
+                <div class="md:col-span-2">
+                  <FormField id="cfg-slogan" :label="t('configScreens.slogan')" v-slot="{ describedBy }">
+                    <input id="cfg-slogan" v-model="formStructure.slogan" type="text" :placeholder="t('configScreens.slogan_placeholder')" :aria-describedby="describedBy" :class="fieldClass" />
+                  </FormField>
+                </div>
+                <FormField id="cfg-phone" :label="t('configScreens.phone')" v-slot="{ describedBy }">
+                  <input id="cfg-phone" v-model="formStructure.phone" type="tel" :aria-describedby="describedBy" :class="fieldClass" />
+                </FormField>
+                <FormField id="cfg-phone2" :label="t('configScreens.phone2')" v-slot="{ describedBy }">
+                  <input id="cfg-phone2" v-model="formStructure.phone2" type="tel" :aria-describedby="describedBy" :class="fieldClass" />
+                </FormField>
+                <FormField id="cfg-email" :label="t('configScreens.email')" v-slot="{ describedBy }">
+                  <input id="cfg-email" v-model="formStructure.email" type="email" :aria-describedby="describedBy" :class="fieldClass" />
+                </FormField>
+                <FormField id="cfg-website" :label="t('configScreens.website')" v-slot="{ describedBy }">
+                  <input id="cfg-website" v-model="formStructure.website" type="text" :placeholder="t('configScreens.website_placeholder')" :aria-describedby="describedBy" :class="fieldClass" />
+                </FormField>
+                <div class="md:col-span-2">
+                  <FormField id="cfg-address" :label="t('configScreens.address')" v-slot="{ describedBy }">
+                    <input id="cfg-address" v-model="formStructure.address" type="text" :placeholder="t('configScreens.address_placeholder')" :aria-describedby="describedBy" :class="fieldClass" />
+                  </FormField>
+                </div>
+                <FormField id="cfg-city" :label="t('configScreens.city')" v-slot="{ describedBy }">
+                  <input id="cfg-city" v-model="formStructure.city" type="text" :aria-describedby="describedBy" :class="fieldClass" />
+                </FormField>
+                <FormField id="cfg-pobox" :label="t('configScreens.po_box')" v-slot="{ describedBy }">
+                  <input id="cfg-pobox" v-model="formStructure.po_box" type="text" :aria-describedby="describedBy" :class="fieldClass" />
+                </FormField>
+
+                <h3 class="border-t border-tone-neutral-border pt-4 text-base font-semibold text-ink md:col-span-2">{{ t('configScreens.legal_title') }}</h3>
+
+                <FormField id="cfg-niu" :label="t('configScreens.niu')" v-slot="{ describedBy }">
+                  <input id="cfg-niu" v-model="formStructure.niu" type="text" :aria-describedby="describedBy" :class="fieldClass" />
+                </FormField>
+                <FormField id="cfg-rccm" :label="t('configScreens.rccm')" v-slot="{ describedBy }">
+                  <input id="cfg-rccm" v-model="formStructure.rccm" type="text" :aria-describedby="describedBy" :class="fieldClass" />
+                </FormField>
+              </div>
             </div>
-            <input 
-              v-model="searchQuery"
-              type="text"
-              :placeholder="t('common.search_placeholder') || 'Rechercher...'"
-              class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-xl bg-gray-50 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition"
-            />
           </div>
 
-          <button 
-            @click.stop="openExamModal(null)" 
-            class="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 shadow-md transition font-semibold text-sm whitespace-nowrap"
-          >
-            <PlusCircleIcon class="h-5 w-5 mr-2" />
-            {{ t('config.add_exam') }}
+          <div class="flex justify-end border-t border-tone-neutral-border pt-4">
+            <AppButton type="submit" :icon="CheckCircleIcon" :disabled="isSaving" :loading="isSaving">
+              {{ isSaving ? t('configScreens.saving') : t('configScreens.save_structure') }}
+            </AppButton>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- Tarification des examens -->
+    <section class="rounded-card border border-tone-neutral-border bg-white shadow-card">
+      <h2>
+        <button type="button" :aria-expanded="openSections.exams" aria-controls="cfg-exams"
+                :class="accordionButtonClass" @click="openSections.exams = !openSections.exams">
+          <span class="text-lg font-semibold text-ink">{{ t('config.exams_title') }}</span>
+          <ChevronDownIcon :class="['h-6 w-6 shrink-0 text-ink-muted transition-transform', openSections.exams ? 'rotate-180' : '']" aria-hidden="true" />
+        </button>
+      </h2>
+
+      <div v-show="openSections.exams" id="cfg-exams" class="grid gap-4 border-t border-tone-neutral-border p-4 md:p-5">
+        <div class="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
+          <FormField id="cfg-exam-search" :label="t('configScreens.search_label')" v-slot="{ describedBy }">
+            <input id="cfg-exam-search" v-model="searchQuery" type="search" autocomplete="off"
+                   :placeholder="t('common.search_placeholder') || 'Rechercher...'" :aria-describedby="describedBy" :class="fieldClass" />
+          </FormField>
+          <AppButton :icon="PlusCircleIcon" @click="openExamModal(null)">{{ t('config.add_exam') }}</AppButton>
+        </div>
+
+        <ResponsiveTable
+          :columns="examColumns"
+          :rows="filteredExamens"
+          row-key="id"
+          :loading="configStore.isLoading && configStore.examens.length === 0"
+          :empty-title="`${t('users.table.no_results')} &quot;${searchQuery}&quot;`"
+          :empty-message="' '"
+          striped
+        >
+          <template #cell-code="{ row: exam }"><span class="font-mono">{{ exam.code }}</span></template>
+          <template #cell-name="{ row: exam }"><span class="font-medium">{{ exam.nom }}</span></template>
+          <template #cell-category="{ row: exam }"><StatusBadge tone="info" :label="String(exam.categorie ?? '-')" /></template>
+          <template #cell-price="{ row: exam }"><span class="font-bold text-tone-success-text">{{ formatPrice(exam.prix) }}</span></template>
+          <template #actions="{ row: exam }">
+            <AppButton variant="secondary" :icon="PencilSquareIcon" @click="openExamModal(exam)">{{ t('config.edit') }}</AppButton>
+            <AppButton variant="danger" :icon="TrashIcon" @click="handleDeleteExam(exam.id)">{{ t('common.delete') }}</AppButton>
+          </template>
+        </ResponsiveTable>
+      </div>
+    </section>
+
+    <div class="grid items-start gap-6 md:grid-cols-2">
+
+      <!-- Types de livres de prieres -->
+      <section class="rounded-card border border-tone-neutral-border bg-white shadow-card">
+        <h2>
+          <button type="button" :aria-expanded="openSections.prayers" aria-controls="cfg-prayers"
+                  :class="accordionButtonClass" @click="openSections.prayers = !openSections.prayers">
+            <span class="min-w-0">
+              <span class="block text-lg font-semibold text-ink">{{ t('config.prayers_title') }}</span>
+              <span class="block text-base font-normal text-ink-muted">{{ t('config.prayers_subtitle') }}</span>
+            </span>
+            <ChevronDownIcon :class="['h-6 w-6 shrink-0 text-ink-muted transition-transform', openSections.prayers ? 'rotate-180' : '']" aria-hidden="true" />
           </button>
-
-           <ChevronDownIcon 
-                class="h-6 w-6 text-gray-400 transform transition-transform duration-200 hidden md:block ml-4"
-                :class="{'rotate-180': openSections.exams}"
-            />
+        </h2>
+        <div v-show="openSections.prayers" id="cfg-prayers" class="border-t border-tone-neutral-border p-4">
+          <ResponsiveTable :columns="prayerColumns" :rows="configStore.prayerBookTypes" row-key="type_code" :empty-title="t('configScreens.no_results')" :empty-message="' '" striped>
+            <template #cell-type_code="{ row: type }"><span class="font-mono">{{ type.type_code }}</span></template>
+            <template #cell-label="{ row: type }"><span class="font-medium">{{ type.label }}</span></template>
+          </ResponsiveTable>
         </div>
-      </div>
+      </section>
 
-      <div v-show="openSections.exams" class="transition-all duration-300 ease-in-out">
-        <div v-if="configStore.isLoading && configStore.examens.length === 0" class="p-10 text-center text-gray-500">
-            <span class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mb-2"></span>
-            <p>{{ t('common.loading') }}</p>
-        </div>
+      <!-- Parametres generaux et maintenance -->
+      <section class="rounded-card border border-tone-neutral-border bg-white shadow-card">
+        <h2>
+          <button type="button" :aria-expanded="openSections.general" aria-controls="cfg-general"
+                  :class="accordionButtonClass" @click="openSections.general = !openSections.general">
+            <span class="min-w-0">
+              <span class="block text-lg font-semibold text-ink">{{ t('config.general_title') }}</span>
+              <span class="block text-base font-normal text-ink-muted">{{ t('config.general_subtitle') }}</span>
+            </span>
+            <ChevronDownIcon :class="['h-6 w-6 shrink-0 text-ink-muted transition-transform', openSections.general ? 'rotate-180' : '']" aria-hidden="true" />
+          </button>
+        </h2>
 
-        <div v-else class="overflow-x-auto">
-            <table class="min-w-full text-left border-collapse">
-            <thead>
-                <tr class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
-                <th class="px-6 py-3 font-semibold">{{ t('config.table_code') }}</th>
-                <th class="px-6 py-3 font-semibold">{{ t('config.table_name') }}</th>
-                <th class="px-6 py-3 font-semibold">{{ t('config.table_category') }}</th>
-                <th class="px-6 py-3 font-semibold text-right">{{ t('config.table_price') }}</th>
-                <th class="px-6 py-3 font-semibold text-right">{{ t('users.table.actions') }}</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-100">
-                <tr v-for="exam in filteredExamens" :key="exam.id" class="hover:bg-gray-50 transition">
-                <td class="px-6 py-4 font-mono text-xs text-gray-600 bg-gray-50 w-24 border-r border-gray-100">
-                    {{ exam.code }}
-                </td>
-                <td class="px-6 py-4 font-medium text-gray-900">
-                    {{ exam.nom }}
-                </td>
-                <td class="px-6 py-4 text-sm text-gray-600">
-                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-800 border border-blue-100">
-                    {{ exam.categorie }}
-                    </span>
-                </td>
-                <td class="px-6 py-4 text-right font-bold text-green-700 text-base">
-                    {{ formatPrice(exam.prix) }}
-                </td>
-                <td class="px-6 py-4 text-right space-x-2">
-                    <button 
-                    @click="openExamModal(exam)"
-                    class="text-indigo-600 hover:text-indigo-900 bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-lg text-xs font-semibold transition inline-flex items-center"
-                    >
-                    <PencilSquareIcon class="h-4 w-4 mr-1" />
-                    {{ t('config.edit') }}
-                    </button>
-                    <button 
-                    @click="handleDeleteExam(exam.id)"
-                    class="text-red-600 hover:text-red-900 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-lg text-xs font-semibold transition inline-flex items-center"
-                    >
-                    <TrashIcon class="h-4 w-4 mr-1" />
-                    {{ t('common.delete') }}
-                    </button>
-                </td>
-                </tr>
-                <tr v-if="filteredExamens.length === 0">
-                <td colspan="5" class="px-6 py-8 text-center text-gray-500 italic">
-                    {{ t('users.table.no_results') }} "{{ searchQuery }}"
-                </td>
-                </tr>
-            </tbody>
-            </table>
+        <div v-show="openSections.general" id="cfg-general" class="grid gap-4 border-t border-tone-neutral-border p-4">
+          <div class="grid gap-3 rounded-card border border-tone-neutral-border p-4 sm:grid-cols-[1fr_auto] sm:items-center">
+            <div class="min-w-0">
+              <h3 class="flex items-center gap-2 text-base font-semibold text-ink">
+                <ArrowDownTrayIcon class="h-5 w-5 shrink-0 text-brand-700" aria-hidden="true" />
+                {{ t('config.db_backup') }}
+              </h3>
+              <p class="text-base text-ink-muted">{{ t('config.db_backup_subtitle') }}</p>
+            </div>
+            <AppButton @click="handleBackup" :disabled="isBackupRunning" :loading="isBackupRunning">
+              {{ isBackupRunning ? t('common.loading') : t('config.launch_backup') }}
+            </AppButton>
+          </div>
+
+          <div class="grid gap-3 rounded-card border border-tone-neutral-border p-4 sm:grid-cols-[1fr_auto] sm:items-center">
+            <div class="min-w-0">
+              <h3 class="flex flex-wrap items-center gap-2 text-base font-semibold text-ink">
+                <WrenchScrewdriverIcon class="h-5 w-5 shrink-0 text-brand-700" aria-hidden="true" />
+                {{ t('config.maintenance_mode') }}
+                <StatusBadge :tone="isMaintenanceMode ? 'danger' : 'success'" :label="isMaintenanceMode ? t('configScreens.maintenance_state_on') : t('configScreens.maintenance_state_off')" />
+              </h3>
+              <p class="text-base" :class="isMaintenanceMode ? 'font-bold text-tone-danger-text' : 'text-ink-muted'">
+                {{ isMaintenanceMode ? t('config.maintenance_active') : t('config.maintenance_mode_subtitle') }}
+              </p>
+            </div>
+            <AppButton :variant="isMaintenanceMode ? 'danger' : 'primary'" @click="toggleMaintenanceMode">
+              {{ isMaintenanceMode ? t('config.deactivate') : t('config.activate') }}
+            </AppButton>
+          </div>
         </div>
-      </div>
+      </section>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
-        
-        <div class="bg-white rounded-2xl shadow-xs border border-gray-100 overflow-hidden transition-all h-fit">
-            <div 
-                @click="openSections.prayers = !openSections.prayers"
-                class="p-6 border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition flex justify-between items-center"
-            >
-                <div>
-                    <h2 class="text-xl font-bold text-gray-800">{{ t('config.prayers_title') }}</h2>
-                    <p class="text-sm text-gray-500 mt-1">{{ t('config.prayers_subtitle') }}</p>
-                </div>
-                 <ChevronDownIcon 
-                    class="h-6 w-6 text-gray-400 transform transition-transform duration-200"
-                    :class="{'rotate-180': openSections.prayers}"
-                />
-            </div>
-            <div v-show="openSections.prayers" class="transition-all duration-300 ease-in-out">
-                <div class="overflow-x-auto">
-                    <table class="min-w-full text-left border-collapse">
-                        <thead>
-                            <tr class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
-                                <th class="px-6 py-3 font-semibold">{{ t('config.table_type_code') }}</th>
-                                <th class="px-6 py-3 font-semibold">{{ t('config.table_label') }}</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-gray-100">
-                            <tr v-for="type in configStore.prayerBookTypes" :key="type.type_code" class="hover:bg-gray-50 transition">
-                                <td class="px-6 py-4 font-mono text-xs text-gray-600 w-24">{{ type.type_code }}</td>
-                                <td class="px-6 py-4 font-medium text-gray-900">{{ type.label }}</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-        
-        <div class="bg-white rounded-2xl shadow-xs border border-gray-100 transition-all h-fit">
-            <div 
-                @click="openSections.general = !openSections.general"
-                class="p-6 border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition flex justify-between items-center"
-            >
-                <div>
-                    <h2 class="text-xl font-bold text-gray-800">{{ t('config.general_title') }}</h2>
-                    <p class="text-sm text-gray-500 mt-1">{{ t('config.general_subtitle') }}</p>
-                </div>
-                 <ChevronDownIcon 
-                    class="h-6 w-6 text-gray-400 transform transition-transform duration-200"
-                    :class="{'rotate-180': openSections.general}"
-                />
-            </div>
-            
-            <div v-show="openSections.general" class="transition-all duration-300 ease-in-out">
-                <div class="p-6 space-y-6">
-                    <div class="flex items-center justify-between border border-gray-200 p-4 rounded-xl">
-                    <div>
-                        <h3 class="font-semibold text-gray-900 flex items-center">
-                        <ArrowDownTrayIcon class="h-5 w-5 mr-2 text-indigo-500" />
-                        {{ t('config.db_backup') }}
-                        </h3>
-                        <p class="text-sm text-gray-500">{{ t('config.db_backup_subtitle') }}</p>
-                    </div>
-                    
-                    <button 
-                        @click="handleBackup"
-                        :disabled="isBackupRunning"
-                        :class="{'bg-indigo-600 hover:bg-indigo-700': !isBackupRunning, 'bg-gray-400 cursor-not-allowed': isBackupRunning}"
-                        class="px-4 py-2 text-white rounded-lg font-medium shadow-md transition flex items-center"
-                    >
-                        <span v-if="isBackupRunning" class="flex items-center">
-                        <span class="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></span>
-                        {{ t('common.loading') }}
-                        </span>
-                        <span v-else>
-                        {{ t('config.launch_backup') }}
-                        </span>
-                    </button>
-                    </div>
-
-                    <div class="flex items-center justify-between border border-gray-200 p-4 rounded-xl">
-                    <div>
-                        <h3 class="font-semibold text-gray-900 flex items-center">
-                        <WrenchScrewdriverIcon class="h-5 w-5 mr-2" :class="isMaintenanceMode ? 'text-red-500' : 'text-green-500'" />
-                        {{ t('config.maintenance_mode') }}
-                        </h3>
-                        <p class="text-sm" :class="isMaintenanceMode ? 'text-red-600 font-bold' : 'text-gray-500'">
-                        {{ isMaintenanceMode ? t('config.maintenance_active') : t('config.maintenance_mode_subtitle') }}
-                        </p>
-                    </div>
-                    
-                    <button 
-                        @click="toggleMaintenanceMode"
-                        :class="isMaintenanceMode ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'"
-                        class="px-4 py-2 text-white rounded-lg font-medium shadow-md transition"
-                    >
-                        {{ isMaintenanceMode ? t('config.deactivate') : t('config.activate') }}
-                    </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <ExamFormModal 
-      v-if="showExamModal" 
-      :examen="selectedExam" 
-      @close="showExamModal = false" 
-      @saved="onExamSaved" 
+    <ExamFormModal
+      v-if="showExamModal"
+      :examen="selectedExam"
+      @close="showExamModal = false"
+      @saved="onExamSaved"
     />
 
   </div>
@@ -391,9 +249,25 @@ import {
 } from '@heroicons/vue/24/outline';
 
 import ExamFormModal from '@/components/config/ExamFormModal.vue';
+import { AppButton, PageHeader, FormField, StatusBadge, ResponsiveTable } from '@/components/ui';
 
 const { t } = useI18n();
 const configStore = useConfigStore();
+
+// Colonnes des tableaux (cartes empilees sous lg) et classes communes des champs et des sections repliables.
+const examColumns = computed(() => [
+    { key: 'code', label: t('config.table_code') },
+    { key: 'name', label: t('config.table_name') },
+    { key: 'category', label: t('config.table_category') },
+    { key: 'price', label: t('config.table_price'), align: 'right' },
+]);
+const prayerColumns = computed(() => [
+    { key: 'type_code', label: t('config.table_type_code') },
+    { key: 'label', label: t('config.table_label') },
+]);
+const fieldClass = 'block w-full min-h-11 lg:min-h-10 rounded-control border border-tone-neutral-border bg-white px-3 text-base text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand-600';
+const fileClass = 'block w-full text-base text-ink file:mr-3 file:min-h-11 file:cursor-pointer file:rounded-control file:border file:border-brand-600 file:bg-white file:px-4 file:text-base file:font-medium file:text-brand-700 hover:file:bg-brand-50 lg:file:min-h-10';
+const accordionButtonClass = 'flex w-full min-h-11 items-center justify-between gap-3 rounded-card px-4 py-3 text-left hover:bg-tone-neutral-bg focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand-600 md:px-5';
 
 // --- 🟢 ÉTAT POUR LES ACCORDÉONS ---
 // Par défaut, la structure et les examens sont ouverts, le reste fermé pour alléger.

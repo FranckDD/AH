@@ -1,86 +1,38 @@
 <template>
-  <div class="fixed inset-0 bg-gray-900/75 overflow-y-auto h-full w-full z-50 flex items-center justify-center backdrop-blur-xs">
-    <div class="relative mx-auto w-full max-w-lg bg-white shadow-2xl rounded-xl border border-gray-100 p-6">
-      
-      <div class="flex justify-between items-center mb-6 border-b pb-3">
-        <h3 class="text-xl font-bold text-gray-800">
-          {{ isEditing ? t('config.edit') : t('config.add_exam') }}
-        </h3>
-        <button @click="$emit('close')" class="text-gray-400 hover:text-gray-600 transition">
-          <span class="text-2xl">&times;</span>
-        </button>
-      </div>
-      
-      <form @submit.prevent="handleSave" class="space-y-4">
-        
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('config.table_name') }}</label>
-          <input 
-            v-model="form.nom" 
-            type="text" 
-            required 
-            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition" 
-          />
-        </div>
-        
-        <div class="grid grid-cols-2 gap-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('config.table_code') }}</label>
-            <input 
-              v-model="form.code" 
-              type="text" 
-              required 
-              :disabled="isEditing" 
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-100 transition" 
-            />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('config.table_category') }}</label>
-            <input 
-              v-model="form.categorie" 
-              type="text" 
-              required 
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition" 
-            />
-          </div>
-        </div>
-        
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('config.table_price') }}</label>
-          <div class="relative">
-            <input 
-              v-model.number="form.prix" 
-              type="number" 
-              min="0" 
-              step="100" 
-              required 
-              class="w-full pl-4 pr-12 py-2 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500 font-bold text-gray-800 font-mono transition" 
-            />
-            <span class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 font-bold text-xs">FCFA</span>
-          </div>
-        </div>
+  <FullScreenPanel :title="isEditing ? t('config.edit') : t('config.add_exam')" @close="$emit('close')">
+    <form id="exam-form" @submit.prevent="handleSave" class="grid gap-4">
 
-        <div class="pt-6 flex justify-end space-x-3 border-t mt-4">
-          <button 
-            type="button" 
-            @click="$emit('close')" 
-            class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition"
-          >
-            {{ t('config.cancel') }}
-          </button>
-          <button 
-            type="submit" 
-            :disabled="configStore.isLoading"
-            class="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium shadow-md transition flex items-center disabled:opacity-70 disabled:cursor-not-allowed"
-          >
-            <span v-if="configStore.isLoading" class="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2"></span>
-            <CheckCircleIcon v-else class="h-5 w-5 mr-2" />
-            {{ t('config.save') }}
-          </button>
+      <FormField id="exam-nom" :label="t('config.table_name')" required v-slot="{ describedBy }">
+        <input id="exam-nom" v-model="form.nom" type="text" required :aria-describedby="describedBy" :class="fieldClass" />
+      </FormField>
+
+      <div class="grid gap-4 md:grid-cols-2">
+        <FormField id="exam-code" :label="t('config.table_code')" :help="isEditing ? t('configScreens.code_locked') : ''" required v-slot="{ describedBy }">
+          <input id="exam-code" v-model="form.code" type="text" required :disabled="isEditing" :aria-describedby="describedBy" :class="[fieldClass, 'disabled:bg-tone-neutral-bg']" />
+        </FormField>
+        <FormField id="exam-categorie" :label="t('config.table_category')" required v-slot="{ describedBy }">
+          <input id="exam-categorie" v-model="form.categorie" type="text" required :aria-describedby="describedBy" :class="fieldClass" />
+        </FormField>
+      </div>
+
+      <FormField id="exam-prix" :label="t('config.table_price')" required v-slot="{ describedBy }">
+        <div class="flex">
+          <input id="exam-prix" v-model.number="form.prix" type="number" min="0" step="100" required inputmode="numeric"
+                 :aria-describedby="describedBy" :class="[fieldClass, 'rounded-r-none text-right font-mono font-bold']" />
+          <span class="flex min-h-11 items-center rounded-r-control border border-l-0 border-tone-neutral-border bg-tone-neutral-bg px-3 text-base text-ink-muted lg:min-h-10">FCFA</span>
         </div>
-      </form>
-    </div>
-  </div>
+      </FormField>
+    </form>
+
+    <template #footer>
+      <ActionBar>
+        <template #secondary>
+          <AppButton variant="ghost" @click="$emit('close')">{{ t('config.cancel') }}</AppButton>
+        </template>
+        <AppButton type="submit" form="exam-form" :icon="CheckCircleIcon" :disabled="configStore.isLoading" :loading="configStore.isLoading">{{ t('config.save') }}</AppButton>
+      </ActionBar>
+    </template>
+  </FullScreenPanel>
 </template>
 
 <script setup>
@@ -88,6 +40,7 @@ import { reactive, computed, watch } from 'vue';
 import { useConfigStore } from '@/stores/configStore';
 import { useI18n } from 'vue-i18n';
 import { CheckCircleIcon } from '@heroicons/vue/24/outline';
+import { AppButton, FormField, ActionBar, FullScreenPanel } from '@/components/ui';
 
 const props = defineProps({
   examen: { type: Object, default: null }
@@ -96,6 +49,9 @@ const props = defineProps({
 const emit = defineEmits(['close', 'saved']);
 const { t } = useI18n();
 const configStore = useConfigStore();
+
+// Style commun des champs : zone tactile >= 44 px, focus visible.
+const fieldClass = 'block w-full min-h-11 lg:min-h-10 rounded-control border border-tone-neutral-border bg-white px-3 text-base text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand-600';
 
 // Initialisation du formulaire
 const form = reactive({
