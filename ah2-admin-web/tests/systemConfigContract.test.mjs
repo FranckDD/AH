@@ -98,7 +98,7 @@ test('SystemConfig : jetons du thème, texte >= 13 px, aucun emoji ni caractère
 });
 
 test('clés configScreens.* en FR et EN', () => {
-    const keys = ['structure_title', 'structure_help', 'logo_label', 'logo_help', 'ticket_logo_label', 'ticket_logo_help', 'token_label', 'token_regenerate',
+    const keys = ['structure_title', 'structure_help', 'logo_label', 'logo_help', 'ticket_logo_label', 'ticket_logo_help', 'token_label', 'token_regenerate', 'token_warning', 'token_confirm_check',
         'name', 'name_placeholder', 'slogan', 'slogan_placeholder', 'phone', 'phone2', 'email', 'website', 'website_placeholder', 'address', 'address_placeholder', 'city', 'po_box',
         'legal_title', 'niu', 'rccm', 'saving', 'save_structure', 'search_label', 'no_results', 'maintenance_state_on', 'maintenance_state_off'];
     for (const locale of ['fr', 'en']) {
@@ -108,4 +108,15 @@ test('clés configScreens.* en FR et EN', () => {
             assert.doesNotMatch(v, /[—–…·]/, `${locale}.configScreens.${k}`);
         }
     }
+});
+
+test('jeton d’impression : rappel visible, case à cocher obligatoire avant « Régénérer », décochée après chaque régénération', () => {
+    const t = templateOf(view);
+    assert.match(t, /configScreens\.token_warning/);
+    assert.match(t, /v-model="confirmRegenerate"/);
+    assert.match(t, /:disabled="!confirmRegenerate" @click="handleRegenerateToken"/);
+    assert.match(view, /const confirmRegenerate = ref\(false\);/);
+    assert.match(view, /await configStore\.regenerateTicketPrintToken\(\);\s+confirmRegenerate\.value = false;/);
+    // la confirmation du navigateur reste en plus (contrat d'origine)
+    assert.match(view, /Régénérer le jeton invalidera l'ancien pour tous les services pont locaux déjà configurés\. Continuer \?/);
 });

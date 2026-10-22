@@ -1,148 +1,118 @@
 <!-- src/views/modules/stock/StockControlQueue.vue -->
 <!-- File "A controler" : receptions et avaries en attente de controle (StockController / admin). -->
 <template>
-  <div class="max-w-6xl mx-auto p-6 space-y-6">
-    <div class="flex flex-wrap items-center justify-between gap-3">
-      <h2 class="text-xl font-bold text-gray-800">{{ $t('stockControl.title') }}</h2>
-      <button type="button" @click="loadAll" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200">
-        {{ $t('stockControl.refresh') }}
-      </button>
-    </div>
+  <div class="grid w-full gap-6">
 
-    <div class="flex gap-2 border-b border-gray-200">
-      <button v-for="tb in TABS" :key="tb" type="button" @click="tab = tb"
-              class="px-4 py-2 text-sm font-medium -mb-px border-b-2"
-              :class="tab === tb ? 'border-emerald-600 text-emerald-700' : 'border-transparent text-gray-500 hover:text-gray-700'">
+    <PageHeader :title="$t('stockControl.title')">
+      <template #actions>
+        <AppButton variant="secondary" :icon="ArrowPathIcon" @click="loadAll">{{ $t('stockControl.refresh') }}</AppButton>
+      </template>
+    </PageHeader>
+
+    <div role="tablist" :aria-label="$t('stockAdminScreens.tabs_label')" class="flex flex-col gap-1 border-b border-tone-neutral-border sm:flex-row sm:gap-2">
+      <button v-for="tb in TABS" :key="tb" type="button" role="tab" :aria-selected="tab === tb" @click="tab = tb"
+              :class="[
+                tab === tb ? 'border-brand-600 text-brand-700 font-semibold' : 'border-transparent text-ink-muted hover:border-tone-neutral-border hover:text-ink',
+                'flex min-h-11 items-center border-b-4 px-3 text-base focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand-600'
+              ]">
         {{ $t(`stockControl.tab_${tb}`) }} ({{ tb === 'receipts' ? receipts.length : incidents.length }})
       </button>
     </div>
 
-    <div v-if="pageError" class="bg-red-50 border-l-4 border-red-500 p-3 rounded-sm text-sm text-red-700">{{ pageError }}</div>
-    <div v-if="pageMessage" class="bg-green-50 border-l-4 border-green-500 p-3 rounded-sm text-sm text-green-700">{{ pageMessage }}</div>
-    <div v-if="isLoading" class="text-sm text-gray-400">{{ $t('stockOps.loading') }}</div>
+    <p v-if="pageError" role="alert" class="rounded-card border p-4 text-base" :class="toneClasses('danger')">{{ pageError }}</p>
+    <p v-if="pageMessage" role="status" class="rounded-card border p-4 text-base" :class="toneClasses('success')">{{ pageMessage }}</p>
+    <p v-if="isLoading" role="status" class="py-6 text-center text-base text-ink-muted">{{ $t('stockOps.loading') }}</p>
 
     <!-- RECEPTIONS -->
-    <section v-else-if="tab === 'receipts'" class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-      <div class="bg-white rounded-xl shadow-xs border border-gray-200 p-3 space-y-1 lg:col-span-1">
-        <div v-if="receipts.length === 0" class="text-sm text-gray-400 p-2">{{ $t('stockControl.empty_receipts') }}</div>
-        <button v-for="r in receipts" :key="r.id" type="button" @click="selectReceipt(r)"
-                class="w-full text-left px-3 py-2 rounded-lg text-sm"
-                :class="selected?.id === r.id ? 'bg-emerald-50 border border-emerald-200' : 'hover:bg-gray-50'">
-          <div class="font-medium text-gray-800">{{ r.receipt_number || ('#' + r.id) }}</div>
-          <div class="text-xs text-gray-500">
-            {{ r.received_date }} · {{ $t(`stockOps.origin.${r.origin}`) }} · {{ r.lines.length }} {{ $t('stockControl.lines') }}
-          </div>
-          <div v-if="isMine(r)" class="text-xs text-amber-700">{{ $t('stockControl.own_entry') }}</div>
+    <section v-else-if="tab === 'receipts'" class="grid gap-4 lg:grid-cols-3">
+      <div class="grid content-start gap-2 rounded-card border border-tone-neutral-border bg-white p-3 shadow-card lg:col-span-1" role="group" :aria-label="$t('stockAdminScreens.receipts_list_label')">
+        <p v-if="receipts.length === 0" class="p-2 text-base text-ink-muted">{{ $t('stockControl.empty_receipts') }}</p>
+        <button v-for="r in receipts" :key="r.id" type="button" @click="selectReceipt(r)" :aria-pressed="selected?.id === r.id"
+                class="min-h-11 w-full rounded-control border px-3 py-2 text-left text-base focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand-600"
+                :class="selected?.id === r.id ? 'border-brand-600 bg-brand-50' : 'border-tone-neutral-border hover:bg-tone-neutral-bg'">
+          <span class="block font-medium text-ink">{{ r.receipt_number || ('#' + r.id) }}</span>
+          <span class="block text-base text-ink-muted">
+            {{ r.received_date }}, {{ $t(`stockOps.origin.${r.origin}`) }}, {{ r.lines.length }} {{ $t('stockControl.lines') }}
+          </span>
+          <span v-if="isMine(r)" class="block text-base font-medium text-tone-warning-text">{{ $t('stockControl.own_entry') }}</span>
         </button>
       </div>
 
-      <div class="bg-white rounded-xl shadow-xs border border-gray-200 p-5 lg:col-span-2 space-y-4">
-        <div v-if="!selected" class="text-sm text-gray-400">{{ $t('stockControl.select_hint') }}</div>
+      <div class="grid content-start gap-4 rounded-card border border-tone-neutral-border bg-white p-4 shadow-card lg:col-span-2 md:p-5">
+        <p v-if="!selected" class="text-base text-ink-muted">{{ $t('stockControl.select_hint') }}</p>
         <template v-else>
-          <div class="text-sm text-gray-700 space-y-1">
-            <div class="font-semibold text-gray-800">{{ selected.receipt_number || ('#' + selected.id) }}</div>
-            <div>{{ $t('stockOps.col_origin') }} : {{ $t(`stockOps.origin.${selected.origin}`) }}</div>
-            <div v-if="selected.supplier">{{ $t('stockOps.col_supplier') }} : {{ selected.supplier }}</div>
-            <div v-if="selected.delivery_ref">{{ $t('stockOps.col_delivery_ref') }} : {{ selected.delivery_ref }}</div>
-            <div>{{ $t('stockOps.col_received_date') }} : {{ selected.received_date }}</div>
-            <div>{{ $t('stockControl.entered_by') }} : {{ actorLabel(selected.created_by_name, selected.created_by) }}</div>
+          <div class="grid gap-1 text-base text-ink">
+            <p class="text-lg font-semibold">{{ selected.receipt_number || ('#' + selected.id) }}</p>
+            <p>{{ $t('stockOps.col_origin') }} : {{ $t(`stockOps.origin.${selected.origin}`) }}</p>
+            <p v-if="selected.supplier">{{ $t('stockOps.col_supplier') }} : {{ selected.supplier }}</p>
+            <p v-if="selected.delivery_ref">{{ $t('stockOps.col_delivery_ref') }} : {{ selected.delivery_ref }}</p>
+            <p>{{ $t('stockOps.col_received_date') }} : {{ selected.received_date }}</p>
+            <p>{{ $t('stockControl.entered_by') }} : {{ actorLabel(selected.created_by_name, selected.created_by) }}</p>
           </div>
 
-          <div class="overflow-x-auto">
-            <table class="w-full text-sm">
-              <thead>
-                <tr class="text-left text-xs text-gray-500 uppercase border-b">
-                  <th class="py-2">{{ $t('stockOps.col_product') }}</th>
-                  <th class="py-2">{{ $t('stockOps.col_expected') }}</th>
-                  <th v-for="f in QTY_FIELDS" :key="f" class="py-2">{{ $t(`stockOps.${f}`) }}</th>
-                  <th class="py-2">{{ $t('stockOps.line_total') }}</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="(l, i) in editLines" :key="l.id" class="border-b last:border-0 align-top">
-                  <td class="py-2">
-                    {{ l.product_name }}
-                    <div v-if="l.lot_number || l.expiry_date" class="text-xs text-gray-500">
-                      {{ l.lot_number }} {{ l.expiry_date ? '· ' + l.expiry_date : '' }}
-                    </div>
-                    <div v-if="lineErrors[i]" class="text-xs text-red-700 mt-1">{{ $t(`stockOps.line_error_${lineErrors[i]}`) }}</div>
-                  </td>
-                  <td class="py-2">{{ l.qty_expected ?? '—' }}</td>
-                  <td v-for="f in QTY_FIELDS" :key="f" class="py-2 pr-2">
-                    <input v-if="canDecide" v-model.number="l[f]" type="number" min="0" step="1"
-                           class="w-20 px-2 py-1 border border-gray-300 rounded-sm" />
-                    <span v-else>{{ l[f] }}</span>
-                  </td>
-                  <td class="py-2 font-medium">{{ lineTotal(l) }}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+          <ResponsiveTable :columns="lineColumns" :rows="editLines" row-key="id" :empty-title="$t('stockControl.empty_receipts')" :empty-message="' '" striped>
+            <template #cell-product="{ row: l }">
+              <span class="font-medium">{{ l.product_name }}</span>
+              <span v-if="l.lot_number || l.expiry_date" class="block text-base text-ink-muted">
+                {{ l.lot_number }} {{ l.expiry_date ? ', ' + l.expiry_date : '' }}
+              </span>
+              <span v-if="lineErrors[editLines.indexOf(l)]" role="alert" class="mt-1 block text-base text-tone-danger-text">{{ $t(`stockOps.line_error_${lineErrors[editLines.indexOf(l)]}`) }}</span>
+            </template>
+            <template #cell-expected="{ row: l }">{{ l.qty_expected ?? '-' }}</template>
+            <template v-for="f in QTY_FIELDS" :key="f" #[qtySlot(f)]="{ row: l }">
+              <input v-if="canDecide" v-model.number="l[f]" type="number" min="0" step="1" inputmode="numeric"
+                     :aria-label="$t(`stockOps.${f}`)" :class="[fieldClass, 'w-24 text-right']" />
+              <span v-else>{{ l[f] }}</span>
+            </template>
+            <template #cell-total="{ row: l }"><span class="font-bold">{{ lineTotal(l) }}</span></template>
+          </ResponsiveTable>
 
-          <div v-if="!canDecide" class="text-sm text-amber-700">{{ $t('stockControl.own_entry_help') }}</div>
-          <div v-else class="flex flex-wrap justify-end gap-2">
-            <button v-if="linesDirty" type="button" @click="saveLines" :disabled="busy"
-                    class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg text-sm font-medium disabled:opacity-50">{{ $t('stockControl.save_corrections') }}</button>
-            <button type="button" @click="openReject('receipt', selected)" :disabled="busy"
-                    class="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium disabled:opacity-50">{{ $t('stockControl.reject') }}</button>
-            <button type="button" @click="validateReceipt" :disabled="busy"
-                    class="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium disabled:opacity-50">{{ $t('stockControl.validate') }}</button>
+          <p v-if="!canDecide" class="rounded-control border p-3 text-base" :class="toneClasses('warning')">{{ $t('stockControl.own_entry_help') }}</p>
+          <div v-else class="flex flex-col gap-2 sm:flex-row sm:justify-end">
+            <AppButton v-if="linesDirty" variant="secondary" @click="saveLines" :disabled="busy">{{ $t('stockControl.save_corrections') }}</AppButton>
+            <AppButton variant="danger" @click="openReject('receipt', selected)" :disabled="busy">{{ $t('stockControl.reject') }}</AppButton>
+            <AppButton @click="validateReceipt" :disabled="busy">{{ $t('stockControl.validate') }}</AppButton>
           </div>
         </template>
       </div>
     </section>
 
     <!-- AVARIES -->
-    <section v-else class="bg-white rounded-xl shadow-xs border border-gray-200 p-5 overflow-x-auto">
-      <div v-if="incidents.length === 0" class="text-sm text-gray-400">{{ $t('stockControl.empty_incidents') }}</div>
-      <table v-else class="w-full text-sm">
-        <thead>
-          <tr class="text-left text-xs text-gray-500 uppercase border-b">
-            <th class="py-2">{{ $t('stockOps.col_date') }}</th>
-            <th class="py-2">{{ $t('stockOps.col_product') }}</th>
-            <th class="py-2">{{ $t('stockOps.col_kind') }}</th>
-            <th class="py-2">{{ $t('stockOps.col_quantity') }}</th>
-            <th class="py-2">{{ $t('stockOps.col_reason') }}</th>
-            <th class="py-2">{{ $t('stockControl.entered_by') }}</th>
-            <th class="py-2">{{ $t('stockOps.col_action') }}</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="inc in incidents" :key="inc.id" class="border-b last:border-0 align-top">
-            <td class="py-2">{{ inc.incident_date }}</td>
-            <td class="py-2">{{ inc.product_name }}</td>
-            <td class="py-2">{{ $t(`stockOps.kind.${inc.kind}`) }}</td>
-            <td class="py-2">{{ inc.quantity }}</td>
-            <td class="py-2 max-w-xs">{{ inc.reason }}</td>
-            <td class="py-2">{{ actorLabel(inc.created_by_name, inc.created_by) }}</td>
-            <td class="py-2 whitespace-nowrap">
-              <span v-if="isMine(inc)" class="text-xs text-amber-700">{{ $t('stockControl.own_entry') }}</span>
-              <template v-else>
-                <button type="button" @click="validateIncident(inc)" :disabled="busy"
-                        class="px-3 py-1 bg-green-600 text-white rounded-lg text-xs font-medium disabled:opacity-50 mr-1">{{ $t('stockControl.validate') }}</button>
-                <button type="button" @click="openReject('incident', inc)" :disabled="busy"
-                        class="px-3 py-1 bg-red-600 text-white rounded-lg text-xs font-medium disabled:opacity-50">{{ $t('stockControl.reject') }}</button>
-              </template>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+    <section v-else class="grid gap-3">
+      <ResponsiveTable :columns="incidentColumns" :rows="incidents" row-key="id" :empty-title="$t('stockControl.empty_incidents')" :empty-message="' '" striped>
+        <template #cell-date="{ row: inc }">{{ inc.incident_date }}</template>
+        <template #cell-product="{ row: inc }">{{ inc.product_name }}</template>
+        <template #cell-kind="{ row: inc }">{{ $t(`stockOps.kind.${inc.kind}`) }}</template>
+        <template #cell-quantity="{ row: inc }"><span class="font-semibold">{{ inc.quantity }}</span></template>
+        <template #cell-reason="{ row: inc }"><span class="block max-w-xs">{{ inc.reason }}</span></template>
+        <template #cell-by="{ row: inc }">{{ actorLabel(inc.created_by_name, inc.created_by) }}</template>
+        <template #actions="{ row: inc }">
+          <span v-if="isMine(inc)" class="text-base font-medium text-tone-warning-text">{{ $t('stockControl.own_entry') }}</span>
+          <template v-else>
+            <AppButton @click="validateIncident(inc)" :disabled="busy">{{ $t('stockControl.validate') }}</AppButton>
+            <AppButton variant="danger" @click="openReject('incident', inc)" :disabled="busy">{{ $t('stockControl.reject') }}</AppButton>
+          </template>
+        </template>
+      </ResponsiveTable>
     </section>
 
     <!-- Motif de rejet -->
-    <div v-if="rejectTarget" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-      <form @submit.prevent="confirmReject" class="bg-white rounded-xl shadow-xl w-full max-w-md p-6 space-y-3">
-        <h3 class="text-lg font-semibold text-gray-800">{{ $t('stockControl.reject_title') }}</h3>
-        <div v-if="rejectError" class="bg-red-50 border-l-4 border-red-500 p-3 rounded-sm text-sm text-red-700">{{ rejectError }}</div>
-        <label class="block text-sm">{{ $t('stockOps.reject_reason') }}
-          <textarea v-model="rejectReason" rows="3" maxlength="2000" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg"></textarea>
-        </label>
-        <div class="flex justify-end gap-2">
-          <button type="button" @click="rejectTarget = null" class="px-4 py-2 bg-gray-200 rounded-lg text-sm">{{ $t('stockOps.close') }}</button>
-          <button type="submit" :disabled="busy" class="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium disabled:opacity-50">{{ $t('stockControl.reject') }}</button>
-        </div>
+    <FullScreenPanel v-if="rejectTarget" :title="$t('stockControl.reject_title')" @close="rejectTarget = null">
+      <form id="reject-form" @submit.prevent="confirmReject" class="grid gap-4">
+        <p v-if="rejectError" role="alert" class="rounded-control border p-3 text-base" :class="toneClasses('danger')">{{ rejectError }}</p>
+        <FormField id="reject-reason" :label="$t('stockOps.reject_reason')" required v-slot="{ describedBy }">
+          <textarea id="reject-reason" v-model="rejectReason" rows="3" maxlength="2000" :aria-describedby="describedBy" :class="[fieldClass, 'py-2']"></textarea>
+        </FormField>
       </form>
-    </div>
+      <template #footer>
+        <ActionBar>
+          <template #secondary>
+            <AppButton variant="ghost" @click="rejectTarget = null">{{ $t('stockOps.close') }}</AppButton>
+          </template>
+          <AppButton type="submit" form="reject-form" variant="danger" :disabled="busy" :loading="busy">{{ $t('stockControl.reject') }}</AppButton>
+        </ActionBar>
+      </template>
+    </FullScreenPanel>
   </div>
 </template>
 
@@ -153,10 +123,31 @@ import { useAuthStore } from '@/stores/auth';
 import { StockOpsGateway, describeStockError } from '@/services/StockOpsGateway';
 import { actorLabel } from '@/utils/actorName';
 import { QTY_FIELDS, lineTotal, validateReceiptLine } from '@/utils/receiptLines';
+import { ArrowPathIcon } from '@heroicons/vue/24/outline';
+import { AppButton, PageHeader, FormField, ResponsiveTable, FullScreenPanel, ActionBar } from '@/components/ui';
+import { toneClasses } from '@/design/tones';
 
 const { t } = useI18n();
 const authStore = useAuthStore();
 const TABS = ['receipts', 'incidents'];
+
+// Colonnes des tableaux (cartes empilees sous lg) et style commun des champs. Une colonne par champ de quantite.
+const lineColumns = computed(() => [
+  { key: 'product', label: t('stockOps.col_product') },
+  { key: 'expected', label: t('stockOps.col_expected'), align: 'right' },
+  ...QTY_FIELDS.map((f) => ({ key: f, label: t(`stockOps.${f}`), align: 'right' })),
+  { key: 'total', label: t('stockOps.line_total'), align: 'right' },
+]);
+const qtySlot = (f) => `cell-${f}`;
+const incidentColumns = computed(() => [
+  { key: 'date', label: t('stockOps.col_date') },
+  { key: 'product', label: t('stockOps.col_product') },
+  { key: 'kind', label: t('stockOps.col_kind') },
+  { key: 'quantity', label: t('stockOps.col_quantity'), align: 'right' },
+  { key: 'reason', label: t('stockOps.col_reason') },
+  { key: 'by', label: t('stockControl.entered_by') },
+]);
+const fieldClass = 'block w-full min-h-11 lg:min-h-10 rounded-control border border-tone-neutral-border bg-white px-3 text-base text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand-600';
 
 const tab = ref('receipts');
 const receipts = ref([]);

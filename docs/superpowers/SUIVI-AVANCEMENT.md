@@ -1,6 +1,6 @@
 # Suivi d'avancement — AH2 / Glostone-Kare
 
-**Dernière mise à jour :** 2026-10-22 (refonte UX de la configuration système livrée ; à vérifier par l'utilisateur dans le navigateur)
+**Dernière mise à jour :** 2026-10-22 (refonte UX du stock admin livrée ; à vérifier par l'utilisateur dans le navigateur)
 **But de ce document :** état d'avancement des chantiers de remise en service et de sécurisation, et registre des découvertes faites en cours de route mais non encore traitées. Pour le contexte général du projet, voir `docs/superpowers/CONTEXTE-PROJET.md`. Pour le détail d'un chantier, voir les fichiers correspondants dans `docs/superpowers/specs/` et `docs/superpowers/plans/`.
 
 ## Feuille de route
@@ -1455,3 +1455,41 @@ Plan `plans/2026-10-22-refonte-ux-configuration-systeme.md`. Base `45deaa4`. **V
 - Le test d'utilisation avec les membres du personnel n'est pas fait.
 
 **Reste à migrer** (non commencé) : stock admin (lots, réceptions, avaries, contrôle, mouvements, demandes d'ajustement), stock du labo (vue promoteur), laboratoire, toxicologie, stock-control ; puis la documentation d'utilisation par rôle, l'onglet Rapports et le chantier 8 (déploiement).
+
+
+### Refonte UX du stock admin : livrée (Tâches 1 à 5), à vérifier par l'utilisateur (2026-10-22)
+
+Plan `plans/2026-10-22-refonte-ux-stock-admin.md`. Base `132351c`. **Vérifié** : 3303 tests `node` (dont `refonteStockAdminGuard.test.mjs`, vu échouer sur une couleur en dur ajoutée puis retirée) et `vite build`. **Jamais vérifié dans un navigateur par un agent** : le rendu est à contrôler par l'utilisateur avec la checklist ci-dessous.
+
+**Livré** (six écrans, tous dans le cadre commun avec la palette du rôle)
+- **Réceptions** (`StockReceipts`) : en-tête, filtre de statut, tableau à lignes alternées, statuts en badge avec texte, détail et création en panneau (origine fabrication ou fournisseur, lignes en cartes, total de ligne rouge si incohérent).
+- **Lots de fabrication** (`ProductionLots`) : tableau, création et livraison en panneau, Marquer livré, Annuler confirmé.
+- **Avaries** (`StockIncidents`) : tableau, déclaration en panneau, Annuler confirmé.
+- **Mouvements** (`StockMovements`, lecture seule) : filtres étiquetés, tableau, quantités avec signe écrit (+ vert, - rouge), pagination par boutons nommés.
+- **Contrôle** (`StockControlQueue`) : onglets accessibles, liste de réceptions sélectionnable, quantités corrigeables dans un tableau à une colonne par type de quantité, Valider, Rejeter avec motif en panneau, avaries à valider ou rejeter ; jamais de contrôle de sa propre saisie.
+- **Demandes d'ajustement** (`AdjustmentRequestsAdmin`) : tableau, Approuver confirmé, Refuser avec motif en panneau.
+
+**Décisions et rulings**
+- Les fonctions de badge (`badge`) de quatre écrans renvoient une tonalité du thème (`warning`, `success`, `danger`, `info`, `neutral`) au lieu de classes de couleur en dur ; mêmes conditions.
+- Les tableaux utilisent les en-têtes et états vides du tableau commun : les clés `stockOps.loading` et `stockOps.col_action` ne sont plus affichées par ces écrans (le chargement est `ui.loading`, la colonne des actions est un en-tête masqué).
+- Les caractères `·`, `—`, `→`, `‹`, `›` de ces écrans sont remplacés (virgules, tiret simple, « vers », boutons nommés) ; ajout de la clé `stockAdminScreens.stock_to`.
+- Données et règles de stock jamais modifiées : `StockOpsGateway`, `receiptLines`, `localDate`, `adjustmentRequest`, `actorName` ; `StockList`, `ProductModal` et `AdjustmentRequestModal` (refaits au secrétariat), routeur et cadre intacts (garde-fou).
+- Le garde-fou autorise aussi `SystemConfig.vue` : les protections ajoutées à la régénération du jeton d'impression (rappel, case à cocher, confirmation) ont été faites pendant ce lot à la demande de l'utilisateur.
+- Garde-fou : la constante `FIN` de `refonteStockAdminGuard.test.mjs` est renseignée avec le commit de ce lot.
+
+**Checklist à vérifier par l'utilisateur** (admin, assistant, StockController ; chaque ligne à 360, 768 et 1280 px)
+| Écran | Points précis |
+|---|---|
+| Réceptions | Création depuis un lot livré (préremplie) puis depuis un fournisseur avec plusieurs lignes ; quantités incohérentes (total rouge et message) ; détail ; annulation d'une réception « à contrôler » ; filtre de statut |
+| Lots | Création (et erreur sans quantité) ; Marquer livré ; Annuler ; filtre ; réception créée ensuite depuis ce lot livré |
+| Avaries | Déclaration (et erreur sans motif) ; Annuler ; filtre |
+| Mouvements | Filtres par produit, type, dates ; signes + et - ; pagination |
+| Contrôle | Corriger une quantité, enregistrer, valider ; rejeter avec motif ; avaries ; **sa propre saisie ne propose aucun contrôle** |
+| Ajustements | Approuver (confirmation), refuser avec motif, erreur serveur sous la ligne, filtre |
+
+**Résiduels**
+- Les messages de confirmation (boîtes de dialogue du navigateur) gardent leur forme d'origine.
+- Les statuts « annulé » des lots et des demandes restent affichés en neutre : aucune action n'y mène.
+- Le test d'utilisation avec le personnel du stock n'est pas fait.
+
+**Reste à migrer** (non commencé) : stock du labo (vue promoteur et laborantin : produits, demandes, réceptions, comptage, alertes, mouvements, dépenses), laboratoire, toxicologie, stock-control complet ; puis la documentation d'utilisation par rôle, l'onglet Rapports et le chantier 8 (déploiement).

@@ -1,196 +1,193 @@
 <!-- src/views/modules/stock/StockReceipts.vue -->
 <template>
-  <div class="max-w-6xl mx-auto p-6 space-y-6">
-    <div class="flex flex-wrap items-center justify-between gap-3">
-      <h2 class="text-xl font-bold text-gray-800">{{ $t('stockOps.receipts.title') }}</h2>
-      <div class="flex items-center gap-3">
-        <select v-model="statusFilter" @change="loadReceipts" class="px-3 py-2 border border-gray-300 rounded-lg text-sm">
-          <option value="">{{ $t('stockOps.all_statuses') }}</option>
-          <option v-for="s in CHECK_STATUSES" :key="s" :value="s">{{ $t(`stockOps.check_status.${s}`) }}</option>
-        </select>
-        <button type="button" @click="openForm" class="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700">
-          {{ $t('stockOps.receipts.new') }}
-        </button>
+  <div class="grid w-full gap-6">
+
+    <PageHeader :title="$t('stockOps.receipts.title')" :subtitle="$t('stockAdminScreens.receipts_count', { n: receipts.length })">
+      <template #actions>
+        <AppButton :icon="PlusCircleIcon" @click="openForm">{{ $t('stockOps.receipts.new') }}</AppButton>
+      </template>
+    </PageHeader>
+
+    <section :aria-label="$t('stockAdminScreens.status_filter')" class="rounded-card border border-tone-neutral-border bg-white p-4 shadow-card">
+      <div class="max-w-xs">
+        <FormField id="receipts-status" :label="$t('stockAdminScreens.status_filter')" v-slot="{ describedBy }">
+          <select id="receipts-status" v-model="statusFilter" @change="loadReceipts" :aria-describedby="describedBy" :class="fieldClass">
+            <option value="">{{ $t('stockOps.all_statuses') }}</option>
+            <option v-for="s in CHECK_STATUSES" :key="s" :value="s">{{ $t(`stockOps.check_status.${s}`) }}</option>
+          </select>
+        </FormField>
       </div>
-    </div>
-
-    <div v-if="pageError" class="bg-red-50 border-l-4 border-red-500 p-3 rounded-sm text-sm text-red-700">{{ pageError }}</div>
-    <div v-if="pageMessage" class="bg-green-50 border-l-4 border-green-500 p-3 rounded-sm text-sm text-green-700">{{ pageMessage }}</div>
-
-    <section class="bg-white rounded-xl shadow-xs border border-gray-200 p-5 overflow-x-auto">
-      <div v-if="isLoading" class="text-sm text-gray-400">{{ $t('stockOps.loading') }}</div>
-      <div v-else-if="receipts.length === 0" class="text-sm text-gray-400">{{ $t('stockOps.receipts.empty') }}</div>
-      <table v-else class="w-full text-sm">
-        <thead>
-          <tr class="text-left text-xs text-gray-500 uppercase border-b">
-            <th class="py-2">{{ $t('stockOps.col_receipt_number') }}</th>
-            <th class="py-2">{{ $t('stockOps.col_origin') }}</th>
-            <th class="py-2">{{ $t('stockOps.col_source') }}</th>
-            <th class="py-2">{{ $t('stockOps.col_received_date') }}</th>
-            <th class="py-2">{{ $t('stockOps.col_status') }}</th>
-            <th class="py-2">{{ $t('stockOps.col_action') }}</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="r in receipts" :key="r.id" class="border-b last:border-0 align-top">
-            <td class="py-2 font-mono text-gray-600">{{ r.receipt_number }}</td>
-            <td class="py-2">{{ $t(`stockOps.origin.${r.origin}`) }}</td>
-            <td class="py-2">{{ r.origin === 'fournisseur' ? (r.supplier || '-') : lotLabel(r.production_lot_id) }}</td>
-            <td class="py-2">{{ r.received_date }}</td>
-            <td class="py-2">
-              <span class="px-2 py-0.5 rounded-full text-xs font-medium" :class="badge(r.status)">{{ $t(`stockOps.check_status.${r.status}`) }}</span>
-              <div v-if="r.status === 'rejete' && r.reject_reason" class="text-xs text-red-700 mt-1">
-                {{ $t('stockOps.reject_reason') }} : {{ r.reject_reason }}
-              </div>
-            </td>
-            <td class="py-2 space-x-2 whitespace-nowrap">
-              <button type="button" @click="openDetail(r)" class="px-3 py-1 bg-indigo-600 text-white rounded-lg text-xs font-medium">{{ $t('stockOps.detail') }}</button>
-              <button v-if="r.status === 'a_controler'" type="button" @click="cancelReceipt(r)" :disabled="busyId === r.id"
-                      class="px-3 py-1 bg-gray-200 text-gray-700 rounded-lg text-xs font-medium disabled:opacity-50">{{ $t('stockOps.cancel') }}</button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
     </section>
 
+    <p v-if="pageError" role="alert" class="rounded-card border p-4 text-base" :class="toneClasses('danger')">{{ pageError }}</p>
+    <p v-if="pageMessage" role="status" class="rounded-card border p-4 text-base" :class="toneClasses('success')">{{ pageMessage }}</p>
+
+    <ResponsiveTable
+      :columns="columns"
+      :rows="receipts"
+      row-key="id"
+      :loading="isLoading"
+      :empty-title="$t('stockOps.receipts.empty')"
+      :empty-message="' '"
+      striped
+    >
+      <template #cell-number="{ row: r }"><span class="font-mono">{{ r.receipt_number }}</span></template>
+      <template #cell-origin="{ row: r }">{{ $t(`stockOps.origin.${r.origin}`) }}</template>
+      <template #cell-source="{ row: r }">{{ r.origin === 'fournisseur' ? (r.supplier || '-') : lotLabel(r.production_lot_id) }}</template>
+      <template #cell-date="{ row: r }">{{ r.received_date }}</template>
+      <template #cell-status="{ row: r }">
+        <StatusBadge :tone="badge(r.status)" :label="$t(`stockOps.check_status.${r.status}`)" />
+        <p v-if="r.status === 'rejete' && r.reject_reason" class="mt-1 text-base text-tone-danger-text">
+          {{ $t('stockOps.reject_reason') }} : {{ r.reject_reason }}
+        </p>
+      </template>
+      <template #actions="{ row: r }">
+        <AppButton variant="secondary" @click="openDetail(r)">{{ $t('stockOps.detail') }}</AppButton>
+        <AppButton v-if="r.status === 'a_controler'" variant="danger" @click="cancelReceipt(r)" :disabled="busyId === r.id" :loading="busyId === r.id">{{ $t('stockOps.cancel') }}</AppButton>
+      </template>
+    </ResponsiveTable>
+
     <!-- Detail -->
-    <div v-if="detail" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-      <div class="bg-white rounded-xl shadow-xl w-full max-w-3xl p-6 space-y-3 max-h-[90vh] overflow-y-auto">
-        <h3 class="text-lg font-semibold text-gray-800">{{ $t('stockOps.receipts.detail_title') }} {{ detail.receipt_number }}</h3>
-        <div v-if="detailError" class="bg-red-50 border-l-4 border-red-500 p-3 rounded-sm text-sm text-red-700">{{ detailError }}</div>
-        <p class="text-sm text-gray-600">
+    <FullScreenPanel v-if="detail" :title="`${$t('stockOps.receipts.detail_title')} ${detail.receipt_number}`" wide @close="detail = null">
+      <div class="grid gap-4">
+        <p v-if="detailError" role="alert" class="rounded-control border p-3 text-base" :class="toneClasses('danger')">{{ detailError }}</p>
+        <p class="text-base text-ink">
           {{ $t(`stockOps.origin.${detail.origin}`) }} - {{ detail.received_date }}
           <span v-if="detail.supplier"> - {{ detail.supplier }}</span>
           <span v-if="detail.delivery_ref"> - {{ detail.delivery_ref }}</span>
         </p>
-        <p class="text-sm">
-          <span class="px-2 py-0.5 rounded-full text-xs font-medium" :class="badge(detail.status)">{{ $t(`stockOps.check_status.${detail.status}`) }}</span>
-        </p>
-        <p v-if="detail.status === 'rejete' && detail.reject_reason" class="text-sm text-red-700">
+        <p><StatusBadge :tone="badge(detail.status)" :label="$t(`stockOps.check_status.${detail.status}`)" /></p>
+        <p v-if="detail.status === 'rejete' && detail.reject_reason" class="text-base text-tone-danger-text">
           {{ $t('stockOps.reject_reason') }} : {{ detail.reject_reason }}
         </p>
-        <table class="w-full text-sm">
-          <thead>
-            <tr class="text-left text-xs text-gray-500 uppercase border-b">
-              <th class="py-2">{{ $t('stockOps.col_product') }}</th>
-              <th class="py-2">{{ $t('stockOps.col_expected') }}</th>
-              <th class="py-2">{{ $t('stockOps.col_good') }}</th>
-              <th class="py-2">{{ $t('stockOps.col_damaged') }}</th>
-              <th class="py-2">{{ $t('stockOps.col_lost') }}</th>
-              <th class="py-2">{{ $t('stockOps.col_defective') }}</th>
-              <th class="py-2">{{ $t('stockOps.col_lot_number') }}</th>
-              <th class="py-2">{{ $t('stockOps.col_expiry') }}</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="l in detail.lines" :key="l.id" class="border-b last:border-0">
-              <td class="py-2">{{ l.product_name }}</td>
-              <td class="py-2">{{ l.qty_expected ?? '-' }}</td>
-              <td class="py-2">{{ l.qty_good }}</td>
-              <td class="py-2">{{ l.qty_damaged }}</td>
-              <td class="py-2">{{ l.qty_lost }}</td>
-              <td class="py-2">{{ l.qty_defective }}</td>
-              <td class="py-2">{{ l.lot_number || '-' }}</td>
-              <td class="py-2">{{ l.expiry_date || '-' }}</td>
-            </tr>
-          </tbody>
-        </table>
-        <div class="flex justify-end">
-          <button type="button" @click="detail = null" class="px-4 py-2 bg-gray-200 rounded-lg text-sm">{{ $t('stockOps.close') }}</button>
-        </div>
+        <ResponsiveTable :columns="detailColumns" :rows="detail.lines || []" row-key="id" :empty-title="$t('stockOps.receipts.empty')" :empty-message="' '" striped>
+          <template #cell-product="{ row: l }">{{ l.product_name }}</template>
+          <template #cell-expected="{ row: l }">{{ l.qty_expected ?? '-' }}</template>
+          <template #cell-good="{ row: l }">{{ l.qty_good }}</template>
+          <template #cell-damaged="{ row: l }">{{ l.qty_damaged }}</template>
+          <template #cell-lost="{ row: l }">{{ l.qty_lost }}</template>
+          <template #cell-defective="{ row: l }">{{ l.qty_defective }}</template>
+          <template #cell-lot="{ row: l }">{{ l.lot_number || '-' }}</template>
+          <template #cell-expiry="{ row: l }">{{ l.expiry_date || '-' }}</template>
+        </ResponsiveTable>
       </div>
-    </div>
+      <template #footer>
+        <ActionBar>
+          <AppButton variant="secondary" @click="detail = null">{{ $t('stockOps.close') }}</AppButton>
+        </ActionBar>
+      </template>
+    </FullScreenPanel>
 
     <!-- Formulaire de creation -->
-    <div v-if="showForm" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-      <form @submit.prevent="submitReceipt" class="bg-white rounded-xl shadow-xl w-full max-w-4xl p-6 space-y-3 max-h-[90vh] overflow-y-auto">
-        <h3 class="text-lg font-semibold text-gray-800">{{ $t('stockOps.receipts.new') }}</h3>
-        <div v-if="formError" class="bg-red-50 border-l-4 border-red-500 p-3 rounded-sm text-sm text-red-700">{{ formError }}</div>
+    <FullScreenPanel v-if="showForm" :title="$t('stockOps.receipts.new')" wide @close="showForm = false">
+      <form id="receipt-form" @submit.prevent="submitReceipt" class="grid gap-4">
+        <p v-if="formError" role="alert" class="rounded-control border p-3 text-base" :class="toneClasses('danger')">{{ formError }}</p>
 
-        <div class="flex flex-wrap gap-4 text-sm">
-          <label class="flex items-center gap-2">
-            <input type="radio" value="fabrication" v-model="form.origin" @change="onOriginChange" />
-            {{ $t('stockOps.origin.fabrication') }}
-          </label>
-          <label class="flex items-center gap-2">
-            <input type="radio" value="fournisseur" v-model="form.origin" @change="onOriginChange" />
-            {{ $t('stockOps.origin.fournisseur') }}
-          </label>
-        </div>
+        <fieldset class="grid gap-1.5">
+          <legend class="text-base font-medium text-ink">{{ $t('stockAdminScreens.origin_group') }}</legend>
+          <div class="grid gap-2 sm:grid-cols-2">
+            <label class="flex min-h-11 items-center gap-3 rounded-control border border-tone-neutral-border px-3 text-base text-ink">
+              <input type="radio" value="fabrication" v-model="form.origin" @change="onOriginChange" class="h-5 w-5 accent-brand-600" />
+              {{ $t('stockOps.origin.fabrication') }}
+            </label>
+            <label class="flex min-h-11 items-center gap-3 rounded-control border border-tone-neutral-border px-3 text-base text-ink">
+              <input type="radio" value="fournisseur" v-model="form.origin" @change="onOriginChange" class="h-5 w-5 accent-brand-600" />
+              {{ $t('stockOps.origin.fournisseur') }}
+            </label>
+          </div>
+        </fieldset>
 
-        <label class="block text-sm">{{ $t('stockOps.col_received_date') }}
-          <input v-model="form.received_date" type="date" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg" />
-        </label>
+        <FormField id="receipt-date" :label="$t('stockOps.col_received_date')" v-slot="{ describedBy }">
+          <input id="receipt-date" v-model="form.received_date" type="date" :aria-describedby="describedBy" :class="fieldClass" />
+        </FormField>
 
         <div v-if="form.origin === 'fabrication'">
-          <label class="block text-sm">{{ $t('stockOps.receipts.choose_lot') }}
-            <select v-model.number="form.production_lot_id" @change="onLotChange" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg">
+          <FormField id="receipt-lot" :label="$t('stockOps.receipts.choose_lot')" v-slot="{ describedBy }">
+            <select id="receipt-lot" v-model.number="form.production_lot_id" @change="onLotChange" :aria-describedby="describedBy" :class="fieldClass">
               <option :value="null" disabled>{{ $t('stockOps.receipts.choose_lot') }}</option>
               <option v-for="lot in deliveredLots" :key="lot.id" :value="lot.id">
                 {{ lot.lot_number }} - {{ lot.product_name }} ({{ lot.quantity_produced }})
               </option>
             </select>
-          </label>
-          <p v-if="deliveredLots.length === 0" class="text-xs text-gray-500 mt-1">{{ $t('stockOps.receipts.no_delivered_lot') }}</p>
+          </FormField>
+          <p v-if="deliveredLots.length === 0" class="mt-1 text-base text-ink-muted">{{ $t('stockOps.receipts.no_delivered_lot') }}</p>
         </div>
 
-        <div v-else class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <label class="block text-sm">{{ $t('stockOps.col_supplier') }}
-            <input v-model="form.supplier" type="text" maxlength="150" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg" />
-          </label>
-          <label class="block text-sm">{{ $t('stockOps.col_delivery_ref') }}
-            <input v-model="form.delivery_ref" type="text" maxlength="100" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg" />
-          </label>
+        <div v-else class="grid gap-4 sm:grid-cols-2">
+          <FormField id="receipt-supplier" :label="$t('stockOps.col_supplier')" v-slot="{ describedBy }">
+            <input id="receipt-supplier" v-model="form.supplier" type="text" maxlength="150" :aria-describedby="describedBy" :class="fieldClass" />
+          </FormField>
+          <FormField id="receipt-delivery" :label="$t('stockOps.col_delivery_ref')" v-slot="{ describedBy }">
+            <input id="receipt-delivery" v-model="form.delivery_ref" type="text" maxlength="100" :aria-describedby="describedBy" :class="fieldClass" />
+          </FormField>
         </div>
 
-        <div class="space-y-3">
-          <div v-for="(line, i) in form.lines" :key="i" class="border border-gray-200 rounded-lg p-3 space-y-2">
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
-              <label class="block text-xs text-gray-600 sm:col-span-2">{{ $t('stockOps.col_product') }}
-                <select v-if="form.origin === 'fournisseur'" v-model.number="line.product_id" class="mt-1 block w-full px-2 py-1 border border-gray-300 rounded-sm text-sm">
-                  <option :value="null" disabled>{{ $t('stockOps.choose_product') }}</option>
-                  <option v-for="p in products" :key="p.id" :value="p.id">{{ p.name }}</option>
-                </select>
-                <div v-else class="mt-1 px-2 py-1 text-sm text-gray-800">{{ line.product_name }}</div>
-              </label>
-              <label class="block text-xs text-gray-600">{{ $t('stockOps.col_expected') }}
-                <input v-model.number="line.qty_expected" :disabled="form.origin === 'fabrication'" type="number" min="0" step="1"
-                       class="mt-1 block w-full px-2 py-1 border border-gray-300 rounded-sm text-sm disabled:bg-gray-100" />
-              </label>
+        <h3 class="text-lg font-semibold text-ink">{{ $t('stockAdminScreens.lines_title') }}</h3>
+        <div class="grid gap-3">
+          <div v-for="(line, i) in form.lines" :key="i" class="grid gap-3 rounded-card border border-tone-neutral-border p-3">
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-base font-semibold text-ink">{{ $t('stockAdminScreens.line_number', { n: i + 1 }) }}</span>
+              <AppButton v-if="form.origin === 'fournisseur' && form.lines.length > 1" variant="ghost" :icon="TrashIcon" @click="form.lines.splice(i, 1)">{{ $t('stockOps.remove_line') }}</AppButton>
             </div>
-            <div class="grid grid-cols-2 sm:grid-cols-5 gap-2">
-              <label v-for="f in QTY_FIELDS" :key="f" class="block text-xs text-gray-600">{{ $t(`stockOps.${f}`) }}
-                <input v-model.number="line[f]" type="number" min="0" step="1" class="mt-1 block w-full px-2 py-1 border border-gray-300 rounded-sm text-sm" />
-              </label>
-              <div class="text-xs text-gray-600">{{ $t('stockOps.line_total') }}
-                <div class="mt-1 px-2 py-1 text-sm font-semibold" :class="lineCheck(line).ok ? 'text-gray-800' : 'text-red-600'">{{ lineTotal(line) }}</div>
+
+            <div class="grid gap-3 sm:grid-cols-3">
+              <div class="sm:col-span-2">
+                <FormField v-if="form.origin === 'fournisseur'" :id="`receipt-line-${i}-product`" :label="$t('stockOps.col_product')" v-slot="{ describedBy }">
+                  <select :id="`receipt-line-${i}-product`" v-model.number="line.product_id" :aria-describedby="describedBy" :class="fieldClass">
+                    <option :value="null" disabled>{{ $t('stockOps.choose_product') }}</option>
+                    <option v-for="p in products" :key="p.id" :value="p.id">{{ p.name }}</option>
+                  </select>
+                </FormField>
+                <div v-else class="grid gap-1.5">
+                  <span class="text-base font-medium text-ink">{{ $t('stockOps.col_product') }}</span>
+                  <span class="flex min-h-11 items-center text-base text-ink lg:min-h-10">{{ line.product_name }}</span>
+                </div>
+              </div>
+              <FormField :id="`receipt-line-${i}-expected`" :label="$t('stockOps.col_expected')" v-slot="{ describedBy }">
+                <input :id="`receipt-line-${i}-expected`" v-model.number="line.qty_expected" :disabled="form.origin === 'fabrication'" type="number" min="0" step="1" inputmode="numeric"
+                       :aria-describedby="describedBy" :class="[fieldClass, 'text-right disabled:bg-tone-neutral-bg']" />
+              </FormField>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 sm:grid-cols-5" role="group" :aria-label="$t('stockAdminScreens.qty_group')">
+              <FormField v-for="f in QTY_FIELDS" :key="f" :id="`receipt-line-${i}-${f}`" :label="$t(`stockOps.${f}`)" v-slot="{ describedBy }">
+                <input :id="`receipt-line-${i}-${f}`" v-model.number="line[f]" type="number" min="0" step="1" inputmode="numeric" :aria-describedby="describedBy" :class="[fieldClass, 'text-right']" />
+              </FormField>
+              <div class="grid gap-1.5">
+                <span class="text-base font-medium text-ink">{{ $t('stockOps.line_total') }}</span>
+                <span class="flex min-h-11 items-center justify-end text-base font-bold lg:min-h-10" :class="lineCheck(line).ok ? 'text-ink' : 'text-tone-danger-text'">{{ lineTotal(line) }}</span>
               </div>
             </div>
-            <div v-if="form.origin === 'fournisseur'" class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              <label class="block text-xs text-gray-600">{{ $t('stockOps.col_lot_number') }} ({{ $t('stockOps.optional') }})
-                <input v-model="line.lot_number" type="text" maxlength="30" class="mt-1 block w-full px-2 py-1 border border-gray-300 rounded-sm text-sm" />
-              </label>
-              <label class="block text-xs text-gray-600">{{ $t('stockOps.col_expiry') }} ({{ $t('stockOps.optional') }})
-                <input v-model="line.expiry_date" type="date" class="mt-1 block w-full px-2 py-1 border border-gray-300 rounded-sm text-sm" />
-              </label>
-            </div>
-            <div v-else class="text-xs text-gray-500">{{ $t('stockOps.col_expiry') }} : {{ line.expiry_date || '-' }}</div>
-            <p v-if="!lineCheck(line).ok" class="text-xs text-red-600">{{ $t(`stockOps.line_error_${lineCheck(line).error}`) }}</p>
-            <button v-if="form.origin === 'fournisseur' && form.lines.length > 1" type="button" @click="form.lines.splice(i, 1)"
-                    class="text-xs text-red-600 hover:underline">{{ $t('stockOps.remove_line') }}</button>
-          </div>
-          <button v-if="form.origin === 'fournisseur'" type="button" @click="addLine"
-                  class="px-3 py-1 bg-gray-100 border border-gray-300 rounded-lg text-sm">{{ $t('stockOps.add_line') }}</button>
-        </div>
 
-        <div class="flex justify-end gap-2 pt-2">
-          <button type="button" @click="showForm = false" class="px-4 py-2 bg-gray-200 rounded-lg text-sm">{{ $t('stockOps.close') }}</button>
-          <button type="submit" :disabled="saving" class="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium disabled:opacity-50">
-            {{ saving ? $t('stockOps.saving') : $t('stockOps.save') }}
-          </button>
+            <div v-if="form.origin === 'fournisseur'" class="grid gap-3 sm:grid-cols-2">
+              <FormField :id="`receipt-line-${i}-lot`" :label="`${$t('stockOps.col_lot_number')} (${$t('stockOps.optional')})`" v-slot="{ describedBy }">
+                <input :id="`receipt-line-${i}-lot`" v-model="line.lot_number" type="text" maxlength="30" :aria-describedby="describedBy" :class="fieldClass" />
+              </FormField>
+              <FormField :id="`receipt-line-${i}-expiry`" :label="`${$t('stockOps.col_expiry')} (${$t('stockOps.optional')})`" v-slot="{ describedBy }">
+                <input :id="`receipt-line-${i}-expiry`" v-model="line.expiry_date" type="date" :aria-describedby="describedBy" :class="fieldClass" />
+              </FormField>
+            </div>
+            <p v-else class="text-base text-ink-muted">{{ $t('stockOps.col_expiry') }} : {{ line.expiry_date || '-' }}</p>
+
+            <p v-if="!lineCheck(line).ok" role="alert" class="rounded-control border p-3 text-base" :class="toneClasses('danger')">{{ $t(`stockOps.line_error_${lineCheck(line).error}`) }}</p>
+          </div>
+          <div v-if="form.origin === 'fournisseur'">
+            <AppButton variant="secondary" :icon="PlusCircleIcon" @click="addLine">{{ $t('stockOps.add_line') }}</AppButton>
+          </div>
         </div>
       </form>
-    </div>
+
+      <template #footer>
+        <ActionBar>
+          <template #secondary>
+            <AppButton variant="ghost" @click="showForm = false">{{ $t('stockOps.close') }}</AppButton>
+          </template>
+          <AppButton type="submit" form="receipt-form" :disabled="saving" :loading="saving">
+            {{ saving ? $t('stockOps.saving') : $t('stockOps.save') }}
+          </AppButton>
+        </ActionBar>
+      </template>
+    </FullScreenPanel>
   </div>
 </template>
 
@@ -200,10 +197,33 @@ import { useI18n } from 'vue-i18n';
 import { todayLocalISO } from '@/utils/localDate';
 import { StockOpsGateway, describeStockError } from '@/services/StockOpsGateway';
 import { validateReceiptLine, prefillFromLot, lineTotal, QTY_FIELDS } from '@/utils/receiptLines';
+import { PlusCircleIcon, TrashIcon } from '@heroicons/vue/24/outline';
+import { AppButton, PageHeader, FormField, StatusBadge, ResponsiveTable, FullScreenPanel, ActionBar } from '@/components/ui';
+import { toneClasses } from '@/design/tones';
 
 const { t } = useI18n();
 const CHECK_STATUSES = ['a_controler', 'valide', 'rejete']; // annulation = rejete + motif cote serveur
 const today = todayLocalISO;
+
+// Colonnes des tableaux (cartes empilees sous lg) et style commun des champs.
+const columns = computed(() => [
+  { key: 'number', label: t('stockOps.col_receipt_number') },
+  { key: 'origin', label: t('stockOps.col_origin') },
+  { key: 'source', label: t('stockOps.col_source') },
+  { key: 'date', label: t('stockOps.col_received_date') },
+  { key: 'status', label: t('stockOps.col_status') },
+]);
+const detailColumns = computed(() => [
+  { key: 'product', label: t('stockOps.col_product') },
+  { key: 'expected', label: t('stockOps.col_expected'), align: 'right' },
+  { key: 'good', label: t('stockOps.col_good'), align: 'right' },
+  { key: 'damaged', label: t('stockOps.col_damaged'), align: 'right' },
+  { key: 'lost', label: t('stockOps.col_lost'), align: 'right' },
+  { key: 'defective', label: t('stockOps.col_defective'), align: 'right' },
+  { key: 'lot', label: t('stockOps.col_lot_number') },
+  { key: 'expiry', label: t('stockOps.col_expiry') },
+]);
+const fieldClass = 'block w-full min-h-11 lg:min-h-10 rounded-control border border-tone-neutral-border bg-white px-3 text-base text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand-600';
 
 const receipts = ref([]);
 const lots = ref([]);
@@ -226,11 +246,11 @@ const deliveredLots = computed(() => lots.value.filter((l) => l.status === 'livr
 const lineCheck = (line) => validateReceiptLine(line);
 
 const badge = (s) => ({
-  a_controler: 'bg-amber-100 text-amber-800',
-  valide: 'bg-green-100 text-green-800',
-  rejete: 'bg-red-100 text-red-800',
-  annule: 'bg-gray-200 text-gray-600',
-}[s] || 'bg-gray-100 text-gray-700');
+  a_controler: 'warning',
+  valide: 'success',
+  rejete: 'danger',
+  annule: 'neutral',
+}[s] || 'neutral');
 
 const lotLabel = (id) => {
   const lot = lots.value.find((l) => l.id === id);

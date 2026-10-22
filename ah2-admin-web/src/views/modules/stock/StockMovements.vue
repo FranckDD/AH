@@ -1,72 +1,71 @@
 <!-- src/views/modules/stock/StockMovements.vue -->
 <!-- Historique (lecture seule) des mouvements de stock. -->
 <template>
-  <div class="max-w-6xl mx-auto p-6 space-y-6">
-    <h2 class="text-xl font-bold text-gray-800">{{ $t('stockControl.movements_title') }}</h2>
+  <div class="grid w-full gap-6">
 
-    <form @submit.prevent="applyFilters" class="bg-white rounded-xl shadow-xs border border-gray-200 p-4 grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
-      <label class="block text-sm md:col-span-2">{{ $t('stockOps.col_product') }}
-        <input v-model="productSearch" type="text" :placeholder="$t('stockControl.product_search')"
-               class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
-        <select v-model="filters.productId" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
-          <option :value="null">{{ $t('stockControl.all_products') }}</option>
-          <option v-for="p in visibleProducts" :key="p.id" :value="p.id">{{ p.name }}</option>
-        </select>
-      </label>
-      <label class="block text-sm">{{ $t('stockControl.movement_type') }}
-        <select v-model="filters.movementType" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+    <PageHeader :title="$t('stockControl.movements_title')" :subtitle="$t('stockAdminScreens.movements_count', { n: total })" />
+
+    <form @submit.prevent="applyFilters" :aria-label="$t('stockAdminScreens.filters_label')"
+          class="grid gap-4 rounded-card border border-tone-neutral-border bg-white p-4 shadow-card md:grid-cols-2 lg:grid-cols-5 lg:items-end">
+      <div class="grid gap-3 md:col-span-2">
+        <FormField id="mov-search" :label="$t('stockControl.product_search')" v-slot="{ describedBy }">
+          <input id="mov-search" v-model="productSearch" type="search" autocomplete="off" :placeholder="$t('stockControl.product_search')" :aria-describedby="describedBy" :class="fieldClass" />
+        </FormField>
+        <FormField id="mov-product" :label="$t('stockOps.col_product')" v-slot="{ describedBy }">
+          <select id="mov-product" v-model="filters.productId" :aria-describedby="describedBy" :class="fieldClass">
+            <option :value="null">{{ $t('stockControl.all_products') }}</option>
+            <option v-for="p in visibleProducts" :key="p.id" :value="p.id">{{ p.name }}</option>
+          </select>
+        </FormField>
+      </div>
+      <FormField id="mov-type" :label="$t('stockControl.movement_type')" v-slot="{ describedBy }">
+        <select id="mov-type" v-model="filters.movementType" :aria-describedby="describedBy" :class="fieldClass">
           <option value="">{{ $t('stockControl.all_types') }}</option>
           <option v-for="mt in MOVEMENT_TYPES" :key="mt" :value="mt">{{ $t(`stockControl.movement.${mt}`) }}</option>
         </select>
-      </label>
-      <label class="block text-sm">{{ $t('stockControl.date_from') }}
-        <input v-model="filters.dateFrom" type="date" :max="today" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
-      </label>
-      <label class="block text-sm">{{ $t('stockControl.date_to') }}
-        <input v-model="filters.dateTo" type="date" :max="today" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
-      </label>
-      <div class="md:col-span-5 flex justify-end gap-2">
-        <button type="button" @click="resetFilters" class="px-4 py-2 bg-gray-200 rounded-lg text-sm">{{ $t('stockControl.reset') }}</button>
-        <button type="submit" class="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium">{{ $t('stockControl.apply') }}</button>
+      </FormField>
+      <FormField id="mov-from" :label="$t('stockControl.date_from')" v-slot="{ describedBy }">
+        <input id="mov-from" v-model="filters.dateFrom" type="date" :max="today" :aria-describedby="describedBy" :class="fieldClass" />
+      </FormField>
+      <FormField id="mov-to" :label="$t('stockControl.date_to')" v-slot="{ describedBy }">
+        <input id="mov-to" v-model="filters.dateTo" type="date" :max="today" :aria-describedby="describedBy" :class="fieldClass" />
+      </FormField>
+      <div class="flex flex-col gap-2 md:col-span-2 md:flex-row md:justify-end lg:col-span-5">
+        <AppButton variant="secondary" @click="resetFilters">{{ $t('stockControl.reset') }}</AppButton>
+        <AppButton type="submit">{{ $t('stockControl.apply') }}</AppButton>
       </div>
     </form>
 
-    <div v-if="pageError" class="bg-red-50 border-l-4 border-red-500 p-3 rounded-sm text-sm text-red-700">{{ pageError }}</div>
+    <p v-if="pageError" role="alert" class="rounded-card border p-4 text-base" :class="toneClasses('danger')">{{ pageError }}</p>
 
-    <section class="bg-white rounded-xl shadow-xs border border-gray-200 p-5 overflow-x-auto">
-      <div v-if="isLoading" class="text-sm text-gray-400">{{ $t('stockOps.loading') }}</div>
-      <div v-else-if="items.length === 0" class="text-sm text-gray-400">{{ $t('stockControl.no_movements') }}</div>
-      <table v-else class="w-full text-sm">
-        <thead>
-          <tr class="text-left text-xs text-gray-500 uppercase border-b">
-            <th class="py-2">{{ $t('stockOps.col_date') }}</th>
-            <th class="py-2">{{ $t('stockOps.col_product') }}</th>
-            <th class="py-2">{{ $t('stockControl.movement_type') }}</th>
-            <th class="py-2 text-right">{{ $t('stockOps.col_quantity') }}</th>
-            <th class="py-2">{{ $t('stockControl.note') }}</th>
-            <th class="py-2">{{ $t('stockControl.author') }}</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="m in items" :key="m.movement_id" class="border-b last:border-0 align-top">
-            <td class="py-2 whitespace-nowrap">{{ formatDateTime(m.created_at) }}</td>
-            <td class="py-2">{{ m.product_name || ('#' + m.product_id) }}</td>
-            <td class="py-2">{{ movementLabel(m.movement_type) }}</td>
-            <td class="py-2 text-right font-mono font-semibold"
-                :class="m.change_qty > 0 ? 'text-green-700' : (m.change_qty < 0 ? 'text-red-700' : 'text-gray-600')">
-              {{ m.change_qty > 0 ? '+' : '' }}{{ m.change_qty }}
-            </td>
-            <td class="py-2 max-w-xs">{{ m.note }}</td>
-            <td class="py-2">{{ m.created_by || '' }}</td>
-          </tr>
-        </tbody>
-      </table>
+    <section class="grid gap-3">
+      <ResponsiveTable
+        :columns="columns"
+        :rows="items"
+        row-key="movement_id"
+        :loading="isLoading"
+        :empty-title="$t('stockControl.no_movements')"
+        :empty-message="' '"
+        striped
+      >
+        <template #cell-date="{ row: m }"><span class="whitespace-nowrap">{{ formatDateTime(m.created_at) }}</span></template>
+        <template #cell-product="{ row: m }">{{ m.product_name || ('#' + m.product_id) }}</template>
+        <template #cell-type="{ row: m }">{{ movementLabel(m.movement_type) }}</template>
+        <template #cell-quantity="{ row: m }">
+          <span class="font-mono font-semibold"
+                :class="m.change_qty > 0 ? 'text-tone-success-text' : (m.change_qty < 0 ? 'text-tone-danger-text' : 'text-ink-muted')">
+            {{ m.change_qty > 0 ? '+' : '' }}{{ m.change_qty }}
+          </span>
+        </template>
+        <template #cell-note="{ row: m }"><span class="block max-w-xs">{{ m.note }}</span></template>
+        <template #cell-author="{ row: m }">{{ m.created_by || '' }}</template>
+      </ResponsiveTable>
 
-      <div v-if="totalPages > 1" class="flex items-center justify-between pt-4 text-sm">
-        <span class="text-gray-600">{{ $t('stockControl.page_of', { page, total: totalPages }) }} · {{ total }}</span>
+      <div v-if="totalPages > 1" class="flex items-center justify-between gap-3 rounded-card border border-tone-neutral-border bg-white p-3">
+        <p class="text-base text-ink">{{ $t('stockControl.page_of', { page, total: totalPages }) }} ({{ total }})</p>
         <div class="flex gap-2">
-          <button type="button" @click="goTo(page - 1)" :disabled="page <= 1" class="px-3 py-1 border rounded-sm disabled:opacity-50">‹</button>
-          <button type="button" @click="goTo(page + 1)" :disabled="page >= totalPages" class="px-3 py-1 border rounded-sm disabled:opacity-50">›</button>
+          <AppButton variant="secondary" :icon="ChevronLeftIcon" :aria-label="$t('stockAdminScreens.prev_page')" @click="goTo(page - 1)" :disabled="page <= 1" />
+          <AppButton variant="secondary" :icon="ChevronRightIcon" :aria-label="$t('stockAdminScreens.next_page')" @click="goTo(page + 1)" :disabled="page >= totalPages" />
         </div>
       </div>
     </section>
@@ -78,11 +77,25 @@ import { ref, reactive, computed, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { StockOpsGateway, describeStockError } from '@/services/StockOpsGateway';
 import { todayLocalISO } from '@/utils/localDate';
+import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/vue/24/outline';
+import { AppButton, PageHeader, FormField, ResponsiveTable } from '@/components/ui';
+import { toneClasses } from '@/design/tones';
 
 const { t, te } = useI18n();
 const MOVEMENT_TYPES = ['VENTE', 'ANNULATION_VENTE', 'initial', 'update', 'renew', 'reception',
   'avarie_endommage', 'avarie_perdu', 'avarie_defectueux'];
 const PER_PAGE = 50;
+
+// Colonnes du tableau (cartes empilees sous lg) et style commun des champs.
+const columns = computed(() => [
+  { key: 'date', label: t('stockOps.col_date') },
+  { key: 'product', label: t('stockOps.col_product') },
+  { key: 'type', label: t('stockControl.movement_type') },
+  { key: 'quantity', label: t('stockOps.col_quantity'), align: 'right' },
+  { key: 'note', label: t('stockControl.note') },
+  { key: 'author', label: t('stockControl.author') },
+]);
+const fieldClass = 'block w-full min-h-11 lg:min-h-10 rounded-control border border-tone-neutral-border bg-white px-3 text-base text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand-600';
 const today = todayLocalISO();
 
 const products = ref([]);

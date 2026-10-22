@@ -48,12 +48,19 @@
             </div>
 
             <div class="grid content-start gap-4">
-              <div class="flex flex-col gap-3 rounded-card border border-tone-neutral-border bg-tone-neutral-bg p-4 sm:flex-row sm:items-center sm:justify-between">
-                <div class="min-w-0">
-                  <p class="text-base font-medium text-ink">{{ t('configScreens.token_label') }}</p>
-                  <p class="break-all font-mono text-base text-ink-muted">{{ configStore.ticketPrintToken || 'Non généré' }}</p>
+              <div class="grid gap-3 rounded-card border border-tone-neutral-border bg-tone-neutral-bg p-4">
+                <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div class="min-w-0">
+                    <p class="text-base font-medium text-ink">{{ t('configScreens.token_label') }}</p>
+                    <p class="break-all font-mono text-base text-ink-muted">{{ configStore.ticketPrintToken || 'Non généré' }}</p>
+                  </div>
+                  <AppButton variant="secondary" :disabled="!confirmRegenerate" @click="handleRegenerateToken">{{ t('configScreens.token_regenerate') }}</AppButton>
                 </div>
-                <AppButton variant="secondary" @click="handleRegenerateToken">{{ t('configScreens.token_regenerate') }}</AppButton>
+                <p class="rounded-control border p-3 text-base" :class="toneClasses('warning')">{{ t('configScreens.token_warning') }}</p>
+                <label class="flex min-h-11 items-center gap-3 text-base font-medium text-ink">
+                  <input type="checkbox" v-model="confirmRegenerate" class="h-5 w-5 shrink-0 accent-brand-600" />
+                  <span>{{ t('configScreens.token_confirm_check') }}</span>
+                </label>
               </div>
 
               <div class="grid gap-4 md:grid-cols-2">
@@ -250,6 +257,7 @@ import {
 
 import ExamFormModal from '@/components/config/ExamFormModal.vue';
 import { AppButton, PageHeader, FormField, StatusBadge, ResponsiveTable } from '@/components/ui';
+import { toneClasses } from '@/design/tones';
 
 const { t } = useI18n();
 const configStore = useConfigStore();
@@ -328,9 +336,12 @@ const handleTicketLogoUpload = (event) => {
     }
 };
 
+// Le jeton n'est regenere qu'une fois (a l'installation) : la case doit etre cochee, et elle se decoche apres chaque regeneration.
+const confirmRegenerate = ref(false);
 const handleRegenerateToken = async () => {
     if (!confirm("Régénérer le jeton invalidera l'ancien pour tous les services pont locaux déjà configurés. Continuer ?")) return;
     await configStore.regenerateTicketPrintToken();
+    confirmRegenerate.value = false;
 };
 
 const saveStructureConfig = async () => {

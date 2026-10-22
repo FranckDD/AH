@@ -1,96 +1,105 @@
 <!-- src/views/modules/stock/AdjustmentRequestsAdmin.vue -->
 <!-- File admin des demandes d'ajustement de stock (secretaire -> admin). -->
 <template>
-  <div class="max-w-6xl mx-auto p-6 space-y-6">
-    <div class="flex flex-wrap items-center justify-between gap-3">
-      <h2 class="text-xl font-bold text-gray-800">{{ $t('stockAdjust.admin_title') }}</h2>
-      <select v-model="statusFilter" @change="load" class="px-3 py-2 border border-gray-300 rounded-lg text-sm">
-        <option value="">{{ $t('stockOps.all_statuses') }}</option>
-        <option v-for="s in STATUSES" :key="s" :value="s">{{ $t(`stockAdjust.status.${s}`) }}</option>
-      </select>
-    </div>
+  <div class="grid w-full gap-6">
 
-    <div v-if="pageError" class="bg-red-50 border-l-4 border-red-500 p-3 rounded-sm text-sm text-red-700">{{ pageError }}</div>
-    <div v-if="pageMessage" class="bg-green-50 border-l-4 border-green-500 p-3 rounded-sm text-sm text-green-700">{{ pageMessage }}</div>
+    <PageHeader :title="$t('stockAdjust.admin_title')" :subtitle="$t('stockAdminScreens.requests_count', { n: requests.length })" />
 
-    <section class="bg-white rounded-xl shadow-xs border border-gray-200 p-5 overflow-x-auto">
-      <div v-if="isLoading" class="text-sm text-gray-400">{{ $t('stockOps.loading') }}</div>
-      <div v-else-if="requests.length === 0" class="text-sm text-gray-400">{{ $t('stockAdjust.no_requests') }}</div>
-      <table v-else class="w-full text-sm">
-        <thead>
-          <tr class="text-left text-xs text-gray-500 uppercase border-b">
-            <th class="py-2">{{ $t('stockOps.col_date') }}</th>
-            <th class="py-2">{{ $t('stockOps.col_product') }}</th>
-            <th class="py-2">{{ $t('stockAdjust.col_kind') }}</th>
-            <th class="py-2">{{ $t('stockOps.col_quantity') }}</th>
-            <th class="py-2">{{ $t('stockOps.col_reason') }}</th>
-            <th class="py-2">{{ $t('stockAdjust.requester') }}</th>
-            <th class="py-2">{{ $t('stockOps.col_status') }}</th>
-            <th class="py-2">{{ $t('stockOps.col_action') }}</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="r in requests" :key="r.id" class="border-b last:border-0 align-top">
-            <td class="py-2 whitespace-nowrap">{{ formatDateTime(r.requested_at) }}</td>
-            <td class="py-2">
-              {{ r.product_name }}
-              <div v-if="r.kind === 'correction' && r.stock_at_request !== null && r.stock_at_request !== undefined" class="text-xs text-gray-500">
-                {{ $t('stockAdjust.correction_detail', { n: r.quantity, m: r.stock_at_request, k: r.current_quantity ?? '—' }) }}
-              </div>
-              <div v-else-if="r.status === 'en_attente' && r.current_quantity !== null && r.current_quantity !== undefined" class="text-xs text-gray-500">
-                {{ $t('stockAdjust.current_stock_n', { n: r.current_quantity }) }}
-              </div>
-            </td>
-            <td class="py-2">{{ $t(`stockAdjust.kind.${r.kind}`) }}</td>
-            <td class="py-2">{{ r.kind === 'reapprovisionnement' ? '+' : '= ' }}{{ r.quantity }}</td>
-            <td class="py-2 max-w-xs">{{ r.reason }}</td>
-            <td class="py-2">{{ actorLabel(r.requested_by_name, r.requested_by) }}</td>
-            <td class="py-2">
-              <span class="px-2 py-0.5 rounded-full text-xs font-medium" :class="badge(r.status)">{{ $t(`stockAdjust.status.${r.status}`) }}</span>
-              <div v-if="r.decision_note" class="text-xs text-gray-600 mt-1">{{ $t('stockAdjust.decision_note') }} : {{ r.decision_note }}</div>
-              <div v-if="r.stock_before !== null && r.stock_before !== undefined" class="text-xs text-gray-600 mt-1">
-                {{ $t('stockAdjust.col_stock_change') }} : {{ r.stock_before }} → {{ r.stock_after }}
-              </div>
-              <div v-if="rowErrors[r.id]" class="text-xs text-red-700 mt-1">{{ rowErrors[r.id] }}</div>
-            </td>
-            <td class="py-2 whitespace-nowrap">
-              <template v-if="r.status === 'en_attente'">
-                <button type="button" @click="approve(r)" :disabled="busyId === r.id"
-                        class="px-3 py-1 bg-green-600 text-white rounded-lg text-xs font-medium disabled:opacity-50 mr-1">{{ $t('stockAdjust.approve') }}</button>
-                <button type="button" @click="openRefuse(r)" :disabled="busyId === r.id"
-                        class="px-3 py-1 bg-red-600 text-white rounded-lg text-xs font-medium disabled:opacity-50">{{ $t('stockAdjust.refuse') }}</button>
-              </template>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+    <section :aria-label="$t('stockAdminScreens.status_filter')" class="rounded-card border border-tone-neutral-border bg-white p-4 shadow-card">
+      <div class="max-w-xs">
+        <FormField id="adjust-status" :label="$t('stockAdminScreens.status_filter')" v-slot="{ describedBy }">
+          <select id="adjust-status" v-model="statusFilter" @change="load" :aria-describedby="describedBy" :class="fieldClass">
+            <option value="">{{ $t('stockOps.all_statuses') }}</option>
+            <option v-for="s in STATUSES" :key="s" :value="s">{{ $t(`stockAdjust.status.${s}`) }}</option>
+          </select>
+        </FormField>
+      </div>
     </section>
 
-    <div v-if="refuseTarget" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-      <form @submit.prevent="confirmRefuse" class="bg-white rounded-xl shadow-xl w-full max-w-md p-6 space-y-3">
-        <h3 class="text-lg font-semibold text-gray-800">{{ $t('stockAdjust.refuse_title') }}</h3>
-        <p class="text-sm text-gray-600">{{ refuseTarget.product_name }} — {{ $t(`stockAdjust.kind.${refuseTarget.kind}`) }} {{ refuseTarget.quantity }}</p>
-        <div v-if="refuseError" class="bg-red-50 border-l-4 border-red-500 p-3 rounded-sm text-sm text-red-700">{{ refuseError }}</div>
-        <label class="block text-sm">{{ $t('stockAdjust.decision_note') }}
-          <textarea v-model="refuseNote" rows="3" maxlength="2000" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg"></textarea>
-        </label>
-        <div class="flex justify-end gap-2">
-          <button type="button" @click="refuseTarget = null" class="px-4 py-2 bg-gray-200 rounded-lg text-sm">{{ $t('stockOps.close') }}</button>
-          <button type="submit" :disabled="busyId !== null" class="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium disabled:opacity-50">{{ $t('stockAdjust.refuse') }}</button>
-        </div>
+    <p v-if="pageError" role="alert" class="rounded-card border p-4 text-base" :class="toneClasses('danger')">{{ pageError }}</p>
+    <p v-if="pageMessage" role="status" class="rounded-card border p-4 text-base" :class="toneClasses('success')">{{ pageMessage }}</p>
+
+    <ResponsiveTable
+      :columns="columns"
+      :rows="requests"
+      row-key="id"
+      :loading="isLoading"
+      :empty-title="$t('stockAdjust.no_requests')"
+      :empty-message="' '"
+      striped
+    >
+      <template #cell-date="{ row: r }"><span class="whitespace-nowrap">{{ formatDateTime(r.requested_at) }}</span></template>
+      <template #cell-product="{ row: r }">
+        <span class="font-medium">{{ r.product_name }}</span>
+        <span v-if="r.kind === 'correction' && r.stock_at_request !== null && r.stock_at_request !== undefined" class="block text-base text-ink-muted">
+          {{ $t('stockAdjust.correction_detail', { n: r.quantity, m: r.stock_at_request, k: r.current_quantity ?? '-' }) }}
+        </span>
+        <span v-else-if="r.status === 'en_attente' && r.current_quantity !== null && r.current_quantity !== undefined" class="block text-base text-ink-muted">
+          {{ $t('stockAdjust.current_stock_n', { n: r.current_quantity }) }}
+        </span>
+      </template>
+      <template #cell-kind="{ row: r }">{{ $t(`stockAdjust.kind.${r.kind}`) }}</template>
+      <template #cell-quantity="{ row: r }"><span class="font-semibold">{{ r.kind === 'reapprovisionnement' ? '+' : '= ' }}{{ r.quantity }}</span></template>
+      <template #cell-reason="{ row: r }"><span class="block max-w-xs">{{ r.reason }}</span></template>
+      <template #cell-requester="{ row: r }">{{ actorLabel(r.requested_by_name, r.requested_by) }}</template>
+      <template #cell-status="{ row: r }">
+        <StatusBadge :tone="badge(r.status)" :label="$t(`stockAdjust.status.${r.status}`)" />
+        <span v-if="r.decision_note" class="mt-1 block text-base text-ink-muted">{{ $t('stockAdjust.decision_note') }} : {{ r.decision_note }}</span>
+        <span v-if="r.stock_before !== null && r.stock_before !== undefined" class="mt-1 block text-base text-ink-muted">
+          {{ $t('stockAdjust.col_stock_change') }} : {{ $t('stockAdminScreens.stock_to', { from: r.stock_before, to: r.stock_after }) }}
+        </span>
+        <span v-if="rowErrors[r.id]" role="alert" class="mt-1 block text-base font-medium text-tone-danger-text">{{ rowErrors[r.id] }}</span>
+      </template>
+      <template #actions="{ row: r }">
+        <template v-if="r.status === 'en_attente'">
+          <AppButton @click="approve(r)" :disabled="busyId === r.id" :loading="busyId === r.id">{{ $t('stockAdjust.approve') }}</AppButton>
+          <AppButton variant="danger" @click="openRefuse(r)" :disabled="busyId === r.id">{{ $t('stockAdjust.refuse') }}</AppButton>
+        </template>
+      </template>
+    </ResponsiveTable>
+
+    <FullScreenPanel v-if="refuseTarget" :title="$t('stockAdjust.refuse_title')" @close="refuseTarget = null">
+      <form id="refuse-form" @submit.prevent="confirmRefuse" class="grid gap-4">
+        <p class="text-base text-ink">{{ refuseTarget.product_name }} - {{ $t(`stockAdjust.kind.${refuseTarget.kind}`) }} {{ refuseTarget.quantity }}</p>
+        <p v-if="refuseError" role="alert" class="rounded-control border p-3 text-base" :class="toneClasses('danger')">{{ refuseError }}</p>
+        <FormField id="refuse-note" :label="$t('stockAdjust.decision_note')" required v-slot="{ describedBy }">
+          <textarea id="refuse-note" v-model="refuseNote" rows="3" maxlength="2000" :aria-describedby="describedBy" :class="[fieldClass, 'py-2']"></textarea>
+        </FormField>
       </form>
-    </div>
+      <template #footer>
+        <ActionBar>
+          <template #secondary>
+            <AppButton variant="ghost" @click="refuseTarget = null">{{ $t('stockOps.close') }}</AppButton>
+          </template>
+          <AppButton type="submit" form="refuse-form" variant="danger" :disabled="busyId !== null" :loading="busyId !== null">{{ $t('stockAdjust.refuse') }}</AppButton>
+        </ActionBar>
+      </template>
+    </FullScreenPanel>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { actorLabel } from '@/utils/actorName';
 import { StockOpsGateway, describeStockError } from '@/services/StockOpsGateway';
+import { AppButton, PageHeader, FormField, StatusBadge, ResponsiveTable, FullScreenPanel, ActionBar } from '@/components/ui';
+import { toneClasses } from '@/design/tones';
 
 const { t } = useI18n();
 const STATUSES = ['en_attente', 'approuve', 'refuse', 'annule'];
+
+// Colonnes du tableau (cartes empilees sous lg) et style commun des champs.
+const columns = computed(() => [
+  { key: 'date', label: t('stockOps.col_date') },
+  { key: 'product', label: t('stockOps.col_product') },
+  { key: 'kind', label: t('stockAdjust.col_kind') },
+  { key: 'quantity', label: t('stockOps.col_quantity'), align: 'right' },
+  { key: 'reason', label: t('stockOps.col_reason') },
+  { key: 'requester', label: t('stockAdjust.requester') },
+  { key: 'status', label: t('stockOps.col_status') },
+]);
+const fieldClass = 'block w-full min-h-11 lg:min-h-10 rounded-control border border-tone-neutral-border bg-white px-3 text-base text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand-600';
 
 const requests = ref([]);
 const statusFilter = ref('en_attente');
@@ -104,11 +113,11 @@ const refuseNote = ref('');
 const refuseError = ref('');
 
 const badge = (s) => ({
-  en_attente: 'bg-amber-100 text-amber-800',
-  approuve: 'bg-green-100 text-green-800',
-  refuse: 'bg-red-100 text-red-800',
-  annule: 'bg-gray-200 text-gray-600',
-}[s] || 'bg-gray-100 text-gray-700');
+  en_attente: 'warning',
+  approuve: 'success',
+  refuse: 'danger',
+  annule: 'neutral',
+}[s] || 'neutral');
 
 const formatDateTime = (v) => (v ? new Date(v).toLocaleString() : '');
 
