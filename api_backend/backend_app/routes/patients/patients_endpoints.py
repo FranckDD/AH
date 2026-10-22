@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from pydantic import ValidationError, BaseModel
 import logging
+import uuid as uuid_lib
 from typing import List, Any, Optional
 from datetime import date
 
@@ -440,6 +441,27 @@ def export_patients(
         media_type="application/pdf",
         headers={"Content-Disposition": "attachment; filename=patients_export.pdf"},
     )
+
+
+@router.get(
+    "/by-uuid/{patient_uuid}",
+    # Memes roles que la creation : le front (medecin/nurse/secretaire) y retrouve le
+    # code d'un patient qu'il vient de creer localement (PowerSync), des que l'envoi a abouti.
+    dependencies=[Depends(role_required("medecin", "nurse", "secretaire", "admin", "manager"))],
+)
+def get_patient_code_by_uuid(
+    patient_uuid: uuid_lib.UUID,
+    patient_ctrl: PatientController = Depends(get_patient_controller)
+):
+    """Identifiant et code d'un patient cree hors ligne, retrouve par son uuid client.
+    404 tant que l'envoi n'a pas abouti. Ne renvoie que ces deux champs."""
+    patient_id = patient_ctrl.repo.get_id_by_uuid(str(patient_uuid), only_active=True)
+    if patient_id is None:
+        raise HTTPException(status_code=404, detail="Patient non trouvé")
+    patient = patient_ctrl.repo.get_by_id(patient_id)
+    if not patient:
+        raise HTTPException(status_code=404, detail="Patient non trouvé")
+    return {"patient_id": patient_id, "code_patient": patient.get("code_patient")}
 
 
 @router.get("/{patient_id}", response_model=PatientResponse)

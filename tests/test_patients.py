@@ -380,3 +380,81 @@ def test_medecin_toujours_autorise_sur_onglet_clinique(db_session, api_client):
     resp = client.get("/patients/clinical", headers=headers)
 
     assert resp.status_code == 200
+
+
+# --- GET /patients/by-uuid/{uuid} : code d'un patient cree localement (PowerSync) ---
+
+def _create_patient_with_uuid(client, headers, patient_uuid):
+    resp = client.post(
+        "/patients/",
+        json={"first_name": "Uuid", "last_name": "Lookup", "birth_date": "1991-02-03", "uuid": patient_uuid},
+        headers=headers,
+    )
+    assert resp.status_code == 201
+    return resp.json()
+
+
+def test_get_patient_by_uuid_returns_id_and_code(db_session, api_client):
+    import uuid as uuid_lib
+    create_test_user(db_session, "test_patients_uuid_nurse", "nurse", password=TEST_PASSWORD)
+    client = api_client(auth_endpoints, patients_endpoints)
+    headers = auth_headers(client, "test_patients_uuid_nurse", TEST_PASSWORD)
+    patient_uuid = str(uuid_lib.uuid4())
+    created = _create_patient_with_uuid(client, headers, patient_uuid)
+
+    resp = client.get(f"/patients/by-uuid/{patient_uuid}", headers=headers)
+
+    assert resp.status_code == 200
+    assert resp.json() == {"patient_id": created["patient_id"], "code_patient": created["code_patient"]}
+
+
+def test_get_patient_by_uuid_unknown_is_404(db_session, api_client):
+    import uuid as uuid_lib
+    create_test_user(db_session, "test_patients_uuid_404", "nurse", password=TEST_PASSWORD)
+    client = api_client(auth_endpoints, patients_endpoints)
+    headers = auth_headers(client, "test_patients_uuid_404", TEST_PASSWORD)
+
+    resp = client.get(f"/patients/by-uuid/{uuid_lib.uuid4()}", headers=headers)
+
+    assert resp.status_code == 404
+
+
+def test_get_patient_by_uuid_malformed_is_422(db_session, api_client):
+    create_test_user(db_session, "test_patients_uuid_422", "nurse", password=TEST_PASSWORD)
+    client = api_client(auth_endpoints, patients_endpoints)
+    headers = auth_headers(client, "test_patients_uuid_422", TEST_PASSWORD)
+
+    resp = client.get("/patients/by-uuid/pas-un-uuid", headers=headers)
+
+    assert resp.status_code == 422
+
+
+import pytest
+
+
+@pytest.mark.parametrize("role,expected", [
+    ("medecin", 200), ("nurse", 200), ("secretaire", 200), ("admin", 200), ("Assistant", 403),
+])
+def test_get_patient_by_uuid_roles(db_session, api_client, role, expected):
+    # Un login par test : /auth/login est limite a 5/minute (reinitialise entre les tests).
+    import uuid as uuid_lib
+    username = f"test_patients_uuid_{role.lower()}"
+    create_test_user(db_session, username, role, password=TEST_PASSWORD)
+    client = api_client(auth_endpoints, patients_endpoints)
+    patient_uuid = str(uuid_lib.uuid4())
+    db_session.execute(
+        __import__("sqlalchemy").text(
+            "INSERT INTO patients (first_name, last_name, birth_date, uuid) "
+            "VALUES ('Uuid', 'Roles', '1990-01-01', CAST(:u AS uuid))"
+        ),
+        {"u": patient_uuid},
+    )
+    headers = auth_headers(client, username, TEST_PASSWORD)
+
+    assert client.get(f"/patients/by-uuid/{patient_uuid}", headers=headers).status_code == expected
+
+
+def test_get_patient_by_uuid_requires_authentication(db_session, api_client):
+    import uuid as uuid_lib
+    client = api_client(auth_endpoints, patients_endpoints)
+    assert client.get(f"/patients/by-uuid/{uuid_lib.uuid4()}").status_code == 401
