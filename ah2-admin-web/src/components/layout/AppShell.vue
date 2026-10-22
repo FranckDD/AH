@@ -1,5 +1,5 @@
 <template>
-  <div class="app-refonte flex w-full h-dvh bg-page">
+  <div :class="['app-refonte flex w-full h-dvh bg-page', navPaletteClass(palette)]">
 
     <!-- Voile derrière le tiroir (téléphone) -->
     <div
@@ -13,7 +13,7 @@
       :id="sidebarId"
       :aria-label="t('medicalShell.mainNav')"
       :class="[
-        'bg-nav-900 text-nav-text w-72 max-w-[85vw] shrink-0 flex flex-col',
+        'bg-linear-to-b from-nav-900 to-nav-700 text-nav-text w-72 max-w-[85vw] shrink-0 flex flex-col',
         'fixed inset-y-0 left-0 z-40 transition-all duration-200 ease-in-out',
         'md:static md:z-20 md:translate-x-0',
         isSidebarOpen ? 'md:w-64' : 'md:w-20',
@@ -193,6 +193,7 @@ import { resolveAssetUrl } from '@/services/api';
 import AccountModal from '@/components/account/AccountModal.vue';
 import NotificationBell from '@/components/notifications/NotificationBell.vue';
 import ConnectionStatus from '@/components/ui/ConnectionStatus.vue';
+import { navPaletteClass } from '@/design/navPalettes';
 import { useSyncQuarantineCount } from '@/composables/useSyncQuarantineCount';
 import {
   Bars3Icon,
@@ -209,6 +210,8 @@ const props = defineProps({
   // Nom affiche quand la structure n'a pas encore de nom enregistre.
   brandFallback: { type: String, default: 'AH2' },
   sidebarId: { type: String, default: 'app-sidebar' },
+  // Palette du menu de l'espace (cle de design/navPalettes.js) : night (defaut) ou forest.
+  palette: { type: String, default: 'night' },
 });
 
 const authStore = useAuthStore();

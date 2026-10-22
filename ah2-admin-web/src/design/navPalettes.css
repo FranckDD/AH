@@ -1,0 +1,10 @@
+/*
+  Palettes du menu lateral, une par espace (voir navPalettes.js). Le menu est un degrade vertical de nav-900 (haut)
+  a nav-700 (bas). Chaque palette ne redefinit que ces trois fonds (800 sert au survol et a l'entree active) ; le texte (nav-text) et les couleurs de marque restent communs. Sans classe : bleu nuit (style.css).
+  Contrastes verifies par tests/navPalettes.test.mjs (texte 4,5:1, filet actif 3:1).
+*/
+.nav-palette-forest {
+  --color-nav-700: #1f6b5e;
+  --color-nav-800: #164840;
+  --color-nav-900: #0c2f2b;
+}

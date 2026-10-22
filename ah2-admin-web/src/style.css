@@ -1,5 +1,6 @@
 /* src/style.css - CONTENU COMPLET */
 @import 'tailwindcss';
+@import './design/navPalettes.css';
 
 /*
   The default border color has changed to `currentcolor` in Tailwind CSS v4,
@@ -41,7 +42,8 @@ html, body, #app {
   --color-brand-700: #115e59;
   --color-brand-800: #134e4a;
 
-  /* Menu : bleu nuit */
+  /* Menu : bleu nuit, en degrade vertical de nav-900 (haut) a nav-700 (bas) */
+  --color-nav-700: #1d4a82;
   --color-nav-800: #12305a;
   --color-nav-900: #0b1f3a;
   --color-nav-text: #e2e8f0;

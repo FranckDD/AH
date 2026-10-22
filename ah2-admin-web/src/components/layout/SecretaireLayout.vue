@@ -4,6 +4,7 @@
     :bell-roles="['admin', 'promoteur', 'secretaire']"
     brand-fallback="AH2 Secrétariat"
     sidebar-id="secretariat-sidebar"
+    palette="forest"
   />
 </template>
 
