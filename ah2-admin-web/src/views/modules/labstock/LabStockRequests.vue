@@ -1,144 +1,94 @@
 <!-- src/views/modules/labstock/LabStockRequests.vue -->
-<!-- Liste « a commander ». Breakpoints : < md = cartes (1 colonne, 360 px), md = cartes sur
-     2 colonnes, lg = tableau. Lecture : roles /lab-stock ; actions (commander / date /
+<!-- Liste « a commander ». Lecture : roles /lab-stock ; actions (commander / date /
      annuler) : promoteur, ToxicoManager, admin. -->
 <template>
-  <div class="space-y-6 w-full">
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between bg-white p-4 md:p-6 rounded-2xl shadow-xs border border-gray-100 gap-3">
-      <div>
-        <h1 class="text-xl md:text-2xl font-extrabold text-gray-800 tracking-tight">{{ t('labStock.requests_title') }}</h1>
-        <p class="text-sm text-gray-500">{{ t('labStock.requests_subtitle') }}</p>
+  <div class="grid w-full gap-6">
+
+    <PageHeader :title="t('labStock.requests_title')" :subtitle="`${t('labStock.requests_subtitle')} (${t('labStockScreens.requests_count', { n: visible.length })})`" />
+
+    <section :aria-label="t('labStockScreens.status_filter')" class="rounded-card border border-tone-neutral-border bg-white p-4 shadow-card">
+      <div class="max-w-xs">
+        <FormField id="lab-requests-status" :label="t('labStockScreens.status_filter')" v-slot="{ describedBy }">
+          <select id="lab-requests-status" v-model="statusFilter" :aria-describedby="describedBy" :class="fieldClass">
+            <option value="open">{{ t('labStock.filter_open') }}</option>
+            <option v-for="s in STATUSES" :key="s" :value="s">{{ labelOf(requestStatusLabel(s)) }}</option>
+            <option value="all">{{ t('labStock.filter_all') }}</option>
+          </select>
+        </FormField>
       </div>
-      <select v-model="statusFilter" class="px-3 py-2 min-h-[44px] lg:min-h-0 border border-gray-300 rounded-lg text-sm w-full sm:w-auto">
-        <option value="open">{{ t('labStock.filter_open') }}</option>
-        <option v-for="s in STATUSES" :key="s" :value="s">{{ labelOf(requestStatusLabel(s)) }}</option>
-        <option value="all">{{ t('labStock.filter_all') }}</option>
-      </select>
-    </div>
+    </section>
 
-    <div v-if="pageError" class="bg-red-50 border-l-4 border-red-500 p-3 rounded-sm text-sm text-red-700">{{ pageError }}</div>
-    <div v-if="pageMessage" class="bg-green-50 border-l-4 border-green-500 p-3 rounded-sm text-sm text-green-700">{{ pageMessage }}</div>
+    <p v-if="pageError" role="alert" class="rounded-card border p-4 text-base" :class="toneClasses('danger')">{{ pageError }}</p>
+    <p v-if="pageMessage" role="status" class="rounded-card border p-4 text-base" :class="toneClasses('success')">{{ pageMessage }}</p>
 
-    <div v-if="isLoading" class="p-10 text-center text-gray-500">{{ t('stockOps.loading') }}</div>
-    <div v-else-if="visible.length === 0" class="bg-white rounded-2xl border border-gray-100 p-8 text-center text-gray-500 italic">
-      {{ t('labStock.no_requests') }}
-    </div>
-
-    <template v-else>
-      <!-- Phone + tablette : cartes -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-3 lg:hidden">
-        <article v-for="r in visible" :key="r.id" class="bg-white rounded-2xl shadow-xs border border-gray-100 p-4 space-y-3">
-          <div class="flex items-start justify-between gap-3">
-            <div class="min-w-0">
-              <h3 class="font-semibold text-gray-900 break-words">{{ r.product_name }}</h3>
-              <p v-if="r.packaging" class="text-xs text-gray-500">{{ r.packaging }}</p>
-            </div>
-            <span class="px-2 py-0.5 rounded-full text-xs font-medium shrink-0" :class="badge(r.status)">{{ labelOf(requestStatusLabel(r.status)) }}</span>
-          </div>
-          <dl class="grid grid-cols-2 gap-x-3 gap-y-1 text-sm">
-            <dt class="text-gray-500">{{ t('labStock.col_stock') }}</dt>
-            <dd class="text-right font-semibold" :class="isLow(r) ? 'text-red-600' : 'text-gray-900'">{{ num(r.quantity) }}</dd>
-            <dt class="text-gray-500">{{ t('labStock.col_threshold') }}</dt>
-            <dd class="text-right">{{ num(r.alert_threshold) }}</dd>
-            <dt class="text-gray-500">{{ t('labStock.col_origin') }}</dt>
-            <dd class="text-right">{{ originText(r) }}</dd>
-            <template v-if="r.expected_date">
-              <dt class="text-gray-500">{{ t('labStock.col_expected') }}</dt>
-              <dd class="text-right">{{ formatDate(r.expected_date) }}</dd>
-            </template>
-            <template v-if="r.supplier">
-              <dt class="text-gray-500">{{ t('labStock.col_supplier') }}</dt>
-              <dd class="text-right break-words">{{ r.supplier }}</dd>
-            </template>
-          </dl>
-          <p v-if="r.cancel_reason" class="text-xs text-gray-600">{{ t('labStock.cancel_reason') }} : {{ r.cancel_reason }}</p>
-          <div v-if="canOrder && isOpen(r)" class="flex flex-wrap gap-2 pt-1">
-            <button v-if="r.status === 'a_commander'" type="button" @click="openOrder(r, false)"
-                    class="flex-1 min-w-[8rem] px-3 py-2 min-h-[44px] lg:min-h-0 bg-emerald-600 text-white rounded-lg text-sm font-medium">{{ t('labStock.mark_ordered') }}</button>
-            <button v-if="r.status === 'commande'" type="button" @click="openOrder(r, true)"
-                    class="flex-1 min-w-[8rem] px-3 py-2 min-h-[44px] lg:min-h-0 bg-indigo-50 text-indigo-700 rounded-lg text-sm font-medium">{{ t('labStock.edit_date') }}</button>
-            <button type="button" @click="openCancel(r)"
-                    class="flex-1 min-w-[8rem] px-3 py-2 min-h-[44px] lg:min-h-0 bg-red-50 text-red-700 rounded-lg text-sm font-medium">{{ t('labStock.cancel_request') }}</button>
-          </div>
-        </article>
-      </div>
-
-      <!-- Desktop : tableau -->
-      <div class="hidden lg:block bg-white rounded-2xl shadow-xs border border-gray-100 overflow-x-auto">
-        <table class="min-w-full text-sm text-left">
-          <thead>
-            <tr class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
-              <th class="px-6 py-3 font-semibold">{{ t('labStock.col_product') }}</th>
-              <th class="px-6 py-3 font-semibold text-right">{{ t('labStock.col_stock') }}</th>
-              <th class="px-6 py-3 font-semibold text-right">{{ t('labStock.col_threshold') }}</th>
-              <th class="px-6 py-3 font-semibold">{{ t('labStock.col_origin') }}</th>
-              <th class="px-6 py-3 font-semibold">{{ t('labStock.col_status') }}</th>
-              <th class="px-6 py-3 font-semibold">{{ t('labStock.col_expected') }}</th>
-              <th v-if="canOrder" class="px-6 py-3 font-semibold text-right">{{ t('stockOps.col_action') }}</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-gray-100">
-            <tr v-for="r in visible" :key="r.id" class="hover:bg-gray-50 align-top">
-              <td class="px-6 py-3">
-                <div class="font-medium text-gray-900">{{ r.product_name }}</div>
-                <div v-if="r.packaging" class="text-xs text-gray-500">{{ r.packaging }}</div>
-                <div v-if="r.supplier" class="text-xs text-gray-500">{{ r.supplier }}</div>
-              </td>
-              <td class="px-6 py-3 text-right font-semibold" :class="isLow(r) ? 'text-red-600' : 'text-gray-900'">{{ num(r.quantity) }}</td>
-              <td class="px-6 py-3 text-right text-gray-600">{{ num(r.alert_threshold) }}</td>
-              <td class="px-6 py-3">{{ originText(r) }}</td>
-              <td class="px-6 py-3">
-                <span class="px-2 py-0.5 rounded-full text-xs font-medium" :class="badge(r.status)">{{ labelOf(requestStatusLabel(r.status)) }}</span>
-                <div v-if="r.cancel_reason" class="text-xs text-gray-600 mt-1">{{ t('labStock.cancel_reason') }} : {{ r.cancel_reason }}</div>
-              </td>
-              <td class="px-6 py-3 whitespace-nowrap">{{ formatDate(r.expected_date) }}</td>
-              <td v-if="canOrder" class="px-6 py-3 text-right whitespace-nowrap space-x-1">
-                <template v-if="isOpen(r)">
-                  <button v-if="r.status === 'a_commander'" type="button" @click="openOrder(r, false)"
-                          class="px-3 py-1 bg-emerald-600 text-white rounded-lg text-xs font-medium">{{ t('labStock.mark_ordered') }}</button>
-                  <button v-if="r.status === 'commande'" type="button" @click="openOrder(r, true)"
-                          class="px-3 py-1 bg-indigo-50 text-indigo-700 rounded-lg text-xs font-medium">{{ t('labStock.edit_date') }}</button>
-                  <button type="button" @click="openCancel(r)"
-                          class="px-3 py-1 bg-red-50 text-red-700 rounded-lg text-xs font-medium">{{ t('labStock.cancel_request') }}</button>
-                </template>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </template>
+    <ResponsiveTable
+      :columns="columns"
+      :rows="visible"
+      row-key="id"
+      :loading="isLoading"
+      :empty-title="t('labStock.no_requests')"
+      :empty-message="' '"
+      striped
+    >
+      <template #cell-product="{ row: r }">
+        <span class="font-medium">{{ r.product_name }}</span>
+        <span v-if="r.packaging" class="block text-base text-ink-muted">{{ r.packaging }}</span>
+        <span v-if="r.supplier" class="block text-base text-ink-muted">{{ r.supplier }}</span>
+      </template>
+      <template #cell-stock="{ row: r }"><span class="font-semibold" :class="isLow(r) ? 'text-tone-danger-text' : 'text-ink'">{{ num(r.quantity) }}</span></template>
+      <template #cell-threshold="{ row: r }">{{ num(r.alert_threshold) }}</template>
+      <template #cell-origin="{ row: r }">{{ originText(r) }}</template>
+      <template #cell-status="{ row: r }">
+        <StatusBadge :tone="badge(r.status)" :label="labelOf(requestStatusLabel(r.status))" />
+        <span v-if="r.cancel_reason" class="mt-1 block text-base text-ink-muted">{{ t('labStock.cancel_reason') }} : {{ r.cancel_reason }}</span>
+      </template>
+      <template #cell-expected="{ row: r }"><span class="whitespace-nowrap">{{ formatDate(r.expected_date) }}</span></template>
+      <template v-if="canOrder" #actions="{ row: r }">
+        <template v-if="isOpen(r)">
+          <AppButton v-if="r.status === 'a_commander'" variant="info" @click="openOrder(r, false)">{{ t('labStock.mark_ordered') }}</AppButton>
+          <AppButton v-if="r.status === 'commande'" variant="secondary" @click="openOrder(r, true)">{{ t('labStock.edit_date') }}</AppButton>
+          <AppButton variant="danger" @click="openCancel(r)">{{ t('labStock.cancel_request') }}</AppButton>
+        </template>
+      </template>
+    </ResponsiveTable>
 
     <!-- Commander / modifier la date attendue -->
-    <div v-if="orderTarget" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-      <form @submit.prevent="confirmOrder" class="bg-white rounded-xl shadow-xl w-full max-w-md p-5 sm:p-6 space-y-3">
-        <h3 class="text-lg font-semibold text-gray-800">{{ orderIsEdit ? t('labStock.edit_date') : t('labStock.mark_ordered') }}</h3>
-        <p class="text-sm text-gray-600">{{ orderTarget.product_name }}</p>
-        <div v-if="modalError" class="bg-red-50 border-l-4 border-red-500 p-3 rounded-sm text-sm text-red-700">{{ modalError }}</div>
-        <label class="block text-sm">{{ t('labStock.col_expected') }}
-          <input v-model="orderDate" type="date" required :min="today" class="mt-1 block w-full px-3 py-2 min-h-[44px] lg:min-h-0 border border-gray-300 rounded-lg" />
-        </label>
-        <div class="flex justify-end gap-2">
-          <button type="button" @click="orderTarget = null" class="px-4 py-2 min-h-[44px] lg:min-h-0 bg-gray-200 rounded-lg text-sm">{{ t('stockOps.close') }}</button>
-          <button type="submit" :disabled="busy" class="px-4 py-2 min-h-[44px] lg:min-h-0 bg-emerald-600 text-white rounded-lg text-sm font-medium disabled:opacity-50">{{ t('stockOps.save') }}</button>
-        </div>
+    <FullScreenPanel v-if="orderTarget" :title="orderIsEdit ? t('labStock.edit_date') : t('labStock.mark_ordered')" @close="orderTarget = null">
+      <form id="lab-order-form" @submit.prevent="confirmOrder" class="grid gap-4">
+        <p class="text-base font-medium text-ink">{{ orderTarget.product_name }}</p>
+        <p v-if="modalError" role="alert" class="rounded-control border p-3 text-base" :class="toneClasses('danger')">{{ modalError }}</p>
+        <FormField id="lab-order-date" :label="t('labStock.col_expected')" required v-slot="{ describedBy }">
+          <input id="lab-order-date" v-model="orderDate" type="date" required :min="today" :aria-describedby="describedBy" :class="fieldClass" />
+        </FormField>
       </form>
-    </div>
+      <template #footer>
+        <ActionBar>
+          <template #secondary>
+            <AppButton variant="ghost" @click="orderTarget = null">{{ t('stockOps.close') }}</AppButton>
+          </template>
+          <AppButton type="submit" form="lab-order-form" :disabled="busy" :loading="busy">{{ t('stockOps.save') }}</AppButton>
+        </ActionBar>
+      </template>
+    </FullScreenPanel>
 
     <!-- Annuler avec motif -->
-    <div v-if="cancelTarget" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-      <form @submit.prevent="confirmCancel" class="bg-white rounded-xl shadow-xl w-full max-w-md p-5 sm:p-6 space-y-3">
-        <h3 class="text-lg font-semibold text-gray-800">{{ t('labStock.cancel_request') }}</h3>
-        <p class="text-sm text-gray-600">{{ cancelTarget.product_name }}</p>
-        <div v-if="modalError" class="bg-red-50 border-l-4 border-red-500 p-3 rounded-sm text-sm text-red-700">{{ modalError }}</div>
-        <label class="block text-sm">{{ t('labStock.cancel_reason') }}
-          <textarea v-model="cancelReason" rows="3" maxlength="2000" required class="mt-1 block w-full px-3 py-2 min-h-[44px] lg:min-h-0 border border-gray-300 rounded-lg"></textarea>
-        </label>
-        <div class="flex justify-end gap-2">
-          <button type="button" @click="cancelTarget = null" class="px-4 py-2 min-h-[44px] lg:min-h-0 bg-gray-200 rounded-lg text-sm">{{ t('stockOps.close') }}</button>
-          <button type="submit" :disabled="busy" class="px-4 py-2 min-h-[44px] lg:min-h-0 bg-red-600 text-white rounded-lg text-sm font-medium disabled:opacity-50">{{ t('labStock.cancel_request') }}</button>
-        </div>
+    <FullScreenPanel v-if="cancelTarget" :title="t('labStock.cancel_request')" @close="cancelTarget = null">
+      <form id="lab-cancel-form" @submit.prevent="confirmCancel" class="grid gap-4">
+        <p class="text-base font-medium text-ink">{{ cancelTarget.product_name }}</p>
+        <p v-if="modalError" role="alert" class="rounded-control border p-3 text-base" :class="toneClasses('danger')">{{ modalError }}</p>
+        <FormField id="lab-cancel-reason" :label="t('labStock.cancel_reason')" required v-slot="{ describedBy }">
+          <textarea id="lab-cancel-reason" v-model="cancelReason" rows="3" maxlength="2000" required :aria-describedby="describedBy" :class="[fieldClass, 'py-2']"></textarea>
+        </FormField>
       </form>
-    </div>
+      <template #footer>
+        <ActionBar>
+          <template #secondary>
+            <AppButton variant="ghost" @click="cancelTarget = null">{{ t('stockOps.close') }}</AppButton>
+          </template>
+          <AppButton type="submit" form="lab-cancel-form" variant="danger" :disabled="busy" :loading="busy">{{ t('labStock.cancel_request') }}</AppButton>
+        </ActionBar>
+      </template>
+    </FullScreenPanel>
   </div>
 </template>
 
@@ -149,10 +99,23 @@ import { useAuthStore } from '@/stores/auth';
 import { LabStockGateway, describeLabStockError } from '@/services/LabStockGateway';
 import { requestOriginLabel, requestStatusLabel, levelLabel } from '@/utils/labStockLabels';
 import { todayLocalISO } from '@/utils/localDate';
+import { AppButton, PageHeader, FormField, StatusBadge, ResponsiveTable, FullScreenPanel, ActionBar } from '@/components/ui';
+import { toneClasses } from '@/design/tones';
 
 const { t } = useI18n();
 const authStore = useAuthStore();
 const STATUSES = ['a_commander', 'commande', 'recu', 'annule'];
+
+// Colonnes du tableau (cartes empilees sous lg) et style commun des champs.
+const columns = computed(() => [
+  { key: 'product', label: t('labStock.col_product') },
+  { key: 'stock', label: t('labStock.col_stock'), align: 'right' },
+  { key: 'threshold', label: t('labStock.col_threshold'), align: 'right' },
+  { key: 'origin', label: t('labStock.col_origin') },
+  { key: 'status', label: t('labStock.col_status') },
+  { key: 'expected', label: t('labStock.col_expected') },
+]);
+const fieldClass = 'block w-full min-h-11 lg:min-h-10 rounded-control border border-tone-neutral-border bg-white px-3 text-base text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand-600';
 
 const canOrder = computed(() => authStore.hasRole(['promoteur', 'ToxicoManager', 'admin']));
 
@@ -197,11 +160,11 @@ const originText = (r) => {
   return lv ? `${base} (${lv})` : base;
 };
 const badge = (s) => ({
-  a_commander: 'bg-amber-100 text-amber-800',
-  commande: 'bg-blue-100 text-blue-800',
-  recu: 'bg-green-100 text-green-800',
-  annule: 'bg-gray-200 text-gray-600',
-}[s] || 'bg-gray-100 text-gray-700');
+  a_commander: 'warning',
+  commande: 'info',
+  recu: 'success',
+  annule: 'neutral',
+}[s] || 'neutral');
 
 const load = async () => {
   isLoading.value = true;

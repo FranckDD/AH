@@ -1840,6 +1840,25 @@ const messages = {
       description_placeholder: "Ex: Achat de matériel, Consultation M. X...",
       type_group: "Type de transaction"
     },
+    labStockScreens: {
+      products_count: "{n} produits",
+      search_label: "Rechercher un produit",
+      signal_group: "Niveau de stock à signaler",
+      requests_count: "{n} demandes",
+      status_filter: "Statut",
+      receipts_count: "{n} réceptions",
+      filters_label: "Filtres",
+      invoice_header: "En-tête de la facture",
+      picker_title: "Rechercher un produit",
+      lines_table: "Lignes de la réception",
+      count_conflict_badge: "À recompter",
+      count_table: "Produits à compter",
+      count_input_label: "Quantité comptée pour {name}",
+      movements_count: "{n} mouvements",
+      product_filter: "Produit",
+      expenses_period_label: "Période des dépenses",
+      prices_count: "{n} prix relevés"
+    },
     stockAdminScreens: {
       receipts_count: "{n} réceptions",
       lots_count: "{n} lots",
@@ -3879,6 +3898,25 @@ const messages = {
       select_category: "-- Select --",
       description_placeholder: "E.g.: Equipment purchase, Consultation Mr X...",
       type_group: "Transaction type"
+    },
+    labStockScreens: {
+      products_count: "{n} products",
+      search_label: "Search a product",
+      signal_group: "Stock level to report",
+      requests_count: "{n} requests",
+      status_filter: "Status",
+      receipts_count: "{n} receipts",
+      filters_label: "Filters",
+      invoice_header: "Invoice header",
+      picker_title: "Search a product",
+      lines_table: "Receipt lines",
+      count_conflict_badge: "To recount",
+      count_table: "Products to count",
+      count_input_label: "Counted quantity for {name}",
+      movements_count: "{n} movements",
+      product_filter: "Product",
+      expenses_period_label: "Expenses period",
+      prices_count: "{n} prices recorded"
     },
     stockAdminScreens: {
       receipts_count: "{n} receipts",

@@ -1,76 +1,68 @@
 <!-- src/views/modules/labstock/LabStockAlerts.vue -->
-<!-- Alertes du stock labo. Breakpoints : < md = cartes empilees (360 px), md = 2 colonnes
-     (stocks bas | peremptions), lg = deux tableaux cote a cote. Acces : READERS. -->
+<!-- Alertes du stock labo : rappel de comptage, stocks bas, peremptions. Acces : READERS. -->
 <template>
-  <div class="space-y-6 w-full">
-    <div class="flex flex-col md:flex-row justify-between md:items-center bg-white p-4 md:p-6 rounded-2xl shadow-xs border border-gray-100 gap-4">
-      <div>
-        <h1 class="text-xl md:text-2xl font-extrabold text-gray-800 tracking-tight">{{ t('labStock.alerts_title') }}</h1>
-        <p class="text-sm text-gray-500">{{ t('labStock.alerts_subtitle') }}</p>
-      </div>
-    </div>
+  <div class="grid w-full gap-6">
 
-    <div v-if="pageError" class="bg-red-50 border-l-4 border-red-500 p-3 rounded-sm text-sm text-red-700">{{ pageError }}</div>
-    <div v-if="isLoading" class="p-10 text-center text-gray-500">{{ t('stockOps.loading') }}</div>
+    <PageHeader :title="t('labStock.alerts_title')" :subtitle="t('labStock.alerts_subtitle')" />
+
+    <p v-if="pageError" role="alert" class="rounded-card border p-4 text-base" :class="toneClasses('danger')">{{ pageError }}</p>
+    <p v-if="isLoading" role="status" class="p-10 text-center text-base text-ink-muted">{{ t('stockOps.loading') }}</p>
 
     <template v-else-if="data">
       <!-- rappel de comptage -->
-      <section class="rounded-2xl border p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3"
-               :class="countDue ? 'bg-amber-50 border-amber-300' : 'bg-white border-gray-100 shadow-xs'">
+      <section aria-labelledby="lab-alerts-count" class="flex flex-col gap-3 rounded-card border p-4 shadow-card md:flex-row md:items-center md:justify-between"
+               :class="countDue ? toneClasses('warning') : 'border-tone-neutral-border bg-white'">
         <div>
-          <h2 class="font-semibold text-gray-800">{{ t('labStock.alerts_count_title') }}</h2>
-          <p class="text-sm" :class="countDue ? 'text-amber-800' : 'text-gray-500'">{{ countText }}</p>
+          <h2 id="lab-alerts-count" class="text-lg font-semibold">{{ t('labStock.alerts_count_title') }}</h2>
+          <p class="text-base" :class="countDue ? '' : 'text-ink-muted'">{{ countText }}</p>
         </div>
-        <router-link v-if="canCount" to="/dashboard/lab-stock-count"
-                     class="inline-flex items-center justify-center w-full md:w-auto px-5 min-h-[44px] rounded-xl font-semibold text-white bg-emerald-600 hover:bg-emerald-700">
+        <router-link v-if="canCount" to="/dashboard/lab-stock-count" :class="[buttonClasses('primary', 'md'), 'w-full md:w-auto']">
           {{ t('labStock.alerts_go_count') }}
         </router-link>
       </section>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+      <div class="grid items-start gap-6 md:grid-cols-2">
         <!-- stocks bas -->
-        <section class="bg-white rounded-2xl shadow-xs border border-gray-100 p-4 space-y-3">
-          <div class="flex items-center justify-between gap-3">
-            <h2 class="font-semibold text-gray-800">{{ t('labStock.alerts_low_title') }}
-              <span class="ml-1 text-xs font-bold px-2 py-0.5 rounded-full bg-orange-100 text-orange-700">{{ data.low.length }}</span>
-            </h2>
-          </div>
-          <p v-if="!data.low.length" class="text-sm text-gray-500 italic py-4 text-center">{{ t('labStock.alerts_low_empty') }}</p>
-          <ul v-else class="divide-y divide-gray-100">
-            <li v-for="p in data.low" :key="p.product_id" class="py-3 flex items-start justify-between gap-3">
+        <section aria-labelledby="lab-alerts-low" class="grid gap-3 rounded-card border border-tone-neutral-border bg-white p-4 shadow-card">
+          <h2 id="lab-alerts-low" class="flex items-center gap-2 text-lg font-semibold text-ink">
+            {{ t('labStock.alerts_low_title') }}
+            <StatusBadge :tone="data.low.length ? 'warning' : 'neutral'" :label="String(data.low.length)" />
+          </h2>
+          <p v-if="!data.low.length" class="py-4 text-center text-base text-ink-muted">{{ t('labStock.alerts_low_empty') }}</p>
+          <ul v-else class="divide-y divide-tone-neutral-border">
+            <li v-for="p in data.low" :key="p.product_id" class="flex flex-col gap-2 py-3 sm:flex-row sm:items-start sm:justify-between">
               <div class="min-w-0">
-                <p class="font-medium text-gray-900 break-words">{{ p.name }}</p>
-                <p v-if="p.packaging" class="text-xs text-gray-500">{{ p.packaging }}</p>
-                <p class="text-xs mt-1" :class="p.request_status ? 'text-blue-700' : 'text-gray-400'">
+                <p class="break-words text-base font-medium text-ink">{{ p.name }}</p>
+                <p v-if="p.packaging" class="text-base text-ink-muted">{{ p.packaging }}</p>
+                <p class="mt-1 text-base" :class="p.request_status ? 'text-tone-info-text' : 'text-ink-muted'">
                   {{ p.request_status ? t('labStock.alerts_request_open', { status: label(requestStatusLabel(p.request_status)) }) : t('labStock.alerts_no_request') }}
                 </p>
               </div>
-              <span class="shrink-0 text-sm font-bold px-2 py-1 rounded-lg"
-                    :class="Number(p.quantity) === 0 ? 'bg-red-100 text-red-700' : 'bg-orange-100 text-orange-700'">
-                {{ t('labStock.alerts_qty_threshold', { quantity: Number(p.quantity), threshold: Number(p.alert_threshold) }) }}
-              </span>
+              <StatusBadge class="shrink-0 self-start" :tone="Number(p.quantity) === 0 ? 'danger' : 'warning'"
+                           :label="t('labStock.alerts_qty_threshold', { quantity: Number(p.quantity), threshold: Number(p.alert_threshold) })" />
             </li>
           </ul>
-          <router-link v-if="data.low.length" to="/dashboard/lab-stock-requests"
-                       class="flex items-center justify-center w-full min-h-[44px] rounded-xl font-semibold border border-blue-200 text-blue-700 hover:bg-blue-50">
+          <router-link v-if="data.low.length" to="/dashboard/lab-stock-requests" :class="[buttonClasses('info', 'md'), 'w-full']">
             {{ t('labStock.alerts_go_requests') }}
           </router-link>
         </section>
 
         <!-- peremptions -->
-        <section class="bg-white rounded-2xl shadow-xs border border-gray-100 p-4 space-y-3">
-          <h2 class="font-semibold text-gray-800">{{ t('labStock.alerts_expiring_title') }}
-            <span class="ml-1 text-xs font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-700">{{ data.expiring.length }}</span>
+        <section aria-labelledby="lab-alerts-expiring" class="grid gap-3 rounded-card border border-tone-neutral-border bg-white p-4 shadow-card">
+          <h2 id="lab-alerts-expiring" class="flex items-center gap-2 text-lg font-semibold text-ink">
+            {{ t('labStock.alerts_expiring_title') }}
+            <StatusBadge :tone="data.expiring.length ? 'danger' : 'neutral'" :label="String(data.expiring.length)" />
           </h2>
-          <p v-if="!data.expiring.length" class="text-sm text-gray-500 italic py-4 text-center">{{ t('labStock.alerts_expiring_empty') }}</p>
-          <ul v-else class="divide-y divide-gray-100">
-            <li v-for="e in sortedExpiring" :key="e.receipt_line_id" class="py-3 flex items-start justify-between gap-3"
-                :class="e.days_left < 0 ? 'bg-red-50 -mx-2 px-2 rounded-lg' : ''">
+          <p v-if="!data.expiring.length" class="py-4 text-center text-base text-ink-muted">{{ t('labStock.alerts_expiring_empty') }}</p>
+          <ul v-else class="divide-y divide-tone-neutral-border">
+            <li v-for="e in sortedExpiring" :key="e.receipt_line_id" class="flex flex-col gap-2 py-3 sm:flex-row sm:items-start sm:justify-between"
+                :class="e.days_left < 0 ? 'rounded-control bg-tone-danger-bg px-2' : ''">
               <div class="min-w-0">
-                <p class="font-medium break-words" :class="e.days_left < 0 ? 'text-red-800' : 'text-gray-900'">{{ e.product_name || '?' }}</p>
-                <p class="text-xs text-gray-500">{{ t('labStock.alerts_lot', { lot: e.lot_number || '?' }) }} · {{ t('labStock.alerts_expiry_on', { date: formatDate(e.expiry_date) }) }}</p>
+                <p class="break-words text-base font-medium" :class="e.days_left < 0 ? 'text-tone-danger-text' : 'text-ink'">{{ e.product_name || '?' }}</p>
+                <p class="text-base text-ink-muted">{{ t('labStock.alerts_lot', { lot: e.lot_number || '?' }) }}</p>
+                <p class="text-base text-ink-muted">{{ t('labStock.alerts_expiry_on', { date: formatDate(e.expiry_date) }) }}</p>
               </div>
-              <span class="shrink-0 text-sm font-bold px-2 py-1 rounded-lg" :class="daysClass(e.days_left)">{{ daysText(e.days_left) }}</span>
+              <StatusBadge class="shrink-0 self-start" :tone="daysTone(e.days_left)" :label="daysText(e.days_left)" />
             </li>
           </ul>
         </section>
@@ -85,6 +77,9 @@ import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '@/stores/auth';
 import { LabStockGateway, describeLabStockError } from '@/services/LabStockGateway';
 import { requestStatusLabel } from '@/utils/labStockLabels';
+import { PageHeader, StatusBadge } from '@/components/ui';
+import { toneClasses } from '@/design/tones';
+import { buttonClasses } from '@/utils/ui';
 
 const { t } = useI18n();
 const auth = useAuthStore();
@@ -107,7 +102,7 @@ const countText = computed(() => {
   return st.reminder_due ? t('labStock.count_reminder', { days: st.days_since }) : t('labStock.alerts_count_ok', { days: st.days_since });
 });
 const daysText = (d) => (d < 0 ? t('labStock.alerts_expired', { days: -d }) : d === 0 ? t('labStock.alerts_expires_today') : t('labStock.alerts_days_left', { days: d }));
-const daysClass = (d) => (d <= 0 ? 'bg-red-600 text-white' : d <= 15 ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-800');
+const daysTone = (d) => (d <= 15 ? 'danger' : 'warning');
 
 onMounted(async () => {
   isLoading.value = true;

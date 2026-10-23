@@ -1493,3 +1493,37 @@ Plan `plans/2026-10-22-refonte-ux-stock-admin.md`. Base `132351c`. **Vérifié**
 - Le test d'utilisation avec le personnel du stock n'est pas fait.
 
 **Reste à migrer** (non commencé) : stock du labo (vue promoteur et laborantin : produits, demandes, réceptions, comptage, alertes, mouvements, dépenses), laboratoire, toxicologie, stock-control complet ; puis la documentation d'utilisation par rôle, l'onglet Rapports et le chantier 8 (déploiement).
+*(Mis à jour juste après : le stock du labo est livré, voir la section suivante.)*
+
+
+### Refonte UX du stock du labo : livrée (Tâches 1 à 6), à vérifier par l'utilisateur (2026-10-23)
+
+Plan `plans/2026-10-22-refonte-ux-stock-labo.md`. Base `5aa9b88`. **Vérifié** : 3928 tests `node` (dont `refonteLabStockGuard.test.mjs`, 36 tests) et `vite build`. **Jamais vérifié dans un navigateur par un agent** : le rendu est à contrôler par l'utilisateur avec la checklist ci-dessous.
+
+**Livré** (huit écrans dans le cadre commun, partagés entre laborantin, StockController, promoteur, ToxicoManager et admin)
+- **Produits**, **Demandes** (commande et annulation avec motif en panneau), **Réceptions** (détail en panneau, annulation admin avec motif) et **Formulaire de réception** : Tâches 1 à 3, faites avant cette session.
+- **Comptage** (`LabStockCount`) : un seul tableau responsive (les deux gabarits de saisie en double sont supprimés), champ invalide marqué `aria-invalid` et relié à son message, produit en conflit signalé par un badge « À recompter » avec texte, rappel et conflits annoncés, envoi en indigo.
+- **Alertes** (`LabStockAlerts`) : rappel de comptage, stocks bas et péremptions en sections titrées ; quantités et délais en badge avec texte (`daysTone` remplace `daysClass`) ; « Aller compter » en indigo, « Voir les demandes » en bleu ciel.
+- **Mouvements** (`LabStockMovements`, lecture seule) : filtre produit étiqueté, tableau, type en badge (réception vert, comptage bleu ciel, annulation rouge), variation avec signe écrit.
+- **Dépenses** (`LabStockExpenses`) : total en tuile, période et produit en champs étiquetés, barres mensuelles décoratives avec montant écrit, historique de prix en tableau responsive.
+
+**Décisions et rulings**
+- Script inchangé hors imports, colonnes, constante de classes et fonctions de tonalité : appels de la passerelle, validations, droits par rôle, règles de stock et messages identiques (contrats figés d'abord, verts avant et après).
+- Nouvelles clés `labStockScreens.*` en FR et EN : `count_conflict_badge`, `count_table`, `count_input_label`, `movements_count`, `product_filter`, `expenses_period_label`, `prices_count`.
+- Un point de contrat des Dépenses a été reformulé : la boucle `v-for="(h, i) in prices"` du gabarit est devenue `priceRows` (même donnée, un identifiant de ligne en plus) ; le contrat fige cette nouvelle forme.
+- Le garde-fou déclare quatre fichiers `HORS_LOT` modifiés en parallèle à la demande de l'utilisateur : `router/index.js` (fermeture de la base locale avant le rechargement après erreur de chargement), `utils/ui.js` (variantes de bouton `brand` et `brandOutline`), `LoginView.vue`, `DashboardOverview.vue`.
+- **À faire au commit** : renseigner la constante `FIN` de `refonteLabStockGuard.test.mjs` avec le commit de ce lot (elle vaut `null`, donc l'arbre de travail est comparé à la base).
+
+**Checklist à vérifier par l'utilisateur** (laborantin, StockController, promoteur ; chaque ligne à 360, 768 et 1280 px)
+| Écran | Points précis |
+|---|---|
+| Comptage | Saisir plusieurs quantités, une valeur invalide (champ en erreur et message), envoyer ; conflit : le produit reste saisi avec son badge, les autres se vident ; rappel de comptage |
+| Alertes | Stock bas (quantité 0 en rouge), péremption (périmé, aujourd'hui, jours restants) ; les deux boutons ; seul laborantin et admin voient « Aller compter » |
+| Mouvements | Filtre produit, signes + et -, note de limite à 200 lignes |
+| Dépenses | Période, barres mensuelles, fournisseurs, historique de prix d'un produit, erreur de chargement |
+
+**Résiduels**
+- Les messages de confirmation (boîtes de dialogue du navigateur) gardent leur forme d'origine.
+- Le test d'utilisation avec le personnel du labo n'est pas fait.
+
+**Reste à migrer** : laboratoire (réception, liste de travail, résultats), toxicologie, stock-control complet ; puis la documentation d'utilisation par rôle, l'onglet Rapports et le chantier 8 (déploiement).

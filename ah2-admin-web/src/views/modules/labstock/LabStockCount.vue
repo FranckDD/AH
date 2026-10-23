@@ -1,111 +1,90 @@
 <!-- src/views/modules/labstock/LabStockCount.vue -->
-<!-- Comptage hebdomadaire. Breakpoints : < md = une carte par produit (360 px), md = cartes
-     sur 2 colonnes, lg = tableau. Acces : laborantin, admin. Les produits en conflit gardent
-     leur saisie pour recomptage ; les autres sont vides apres l'envoi. -->
+<!-- Comptage hebdomadaire. Un seul tableau responsive (cartes empilees sous lg). Acces :
+     laborantin, admin. Les produits en conflit gardent leur saisie pour recomptage ; les
+     autres sont vides apres l'envoi. -->
 <template>
-  <div class="space-y-6 w-full">
-    <div class="flex flex-col md:flex-row justify-between md:items-center bg-white p-4 md:p-6 rounded-2xl shadow-xs border border-gray-100 gap-4">
-      <div>
-        <h1 class="text-xl md:text-2xl font-extrabold text-gray-800 tracking-tight">{{ t('labStock.count_title') }}</h1>
-        <p class="text-sm text-gray-500">{{ t('labStock.count_subtitle') }}</p>
-      </div>
-      <p class="text-sm text-gray-500">{{ t('labStock.count_last', { date: lastCountText }) }}</p>
-    </div>
+  <div class="grid w-full gap-6">
 
-    <div v-if="reminderDue" class="bg-amber-50 border-l-4 border-amber-500 p-3 rounded-sm text-sm text-amber-800">
+    <PageHeader :title="t('labStock.count_title')" :subtitle="`${t('labStock.count_subtitle')} (${t('labStock.count_last', { date: lastCountText })})`" />
+
+    <p v-if="reminderDue" role="status" class="rounded-card border p-4 text-base" :class="toneClasses('warning')">
       {{ daysSince == null ? t('labStock.count_reminder_never') : t('labStock.count_reminder', { days: daysSince }) }}
-    </div>
-    <div v-if="pageError" class="bg-red-50 border-l-4 border-red-500 p-3 rounded-sm text-sm text-red-700">{{ pageError }}</div>
-    <div v-if="pageMessage" class="bg-green-50 border-l-4 border-green-500 p-3 rounded-sm text-sm text-green-700">{{ pageMessage }}</div>
+    </p>
+    <p v-if="pageError" role="alert" class="rounded-card border p-4 text-base" :class="toneClasses('danger')">{{ pageError }}</p>
+    <p v-if="pageMessage" role="status" class="rounded-card border p-4 text-base" :class="toneClasses('success')">{{ pageMessage }}</p>
 
-    <div v-if="conflicts.length" class="bg-orange-50 border-2 border-orange-300 p-4 rounded-xl text-sm text-orange-900 space-y-2">
-      <p class="font-bold">{{ t('labStock.count_conflicts_title') }}</p>
-      <ul class="list-disc pl-5 space-y-1">
+    <section v-if="conflicts.length" role="alert" class="grid gap-2 rounded-card border p-4 text-base" :class="toneClasses('warning')">
+      <h2 class="font-semibold">{{ t('labStock.count_conflicts_title') }}</h2>
+      <ul class="list-disc space-y-1 pl-5">
         <li v-for="c in conflicts" :key="c.product_id">{{ t('labStock.count_conflict_line', { name: c.name, expected: c.expected, actual: c.actual }) }}</li>
       </ul>
-    </div>
+    </section>
 
-    <div class="bg-white rounded-2xl shadow-xs border border-gray-100 p-4 flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
-      <div class="relative w-full sm:w-72">
-        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-          <MagnifyingGlassIcon class="h-5 w-5 text-gray-400" />
-        </div>
-        <input v-model="search" type="text" :placeholder="t('common.search_placeholder')"
-               class="block w-full pl-10 pr-3 py-2 min-h-[44px] lg:min-h-0 border border-gray-300 rounded-lg bg-gray-50 sm:text-sm" />
-      </div>
-      <span class="text-sm text-gray-500">{{ t('labStock.count_filled', { n: filledCount, total: products.length }) }}</span>
-    </div>
+    <section :aria-label="t('labStockScreens.search_label')" class="grid gap-3 rounded-card border border-tone-neutral-border bg-white p-4 shadow-card sm:grid-cols-[minmax(0,20rem)_1fr] sm:items-end">
+      <FormField id="lab-count-search" :label="t('labStockScreens.search_label')" v-slot="{ describedBy }">
+        <input id="lab-count-search" v-model="search" type="text" :placeholder="t('common.search_placeholder')" :aria-describedby="describedBy" :class="fieldClass" />
+      </FormField>
+      <p class="text-base text-ink-muted sm:text-right">{{ t('labStock.count_filled', { n: filledCount, total: products.length }) }}</p>
+    </section>
 
-    <div v-if="isLoading" class="p-10 text-center text-gray-500">{{ t('stockOps.loading') }}</div>
-    <div v-else-if="filtered.length === 0" class="bg-white rounded-2xl border border-gray-100 p-8 text-center text-gray-500 italic">{{ t('labStock.no_products') }}</div>
+    <ResponsiveTable
+      :columns="columns"
+      :rows="filtered"
+      row-key="id"
+      :loading="isLoading"
+      :empty-title="t('labStock.no_products')"
+      :empty-message="' '"
+      role="region"
+      :aria-label="t('labStockScreens.count_table')"
+      striped
+    >
+      <template #cell-name="{ row: p }">
+        <span class="font-medium">{{ p.name }}</span>
+        <span v-if="isConflict(p.id)" class="mt-1 block"><StatusBadge tone="warning" :label="t('labStockScreens.count_conflict_badge')" /></span>
+      </template>
+      <template #cell-packaging="{ row: p }">{{ p.packaging || '-' }}</template>
+      <template #cell-stock="{ row: p }"><span class="font-semibold">{{ num(p.quantity) }}</span></template>
+      <template #cell-last="{ row: p }">{{ formatDate(p.last_counted_at) || t('labStock.never') }}</template>
+      <template #cell-counted="{ row: p }">
+        <input v-model="entered[p.id]" type="number" inputmode="numeric" pattern="[0-9]*" min="0" step="1"
+               :aria-label="t('labStockScreens.count_input_label', { name: p.name })"
+               :aria-invalid="invalid(p.id) ? 'true' : undefined"
+               :aria-describedby="invalid(p.id) ? 'lab-count-invalid' : undefined"
+               :class="[fieldClass, 'text-right lg:w-28', invalid(p.id) ? 'border-tone-danger-border bg-tone-danger-bg' : '']" />
+      </template>
+    </ResponsiveTable>
 
-    <template v-else>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-3 lg:hidden">
-        <article v-for="p in filtered" :key="p.id" class="bg-white rounded-2xl shadow-xs border p-4 space-y-3"
-                 :class="isConflict(p.id) ? 'border-orange-300' : invalid(p.id) ? 'border-red-300' : 'border-gray-100'">
-          <div class="flex items-start justify-between gap-3">
-            <div class="min-w-0">
-              <h3 class="font-semibold text-gray-900 break-words">{{ p.name }}</h3>
-              <p v-if="p.packaging" class="text-xs text-gray-500">{{ p.packaging }}</p>
-            </div>
-            <div class="text-right shrink-0">
-              <div class="text-xs text-gray-500">{{ t('labStock.last_stock') }}</div>
-              <div class="text-2xl font-bold leading-none text-gray-900">{{ num(p.quantity) }}</div>
-            </div>
-          </div>
-          <label class="block text-sm text-gray-700">{{ t('labStock.counted_qty') }}
-            <input v-model="entered[p.id]" type="number" inputmode="numeric" pattern="[0-9]*" min="0" step="1"
-                   class="mt-1 block w-full px-3 py-2 min-h-[44px] text-lg border rounded-lg"
-                   :class="invalid(p.id) ? 'border-red-400' : 'border-gray-300'" />
-          </label>
-        </article>
-      </div>
-
-      <div class="hidden lg:block bg-white rounded-2xl shadow-xs border border-gray-100 overflow-x-auto">
-        <table class="min-w-full text-left border-collapse">
-          <thead>
-            <tr class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
-              <th class="px-6 py-3 font-semibold">{{ t('labStock.col_product') }}</th>
-              <th class="px-6 py-3 font-semibold">{{ t('labStock.col_packaging') }}</th>
-              <th class="px-6 py-3 font-semibold text-right">{{ t('labStock.last_stock') }}</th>
-              <th class="px-6 py-3 font-semibold">{{ t('labStock.col_last_count') }}</th>
-              <th class="px-6 py-3 font-semibold text-right">{{ t('labStock.counted_qty') }}</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-gray-100">
-            <tr v-for="p in filtered" :key="p.id" :class="isConflict(p.id) ? 'bg-orange-50' : ''">
-              <td class="px-6 py-3 font-medium text-gray-900">{{ p.name }}</td>
-              <td class="px-6 py-3 text-sm text-gray-600">{{ p.packaging || '—' }}</td>
-              <td class="px-6 py-3 text-right font-bold text-gray-900">{{ num(p.quantity) }}</td>
-              <td class="px-6 py-3 text-sm text-gray-500">{{ formatDate(p.last_counted_at) || t('labStock.never') }}</td>
-              <td class="px-6 py-3 text-right">
-                <input v-model="entered[p.id]" type="number" inputmode="numeric" min="0" step="1"
-                       class="w-28 px-2 py-1 border rounded-sm text-right" :class="invalid(p.id) ? 'border-red-400' : 'border-gray-300'" />
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </template>
-
-    <div class="sticky bottom-0 z-30 lg:static bg-white border border-gray-200 rounded-2xl shadow-lg lg:shadow-xs p-3 md:p-4 flex flex-col md:flex-row md:items-center md:justify-end gap-2">
-      <p v-if="hasInvalid" class="text-xs text-red-600 md:mr-auto">{{ t('labStock.count_err_invalid') }}</p>
-      <button type="button" @click="submit" :disabled="busy || !filledCount || hasInvalid"
-              class="w-full md:w-auto px-6 py-3 lg:py-2 min-h-[44px] bg-emerald-600 text-white rounded-xl font-semibold hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed">
+    <ActionBar>
+      <template #secondary>
+        <p v-if="hasInvalid" id="lab-count-invalid" role="alert" class="text-base text-tone-danger-text">{{ t('labStock.count_err_invalid') }}</p>
+      </template>
+      <AppButton @click="submit" :disabled="busy || !filledCount || hasInvalid" :loading="busy">
         {{ busy ? t('labStock.submitting') : t('labStock.submit_count') }}
-      </button>
-    </div>
+      </AppButton>
+    </ActionBar>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, computed, onMounted, onBeforeUnmount } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { MagnifyingGlassIcon } from '@heroicons/vue/24/outline';
 import { LabStockGateway, describeLabStockError } from '@/services/LabStockGateway';
 import { buildCountPayload, describeConflicts, isValidCount } from '@/utils/labCount';
+import { AppButton, PageHeader, FormField, StatusBadge, ResponsiveTable, ActionBar } from '@/components/ui';
+import { toneClasses } from '@/design/tones';
 
 const { t } = useI18n();
+
+// Colonnes du tableau (cartes empilees sous lg) et style commun des champs.
+const columns = computed(() => [
+  { key: 'name', label: t('labStock.col_product') },
+  { key: 'packaging', label: t('labStock.col_packaging') },
+  { key: 'stock', label: t('labStock.last_stock'), align: 'right' },
+  { key: 'last', label: t('labStock.col_last_count') },
+  { key: 'counted', label: t('labStock.counted_qty'), align: 'right' },
+]);
+const fieldClass = 'block w-full min-h-11 lg:min-h-10 rounded-control border border-tone-neutral-border bg-white px-3 text-base text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand-600';
+
 const products = ref([]);
 const entered = reactive({});
 const status = ref(null);

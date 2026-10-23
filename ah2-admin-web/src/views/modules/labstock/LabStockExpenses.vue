@@ -1,113 +1,80 @@
 <!-- src/views/modules/labstock/LabStockExpenses.vue -->
-<!-- Depenses du stock labo. Breakpoints : < md = blocs empiles (360 px, filtres pleine largeur),
-     md = total + fournisseurs sur 2 colonnes, lg = mois (2/3) | fournisseurs (1/3), historique de
-     prix en tableau. Acces : SPENDERS (promoteur, ToxicoManager, admin). -->
+<!-- Depenses du stock labo : total de la periode, par mois, par fournisseur, historique de
+     prix d'un produit. Acces : SPENDERS (promoteur, ToxicoManager, admin). -->
 <template>
-  <div class="space-y-6 w-full">
-    <div class="flex flex-col lg:flex-row justify-between lg:items-end bg-white p-4 md:p-6 rounded-2xl shadow-xs border border-gray-100 gap-4">
-      <div>
-        <h1 class="text-xl md:text-2xl font-extrabold text-gray-800 tracking-tight">{{ t('labStock.ex_title') }}</h1>
-        <p class="text-sm text-gray-500">{{ t('labStock.ex_subtitle') }}</p>
-      </div>
-      <form class="grid grid-cols-2 md:flex md:items-end gap-3" @submit.prevent="load">
-        <label class="text-sm text-gray-700">{{ t('labStock.ex_from') }}
-          <input v-model="from" type="date" class="mt-1 block w-full px-3 py-2 min-h-[44px] lg:min-h-0 border border-gray-300 rounded-lg bg-gray-50 text-sm" />
-        </label>
-        <label class="text-sm text-gray-700">{{ t('labStock.ex_to') }}
-          <input v-model="to" type="date" class="mt-1 block w-full px-3 py-2 min-h-[44px] lg:min-h-0 border border-gray-300 rounded-lg bg-gray-50 text-sm" />
-        </label>
-        <button type="submit" :disabled="isLoading"
-                class="col-span-2 md:col-span-1 px-5 py-2 min-h-[44px] lg:min-h-0 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50">
-          {{ t('labStock.ex_apply') }}
-        </button>
-      </form>
-    </div>
+  <div class="grid w-full gap-6">
 
-    <div v-if="pageError" class="bg-red-50 border-l-4 border-red-500 p-3 rounded-sm text-sm text-red-700">{{ pageError }}</div>
-    <div v-if="isLoading && !data" class="p-10 text-center text-gray-500">{{ t('stockOps.loading') }}</div>
+    <PageHeader :title="t('labStock.ex_title')" :subtitle="t('labStock.ex_subtitle')" />
+
+    <form @submit.prevent="load" :aria-label="t('labStockScreens.expenses_period_label')"
+          class="grid gap-4 rounded-card border border-tone-neutral-border bg-white p-4 shadow-card md:grid-cols-3 md:items-end">
+      <FormField id="lab-ex-from" :label="t('labStock.ex_from')" v-slot="{ describedBy }">
+        <input id="lab-ex-from" v-model="from" type="date" :aria-describedby="describedBy" :class="fieldClass" />
+      </FormField>
+      <FormField id="lab-ex-to" :label="t('labStock.ex_to')" v-slot="{ describedBy }">
+        <input id="lab-ex-to" v-model="to" type="date" :aria-describedby="describedBy" :class="fieldClass" />
+      </FormField>
+      <AppButton type="submit" :disabled="isLoading" :loading="isLoading">{{ t('labStock.ex_apply') }}</AppButton>
+    </form>
+
+    <p v-if="pageError" role="alert" class="rounded-card border p-4 text-base" :class="toneClasses('danger')">{{ pageError }}</p>
+    <p v-if="isLoading && !data" role="status" class="p-10 text-center text-base text-ink-muted">{{ t('stockOps.loading') }}</p>
 
     <template v-if="data">
-      <section class="bg-white rounded-2xl shadow-xs border border-gray-100 p-4 md:p-6">
-        <p class="text-sm text-gray-500">{{ t('labStock.ex_total') }}</p>
-        <p class="text-2xl md:text-3xl font-extrabold text-gray-900">{{ formatMoney(data.total) }}</p>
-        <p class="text-xs text-gray-400 mt-1">{{ t('labStock.ex_period', { from: formatDate(data.from), to: formatDate(data.to) }) }}</p>
-      </section>
+      <StatTile :title="t('labStock.ex_total')" :value="formatMoney(data.total)" :note="t('labStock.ex_period', { from: formatDate(data.from), to: formatDate(data.to) })" />
 
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-start">
-        <section class="bg-white rounded-2xl shadow-xs border border-gray-100 p-4 md:p-6 lg:col-span-2">
-          <h2 class="font-semibold text-gray-800 mb-3">{{ t('labStock.ex_by_month') }}</h2>
-          <p v-if="!bars.some((b) => !b.empty)" class="text-sm text-gray-500 italic text-center py-4">{{ t('labStock.ex_empty') }}</p>
-          <ul v-else class="space-y-2">
-            <li v-for="b in bars" :key="b.month" class="grid grid-cols-[5rem_1fr] md:grid-cols-[6rem_1fr_9rem] items-center gap-x-3 gap-y-1">
-              <span class="text-xs text-gray-600 capitalize">{{ monthLabel(b.month, locale) }}</span>
-              <div class="h-4 bg-gray-100 rounded-full overflow-hidden">
-                <div class="h-full bg-blue-500 rounded-full" :style="{ width: b.pct + '%' }"></div>
+      <div class="grid items-start gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <section aria-labelledby="lab-ex-months" class="rounded-card border border-tone-neutral-border bg-white p-4 shadow-card lg:col-span-2">
+          <h2 id="lab-ex-months" class="mb-3 text-lg font-semibold text-ink">{{ t('labStock.ex_by_month') }}</h2>
+          <p v-if="!bars.some((b) => !b.empty)" class="py-4 text-center text-base text-ink-muted">{{ t('labStock.ex_empty') }}</p>
+          <ul v-else class="grid gap-3">
+            <li v-for="b in bars" :key="b.month" class="grid grid-cols-[6rem_1fr] items-center gap-x-3 gap-y-1 md:grid-cols-[7rem_1fr_9rem]">
+              <span class="text-base capitalize text-ink">{{ monthLabel(b.month, locale) }}</span>
+              <div class="h-4 overflow-hidden rounded-full bg-tone-neutral-bg" aria-hidden="true">
+                <div class="h-full rounded-full bg-brand-600" :style="{ width: b.pct + '%' }"></div>
               </div>
-              <span class="col-start-2 md:col-start-auto text-xs md:text-sm md:text-right" :class="b.empty ? 'text-gray-400' : 'text-gray-900 font-medium'">{{ formatMoney(b.total) }}</span>
+              <span class="col-start-2 text-base md:col-start-auto md:text-right" :class="b.empty ? 'text-ink-muted' : 'font-medium text-ink'">{{ formatMoney(b.total) }}</span>
             </li>
           </ul>
         </section>
 
-        <section class="bg-white rounded-2xl shadow-xs border border-gray-100 p-4 md:p-6">
-          <h2 class="font-semibold text-gray-800 mb-3">{{ t('labStock.ex_by_supplier') }}</h2>
-          <p v-if="!data.by_supplier.length" class="text-sm text-gray-500 italic text-center py-4">{{ t('labStock.ex_empty') }}</p>
-          <ul v-else class="divide-y divide-gray-100">
-            <li v-for="s in data.by_supplier" :key="s.supplier" class="py-2 flex justify-between gap-3">
-              <span class="text-sm text-gray-800 break-words min-w-0">{{ s.supplier }}</span>
-              <span class="text-sm font-semibold text-gray-900 shrink-0">{{ formatMoney(s.total) }}</span>
+        <section aria-labelledby="lab-ex-suppliers" class="rounded-card border border-tone-neutral-border bg-white p-4 shadow-card">
+          <h2 id="lab-ex-suppliers" class="mb-3 text-lg font-semibold text-ink">{{ t('labStock.ex_by_supplier') }}</h2>
+          <p v-if="!data.by_supplier.length" class="py-4 text-center text-base text-ink-muted">{{ t('labStock.ex_empty') }}</p>
+          <ul v-else class="divide-y divide-tone-neutral-border">
+            <li v-for="s in data.by_supplier" :key="s.supplier" class="flex justify-between gap-3 py-2">
+              <span class="min-w-0 break-words text-base text-ink">{{ s.supplier }}</span>
+              <span class="shrink-0 text-base font-semibold text-ink">{{ formatMoney(s.total) }}</span>
             </li>
           </ul>
         </section>
       </div>
     </template>
 
-    <section class="bg-white rounded-2xl shadow-xs border border-gray-100 p-4 md:p-6 space-y-4">
-      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-        <h2 class="font-semibold text-gray-800">{{ t('labStock.ex_price_title') }}</h2>
-        <select v-model="productId" @change="loadPrices"
-                class="w-full md:w-72 px-3 py-2 min-h-[44px] lg:min-h-0 border border-gray-300 rounded-lg bg-gray-50 text-sm">
-          <option value="">{{ t('labStock.ex_price_choose') }}</option>
-          <option v-for="p in products" :key="p.id" :value="String(p.id)">{{ p.name }}</option>
-        </select>
+    <section aria-labelledby="lab-ex-prices" class="grid gap-4 rounded-card border border-tone-neutral-border bg-white p-4 shadow-card">
+      <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+        <h2 id="lab-ex-prices" class="text-lg font-semibold text-ink">{{ t('labStock.ex_price_title') }}</h2>
+        <div class="w-full md:w-80">
+          <FormField id="lab-ex-product" :label="t('labStockScreens.product_filter')" v-slot="{ describedBy }">
+            <select id="lab-ex-product" v-model="productId" @change="loadPrices" :aria-describedby="describedBy" :class="fieldClass">
+              <option value="">{{ t('labStock.ex_price_choose') }}</option>
+              <option v-for="p in products" :key="p.id" :value="String(p.id)">{{ p.name }}</option>
+            </select>
+          </FormField>
+        </div>
       </div>
-      <div v-if="priceError" class="bg-red-50 border-l-4 border-red-500 p-3 rounded-sm text-sm text-red-700">{{ priceError }}</div>
+      <p v-if="priceError" role="alert" class="rounded-control border p-3 text-base" :class="toneClasses('danger')">{{ priceError }}</p>
       <template v-if="productId && !priceLoading && !priceError">
-        <p v-if="!prices.length" class="text-sm text-gray-500 italic text-center py-4">{{ t('labStock.ex_price_empty') }}</p>
+        <p v-if="!prices.length" class="py-4 text-center text-base text-ink-muted">{{ t('labStock.ex_price_empty') }}</p>
         <template v-else>
-          <ul class="lg:hidden divide-y divide-gray-100">
-            <li v-for="(h, i) in prices" :key="i" class="py-3 flex justify-between gap-3">
-              <div class="min-w-0">
-                <p class="text-sm font-medium text-gray-900">{{ formatDate(h.delivery_date) }}</p>
-                <p class="text-xs text-gray-500 break-words">{{ h.supplier }} · {{ t('labStock.mv_ref_receipt', { id: h.receipt_id }) }}</p>
-              </div>
-              <div class="text-right shrink-0">
-                <p class="text-sm font-bold text-gray-900">{{ formatMoney(h.unit_price) }}</p>
-                <p class="text-xs text-gray-500">× {{ Number(h.received_qty) }}</p>
-              </div>
-            </li>
-          </ul>
-          <div class="hidden lg:block overflow-x-auto">
-            <table class="min-w-full text-left border-collapse">
-              <thead>
-                <tr class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
-                  <th class="px-6 py-3 font-semibold">{{ t('labStock.ex_col_date') }}</th>
-                  <th class="px-6 py-3 font-semibold">{{ t('labStock.ex_col_supplier') }}</th>
-                  <th class="px-6 py-3 font-semibold">{{ t('labStock.ex_col_receipt') }}</th>
-                  <th class="px-6 py-3 font-semibold text-right">{{ t('labStock.ex_col_qty') }}</th>
-                  <th class="px-6 py-3 font-semibold text-right">{{ t('labStock.ex_col_price') }}</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-gray-100">
-                <tr v-for="(h, i) in prices" :key="i">
-                  <td class="px-6 py-3 text-sm text-gray-700">{{ formatDate(h.delivery_date) }}</td>
-                  <td class="px-6 py-3 text-sm text-gray-700">{{ h.supplier }}</td>
-                  <td class="px-6 py-3 text-sm text-gray-500">{{ t('labStock.mv_ref_receipt', { id: h.receipt_id }) }}</td>
-                  <td class="px-6 py-3 text-sm text-right text-gray-900">{{ Number(h.received_qty) }}</td>
-                  <td class="px-6 py-3 text-sm text-right font-bold text-gray-900">{{ formatMoney(h.unit_price) }}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+          <p class="text-base text-ink-muted">{{ t('labStockScreens.prices_count', { n: prices.length }) }}</p>
+          <ResponsiveTable :columns="priceColumns" :rows="priceRows" row-key="key" striped>
+            <template #cell-date="{ row: h }">{{ formatDate(h.delivery_date) }}</template>
+            <template #cell-supplier="{ row: h }">{{ h.supplier }}</template>
+            <template #cell-receipt="{ row: h }">{{ t('labStock.mv_ref_receipt', { id: h.receipt_id }) }}</template>
+            <template #cell-qty="{ row: h }">{{ Number(h.received_qty) }}</template>
+            <template #cell-price="{ row: h }"><span class="font-bold">{{ formatMoney(h.unit_price) }}</span></template>
+          </ResponsiveTable>
         </template>
       </template>
     </section>
@@ -118,6 +85,8 @@
 import { ref, computed, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { LabStockGateway, describeLabStockError } from '@/services/LabStockGateway';
+import { AppButton, PageHeader, FormField, StatTile, ResponsiveTable } from '@/components/ui';
+import { toneClasses } from '@/design/tones';
 import { formatMoney } from '@/utils/labReceiptLines';
 import { buildMonthBars, monthLabel } from '@/utils/labStockExpenses';
 
@@ -132,6 +101,17 @@ const productId = ref('');
 const prices = ref([]);
 const priceLoading = ref(false);
 const priceError = ref('');
+
+// Colonnes de l'historique de prix (cartes empilees sous lg) et style commun des champs.
+const priceColumns = computed(() => [
+  { key: 'date', label: t('labStock.ex_col_date') },
+  { key: 'supplier', label: t('labStock.ex_col_supplier') },
+  { key: 'receipt', label: t('labStock.ex_col_receipt') },
+  { key: 'qty', label: t('labStock.ex_col_qty'), align: 'right' },
+  { key: 'price', label: t('labStock.ex_col_price'), align: 'right' },
+]);
+const priceRows = computed(() => prices.value.map((h, i) => ({ ...h, key: i })));
+const fieldClass = 'block w-full min-h-11 lg:min-h-10 rounded-control border border-tone-neutral-border bg-white px-3 text-base text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand-600';
 
 const bars = computed(() => (data.value ? buildMonthBars(data.value.by_month, data.value.from, data.value.to) : []));
 const formatDate = (v) => {

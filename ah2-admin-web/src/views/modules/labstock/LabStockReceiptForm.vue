@@ -1,196 +1,146 @@
 <!-- src/views/modules/labstock/LabStockReceiptForm.vue -->
-<!-- Saisie d'une reception (fiche papier). Breakpoints : < md = en-tete et lignes en cartes
-     empilees (360 px), md = en-tete sur 3 colonnes et cartes de ligne sur 2 colonnes,
-     lg = tableau de lignes (n° | designation | conditionnement | qte commandee | qte recue |
-     lot | peremption | prix unitaire | total). Acces : StockController, promoteur, admin ;
+<!-- Saisie d'une reception (fiche papier) : en-tete de facture, lignes (tableau a partir de lg, cartes dessous),
+     total colle en bas. Acces : StockController, promoteur, admin ;
      « Creer un produit » : laborantin, StockController, admin (droits d'ecriture produit). -->
 <template>
-  <div class="space-y-6 w-full">
-    <div class="flex flex-col md:flex-row justify-between md:items-center bg-white p-4 md:p-6 rounded-2xl shadow-xs border border-gray-100 gap-4">
-      <div>
-        <h1 class="text-xl md:text-2xl font-extrabold text-gray-800 tracking-tight">{{ t('labStock.receipt_form_title') }}</h1>
-        <p class="text-sm text-gray-500">{{ t('labStock.receipt_form_subtitle') }}</p>
-      </div>
-      <router-link to="/dashboard/lab-stock-receipts" class="flex items-center justify-center px-4 py-2 min-h-[44px] lg:min-h-0 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 text-sm font-medium">
-        {{ t('labStock.back_to_receipts') }}
-      </router-link>
-    </div>
+  <div class="grid w-full gap-6">
 
-    <div v-if="pageError" class="bg-red-50 border-l-4 border-red-500 p-3 rounded-sm text-sm text-red-700">{{ pageError }}</div>
-    <div v-if="duplicateError" class="bg-red-50 border-2 border-red-400 p-4 rounded-xl text-sm text-red-800">
+    <PageHeader :title="t('labStock.receipt_form_title')" :subtitle="t('labStock.receipt_form_subtitle')">
+      <template #actions>
+        <router-link to="/dashboard/lab-stock-receipts" :class="buttonClasses('secondary', 'md')">{{ t('labStock.back_to_receipts') }}</router-link>
+      </template>
+    </PageHeader>
+
+    <p v-if="pageError" role="alert" class="rounded-card border p-4 text-base" :class="toneClasses('danger')">{{ pageError }}</p>
+    <div v-if="duplicateError" role="alert" class="rounded-card border-2 p-4 text-base" :class="toneClasses('danger')">
       <p class="font-bold">{{ t('labStock.duplicate_invoice_title') }}</p>
       <p>{{ duplicateError }}</p>
     </div>
 
     <!-- En-tete facture -->
-    <section class="bg-white rounded-2xl shadow-xs border border-gray-100 p-4 md:p-6 grid grid-cols-1 md:grid-cols-3 gap-3">
-      <label class="block text-sm text-gray-700">{{ t('labStock.invoice_number') }} *
-        <input v-model="form.invoice_number" type="text" maxlength="100" class="mt-1 block w-full px-3 py-2 min-h-[44px] lg:min-h-0 border border-gray-300 rounded-lg" />
-      </label>
-      <label class="block text-sm text-gray-700">{{ t('labStock.col_supplier') }} *
-        <input v-model="form.supplier" type="text" maxlength="150" list="lab-suppliers" class="mt-1 block w-full px-3 py-2 min-h-[44px] lg:min-h-0 border border-gray-300 rounded-lg" />
+    <section :aria-label="t('labStockScreens.invoice_header')" class="grid gap-4 rounded-card border border-tone-neutral-border bg-white p-4 shadow-card md:grid-cols-3 md:p-5">
+      <FormField id="lab-invoice-number" :label="t('labStock.invoice_number')" required v-slot="{ describedBy }">
+        <input id="lab-invoice-number" v-model="form.invoice_number" type="text" maxlength="100" :aria-describedby="describedBy" :class="fieldClass" />
+      </FormField>
+      <FormField id="lab-invoice-supplier" :label="t('labStock.col_supplier')" required v-slot="{ describedBy }">
+        <input id="lab-invoice-supplier" v-model="form.supplier" type="text" maxlength="150" list="lab-suppliers" :aria-describedby="describedBy" :class="fieldClass" />
         <datalist id="lab-suppliers"><option v-for="s in suppliers" :key="s" :value="s" /></datalist>
-      </label>
-      <label class="block text-sm text-gray-700">{{ t('labStock.delivery_date') }} *
-        <input v-model="form.delivery_date" type="date" class="mt-1 block w-full px-3 py-2 min-h-[44px] lg:min-h-0 border border-gray-300 rounded-lg" />
-      </label>
+      </FormField>
+      <FormField id="lab-invoice-date" :label="t('labStock.delivery_date')" required v-slot="{ describedBy }">
+        <input id="lab-invoice-date" v-model="form.delivery_date" type="date" :aria-describedby="describedBy" :class="fieldClass" />
+      </FormField>
     </section>
 
     <!-- Lignes -->
-    <section class="space-y-3">
-      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-        <h2 class="font-semibold text-gray-800">{{ t('labStock.receipt_lines') }} ({{ form.lines.length }})</h2>
-        <button type="button" @click="openPicker" :disabled="form.lines.length >= MAX_RECEIPT_LINES"
-                class="flex items-center justify-center px-4 py-2 min-h-[44px] lg:min-h-0 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-50">
-          <PlusIcon class="h-5 w-5 mr-1" />{{ t('labStock.add_line') }}
-        </button>
+    <section class="grid gap-3">
+      <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <h2 class="text-lg font-semibold text-ink">{{ t('labStock.receipt_lines') }} ({{ form.lines.length }})</h2>
+        <AppButton :icon="PlusIcon" @click="openPicker" :disabled="form.lines.length >= MAX_RECEIPT_LINES">{{ t('labStock.add_line') }}</AppButton>
       </div>
 
-      <div v-if="!form.lines.length" class="bg-white rounded-2xl border border-dashed border-gray-300 p-8 text-center text-gray-500 italic">{{ t('labStock.no_lines') }}</div>
+      <p v-if="!form.lines.length" class="rounded-card border border-dashed border-tone-neutral-border bg-white p-8 text-center text-base text-ink-muted">{{ t('labStock.no_lines') }}</p>
 
-      <!-- Telephone + tablette : une carte par ligne -->
-      <div v-if="form.lines.length" class="grid grid-cols-1 md:grid-cols-2 gap-3 lg:hidden">
-        <article v-for="(ln, i) in form.lines" :key="ln.product_id"
-                 class="bg-white rounded-2xl shadow-xs border p-4 space-y-3"
-                 :class="ln.checked ? 'border-emerald-300' : 'border-gray-100'">
-          <div class="flex items-start justify-between gap-3">
-            <label class="flex items-start gap-3 min-h-[44px] min-w-0">
-              <input type="checkbox" v-model="ln.checked" class="mt-1 h-6 w-6 rounded-sm border-gray-300 text-emerald-600" :aria-label="t('labStock.checked')" />
-              <span class="min-w-0">
-                <span class="block font-semibold text-gray-900 break-words">{{ i + 1 }}. {{ ln.product_name }}</span>
-                <span v-if="ln.packaging" class="block text-xs text-gray-500">{{ ln.packaging }}</span>
-              </span>
-            </label>
-            <button type="button" @click="removeLine(i)" class="shrink-0 h-11 w-11 flex items-center justify-center text-red-600 bg-red-50 rounded-lg" :title="t('labStock.remove_line')">
-              <TrashIcon class="h-5 w-5" />
-            </button>
-          </div>
-          <div class="grid grid-cols-2 gap-2">
-            <label class="block text-xs text-gray-600">{{ t('labStock.col_ordered') }}
-              <input v-model="ln.ordered_qty" type="number" inputmode="numeric" pattern="[0-9]*" min="0" step="1" class="mt-1 block w-full px-3 py-2 min-h-[44px] border border-gray-300 rounded-lg" />
-            </label>
-            <label class="block text-xs text-gray-600">{{ t('labStock.col_received') }} *
-              <input v-model="ln.received_qty" type="number" inputmode="numeric" pattern="[0-9]*" min="1" step="1" class="mt-1 block w-full px-3 py-2 min-h-[44px] border border-gray-300 rounded-lg" />
-            </label>
-            <label class="block text-xs text-gray-600">{{ t('labStock.col_lot') }} *
-              <input v-model="ln.lot_number" type="text" maxlength="50" class="mt-1 block w-full px-3 py-2 min-h-[44px] border border-gray-300 rounded-lg" />
-            </label>
-            <label class="block text-xs text-gray-600">{{ t('labStock.col_expiry') }} *
-              <input v-model="ln.expiry_date" type="date" class="mt-1 block w-full px-2 py-2 min-h-[44px] border border-gray-300 rounded-lg" />
-            </label>
-            <label class="block text-xs text-gray-600 col-span-2">{{ t('labStock.col_unit_price') }} *
-              <input v-model="ln.unit_price" type="number" inputmode="decimal" min="0" step="0.01" class="mt-1 block w-full px-3 py-2 min-h-[44px] border border-gray-300 rounded-lg" />
-            </label>
-          </div>
-          <div class="flex justify-between text-sm border-t border-gray-100 pt-2">
-            <span class="text-gray-500">{{ t('labStock.col_line_total') }}</span>
-            <span class="font-bold text-gray-900">{{ money(lineTotal(ln.received_qty, ln.unit_price)) }}</span>
-          </div>
-        </article>
-      </div>
-
-      <!-- PC : tableau type fiche papier -->
-      <div v-if="form.lines.length" class="hidden lg:block bg-white rounded-2xl shadow-xs border border-gray-100 overflow-x-auto">
-        <table class="min-w-full text-left text-sm border-collapse">
-          <thead>
-            <tr class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
-              <th class="px-2 py-3 w-8" :title="t('labStock.checked')">✓</th>
-              <th class="px-2 py-3">{{ t('labStock.col_no') }}</th>
-              <th class="px-2 py-3">{{ t('labStock.col_designation') }}</th>
-              <th class="px-2 py-3">{{ t('labStock.col_packaging') }}</th>
-              <th class="px-2 py-3 text-right">{{ t('labStock.col_ordered') }}</th>
-              <th class="px-2 py-3 text-right">{{ t('labStock.col_received') }}</th>
-              <th class="px-2 py-3">{{ t('labStock.col_lot') }}</th>
-              <th class="px-2 py-3">{{ t('labStock.col_expiry') }}</th>
-              <th class="px-2 py-3 text-right">{{ t('labStock.col_unit_price') }}</th>
-              <th class="px-2 py-3 text-right">{{ t('labStock.col_line_total') }}</th>
-              <th class="px-2 py-3"></th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-gray-100">
-            <tr v-for="(ln, i) in form.lines" :key="ln.product_id" :class="ln.checked ? 'bg-emerald-50/40' : ''">
-              <td class="px-2 py-2"><input type="checkbox" v-model="ln.checked" class="h-4 w-4 rounded-sm border-gray-300 text-emerald-600" :aria-label="t('labStock.checked')" /></td>
-              <td class="px-2 py-2 text-gray-500">{{ i + 1 }}</td>
-              <td class="px-2 py-2 font-medium text-gray-900">{{ ln.product_name }}</td>
-              <td class="px-2 py-2 text-gray-600">{{ ln.packaging || '—' }}</td>
-              <td class="px-2 py-2"><input v-model="ln.ordered_qty" type="number" inputmode="numeric" min="0" step="1" class="w-20 px-2 py-1 border border-gray-300 rounded-sm text-right" /></td>
-              <td class="px-2 py-2"><input v-model="ln.received_qty" type="number" inputmode="numeric" min="1" step="1" class="w-20 px-2 py-1 border border-gray-300 rounded-sm text-right" /></td>
-              <td class="px-2 py-2"><input v-model="ln.lot_number" type="text" maxlength="50" class="w-28 px-2 py-1 border border-gray-300 rounded-sm" /></td>
-              <td class="px-2 py-2"><input v-model="ln.expiry_date" type="date" class="w-36 px-2 py-1 border border-gray-300 rounded-sm" /></td>
-              <td class="px-2 py-2"><input v-model="ln.unit_price" type="number" inputmode="decimal" min="0" step="0.01" class="w-28 px-2 py-1 border border-gray-300 rounded-sm text-right" /></td>
-              <td class="px-2 py-2 text-right font-semibold whitespace-nowrap">{{ money(lineTotal(ln.received_qty, ln.unit_price)) }}</td>
-              <td class="px-2 py-2 text-right">
-                <button type="button" @click="removeLine(i)" class="text-red-600 bg-red-50 hover:bg-red-100 p-1.5 rounded-lg" :title="t('labStock.remove_line')"><TrashIcon class="h-4 w-4" /></button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      <ResponsiveTable v-else :columns="lineColumns" :rows="form.lines" row-key="product_id" :aria-label="t('labStockScreens.lines_table')" :empty-title="t('labStock.no_lines')" :empty-message="' '" striped>
+        <template #cell-check="{ row: ln }">
+          <input type="checkbox" v-model="ln.checked" class="h-5 w-5 accent-brand-600" :aria-label="t('labStock.checked')" />
+        </template>
+        <template #cell-no="{ row: ln }">{{ form.lines.indexOf(ln) + 1 }}</template>
+        <template #cell-designation="{ row: ln }">
+          <span class="font-medium">{{ ln.product_name }}</span>
+          <span v-if="ln.packaging" class="block text-base text-ink-muted">{{ ln.packaging }}</span>
+        </template>
+        <template #cell-ordered="{ row: ln }">
+          <input v-model="ln.ordered_qty" type="number" inputmode="numeric" pattern="[0-9]*" min="0" step="1" :aria-label="t('labStock.col_ordered')" :class="[fieldClass, 'text-right lg:w-24']" />
+        </template>
+        <template #cell-received="{ row: ln }">
+          <input v-model="ln.received_qty" type="number" inputmode="numeric" pattern="[0-9]*" min="1" step="1" :aria-label="t('labStock.col_received')" :class="[fieldClass, 'text-right lg:w-24']" />
+        </template>
+        <template #cell-lot="{ row: ln }">
+          <input v-model="ln.lot_number" type="text" maxlength="50" :aria-label="t('labStock.col_lot')" :class="[fieldClass, 'lg:w-32']" />
+        </template>
+        <template #cell-expiry="{ row: ln }">
+          <input v-model="ln.expiry_date" type="date" :aria-label="t('labStock.col_expiry')" :class="[fieldClass, 'lg:w-40']" />
+        </template>
+        <template #cell-unit_price="{ row: ln }">
+          <input v-model="ln.unit_price" type="number" inputmode="decimal" min="0" step="0.01" :aria-label="t('labStock.col_unit_price')" :class="[fieldClass, 'text-right lg:w-32']" />
+        </template>
+        <template #cell-line_total="{ row: ln }"><span class="whitespace-nowrap font-bold">{{ money(lineTotal(ln.received_qty, ln.unit_price)) }}</span></template>
+        <template #actions="{ row: ln }">
+          <AppButton variant="danger" :icon="TrashIcon" :title="t('labStock.remove_line')" @click="removeLine(form.lines.indexOf(ln))">
+            <span class="lg:sr-only">{{ t('labStock.remove_line') }}</span>
+          </AppButton>
+        </template>
+      </ResponsiveTable>
     </section>
 
     <!-- Pied : total + validation (colle en bas sur telephone/tablette) -->
-    <div class="sticky bottom-0 z-30 lg:static bg-white border border-gray-200 rounded-2xl shadow-lg lg:shadow-xs p-3 md:p-4">
-      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
-        <div class="flex items-baseline justify-between md:justify-start gap-3">
-          <span class="text-sm text-gray-500">{{ t('labStock.receipt_total') }}</span>
-          <span class="text-xl font-extrabold text-gray-900">{{ money(total) }}</span>
-          <span class="text-xs text-gray-400">{{ t('labStock.checked_count', { n: checkedCount, total: form.lines.length }) }}</span>
+    <div class="sticky bottom-0 z-30 rounded-card border border-tone-neutral-border bg-white p-3 shadow-card md:p-4 lg:static">
+      <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+        <div class="flex items-baseline justify-between gap-3 md:justify-start">
+          <span class="text-base text-ink-muted">{{ t('labStock.receipt_total') }}</span>
+          <span class="text-2xl font-extrabold text-ink">{{ money(total) }}</span>
+          <span class="text-base text-ink-muted">{{ t('labStock.checked_count', { n: checkedCount, total: form.lines.length }) }}</span>
         </div>
-        <div class="flex flex-col md:items-end gap-1">
-          <p v-if="errors.length && touched" class="text-xs text-red-600">{{ errors.map((k) => t(k)).join(' · ') }}</p>
-          <button type="button" @click="submit" :disabled="errors.length > 0 || busy"
-                  class="w-full md:w-auto px-6 py-3 lg:py-2 min-h-[44px] bg-emerald-600 text-white rounded-xl font-semibold hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed">
+        <div class="flex flex-col gap-1 md:items-end">
+          <p v-if="errors.length && touched" role="alert" class="text-base text-tone-danger-text">{{ errors.map((k) => t(k)).join(', ') }}</p>
+          <AppButton variant="success" class="w-full md:w-auto" @click="submit" :disabled="errors.length > 0 || busy" :loading="busy">
             {{ busy ? t('labStock.submitting') : t('labStock.submit_receipt') }}
-          </button>
+          </AppButton>
         </div>
       </div>
     </div>
 
     <!-- Choix d'un produit -->
-    <div v-if="pickerOpen" class="fixed inset-0 bg-black/40 flex items-start md:items-center justify-center z-50 p-2 md:p-4">
-      <div class="bg-white rounded-xl shadow-xl w-full max-w-lg p-4 md:p-6 space-y-3 max-h-[90vh] flex flex-col">
-        <h3 class="text-lg font-semibold text-gray-800">{{ t('labStock.add_line') }}</h3>
-        <input ref="pickerInput" v-model="pickerSearch" type="text" :placeholder="t('labStock.search_product')"
-               class="block w-full px-3 py-2 min-h-[44px] lg:min-h-0 border border-gray-300 rounded-lg" />
-        <ul class="overflow-y-auto divide-y divide-gray-100 flex-1 min-h-0">
+    <FullScreenPanel v-if="pickerOpen" :title="t('labStock.add_line')" @close="pickerOpen = false">
+      <div class="grid gap-3">
+        <FormField id="lab-picker-search" :label="t('labStockScreens.picker_title')" v-slot="{ describedBy }">
+          <input id="lab-picker-search" ref="pickerInput" v-model="pickerSearch" type="search" autocomplete="off" :placeholder="t('labStock.search_product')" :aria-describedby="describedBy" :class="fieldClass" />
+        </FormField>
+        <ul class="max-h-80 divide-y divide-tone-neutral-border overflow-y-auto rounded-control border border-tone-neutral-border">
           <li v-for="p in pickable" :key="p.id">
-            <button type="button" @click="addLine(p)" class="w-full text-left px-3 py-3 min-h-[44px] hover:bg-indigo-50 rounded-lg">
-              <span class="font-medium text-gray-900">{{ p.name }}</span>
-              <span v-if="p.packaging" class="text-xs text-gray-500"> · {{ p.packaging }}</span>
-              <span v-if="p.supplier" class="block text-xs text-gray-400">{{ p.supplier }}</span>
+            <button type="button" @click="addLine(p)" class="min-h-11 w-full px-3 py-2 text-left text-base text-ink hover:bg-brand-50 focus-visible:outline-2 focus-visible:outline-brand-600">
+              <span class="font-medium">{{ p.name }}</span>
+              <span v-if="p.packaging" class="text-ink-muted">, {{ p.packaging }}</span>
+              <span v-if="p.supplier" class="block text-base text-ink-muted">{{ p.supplier }}</span>
             </button>
           </li>
-          <li v-if="!pickable.length" class="px-3 py-4 text-sm text-gray-500 italic">{{ t('labStock.no_match') }}</li>
+          <li v-if="!pickable.length" class="px-3 py-4 text-base text-ink-muted">{{ t('labStock.no_match') }}</li>
         </ul>
-        <div class="flex flex-col-reverse md:flex-row md:justify-between gap-2 pt-2">
-          <button type="button" @click="pickerOpen = false" class="px-4 py-2 min-h-[44px] lg:min-h-0 bg-gray-200 rounded-lg text-sm">{{ t('stockOps.close') }}</button>
-          <button v-if="canCreateProduct" type="button" @click="openCreate" class="px-4 py-2 min-h-[44px] lg:min-h-0 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-lg text-sm font-medium">
-            {{ t('labStock.create_product') }}
-          </button>
-        </div>
       </div>
-    </div>
+      <template #footer>
+        <ActionBar>
+          <template #secondary>
+            <AppButton variant="ghost" @click="pickerOpen = false">{{ t('stockOps.close') }}</AppButton>
+          </template>
+          <AppButton v-if="canCreateProduct" variant="secondary" @click="openCreate">{{ t('labStock.create_product') }}</AppButton>
+        </ActionBar>
+      </template>
+    </FullScreenPanel>
 
     <!-- Creation rapide d'un produit -->
-    <div v-if="createOpen" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4 overflow-y-auto">
-      <form @submit.prevent="createProduct" class="bg-white rounded-xl shadow-xl w-full max-w-md p-5 sm:p-6 space-y-3">
-        <h3 class="text-lg font-semibold text-gray-800">{{ t('labStock.create_product') }}</h3>
-        <div v-if="modalError" class="bg-red-50 border-l-4 border-red-500 p-3 rounded-sm text-sm text-red-700">{{ modalError }}</div>
-        <label class="block text-sm">{{ t('labStock.col_product') }}
-          <input v-model="newProduct.name" type="text" required maxlength="150" class="mt-1 block w-full px-3 py-2 min-h-[44px] lg:min-h-0 border border-gray-300 rounded-lg" />
-        </label>
-        <label class="block text-sm">{{ t('labStock.col_packaging') }}
-          <input v-model="newProduct.packaging" type="text" maxlength="100" class="mt-1 block w-full px-3 py-2 min-h-[44px] lg:min-h-0 border border-gray-300 rounded-lg" />
-        </label>
-        <label class="block text-sm">{{ t('labStock.col_threshold') }}
-          <input v-model.number="newProduct.alert_threshold" type="number" inputmode="numeric" pattern="[0-9]*" min="0" step="1" required class="mt-1 block w-full px-3 py-2 min-h-[44px] lg:min-h-0 border border-gray-300 rounded-lg" />
-        </label>
-        <div class="flex justify-end gap-2 pt-2">
-          <button type="button" @click="createOpen = false" class="px-4 py-2 min-h-[44px] lg:min-h-0 bg-gray-200 rounded-lg text-sm">{{ t('stockOps.close') }}</button>
-          <button type="submit" :disabled="creating" class="px-4 py-2 min-h-[44px] lg:min-h-0 bg-emerald-600 text-white rounded-lg text-sm font-medium disabled:opacity-50">{{ t('stockOps.save') }}</button>
-        </div>
+    <FullScreenPanel v-if="createOpen" :title="t('labStock.create_product')" @close="createOpen = false">
+      <form id="lab-new-product-form" @submit.prevent="createProduct" class="grid gap-4">
+        <p v-if="modalError" role="alert" class="rounded-control border p-3 text-base" :class="toneClasses('danger')">{{ modalError }}</p>
+        <FormField id="lab-new-product-name" :label="t('labStock.col_product')" required v-slot="{ describedBy }">
+          <input id="lab-new-product-name" v-model="newProduct.name" type="text" required maxlength="150" :aria-describedby="describedBy" :class="fieldClass" />
+        </FormField>
+        <FormField id="lab-new-product-packaging" :label="t('labStock.col_packaging')" v-slot="{ describedBy }">
+          <input id="lab-new-product-packaging" v-model="newProduct.packaging" type="text" maxlength="100" :aria-describedby="describedBy" :class="fieldClass" />
+        </FormField>
+        <FormField id="lab-new-product-threshold" :label="t('labStock.col_threshold')" required v-slot="{ describedBy }">
+          <input id="lab-new-product-threshold" v-model.number="newProduct.alert_threshold" type="number" inputmode="numeric" pattern="[0-9]*" min="0" step="1" required
+                 :aria-describedby="describedBy" :class="[fieldClass, 'text-right']" />
+        </FormField>
       </form>
-    </div>
+      <template #footer>
+        <ActionBar>
+          <template #secondary>
+            <AppButton variant="ghost" @click="createOpen = false">{{ t('stockOps.close') }}</AppButton>
+          </template>
+          <AppButton type="submit" form="lab-new-product-form" :disabled="creating" :loading="creating">{{ t('stockOps.save') }}</AppButton>
+        </ActionBar>
+      </template>
+    </FullScreenPanel>
   </div>
 </template>
 
@@ -202,11 +152,28 @@ import { PlusIcon, TrashIcon } from '@heroicons/vue/24/outline';
 import { useAuthStore } from '@/stores/auth';
 import { LabStockGateway, describeLabStockError } from '@/services/LabStockGateway';
 import { lineTotal, receiptTotal, validateReceipt, buildReceiptPayload, MAX_RECEIPT_LINES, formatMoney } from '@/utils/labReceiptLines';
+import { AppButton, PageHeader, FormField, ResponsiveTable, FullScreenPanel, ActionBar } from '@/components/ui';
+import { buttonClasses } from '@/utils/ui';
+import { toneClasses } from '@/design/tones';
 
 const { t } = useI18n();
 const router = useRouter();
 const authStore = useAuthStore();
 const canCreateProduct = computed(() => authStore.hasRole(['laborantin', 'StockController', 'admin']));
+
+// Colonnes du tableau des lignes (cartes empilees sous lg) et style commun des champs.
+const lineColumns = computed(() => [
+  { key: 'check', label: t('labStock.checked') },
+  { key: 'no', label: t('labStock.col_no') },
+  { key: 'designation', label: t('labStock.col_designation') },
+  { key: 'ordered', label: t('labStock.col_ordered'), align: 'right' },
+  { key: 'received', label: t('labStock.col_received'), align: 'right' },
+  { key: 'lot', label: t('labStock.col_lot') },
+  { key: 'expiry', label: t('labStock.col_expiry') },
+  { key: 'unit_price', label: t('labStock.col_unit_price'), align: 'right' },
+  { key: 'line_total', label: t('labStock.col_line_total'), align: 'right' },
+]);
+const fieldClass = 'block w-full min-h-11 lg:min-h-10 rounded-control border border-tone-neutral-border bg-white px-3 text-base text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand-600';
 
 const today = () => {
   const d = new Date();
