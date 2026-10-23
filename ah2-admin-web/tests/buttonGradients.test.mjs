@@ -12,7 +12,7 @@ const lum = (hex) => {
 };
 const ratioWhite = (hex) => 1.05 / (lum(hex) + 0.05);
 
-const FILLED = { primary: 'action-600', success: 'action-success', info: 'action-info', danger: 'tone-danger-solid', pharma: 'tab-pharma', hospital: 'tab-hospital', lab: 'tab-lab', record: 'tab-record', toxico: 'tab-toxico', spirit: 'tab-spirit' };
+const FILLED = { brand: 'brand-600', primary: 'action-600', success: 'action-success', info: 'action-info', danger: 'tone-danger-solid', pharma: 'tab-pharma', hospital: 'tab-hospital', lab: 'tab-lab', record: 'tab-record', toxico: 'tab-toxico', spirit: 'tab-spirit' };
 
 test('chaque bouton plein a un dégradé diagonal avec sa couleur de base en haut et un repli de couleur unie', () => {
     for (const [variant, base] of Object.entries(FILLED)) {
@@ -46,4 +46,15 @@ test('le dégradé assombrit peu (10 %) : les boutons restent clairs et modernes
         assert.doesNotMatch(c, /black_(?:[2-9]\d)%/, `${variant} : fin de dégradé trop sombre`);
         assert.match(c, /shadow-sm/, variant);
     }
+});
+
+test('connexion et tableau de bord admin/promoteur gardent le vert sarcelle en dégradé (demande de l’utilisateur)', () => {
+    const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
+    assert.match(read('../src/views/LoginView.vue'), /<AppButton type="submit" variant="brand" size="lg"/);
+    const dash = read('../src/views/dashboards/DashboardOverview.vue');
+    assert.equal((dash.match(/variant="brand"/g) || []).length, 2, 'Filtrer et Encaisser un paiement');
+    assert.equal((dash.match(/variant="brandOutline"/g) || []).length, 4, 'les quatre boutons de contour');
+    assert.doesNotMatch(dash, /variant="secondary"/);
+    assert.match(buttonClasses('brand', 'md'), /bg-linear-to-br from-brand-600/);
+    assert.match(buttonClasses('brandOutline', 'md'), /border-brand-600/);
 });

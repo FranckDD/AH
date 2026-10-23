@@ -102,7 +102,7 @@
             </a>
           </div>
 
-          <AppButton type="submit" size="lg" class="w-full !rounded-card text-lg" :loading="isLoading">
+          <AppButton type="submit" variant="brand" size="lg" class="w-full !rounded-card text-lg" :loading="isLoading">
             {{ isLoading ? $t('loginPage.submitting') : $t('loginPage.submit') }}
             <ArrowRightIcon v-if="!isLoading" class="h-5 w-5" aria-hidden="true" />
           </AppButton>

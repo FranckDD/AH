@@ -573,7 +573,12 @@ router.onError((error, to) => {
     return;
   }
   sessionStorage.setItem(RELOAD_FLAG, '1');
-  window.location.assign(to.fullPath);
+  // Liberer la base locale (OPFS) AVANT le rechargement : sinon l'ancienne page garde encore le fichier ouvert
+  // et la nouvelle ne peut pas l'ouvrir (« Access Handles cannot be created... », connexion PowerSync echouee).
+  import('@/powersync-client/client')
+    .then(({ db }) => db.close())
+    .catch(() => {})
+    .finally(() => window.location.assign(to.fullPath));
 });
 
 router.afterEach(() => {

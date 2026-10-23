@@ -17,6 +17,9 @@ const BUTTON_BASE =
 const BUTTON_VARIANTS = {
     // Boutons pleins en degrade diagonal (couleur de base vers la meme couleur legerement assombrie, ombre douce) : le texte blanc reste lisible aux deux bouts.
     primary: 'bg-action-600 bg-linear-to-br from-action-600 to-[color-mix(in_srgb,var(--color-action-600),black_10%)] text-white border-transparent shadow-sm hover:brightness-110 hover:shadow-md',
+    // Vert sarcelle de la marque : connexion et tableau de bord admin/promoteur (retour de l'utilisateur apres le passage a l'indigo).
+    brand: 'bg-brand-600 bg-linear-to-br from-brand-600 to-brand-800 text-white border-transparent shadow-sm hover:brightness-110 hover:shadow-md',
+    brandOutline: 'bg-white text-brand-700 border-brand-600 hover:bg-brand-50',
     success: 'bg-action-success bg-linear-to-br from-action-success to-[color-mix(in_srgb,var(--color-action-success),black_10%)] text-white border-transparent shadow-sm hover:brightness-110 hover:shadow-md',
     info: 'bg-action-info bg-linear-to-br from-action-info to-[color-mix(in_srgb,var(--color-action-info),black_10%)] text-white border-transparent shadow-sm hover:brightness-110 hover:shadow-md',
     secondary: 'bg-white text-action-700 border-action-600 hover:bg-action-50',

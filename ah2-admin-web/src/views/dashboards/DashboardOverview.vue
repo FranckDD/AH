@@ -16,8 +16,8 @@
         </FormField>
       </div>
       <div class="flex flex-col gap-2 md:col-span-2 md:flex-row lg:ml-auto">
-        <AppButton variant="secondary" :icon="ArrowPathIcon" @click="resetToToday">{{ $t('dashboard.actions.refresh') }}</AppButton>
-        <AppButton :icon="MagnifyingGlassIcon" @click="applyFilters">{{ $t('dashboard.filters.apply') }}</AppButton>
+        <AppButton variant="brandOutline" :icon="ArrowPathIcon" @click="resetToToday">{{ $t('dashboard.actions.refresh') }}</AppButton>
+        <AppButton variant="brand" :icon="MagnifyingGlassIcon" @click="applyFilters">{{ $t('dashboard.filters.apply') }}</AppButton>
       </div>
     </section>
 
@@ -84,7 +84,7 @@
 
       <AppCard class="lg:col-span-2" :title="$t('dashboard.table_title', 'Dernières Activités Financières')">
         <template #actions>
-          <AppButton variant="secondary" @click="$router.push('/dashboard/finance')">{{ $t('adminDashboard.see_all') }}</AppButton>
+          <AppButton variant="brandOutline" @click="$router.push('/dashboard/finance')">{{ $t('adminDashboard.see_all') }}</AppButton>
         </template>
 
         <ResponsiveTable
@@ -114,9 +114,9 @@
 
       <AppCard :title="$t('adminDashboard.quick_actions')" :subtitle="$t('adminDashboard.quick_actions_help')">
         <div class="grid gap-3">
-          <AppButton variant="secondary" :icon="UserGroupIcon" @click="$router.push('/dashboard/users')">{{ $t('dashboard.actions.manage_staff') }}</AppButton>
-          <AppButton variant="secondary" :icon="PlusCircleIcon" @click="showAdmissionModal = true">{{ $t('dashboard.actions.new_admission') }}</AppButton>
-          <AppButton :icon="BanknotesIcon" @click="showFinanceModal = true">{{ $t('dashboard.actions.payment') }}</AppButton>
+          <AppButton variant="brandOutline" :icon="UserGroupIcon" @click="$router.push('/dashboard/users')">{{ $t('dashboard.actions.manage_staff') }}</AppButton>
+          <AppButton variant="brandOutline" :icon="PlusCircleIcon" @click="showAdmissionModal = true">{{ $t('dashboard.actions.new_admission') }}</AppButton>
+          <AppButton variant="brand" :icon="BanknotesIcon" @click="showFinanceModal = true">{{ $t('dashboard.actions.payment') }}</AppButton>
         </div>
         <p class="mt-5 border-t border-tone-neutral-border pt-4 text-center text-base text-ink-muted">Support technique : 674 69 79 08</p>
       </AppCard>
