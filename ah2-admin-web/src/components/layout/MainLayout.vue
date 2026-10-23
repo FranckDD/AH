@@ -40,7 +40,8 @@ const ROLES = {
   ASSISTANT: 'Assistant',
   LABORANTIN: 'laborantin', // ✅ Ajout du rôle laborantin
   PROMOTEUR: 'promoteur',
-  STOCK_CONTROLLER: 'StockController'
+  STOCK_CONTROLLER: 'StockController',
+  PRODUCTION_MANAGER: 'ProductionManager'
 };
 
 // --- 2. STRUCTURE DU MENU (Data Driven) ---
@@ -212,6 +213,28 @@ const menuItems = [
     icon: BanknotesIcon,
     roles: [ROLES.PROMOTEUR, ROLES.TOXICO_MANAGER]
   },
+  // Fabrication (admin voit tout via filteredMenu ; lecture seule pour promoteur et admin)
+  {
+    path: '/dashboard/fabrication-lots',
+    group: 'fabrication',
+    labelKey: 'fabrication.menu_lots',
+    icon: BeakerIcon,
+    roles: [ROLES.PRODUCTION_MANAGER, ROLES.PROMOTEUR]
+  },
+  {
+    path: '/dashboard/fabrication-intrants',
+    group: 'fabrication',
+    labelKey: 'fabrication.menu_intrants',
+    icon: CubeIcon,
+    roles: [ROLES.PRODUCTION_MANAGER, ROLES.PROMOTEUR]
+  },
+  {
+    path: '/dashboard/fabrication-suivi',
+    group: 'fabrication',
+    labelKey: 'fabrication.menu_suivi',
+    icon: ChartBarIcon,
+    roles: [ROLES.PRODUCTION_MANAGER, ROLES.PROMOTEUR]
+  },
   {
     path: '/dashboard/logs',
     labelKey: 'tech.title',
@@ -230,7 +253,8 @@ const menuItems = [
 // --- 3. FILTRAGE + SOUS-MENUS (logique pure dans utils/sidebarMenu.js) ---
 const MENU_GROUPS = {
   stock: { labelKey: 'stockOps.menu_group', icon: CubeIcon },
-  labstock: { labelKey: 'labStock.menu_group', icon: BeakerIcon }
+  labstock: { labelKey: 'labStock.menu_group', icon: BeakerIcon },
+  fabrication: { labelKey: 'fabrication.menu_group', icon: BeakerIcon }
 };
 
 const menuEntries = computed(() => buildMenu(menuItems, {

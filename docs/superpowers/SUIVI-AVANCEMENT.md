@@ -1,6 +1,6 @@
 # Suivi d'avancement — AH2 / Glostone-Kare
 
-**Dernière mise à jour :** 2026-10-22 (refonte UX du stock admin livrée ; à vérifier par l'utilisateur dans le navigateur)
+**Dernière mise à jour :** 2026-10-23 (chantier Fabrication / production livré, non commité ; à vérifier par l'utilisateur dans le navigateur)
 **But de ce document :** état d'avancement des chantiers de remise en service et de sécurisation, et registre des découvertes faites en cours de route mais non encore traitées. Pour le contexte général du projet, voir `docs/superpowers/CONTEXTE-PROJET.md`. Pour le détail d'un chantier, voir les fichiers correspondants dans `docs/superpowers/specs/` et `docs/superpowers/plans/`.
 
 ## Feuille de route
@@ -1571,3 +1571,62 @@ Plan `plans/2026-10-23-refonte-ux-labo-toxico.md`. Base `9e52fd8`. **Vérifié**
 - Le test d'utilisation avec le personnel du labo et de la toxicologie n'est pas fait.
 
 **Reste à faire** : documentation d'utilisation par rôle, onglet Rapports, chantier 8 (déploiement) ; autres espaces à migrer, s'il y en a (caisse hors secrétariat, etc., à confirmer).
+
+### Fabrication / production : livrée (Tâches 1 à 11), NON COMMITÉE, à vérifier par l'utilisateur (2026-10-23)
+
+Spec `specs/2026-10-23-fabrication-production-design.md` · Plan `plans/2026-10-23-fabrication-production.md` · Migration `alembic/versions/023_fabrication.py`. **Le chantier est non commité** (arbre de travail). Le garde-fou `ah2-admin-web/tests/refonteFabricationGuard.test.mjs` compare l'arbre de travail à `BASE = '755d4fa'` (dernier commit avant le chantier) avec `FIN = null` : **au moment du commit, renseigner `FIN` avec le hash du dernier commit du lot, dans un commit séparé**, pour que les chantiers suivants ne fassent pas échouer le contrôle de périmètre.
+
+**Livré, serveur** (`/fabrication`, modèles `models/fabrication.py`, dépôt `repositories/fabrication_repo.py`, règles `utils/fabrication_rules.py`, contrôleur `controller/fabrication_controller.py`)
+- Intrants et achats (coût unitaire, fournisseur, référence de livraison), seuil d'alerte par intrant, stock restant par achat.
+- Lots de fabrication : brouillon avec consommations (achats choisis, quantités réservées), passage en production, résultat (bouteilles bonnes, cassées, rejetées, liquide perdu), bilan attendu / retrouvé / manque, tolérance globale, justification obligatoire hors tolérance, expédition qui crée le lot de production dans le circuit de stock existant, annulation (quantités rendues).
+- Coût de revient par lot et par bouteille bonne, coût par produit, traçabilité d'un lot de production vers ses achats.
+- Lecture seule : `GET /summary`, `GET /anomalies` (quatre natures : `hors_tolerance`, `intrant_sous_seuil`, `lot_trop_long`, `ecart_expedie_recu`), `GET /settings`. Écriture des réglages : `PUT /settings` admin seul.
+
+**Livré, web** (`FabricationGateway.js`, `views/modules/fabrication/`)
+- `FabIntrants` (stock, achats, nouvel achat, annulation avec motif, seuil modifiable par l'admin), `FabLots` (liste filtrable, création), `FabLotDetail` (consommations, résultat, bilan, coût, expédition avec justification), `FabSuivi` (tuiles par statut et anomalies, lots récents, anomalies dites en toutes lettres avec référence et valeurs clés, réglages de tolérance et de délai pour l'admin seul).
+- Menu et routes `/fabrication` pour `ProductionManager`, `promoteur` et `admin` ; aucune entrée ni accès pour les autres rôles.
+
+**Décisions**
+- Rôle **`ProductionManager`** (le nom est trivial à renommer).
+- **Promoteur et admin en lecture seule**, sauf les réglages (tolérance, délai d'alerte) et les seuils d'alerte des intrants, réservés à l'admin. L'écriture métier (achats, lots) est au `ProductionManager` seul.
+- Route `GET /fabrication/products` ajoutée en cours de chantier pour corriger un trou du plan (le formulaire de lot n'avait pas de catalogue de produits finis).
+- Le responsable du lot de production créé à l'expédition est le **compte qui expédie** (spec : « responsable repris du compte qui expédie »), pas forcément celui qui a fabriqué.
+- Les endpoints d'anomalies sont prêts pour le futur contrôle quotidien des Rapports (même source `list_anomalies`).
+- Les coûts ne sont visibles que sous les routes `/fabrication` (aucun autre écran ni réponse d'un autre module ne les expose).
+- Une consommation en brouillon **bloque** la modification et l'annulation de l'achat concerné. Choix encore ouvert pour l'utilisateur : la revue recommande de ne compter que les lots `en_production` et `termine` (un brouillon abandonné ne devrait pas bloquer un achat).
+- Impasse de la justification corrigée (hors tolérance : la justification est demandée dans la fenêtre d'expédition, pas ailleurs) : le serveur répond 422 avec un code structuré `justification_required` (plus de détection par le texte du message).
+- Périmètre front verrouillé par le garde-fou : seuls `i18n.js`, `router/index.js`, `MainLayout.vue`, `navPalettes.js`, `UserModal.vue`, `postLoginRoute.js` et les fichiers du module ont changé ; aucun écran existant (stock, caisse, labo, toxico, pharmacie) n'est modifié.
+
+**Suite 2026-10-23 : intrants désactivés, modification avant livraison, filtres de dates**
+- Un intrant est **livré** dès qu'il a au moins un achat non annulé (statut `actif`, ou un achat annulé ayant déjà servi à une consommation). Tant qu'il n'est pas livré, le `ProductionManager` peut modifier nom, unité et type (contenant). Une fois livré, `PUT /fabrication/intrants/{id}` touchant l'un de ces champs répond **409** avec un message clair, affiché tel quel à l'écran.
+- Désactiver / réactiver (`is_active`) reste permis à tout moment, `ProductionManager` seul (n'efface rien, bloque seulement les nouveaux achats). Admin et promoteur restent en lecture ; le seuil reste à l'admin seul.
+- `GET /fabrication/intrants` renvoie en plus `editable` et `purchases_count`. L'écran a une case « Afficher les désactivés » (`include_inactive`), un badge « Désactivé », et par ligne (écrivain seul) « Modifier » (seulement si modifiable, sinon « Verrouillé : déjà utilisé ») et « Désactiver » / « Réactiver » avec confirmation. Le formulaire d'achat ne propose que les intrants actifs.
+- `GET /fabrication/purchases` (date d'achat) et `GET /fabrication/batches` (date de production) acceptent `date_from` / `date_to` (ISO, bornes incluses ; date invalide ou début après fin : 422). Filtres Du / Au avec bouton d'effacement sur les achats (`FabIntrants`) et les lots (`FabLots`, à côté du statut). Aucune route ajoutée.
+
+
+**Corrections de suivi 2026-10-23 (2)**
+- Un intrant désactivé n'est plus utilisable dans un brouillon : l'enregistrement des consommations et le démarrage du lot (revérifié sous verrou) répondent **409** ; `GET /fabrication/purchases` expose en plus `intrant_active` (ajout seul) et l'éditeur de consommations ne propose plus ces achats. L'annulation d'un lot déjà réservé rend toujours le stock, même si l'intrant a été désactivé depuis.
+- Le producteur ne voit et ne fabrique que les produits de type **naturel ou traditionnel** : `GET /fabrication/products`, création d'un lot et changement de produit d'un brouillon (produit d'un autre type : **422** « Produit non fabricable. », produit inconnu : 404). Prédicat unique `fabricable_product_filter()` dans `fabrication_repo.py` (début de type, insensible à la casse : `natur%` ou `tradi%`). Valeurs réelles en base de dev : `Naturel`, `Pharmaceutique`, `pharmaceutique`, `Autre`. Les lots existants gardent l'affichage du nom de leur produit.
+- `GET /fabrication/batches` renvoie `product_name` par lot (une seule requête groupée, sans filtre de type) : un lot dont le produit n'est plus fabricable garde son nom à l'écran. Décision : `start_batch` et `ship_batch` ne revérifient volontairement PAS le type du produit (un lot légitimement produit ne doit pas rester bloqué si son produit est reclassé).
+- Dates par défaut (date d'achat, date de production) en **date locale** via `todayLocalISO` ; plus aucun `toISOString` dans les vues Fabrication (garde-fou ajouté).
+
+**Résiduels connus (non traités)**
+- Conversion des champs numériques : les quantités partent telles que saisies (le serveur lit en `Decimal`) ; un cas limite de saisie reste à durcir.
+- Unicité des noms d'intrants non imposée (pas de nom d'intrant unique).
+- Pas de contrôle de cohérence des dates (production, livraison, péremption : une péremption ou une livraison antérieure à la production est acceptée).
+- La comparaison expédié / reçu ne compte que les lignes de réception du produit du lot (corrigé en revue finale).
+
+**Vérifié** : voir le rapport de la Tâche 11 (`.superpowers/sdd/2026-10-23-fabrication-production/task-11-report.md`).
+
+**Checklist à vérifier par l'utilisateur**
+| Étape | Point précis |
+|---|---|
+| Achat | En `ProductionManager`, créer un achat (nouvel intrant puis intrant existant) ; le stock restant monte |
+| Lot | Créer un lot, choisir des consommations (une seule ligne de contenant), enregistrer le brouillon |
+| Production | Passer en production ; le stock de l'achat baisse |
+| Terminer | Terminer avec une perte hors tolérance ; le bilan affiche « Hors tolérance » |
+| Expédier | Valider et expédier : la justification est exigée ; le lot est créé |
+| Circuit existant | Le lot arrive dans le circuit existant : l'assistant le marque livré, réception, contrôle par le `StockController` |
+| Suivi | L'anomalie hors tolérance apparaît dans « Suivi et anomalies » avec sa nature écrite ; en admin, modifier la tolérance et le délai |
+| Accès | Un compte secrétaire et un compte `StockController` n'ont aucune entrée de menu Fabrication et sont refusés sur `/fabrication` |
+| Promoteur | Le promoteur voit tout en lecture seule, sans bouton d'écriture ni réglage |

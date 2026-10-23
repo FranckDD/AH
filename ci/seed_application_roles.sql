@@ -44,6 +44,8 @@ SELECT pg_catalog.setval('public.application_roles_role_id_seq', 57, true);
 -- Role StockController (migration 019), idempotent
 INSERT INTO public.application_roles (role_name) SELECT 'StockController' WHERE NOT EXISTS (SELECT 1 FROM public.application_roles WHERE role_name = 'StockController');
 
+-- Role ProductionManager (migration 023), idempotent
+INSERT INTO public.application_roles (role_name) SELECT 'ProductionManager' WHERE NOT EXISTS (SELECT 1 FROM public.application_roles WHERE role_name = 'ProductionManager');
 
 --
 -- PostgreSQL database dump complete

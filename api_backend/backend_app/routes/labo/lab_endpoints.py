@@ -117,7 +117,7 @@ def get_paillasse_list(ctrl: LabController = Depends(get_lab_controller)):
     return ctrl.get_paillasse_list()
 
 @router.get("/exams/{examen_id}/params", response_model=List[Dict],
-            dependencies=[Depends(deny_roles("StockController"))])
+            dependencies=[Depends(deny_roles("StockController", "ProductionManager"))])
 def list_parametres(examen_id: int, ctrl: LabController = Depends(get_lab_controller)):
     """Liste les paramètres configurés pour un examen."""
     return ctrl.list_parametres(examen_id)

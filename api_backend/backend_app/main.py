@@ -34,6 +34,7 @@ from .routes.audit import audit_endpoint
 from .routes.pharmacy import pharmacy_endpoints
 from .routes.stock import stock_endpoints
 from .routes.lab_stock import lab_stock_endpoints
+from .routes.fabrication import fabrication_endpoints
 from .routes.admin import users_endpoint,config_endpoints
 from .routes import health_endpoint
 
@@ -182,6 +183,7 @@ app.include_router(audit_endpoint.router)
 app.include_router(pharmacy_endpoints.router)
 app.include_router(stock_endpoints.router)  # prefixe /stock (fabrication, receptions, avaries)
 app.include_router(lab_stock_endpoints.router)  # prefixe /lab-stock (stock du laboratoire)
+app.include_router(fabrication_endpoints.router)  # prefixe /fabrication (intrants, achats, lots)
 app.include_router(users_endpoint.router)
 app.include_router(config_endpoints.router)
 app.include_router(health_endpoint.router) 

@@ -16,6 +16,7 @@ const ROLES = {
   TOXICO_MANAGER: 'ToxicoManager',
   ASSISTANT: 'Assistant',
   STOCK_CONTROLLER: 'StockController',
+  PRODUCTION_MANAGER: 'ProductionManager',
   LABORANTIN: 'laborantin',
   MEDECIN: 'medecin',
   NURSE: 'nurse',
@@ -282,6 +283,28 @@ const routes = [
         name: 'lab-stock-movements',
         component: () => import('@/views/modules/labstock/LabStockMovements.vue'),
         meta: { requiresAuth: true, roles: [ROLES.LABORANTIN, ROLES.STOCK_CONTROLLER, ROLES.PROMOTEUR, ROLES.TOXICO_MANAGER, ROLES.ADMIN] }
+      },
+      // Fabrication : lecture = READERS du routeur /fabrication (ecriture ProductionManager seul, controlee cote API)
+      {
+        path: 'fabrication-intrants',
+        component: () => import('@/views/modules/fabrication/FabIntrants.vue'),
+        meta: { requiresAuth: true, roles: [ROLES.PRODUCTION_MANAGER, ROLES.PROMOTEUR, ROLES.ADMIN] }
+      },
+      {
+        path: 'fabrication-lots',
+        component: () => import('@/views/modules/fabrication/FabLots.vue'),
+        meta: { requiresAuth: true, roles: [ROLES.PRODUCTION_MANAGER, ROLES.PROMOTEUR, ROLES.ADMIN] }
+      },
+      {
+        path: 'fabrication-lots/:id',
+        name: 'fabrication-lot',
+        component: () => import('@/views/modules/fabrication/FabLotDetail.vue'),
+        meta: { requiresAuth: true, roles: [ROLES.PRODUCTION_MANAGER, ROLES.PROMOTEUR, ROLES.ADMIN] }
+      },
+      {
+        path: 'fabrication-suivi',
+        component: () => import('@/views/modules/fabrication/FabSuivi.vue'),
+        meta: { requiresAuth: true, roles: [ROLES.PRODUCTION_MANAGER, ROLES.PROMOTEUR, ROLES.ADMIN] }
       },
       {
         path: 'lab-stock-expenses',

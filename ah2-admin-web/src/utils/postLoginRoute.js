@@ -23,6 +23,9 @@ export function getPostLoginPath(role) {
         case 'stockcontroller':
             return '/dashboard/stock-control';
 
+        case 'productionmanager':
+            return '/dashboard/fabrication-lots';
+
         case 'medecin':
             return '/medical/doctors';
 
@@ -41,7 +44,7 @@ export function getPostLoginPath(role) {
 // Roles reellement connus de l'application (hors defaut).
 const KNOWN_ROLES = [
     'admin', 'promoteur', 'psychologist', 'spiritualcounsellor', 'toxicomanager',
-    'assistant', 'laborantin', 'stockcontroller', 'medecin', 'nurse', 'secretaire',
+    'assistant', 'laborantin', 'stockcontroller', 'productionmanager', 'medecin', 'nurse', 'secretaire',
 ];
 
 // Cible des redirections racine ('/' , '/dashboard', route inconnue).

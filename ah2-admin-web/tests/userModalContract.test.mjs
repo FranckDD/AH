@@ -23,7 +23,7 @@ check('UserModal', modal, [
     // interface avec l'écran parent
     "defineEmits(['close', 'save'])", 'userToEdit: Object,', 'applicationRoles: { type: Array, required: true },', 'medicalSpecialties: { type: Array, required: true }',
     // groupes de rôles
-    "app_admin: ['admin', 'promoteur', 'Psychologist', 'SpiritualCounsellor', 'ToxicoManager', 'Assistant', 'StockController'],", "app_medical: ['medecin', 'nurse'],",
+    "app_admin: ['admin', 'promoteur', 'Psychologist', 'SpiritualCounsellor', 'ToxicoManager', 'Assistant', 'StockController', 'ProductionManager'],", "app_medical: ['medecin', 'nurse'],",
     "app_secretaire: ['secretaire'],", "app_laborantin: ['laborantin']",
     // formulaire initial
     "postgres_role: 'app_medical',", 'role_id: null,', 'specialty_id: null,', 'is_active: true,', 'is_head_nurse: false',

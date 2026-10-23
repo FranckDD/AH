@@ -52,7 +52,7 @@ def _safe_validate_user(raw: Any) -> UserOut:
 # =========================================================================
 
 @router.get("/roles", response_model=List[RoleOut],
-            dependencies=[Depends(deny_roles("StockController"))])
+            dependencies=[Depends(deny_roles("StockController", "ProductionManager"))])
 def list_roles(controller: UserController = Depends(get_user_controller)):
     try:
         return controller.get_all_roles()
@@ -61,7 +61,7 @@ def list_roles(controller: UserController = Depends(get_user_controller)):
         raise HTTPException(status_code=500, detail="Erreur serveur lecture rôles")
 
 @router.get("/specialties", response_model=List[SpecialtyOut],
-            dependencies=[Depends(deny_roles("StockController"))])
+            dependencies=[Depends(deny_roles("StockController", "ProductionManager"))])
 def list_specialties(controller: UserController = Depends(get_user_controller)):
     try:
         return controller.get_all_specialties()
@@ -92,7 +92,7 @@ def list_users(
 
 
 @router.get("/doctors", response_model=List[UserOut],
-            dependencies=[Depends(deny_roles("StockController"))])
+            dependencies=[Depends(deny_roles("StockController", "ProductionManager"))])
 def list_doctors(user_ctrl: UserController = Depends(get_user_controller)):
     """Récupère la liste des médecins actifs pour les sélections (prescriptions)."""
     try:
@@ -104,7 +104,7 @@ def list_doctors(user_ctrl: UserController = Depends(get_user_controller)):
 
 
 @router.get("/managers", response_model=List[UserOut],
-            dependencies=[Depends(deny_roles("StockController"))])
+            dependencies=[Depends(deny_roles("StockController", "ProductionManager"))])
 def list_managers(user_ctrl: UserController = Depends(get_user_controller)):
     """Récupère les comptes admin/promoteur actifs pour le sélecteur de
     destinataire d'une demande de réduction (chantier notifications)."""

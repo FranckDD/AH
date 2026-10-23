@@ -16,11 +16,12 @@ ASSISTANT = "assistant"
 MANAGER = "manager"
 PROMOTEUR = "promoteur"
 STOCKCONTROLLER = "stockcontroller"
+PRODUCTIONMANAGER = "productionmanager"
 
 ROLE_CANONICALS = {
     ADMIN, MEDECIN, NURSE, SECRETAIRE, LABORANTIN,
     PSYCHOLOGIST, SPIRITUALCOUNSELLOR, TOXICOMANAGER, ASSISTANT,
-    MANAGER, PROMOTEUR, STOCKCONTROLLER,
+    MANAGER, PROMOTEUR, STOCKCONTROLLER, PRODUCTIONMANAGER,
 }
 
 # mapping canonical -> set d'alias (fr, en, variations possibles)
@@ -37,6 +38,7 @@ ROLE_ALIASES: Dict[str, Set[str]] = {
     MANAGER: {"manager", "gestionnaire"},
     PROMOTEUR: {"promoteur", "promoter", "owner"},
     STOCKCONTROLLER: {"stockcontroller", "stock_controller", "controleur_stock", "contrôleur de stock"},
+    PRODUCTIONMANAGER: {"productionmanager", "production_manager", "responsable_production"},
 }
 
 # Construire reverse map alias (lowercase) -> canonical

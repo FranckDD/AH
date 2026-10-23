@@ -22,6 +22,7 @@ from .prayer_book_type import PrayerBookType
 from .retrait import CaisseRetrait
 from .stock_movement import StockMovement
 from .stock_reception import ProductionLot, StockReceipt, StockReceiptLine, StockIncident, StockAdjustmentRequest
+from .fabrication import FabIntrant, FabIntrantPurchase, FabBatch, FabConsumption, FabSettings
 from .lab_stock import (
     LabStockProduct, LabStockReceipt, LabStockReceiptLine, LabStockCount,
     LabStockCountLine, LabStockMovement, LabStockRequest,

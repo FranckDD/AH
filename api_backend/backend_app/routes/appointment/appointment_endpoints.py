@@ -16,7 +16,7 @@ from api_backend.backend_app.routes.auth.auth_endpoints import get_current_user,
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/appointments", tags=["Appointments"], dependencies=[Depends(get_current_user), Depends(deny_roles("StockController"))])
+router = APIRouter(prefix="/appointments", tags=["Appointments"], dependencies=[Depends(get_current_user), Depends(deny_roles("StockController", "ProductionManager"))])
 
 
 def get_db():

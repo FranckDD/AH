@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 const ROLE_VALUES = {
     ADMIN: 'admin', PSYCHOLOGIST: 'Psychologist', SPIRITUAL: 'SpiritualCounsellor', TOXICO_MANAGER: 'ToxicoManager',
     ASSISTANT: 'Assistant', LABORANTIN: 'laborantin', PROMOTEUR: 'promoteur', STOCK_CONTROLLER: 'StockController',
+    PRODUCTION_MANAGER: 'ProductionManager',
 };
 
 export function readMainLayout() {

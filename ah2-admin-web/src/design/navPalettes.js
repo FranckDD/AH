@@ -24,6 +24,7 @@ const PALETTE_BY_ROLE = {
     spiritualcounsellor: 'ember',
     assistant: 'ember',
     stockcontroller: 'violet',
+    productionmanager: 'forest',
 };
 
 export function paletteForRole(role) {
