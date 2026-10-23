@@ -117,9 +117,9 @@ test('(c) toutes les clés labScreens.* et toxicoScreens.* citées par ces fichi
 
 // --- (d) la refonte n'a touché que les fichiers autorisés, jamais les données ni les règles métier ---
 const BASE = '9e52fd8'; // juste avant la Tâche 1 de ce lot (garde-fou du stock labo)
-// Dernier commit de ce lot. null = arbre de travail ; à renseigner au commit
+// Dernier commit de ce lot. null = arbre de travail ; renseigné
 // pour que les chantiers suivants ne fassent pas échouer ce contrôle.
-const FIN = null;
+const FIN = '7326021';
 
 // Anciens ecrans orphelins supprimes avec l'accord de l'utilisateur (jamais references : ni route, ni import).
 const SUPPRIMES = ['src/views/modules/labo/LabWorklist.vue', 'src/views/modules/labo/LabEntry.vue'];

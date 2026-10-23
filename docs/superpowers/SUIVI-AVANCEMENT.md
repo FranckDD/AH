@@ -1551,7 +1551,7 @@ Plan `plans/2026-10-23-refonte-ux-labo-toxico.md`. Base `9e52fd8`. **Vérifié**
 - Code mort jamais référencé, **supprimé avec l'accord de l'utilisateur** : `LabWorklist.vue` et `LabEntry.vue` (le garde-fou vérifie qu'ils n'existent plus et que rien ne les référence). `LabValidation.vue` était déjà orphelin avant (conservé). Stock-control complet était déjà migré (lot du stock admin).
 - Backend, changements additifs : `batch_id` et `batch_exams` sur `/labo/paillasse`, `recent_passages` sur `/labo/stats`, `?group=true` et `nb_anormaux` sur `/labo/history/paginated`. Les médecins et infirmiers gardent la liste à plat.
 - Bibliothèque `ui/` : taille de bouton `sm`, option `tone` et focus sans défilement du `FullScreenPanel`, trois jetons pleins (`tone-warning-solid`, `tone-info-solid`, `tone-success-solid`).
-- Le garde-fou déclare trois fichiers `HORS_LOT` modifiés à part (commit `167e6af`) : `router/index.js`, `LoginView.vue`, `DashboardOverview.vue`. `FIN` de `refonteLaboToxicoGuard.test.mjs` renseignée avec le commit du lot (voir `git log`).
+- Le garde-fou déclare trois fichiers `HORS_LOT` modifiés à part (commit `167e6af`) : `router/index.js`, `LoginView.vue`, `DashboardOverview.vue`. `FIN` de `refonteLaboToxicoGuard.test.mjs` renseignée avec le commit `7326021`.
 
 **Checklist à vérifier par l'utilisateur** (laborantin, admin, ToxicoManager, psychologue ; chaque ligne à 360, 768 et 1280 px)
 | Écran | Points précis |
