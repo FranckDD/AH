@@ -1512,7 +1512,7 @@ Plan `plans/2026-10-22-refonte-ux-stock-labo.md`. Base `5aa9b88`. **Vérifié** 
 - Nouvelles clés `labStockScreens.*` en FR et EN : `count_conflict_badge`, `count_table`, `count_input_label`, `movements_count`, `product_filter`, `expenses_period_label`, `prices_count`.
 - Un point de contrat des Dépenses a été reformulé : la boucle `v-for="(h, i) in prices"` du gabarit est devenue `priceRows` (même donnée, un identifiant de ligne en plus) ; le contrat fige cette nouvelle forme.
 - Le garde-fou déclare quatre fichiers `HORS_LOT` modifiés en parallèle à la demande de l'utilisateur : `router/index.js` (fermeture de la base locale avant le rechargement après erreur de chargement), `utils/ui.js` (variantes de bouton `brand` et `brandOutline`), `LoginView.vue`, `DashboardOverview.vue`.
-- **À faire au commit** : renseigner la constante `FIN` de `refonteLabStockGuard.test.mjs` avec le commit de ce lot (elle vaut `null`, donc l'arbre de travail est comparé à la base).
+- **Garde-fou borné** : `FIN` de `refonteLabStockGuard.test.mjs` renseignée avec le commit `4fd90d6`.
 
 **Checklist à vérifier par l'utilisateur** (laborantin, StockController, promoteur ; chaque ligne à 360, 768 et 1280 px)
 | Écran | Points précis |

@@ -77,9 +77,9 @@ test('(c) la zone labStockScreens existe et n’a ni tiret long ni points de sus
 
 // --- (d) la refonte n'a touché que les fichiers autorisés, jamais les données ni les règles de stock ---
 const BASE = '5aa9b88'; // juste avant la Tâche 1 de ce lot
-// Dernier commit de ce lot. null = arbre de travail ; à renseigner au commit
+// Dernier commit de ce lot. null = arbre de travail ; renseigné
 // pour que les chantiers suivants ne fassent pas échouer ce contrôle.
-const FIN = null;
+const FIN = '4fd90d6';
 
 const AUTORISES = new Set([...REFONDUS, 'src/i18n.js']);
 
