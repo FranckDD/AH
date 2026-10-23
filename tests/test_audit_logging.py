@@ -37,7 +37,7 @@ def test_caisse_controller_logs_when_audit_fails_on_cancel(caplog):
     ctrl = CaisseController(repo=repo, current_user=user, audit_repo=audit_repo)
 
     with caplog.at_level(logging.ERROR):
-        tx = ctrl.cancel_transaction(transaction_id=1)
+        tx = ctrl.cancel_transaction(transaction_id=1, justification="Erreur de saisie")
 
     assert tx is not None  # ne doit jamais lever
     assert any("audit" in r.message.lower() for r in caplog.records)
