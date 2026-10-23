@@ -21,7 +21,7 @@ from .labo_schemas import (
 # --- IMPORTS BACKEND ---
 from ...database import SessionLocal
 from api_backend.backend_app.routes.auth.auth_endpoints import get_current_user, role_required, deny_roles
-from api_backend.backend_app.utils.pdf_generator import build_medical_pdf
+from api_backend.backend_app.utils.pdf_generator import build_medical_pdf, build_batch_medical_pdf
 from api_backend.backend_app.utils.patient_resolution import resolve_lab_result_id_from_path
 from fastapi.responses import StreamingResponse
 from controller.config_controller import ConfigController
@@ -150,6 +150,7 @@ def get_paginated_history(
     status: Optional[str] = Query(None, description="Filtre par statut (pending, completed, etc.)"),
     abnormal: bool = Query(False, description="Seulement les dossiers avec au moins un parametre anormal"),
     period: Optional[str] = Query(None, pattern="^(day|month|year)$", description="Limite a la periode du dashboard"),
+    group: bool = Query(False, description="Paginer par passage patient (un batch_id = un passage) au lieu d'un examen par ligne"),
     ctrl: LabController = Depends(get_lab_controller)
 ):
     """
@@ -157,7 +158,7 @@ def get_paginated_history(
     Idéal pour le tableau principal du frontend.
     """
     return ctrl.get_paginated_results(page=page, limit=limit, search=search, status=status,
-                                      abnormal_only=abnormal, period=period)
+                                      abnormal_only=abnormal, period=period, group_by_batch=group)
 
 # Lecture de donnees d'analyses : soignants + admin uniquement, meme jeu de
 # roles que les autres routes de lecture de ce module (lignes 66 et 141).
@@ -266,6 +267,41 @@ def get_lab_stats(
     ctrl: LabController = Depends(get_lab_controller)
 ):
     return ctrl.get_dashboard_stats(period) 
+
+@router.get("/batch/{batch_id}/pdf", tags=["Labo PDF"],
+            dependencies=[Depends(role_required("laborantin", "admin", "ToxicoManager", "medecin", "nurse"))])
+def download_batch_pdf(
+    batch_id: str,
+    db: Session = Depends(get_db),
+    lab_ctrl: LabController = Depends(get_lab_controller)
+):
+    """
+    PDF unique « dossier complet » d'un passage patient : tous les examens termines du lot
+    (le patient et l'en-tete une seule fois, une seule signature).
+    """
+    config_ctrl = ConfigController(repo=ConfigRepository(db))
+    try:
+        print_data = lab_ctrl.get_batch_print_data(batch_id, config_ctrl)
+    except PermissionError as e:
+        raise HTTPException(status_code=403, detail=str(e))
+    except ValueError as e:
+        raise HTTPException(status_code=409, detail=str(e))
+
+    if not print_data:
+        raise HTTPException(status_code=404, detail="Dossier introuvable")
+
+    try:
+        pdf_bytes = build_batch_medical_pdf(print_data)
+    except Exception:
+        logger.exception(f"Erreur lors de la generation du PDF du dossier {batch_id}")
+        raise HTTPException(status_code=500, detail="Erreur lors de la création du document PDF")
+
+    filename = f"Dossier_{print_data['passage']['code']}.pdf"
+    return StreamingResponse(
+        io.BytesIO(pdf_bytes),
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+    )
 
 @router.get("/results/{result_id}/pdf", tags=["Labo PDF"],
             dependencies=[Depends(role_required("laborantin", "admin", "ToxicoManager", "medecin", "nurse"))])

@@ -3,16 +3,19 @@
     {% from '_pdf_signatures.html' import signature_block %}
     {{ signature_block([{'title': 'Le psychologue', 'name': nom_ou_vide}, ...]) }}
   - 1 ou 2 cases ; 'name' optionnel : vide/None -> rien n'est imprime (titre + espace).
+  - align='right' (defaut 'left') : la case unique est placee a droite de la page (PDF du labo).
   - Les noms sont echappes ici (|e) : render_pdf_from_template n'a pas d'autoescape.
   - Style autonome, le bloc ne se coupe jamais entre deux pages.
 #}
-{% macro signature_block(boxes) %}
+{% macro signature_block(boxes, align='left') %}
 <style>
     .sig-block { margin-top: 28px; width: 100%; page-break-inside: avoid; break-inside: avoid; text-align: left; }
     .sig-table { width: 100%; border-collapse: collapse; border: none; page-break-inside: avoid; }
     .sig-table td.sig-cell { border: none; vertical-align: top; padding: 0; background: none; text-align: left; }
     .sig-box { width: 85mm; max-width: 100%; margin: 0; text-align: left; }
     .sig-box-right { margin-left: auto; margin-right: 0; }
+    /* case unique a droite (PDF du labo) : aussi large que son trait, calee contre la marge droite */
+    .sig-box-flush { width: 62mm; }
     .sig-title { font-size: 10pt; font-weight: bold; color: #2c3e50; margin: 0; }
     .sig-space { height: 1.7cm; }
     .sig-line { width: 58mm; border-top: 1px solid #333; margin: 0 0 3px 0; }
@@ -24,7 +27,7 @@
         <tr>
         {% for b in boxes %}
             <td class="sig-cell" style="width: {{ (100 / (boxes|length))|round(0, 'floor')|int }}%;">
-                <div class="sig-box{% if boxes|length > 1 and loop.last %} sig-box-right{% endif %}">
+                <div class="sig-box{% if (boxes|length > 1 and loop.last) or (boxes|length == 1 and align == 'right') %} sig-box-right{% endif %}{% if boxes|length == 1 and align == 'right' %} sig-box-flush{% endif %}">
                     <p class="sig-title">{{ b.title|e }}</p>
                     <div class="sig-space"></div>
                     <div class="sig-line"></div>

@@ -192,19 +192,22 @@ class LabRepository:
         return now.replace(day=1, hour=0, minute=0, second=0)
 
     def get_paginated_history(self, skip: int = 0, limit: int = 20, search_query: Optional[str] = None, status: Optional[str] = None,
-                              abnormal_only: bool = False, period: Optional[str] = None) -> Tuple[int, List[LabResult]]:
+                              abnormal_only: bool = False, period: Optional[str] = None,
+                              group_by_batch: bool = False) -> Tuple[int, List[LabResult]]:
         """
         Récupère l'historique des résultats de laboratoire avec pagination.
         Retourne le nombre total d'éléments (pour le front) et la liste de la page demandée.
+
+        group_by_batch=True : la pagination porte sur les PASSAGES patient (un batch_id = un passage ;
+        un examen sans batch_id est son propre passage). Le total est le nombre de passages et
+        un passage n'est jamais coupe entre deux pages.
         """
-        query = self.session.query(LabResult)\
-            .options(joinedload(LabResult.patient), joinedload(LabResult.examen))\
-            .outerjoin(LabResult.patient)
+        conditions = []
 
         # 1. Filtre par recherche texte (si renseigné)
         if search_query:
             q_term = f"%{search_query.lower()}%"
-            query = query.filter(
+            conditions.append(
                 or_(
                     LabResult.code_lab_patient.ilike(q_term),
                     LabResult.patient.has(Patient.last_name.ilike(q_term)),
@@ -216,15 +219,23 @@ class LabRepository:
 
         # 2. Filtre par statut (ex: 'completed', 'pending')
         if status:
-            query = query.filter(LabResult.status == status)
+            conditions.append(LabResult.status == status)
 
         # 2b. Cas anormaux : au moins un parametre flagge. `period` reprend
         # exactement la fenetre du dashboard (carte "Pathologiques") pour que
         # le total affiche ici soit celui de la carte cliquee.
         if abnormal_only:
-            query = query.filter(LabResult.details.any(LabResultDetail.flagged == True))
+            conditions.append(LabResult.details.any(LabResultDetail.flagged == True))
         if period:
-            query = query.filter(LabResult.test_date >= self.period_start(period))
+            conditions.append(LabResult.test_date >= self.period_start(period))
+
+        if group_by_batch:
+            return self._paginated_history_by_passage(conditions, skip, limit)
+
+        query = self.session.query(LabResult)\
+            .options(joinedload(LabResult.patient), joinedload(LabResult.examen))\
+            .outerjoin(LabResult.patient)\
+            .filter(*conditions)
 
         # 3. Compter le total d'éléments correspondant aux filtres (AVANT la pagination)
         total_count = query.count()
@@ -236,6 +247,44 @@ class LabRepository:
                        .all()
 
         return total_count, results
+
+    @staticmethod
+    def _passage_key():
+        """Cle d'un passage : le batch_id, ou l'identifiant du resultat quand il n'y en a pas."""
+        return func.coalesce(cast(LabResult.batch_id, String), cast(LabResult.result_id, String))
+
+    def _paginated_history_by_passage(self, conditions, skip: int, limit: int) -> Tuple[int, List[LabResult]]:
+        key = self._passage_key()
+        base = self.session.query(LabResult).outerjoin(LabResult.patient).filter(*conditions)
+
+        total_passages = (self.session.query(func.count(func.distinct(key)))
+                          .select_from(LabResult).outerjoin(LabResult.patient).filter(*conditions).scalar() or 0)
+
+        page_keys = [k for k, _ in (
+            self.session.query(key.label('k'), func.max(LabResult.test_date).label('d'))
+            .select_from(LabResult).outerjoin(LabResult.patient).filter(*conditions)
+            .group_by(key).order_by(desc('d'), desc('k')).offset(skip).limit(limit).all())]
+        if not page_keys:
+            return total_passages, []
+
+        rows = (base.options(joinedload(LabResult.patient), joinedload(LabResult.examen))
+                .filter(key.in_(page_keys)).all())
+        rank = {k: i for i, k in enumerate(page_keys)}
+        rows.sort(key=lambda r: (rank[str(r.batch_id) if r.batch_id else str(r.result_id)], r.result_id))
+        return total_passages, rows
+
+    def get_batch_exams(self, batch_ids: List[uuid.UUID]) -> Dict[str, List[Dict[str, Any]]]:
+        """Examens de chaque passage (termines compris), par batch_id : [{result_id, examen_nom, status}]."""
+        out: Dict[str, List[Dict[str, Any]]] = {}
+        if not batch_ids:
+            return out
+        for r in sorted(self.get_results_by_batch_ids(list(batch_ids)), key=lambda x: x.result_id):
+            out.setdefault(str(r.batch_id), []).append({
+                'result_id': r.result_id,
+                'examen_nom': r.examen.nom if r.examen else 'Inconnu',
+                'status': r.status,
+            })
+        return out
 
     def _generate_analysis_code(self, is_external: bool, result_id: int) -> str:
         now = datetime.now()
@@ -672,6 +721,34 @@ class LabRepository:
             full = f"{r.patient.first_name or ''} {r.patient.last_name or ''}".strip()
             return full or "Patient Externe"
 
+        # --- 4b. Les 3 derniers PASSAGES encore a traiter : un patient une seule fois, avec tous ses examens ---
+        candidates = (self.session.query(LabResult)
+            .options(joinedload(LabResult.patient), joinedload(LabResult.examen))
+            .filter(LabResult.status.in_(pending_statuses))
+            .order_by(LabResult.test_date.desc(), LabResult.result_id.desc())
+            .limit(60).all())
+        passages: Dict[str, Dict[str, Any]] = {}
+        for r in candidates:
+            k = str(r.batch_id) if r.batch_id else str(r.result_id)
+            if k not in passages:
+                if len(passages) == 3:
+                    continue
+                passages[k] = {
+                    "batch_id": str(r.batch_id) if r.batch_id else None,
+                    "patient_name": _patient_name(r),
+                    "code_patient": r.patient.code_patient if r.patient else "EXT",
+                    "first_pending_id": r.result_id,
+                    "_own": [],
+                }
+            passages[k]["_own"].append(r)
+        siblings = self.get_batch_exams([p_r["_own"][0].batch_id for p_r in passages.values() if p_r["batch_id"]])
+        recent_passages = []
+        for p_r in passages.values():
+            own = p_r.pop("_own")
+            p_r["exams"] = siblings.get(p_r["batch_id"]) if p_r["batch_id"] else [
+                {"result_id": o.result_id, "examen_nom": o.examen.nom if o.examen else (o.test_type or ""), "status": o.status} for o in own]
+            recent_passages.append(p_r)
+
         return {
             "pending": pending,
             "completed_today": completed, # Adapté selon le filtre
@@ -686,7 +763,8 @@ class LabRepository:
                     "code_patient": r.patient.code_patient if r.patient else "EXT",
                     "test_type": r.examen.nom if r.examen else (r.test_type or "")
                 } for r in recent
-            ]
+            ],
+            "recent_passages": recent_passages
         }
 
     def count_flagged_by_result(self, result_ids: List[int]) -> Dict[int, int]:

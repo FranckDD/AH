@@ -147,7 +147,7 @@
     {% from '_pdf_signatures.html' import signature_block %}
     {# La mention reste solidaire du bloc de signature (jamais seule en haut de page). #}
     <div style="page-break-inside: avoid; break-inside: avoid;">
-    {{ signature_block([{'title': 'Le chef du laboratoire'}]) }}
+    {{ signature_block([{'title': 'Le chef du laboratoire'}], align='right') }}
     <p style="text-align: right; font-size: 9pt; margin-top: 4px;"><em>Document généré numériquement</em></p>
     </div>
 

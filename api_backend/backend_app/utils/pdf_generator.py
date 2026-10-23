@@ -43,3 +43,8 @@ def build_medical_pdf(print_data: dict) -> bytes:
     controller/lab_controller.py au-dela de la Tache 1 de ce plan.
     """
     return render_pdf_from_template('lab_result_template.html', print_data)
+
+
+def build_batch_medical_pdf(print_data: dict) -> bytes:
+    """PDF unique d'un passage patient : l'en-tete et le patient une seule fois, puis tous les examens termines."""
+    return render_pdf_from_template('lab_batch_result_template.html', print_data)

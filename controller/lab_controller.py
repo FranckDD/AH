@@ -198,7 +198,8 @@ class LabController:
     # ====================================================================
 
     def get_paginated_results(self, page: int = 1, limit: int = 20, search: Optional[str] = None, status: Optional[str] = None,
-                              abnormal_only: bool = False, period: Optional[str] = None) -> Dict[str, Any]:
+                              abnormal_only: bool = False, period: Optional[str] = None,
+                              group_by_batch: bool = False) -> Dict[str, Any]:
         """
         Récupère l'historique paginé et formaté pour le frontend.
         """
@@ -224,9 +225,13 @@ class LabController:
             search_query=search, 
             status=status,
             abnormal_only=abnormal_only,
-            period=period
+            period=period,
+            group_by_batch=group_by_batch
         )
         
+        # Anomalies par examen, en une requete : visibles des la liste (un resultat anormal ne doit pas etre manque).
+        flagged_counts = self.repo.count_flagged_by_result([r.result_id for r in results])
+
         # 2. Formatage des résultats (réutilisation de ta logique existante)
         formatted_items = []
         for r in results:
@@ -241,7 +246,8 @@ class LabController:
                 'examen_nom': r.examen.nom if r.examen else 'Inconnu',
                 'test_date': r.test_date.isoformat() if r.test_date else "",
                 'status': r.status,
-                'batch_id': str(r.batch_id) if r.batch_id else None
+                'batch_id': str(r.batch_id) if r.batch_id else None,
+                'nb_anormaux': flagged_counts.get(r.result_id, 0)
             })
             
         # 3. Calcul du nombre total de pages (arrondi au supérieur)
@@ -348,6 +354,51 @@ class LabController:
             "date_impression": datetime.now().strftime("%d/%m/%Y à %H:%M")
         }
 
+    DONE_STATUSES = ("completed", "validated")
+
+    def get_batch_print_data(self, batch_id_str: str, config_ctrl: Any) -> Optional[Dict[str, Any]]:
+        """
+        Donnees du PDF « dossier complet » d'un passage patient : le patient et l'en-tete une seule fois,
+        puis chaque examen TERMINE avec ses resultats. Les examens encore en cours sont comptes (skipped_count)
+        mais ne sont jamais imprimes.
+        Retourne None si le lot n'existe pas ; leve ValueError si aucun examen n'est termine.
+        """
+        try:
+            batch_uuid = uuid.UUID(batch_id_str)
+        except ValueError:
+            return None
+        rows = self.repo.get_results_by_batch_id(batch_uuid)
+        if not rows:
+            return None
+
+        # Medecin/infirmier : lecture seule, uniquement les examens 'completed' (meme regle que le PDF d'un examen).
+        accepted = ("completed",) if self._est_medical_lecture_seule() else self.DONE_STATUSES
+        done = sorted((r for r in rows if r.status in accepted), key=lambda r: r.result_id)
+        if not done:
+            raise ValueError("Aucun examen termine dans ce dossier.")
+
+        # Reutilise la mise en forme d'un examen (normes, anomalies, droits) : aucune logique dupliquee.
+        per_exam = [self.get_print_data(r.result_id, config_ctrl) for r in done]
+        first = per_exam[0]
+        return {
+            **{k: v for k, v in first.items() if k not in ("examen", "result_info", "details")},
+            "passage": {
+                "code": first["examen"]["code"],
+                "date_test": first["result_info"]["date_test"],
+                "prescripteur": first["result_info"]["prescripteur"],
+            },
+            "exams": [
+                {
+                    "nom": d["examen"]["nom"],
+                    "code": d["examen"]["code"],
+                    "details": d["details"],
+                    "note": d["result_info"]["note"],
+                }
+                for d in per_exam
+            ],
+            "skipped_count": len(rows) - len(done),
+        }
+
     def create_result(self, 
                     examen_id: int, 
                     patient_id: Optional[int] = None, 
@@ -436,6 +487,10 @@ class LabController:
         # Récupère les résultats depuis le Repo (avec joinedload !)
         results = self.repo.get_active_worklist() 
         
+        # Examens de chaque passage patient (termines compris), pour regrouper l'affichage :
+        # la liste reste "un dossier a saisir par ligne", chaque ligne connait juste ses voisins.
+        batch_exams = self.repo.get_batch_exams(sorted({r.batch_id for r in results if r.batch_id}, key=str))
+
         output = []
         for r in results:
             # On utilise le helper pour extraire proprement les infos patient
@@ -443,6 +498,9 @@ class LabController:
             
             output.append({
                 'result_id': r.result_id,  # L'ID technique du dossier
+                'batch_id': str(r.batch_id) if r.batch_id else None,
+                'batch_exams': batch_exams.get(str(r.batch_id)) if r.batch_id else [
+                    {'result_id': r.result_id, 'examen_nom': r.examen.nom if r.examen else 'Inconnu', 'status': r.status}],
                 'code': r.code_lab_patient, # Le code barre (ex: LAB-0212-0084)
                 
                 # --- INFOS PATIENT APLATIES (Pour l'affichage direct dans le tableau VueJS) ---
@@ -693,7 +751,7 @@ class LabController:
             # On retourne un dictionnaire vide mais formaté correctement en cas d'erreur
             return {
                 "pending": 0, "completed_today": 0, "revenue_month": 0.0, "critical": 0,
-                "total_month": 0, "top_exams": {}, "max_exam_count": 1, "recent_pending": []
+                "total_month": 0, "top_exams": {}, "max_exam_count": 1, "recent_pending": [], "recent_passages": []
         }
 
             

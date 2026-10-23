@@ -206,6 +206,21 @@ class RecentPendingItem(BaseModel):
     code_patient: str
     test_type: str        
 
+class PassageExamOut(BaseModel):
+    result_id: int
+    examen_nom: str
+    status: Optional[str] = None
+
+
+class RecentPassageOut(BaseModel):
+    """Un patient une seule fois avec tous les examens de son passage (batch_id)."""
+    batch_id: Optional[str] = None
+    patient_name: str
+    code_patient: str
+    first_pending_id: int
+    exams: List[PassageExamOut]
+
+
 class LabStatsOut(BaseModel):
     pending: int
     completed_today: int
@@ -215,6 +230,7 @@ class LabStatsOut(BaseModel):
     max_exam_count: int
     top_exams: Dict[str, int]
     recent_pending: List[RecentPendingItem]
+    recent_passages: List[RecentPassageOut] = []
 
 # --- AJOUT POUR LA PAGINATION ---
 
@@ -229,6 +245,7 @@ class PaginatedLabItemOut(BaseModel):
     test_date: str
     status: Optional[str] = None
     batch_id: Optional[str] = None
+    nb_anormaux: int = 0
 
 class PaginatedLabHistoryOut(BaseModel):
     total_items: int
