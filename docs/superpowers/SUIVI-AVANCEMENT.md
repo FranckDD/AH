@@ -1527,3 +1527,47 @@ Plan `plans/2026-10-22-refonte-ux-stock-labo.md`. Base `5aa9b88`. **Vérifié** 
 - Le test d'utilisation avec le personnel du labo n'est pas fait.
 
 **Reste à migrer** : laboratoire (réception, liste de travail, résultats), toxicologie, stock-control complet ; puis la documentation d'utilisation par rôle, l'onglet Rapports et le chantier 8 (déploiement).
+
+
+### Refonte UX du laboratoire et de la toxicologie : livrée (Tâches 1 à 10), à vérifier par l'utilisateur (2026-10-23)
+
+Plan `plans/2026-10-23-refonte-ux-labo-toxico.md`. Base `9e52fd8`. **Vérifié** : 5165 tests `node` (dont `refonteLaboToxicoGuard.test.mjs`, 86 tests, vu échouer sur une couleur en dur ajoutée puis retirée), `vite build`, et côté serveur 103 tests (`test_lab_passages`, `test_lab_pdf_batch`, `test_lab_pdf_export`, `test_pdf_signatures`, `test_lab_endpoints`, `test_lab_repo`, `test_lab_medical_scope`, `test_lab_dashboard_flags`, `test_dossier_export`). Le rendu a été contrôlé sur des pages d'essai (Chrome sans interface, ordinateur et téléphone) avec des données d'exemple, **jamais sur les vraies données ni dans l'application complète** : il est à contrôler par l'utilisateur avec la checklist ci-dessous.
+
+**Livré, laboratoire** (cadre, tableau de bord, réception, paillasse, détail d'un résultat, historique, configuration)
+- Cadre : onglets en liens nommés avec l'état courant annoncé. Tableau de bord : tuiles cliquables en vrais liens, période en groupe de boutons.
+- **Réception** : clé `lab.reception.prescriber_info` inexistante (le titre de section affichait le nom de la clé) remplacée par `labScreens.prescriber_section`.
+- **Paillasse** : tableau des paramètres, drapeaux H/L/N/A en pastilles à choisir avec icône ET texte (flèche haut, flèche bas, coche, triangle), barre de progression « n sur total » dans l'en-tête. Police 14 px sur tous les écrans du labo (demande de l'utilisateur).
+- **Regroupement par passage patient** (un `batch_id` = un passage) : paillasse (une carte par patient, examens en pastilles avec état, un patient reste tant qu'un examen est à saisir), tableau de bord (« dernières entrées » par patient), historique (une ligne par dossier, séparée par jour, dépliable, anomalies visibles dès la liste, pagination par passage). Utilitaire `utils/labPassages.js`.
+- **PDF unique « dossier complet »** `GET /labo/batch/{batch_id}/pdf` (examens terminés seulement, mention de ceux laissés de côté, 409 si aucun terminé, mêmes droits que le PDF d'un examen) et **signature du chef du laboratoire à droite** (option `align='right'` du bloc partagé `_pdf_signatures.html`, les autres exports ne changent pas).
+- Détail d'un résultat : `FullScreenPanel`, anomalies dites par icône ET texte. Configuration : « Nouvel examen » et « Supprimer » étaient morts (`openModal` et `labStore.deleteExam` n'existaient pas) ; ils sont branchés sur `ExamFormModal` et `configStore.deleteExamen` avec confirmation.
+
+**Livré, toxicologie** (tableau de bord, liste, admission, sortie, dossier, détails, évaluation, sortis, séjours)
+- **Densité de couleur conservée** (décision de l'utilisateur) : phases rouge/orange/bleu/vert, tuiles bleu/vert/rouge/orange, indigo pour substances et psychologues, couleurs de section des détails (bleu, vert, indigo, orange). Tout passe par les jetons ; l'état reste toujours écrit.
+- « Évaluer » en indigo (primaire), « Dossier » en bleu ciel, « Sortie » en rouge. Tableau de bord : le « +2 cette semaine » écrit en dur et le badge « Service Opérationnel » inventé sont retirés ; le calcul réel partagé (`utils/toxicoUi.js`) est repris.
+- Évaluation : trois vrais choix (gris, vert, rouge) avec icône ; bouton de validation de la couleur de la décision. Sortie : en-tête rouge (option `tone` du panneau). Dossier : onglets accessibles, progression de la couleur de la phase, fenêtre de sortie à côté et non dedans.
+- Admission : le minimum de 10 ans de la date de naissance n'était pas appliqué (`:max` recevait un objet `Date`) ; corrigé.
+
+**Décisions et rulings**
+- Code mort jamais référencé, **supprimé avec l'accord de l'utilisateur** : `LabWorklist.vue` et `LabEntry.vue` (le garde-fou vérifie qu'ils n'existent plus et que rien ne les référence). `LabValidation.vue` était déjà orphelin avant (conservé). Stock-control complet était déjà migré (lot du stock admin).
+- Backend, changements additifs : `batch_id` et `batch_exams` sur `/labo/paillasse`, `recent_passages` sur `/labo/stats`, `?group=true` et `nb_anormaux` sur `/labo/history/paginated`. Les médecins et infirmiers gardent la liste à plat.
+- Bibliothèque `ui/` : taille de bouton `sm`, option `tone` et focus sans défilement du `FullScreenPanel`, trois jetons pleins (`tone-warning-solid`, `tone-info-solid`, `tone-success-solid`).
+- Le garde-fou déclare trois fichiers `HORS_LOT` modifiés à part (commit `167e6af`) : `router/index.js`, `LoginView.vue`, `DashboardOverview.vue`. `FIN` de `refonteLaboToxicoGuard.test.mjs` renseignée avec le commit du lot (voir `git log`).
+
+**Checklist à vérifier par l'utilisateur** (laborantin, admin, ToxicoManager, psychologue ; chaque ligne à 360, 768 et 1280 px)
+| Écran | Points précis |
+|---|---|
+| Réception | Patient interne (l'import des examens prescrits : chercher le bon nom), patient externe, prescripteur, envoi |
+| Paillasse | Un patient à plusieurs examens (une carte, pastilles, jauge) ; ouvrir une pastille ; drapeaux avec icônes ; valider et imprimer ; arrivée depuis « Saisir » du tableau de bord |
+| Historique | Un dossier par ligne, dépliage, « PDF du dossier complet » (signature à droite, examen non terminé mentionné), filtre « anormaux » depuis la tuile « Pathologiques » |
+| Configuration | « Nouvel examen » puis « Supprimer » avec confirmation (admin) |
+| Toxico, tableau de bord et liste | Couleurs de phase, tuiles, « +N cette semaine » réel, actions par rôle (Évaluer pour le psychologue seul, Sortie pour admin, responsable, promoteur) |
+| Toxico, fenêtres | Admission (nouveau patient et réadmission), évaluation (les trois décisions), sortie (motif obligatoire, « autre » avec note), dossier (onglets), détails (lien du consentement), sortis (filtres, PDF, réadmettre) |
+
+**Résiduels**
+- Les messages d'erreur du script (admission, évaluation) et les `alert()` (réception du labo, liste toxico) restent en dur dans le script, comme les boîtes de confirmation du navigateur.
+- Un clic en dehors d'une fenêtre ne la ferme plus (Échap et la croix, sauf pendant l'envoi).
+- « +N cette semaine » reste calculé sur la page chargée (comme dans la liste avant la refonte).
+- Le mode hors ligne du regroupement de la paillasse (lot `batch_uuid` local) n'est pas testé ; le PDF du dossier complet n'existe qu'en ligne.
+- Le test d'utilisation avec le personnel du labo et de la toxicologie n'est pas fait.
+
+**Reste à faire** : documentation d'utilisation par rôle, onglet Rapports, chantier 8 (déploiement) ; autres espaces à migrer, s'il y en a (caisse hors secrétariat, etc., à confirmer).

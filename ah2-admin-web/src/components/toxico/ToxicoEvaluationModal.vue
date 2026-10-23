@@ -1,179 +1,96 @@
 <template>
-  <div class="fixed inset-0 bg-gray-900/60 overflow-y-auto h-full w-full z-50 flex items-center justify-center backdrop-blur-xs">
-    
-    <div class="relative mx-auto w-full max-w-2xl bg-white shadow-2xl rounded-2xl border border-gray-200 flex flex-col max-h-[90vh]">
-      
-      <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50 rounded-t-2xl shrink-0">
-        <div>
-            <h3 class="text-lg font-bold text-gray-800 flex items-center">
-                <span class="bg-indigo-100 text-indigo-700 p-1.5 rounded-lg mr-3">
-                    <ClipboardDocumentCheckIcon class="h-5 w-5" />
-                </span>
-                {{ t('toxico.modal.eval_title') }}
-            </h3>
-            <p class="text-sm text-gray-500 mt-1 ml-11">
-                Patient: <span class="font-semibold text-gray-900">{{ patient.patientName }}</span> • 
-                Phase actuelle: <span class="font-semibold text-indigo-600">{{ t(`toxico.phases.${patient.currentPhase}`) }}</span>
-            </p>
+  <FullScreenPanel :title="t('toxico.modal.eval_title')"
+                   :subtitle="t('toxicoScreens.eval_subtitle', { name: patient.patientName, phase: t(`toxico.phases.${patient.currentPhase}`) })" accent @close="$emit('close')">
+    <form id="toxico-eval-form" @submit.prevent="handleSubmit" class="grid gap-4">
+
+      <!-- Decision : gris (maintenir), vert (avancer), rouge (regresser) -->
+      <fieldset class="grid gap-2">
+        <legend class="mb-1 text-base font-medium text-ink">{{ t('toxico.modal.decision_label') }}</legend>
+        <div class="grid grid-cols-1 gap-3 md:grid-cols-3">
+          <label :class="[optionClass, form.decision === 'MAINTAIN' ? toneClasses('neutral') : idleClass]">
+            <input type="radio" name="eval-decision" value="MAINTAIN" v-model="form.decision" class="peer sr-only" />
+            <span :class="[focusRing, 'flex flex-col items-center gap-1 rounded-control p-1 text-center']">
+              <PauseCircleIcon class="h-10 w-10" aria-hidden="true" />
+              <span class="text-base font-bold">{{ t('toxico.modal.maintain') }}</span>
+              <span class="text-sm">{{ t('toxicoScreens.eval_stay', { n: patient.currentPhase }) }}</span>
+            </span>
+          </label>
+
+          <label :class="[optionClass, form.decision === 'PROGRESS' ? toneClasses('success') : idleClass]">
+            <input type="radio" name="eval-decision" value="PROGRESS" v-model="form.decision" class="peer sr-only" />
+            <span :class="[focusRing, 'flex flex-col items-center gap-1 rounded-control p-1 text-center']">
+              <ForwardIcon class="h-10 w-10 text-tone-success-text" aria-hidden="true" />
+              <span class="text-base font-bold text-tone-success-text">{{ t('toxico.modal.progress') }}</span>
+              <span class="text-sm">{{ t('toxicoScreens.eval_to', { n: nextPhase }) }}</span>
+            </span>
+          </label>
+
+          <label :class="[optionClass, form.decision === 'REGRESS' ? toneClasses('danger') : idleClass]">
+            <input type="radio" name="eval-decision" value="REGRESS" v-model="form.decision" class="peer sr-only" />
+            <span :class="[focusRing, 'flex flex-col items-center gap-1 rounded-control p-1 text-center']">
+              <BackwardIcon class="h-10 w-10 text-tone-danger-text" aria-hidden="true" />
+              <span class="text-base font-bold text-tone-danger-text">{{ t('toxico.modal.regress') }}</span>
+              <span class="text-sm">{{ t('toxicoScreens.eval_back', { n: prevPhase }) }}</span>
+            </span>
+          </label>
         </div>
-        <button @click="$emit('close')" class="text-gray-400 hover:text-gray-600 bg-white p-2 rounded-full shadow-xs border border-gray-200 transition">
-          <span class="text-xl font-bold">&times;</span>
-        </button>
-      </div>
+      </fieldset>
 
-      <div class="p-6 overflow-y-auto">
-        <form @submit.prevent="handleSubmit" class="space-y-6">
-            
-            <div>
-                <label class="block text-sm font-bold text-gray-700 mb-3">{{ t('toxico.modal.decision_label') }}</label>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div 
-                        @click="form.decision = 'MAINTAIN'"
-                        class="cursor-pointer border-2 rounded-xl p-4 flex flex-col items-center justify-center transition-all duration-200 hover:shadow-md"
-                        :class="form.decision === 'MAINTAIN' ? 'border-gray-500 bg-gray-50 ring-1 ring-gray-500' : 'border-gray-200 hover:border-gray-300'"
-                    >
-                        <div class="p-2 bg-gray-100 rounded-full mb-2 text-2xl">⏹️</div>
-                        <span class="font-bold text-gray-700">{{ t('toxico.modal.maintain') }}</span>
-                        <span class="text-xs text-gray-500 text-center mt-1">Reste Phase {{ patient.currentPhase }}</span>
-                    </div>
+      <p v-if="form.decision === 'REGRESS'" role="alert" class="flex items-start gap-2 rounded-card border p-3 text-base font-medium" :class="toneClasses('danger')">
+        <ExclamationTriangleIcon class="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
+        {{ t('toxicoScreens.eval_regress_warning') }}
+      </p>
 
-                    <div 
-                        @click="form.decision = 'PROGRESS'"
-                        class="cursor-pointer border-2 rounded-xl p-4 flex flex-col items-center justify-center transition-all duration-200 hover:shadow-md"
-                        :class="form.decision === 'PROGRESS' ? 'border-green-500 bg-green-50 ring-1 ring-green-500' : 'border-gray-200 hover:border-green-200'"
-                    >
-                        <div class="p-2 bg-green-100 rounded-full mb-2 text-2xl">⏩</div>
-                        <span class="font-bold text-green-700">{{ t('toxico.modal.progress') }}</span>
-                        <span class="text-xs text-green-600 text-center mt-1">Vers Phase {{ nextPhase }}</span>
-                    </div>
+      <FormField id="tox-eval-obs" :label="t('toxico.modal.observations')" required :help="`${form.observation.length}/500`"
+                 :error="form.observation.length < 10 && form.decision === 'REGRESS' ? t('toxicoScreens.eval_obs_hint') : ''" v-slot="{ describedBy, invalid }">
+        <textarea id="tox-eval-obs" v-model="form.observation" rows="3" required maxlength="500" :aria-describedby="describedBy" :aria-invalid="invalid ? 'true' : undefined"
+                  :placeholder="t('toxicoScreens.eval_obs_placeholder')" :class="[fieldClass, 'py-2', invalid ? 'border-tone-danger-border' : '']"></textarea>
+      </FormField>
 
-                    <div 
-                        @click="form.decision = 'REGRESS'"
-                        class="cursor-pointer border-2 rounded-xl p-4 flex flex-col items-center justify-center transition-all duration-200 hover:shadow-md"
-                        :class="form.decision === 'REGRESS' ? 'border-red-500 bg-red-50 ring-1 ring-red-500' : 'border-gray-200 hover:border-red-200'"
-                    >
-                        <div class="p-2 bg-red-100 rounded-full mb-2 text-2xl">⏪</div>
-                        <span class="font-bold text-red-700">{{ t('toxico.modal.regress') }}</span>
-                        <span class="text-xs text-red-600 text-center mt-1">Retour Phase {{ prevPhase }}</span>
-                    </div>
-                </div>
-            </div>
+      <FormField id="tox-eval-reco" :label="t('toxico.modal.recommendations')" :help="`${form.recommendation.length}/200`" v-slot="{ describedBy }">
+        <textarea id="tox-eval-reco" v-model="form.recommendation" rows="2" maxlength="200" :aria-describedby="describedBy"
+                  :placeholder="t('toxicoScreens.eval_reco_placeholder')" :class="[fieldClass, 'py-2']"></textarea>
+      </FormField>
 
-            <div v-if="form.decision === 'REGRESS'" class="bg-red-50 border-l-4 border-red-500 p-4 rounded-r">
-                <div class="flex items-start">
-                    <ExclamationTriangleIcon class="h-5 w-5 text-red-500 mr-2 mt-0.5" />
-                    <p class="text-sm text-red-700 font-medium">
-                        Attention : Ceci sera enregistré comme une <span class="font-bold">Rechute</span>. Justification détaillée requise.
-                    </p>
-                </div>
-            </div>
+      <!-- Resume de la decision -->
+      <p role="status" class="flex items-start gap-2 rounded-card border p-3 text-base" :class="toneClasses('info')">
+        <InformationCircleIcon class="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
+        <span><span class="font-semibold">{{ t('toxicoScreens.eval_summary') }}</span> {{ getDecisionSummary() }}</span>
+      </p>
 
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">
-                    {{ t('toxico.modal.observations') }} <span class="text-red-500">*</span>
-                    <span class="text-xs text-gray-500 ml-2">({{ form.observation.length }}/500)</span>
-                </label>
-                <textarea 
-                    v-model="form.observation" 
-                    rows="3" 
-                    required
-                    maxlength="500"
-                    :class="[
-                        'w-full px-4 py-2 border rounded-lg transition',
-                        form.observation.length < 10 && form.decision === 'REGRESS' 
-                            ? 'border-red-300 focus:ring-red-500 focus:border-red-500' 
-                            : 'border-gray-300 focus:ring-indigo-500 focus:border-indigo-500'
-                    ]"
-                    placeholder="État psychologique, comportement, progrès, difficultés..."
-                ></textarea>
-                <p v-if="form.observation.length < 10 && form.decision === 'REGRESS'" class="text-xs text-red-600 mt-1">
-                    Pour une régression, l'observation doit être détaillée (minimum 10 caractères)
-                </p>
-            </div>
+      <p v-if="errorMessage" role="alert" class="flex items-start gap-2 whitespace-pre-line rounded-card border p-3 text-base" :class="toneClasses('danger')">
+        <ExclamationCircleIcon class="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
+        {{ errorMessage }}
+      </p>
+    </form>
 
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">
-                    {{ t('toxico.modal.recommendations') }}
-                    <span class="text-xs text-gray-500 ml-2">({{ form.recommendation.length }}/200)</span>
-                </label>
-                <textarea 
-                    v-model="form.recommendation" 
-                    rows="2" 
-                    maxlength="200"
-                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition"
-                    placeholder="Actions à entreprendre, suivi recommandé..."
-                ></textarea>
-            </div>
-
-            <!-- Résumé de la décision -->
-            <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-sm">
-                <div class="flex">
-                    <div class="shrink-0">
-                        <InformationCircleIcon class="h-5 w-5 text-blue-400" />
-                    </div>
-                    <div class="ml-3">
-                        <p class="text-sm text-blue-700">
-                            <span class="font-semibold">Résumé :</span> 
-                            {{ getDecisionSummary() }}
-                        </p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Message d'erreur -->
-            <div v-if="errorMessage" class="bg-red-50 border-l-4 border-red-500 p-4 rounded-sm">
-                <div class="flex">
-                    <div class="shrink-0">
-                        <ExclamationCircleIcon class="h-5 w-5 text-red-400" />
-                    </div>
-                    <div class="ml-3">
-                        <p class="text-sm text-red-700">{{ errorMessage }}</p>
-                    </div>
-                </div>
-            </div>
-
-        </form>
-      </div>
-
-      <div class="px-6 py-4 border-t border-gray-100 bg-gray-50 rounded-b-2xl flex justify-end space-x-3 shrink-0">
-        <button @click="$emit('close')" :disabled="isLoading" 
-                class="px-5 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 font-medium transition disabled:opacity-50">
-            {{ t('common.cancel') || 'Annuler' }}
-        </button>
-        <button 
-            @click="handleSubmit" 
-            :class="submitButtonClass"
-            :disabled="isLoading || !isFormValid"
-            class="px-6 py-2 text-white rounded-lg shadow-md font-semibold transition flex items-center disabled:opacity-75 disabled:cursor-not-allowed"
-        >
-            <template v-if="isLoading">
-                <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Enregistrement...
-            </template>
-            <template v-else>
-                <CheckIcon class="h-5 w-5 mr-2" />
-                {{ t('toxico.modal.validate_eval') }}
-            </template>
-        </button>
-      </div>
-
-    </div>
-  </div>
+    <template #footer>
+      <ActionBar>
+        <template #secondary>
+          <AppButton variant="secondary" :disabled="isLoading" @click="$emit('close')">{{ t('common.cancel') }}</AppButton>
+        </template>
+        <AppButton :variant="submitVariant" :icon="CheckIcon" :loading="isLoading" :disabled="isLoading || !isFormValid" @click="handleSubmit">
+          {{ isLoading ? t('toxicoScreens.saving') : t('toxico.modal.validate_eval') }}
+        </AppButton>
+      </ActionBar>
+    </template>
+  </FullScreenPanel>
 </template>
 
 <script setup>
 import { reactive, computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useToxicoStore } from '@/stores/toxicoStore';
-import { 
-    ClipboardDocumentCheckIcon, 
-    ExclamationTriangleIcon, 
+import { AppButton, FormField, ActionBar, FullScreenPanel } from '@/components/ui';
+import { toneClasses } from '@/design/tones';
+import {
+    ExclamationTriangleIcon,
     CheckIcon,
     InformationCircleIcon,
-    ExclamationCircleIcon 
+    ExclamationCircleIcon,
+    PauseCircleIcon,
+    ForwardIcon,
+    BackwardIcon
 } from '@heroicons/vue/24/outline';
 
 const { t } = useI18n();
@@ -182,6 +99,12 @@ const props = defineProps({
     patient: { type: Object, required: true }
 });
 const emit = defineEmits(['close', 'save']);
+
+// Style commun des champs et des trois choix de decision.
+const fieldClass = 'block w-full min-h-11 lg:min-h-10 rounded-control border border-tone-neutral-border bg-white px-3 text-base text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand-600';
+const optionClass = 'block cursor-pointer rounded-card border-2 p-3 transition';
+const idleClass = 'border-tone-neutral-border bg-white text-ink hover:bg-tone-neutral-bg';
+const focusRing = 'peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-brand-600';
 
 const isLoading = ref(false);
 const errorMessage = ref('');
@@ -212,11 +135,12 @@ const isFormValid = computed(() => {
     return true;
 });
 
-const submitButtonClass = computed(() => {
+// Le bouton de validation prend la couleur de la decision : indigo (maintenir), vert (avancer), rouge (regresser).
+const submitVariant = computed(() => {
     switch(form.decision) {
-        case 'PROGRESS': return 'bg-green-600 hover:bg-green-700';
-        case 'REGRESS': return 'bg-red-600 hover:bg-red-700';
-        default: return 'bg-indigo-600 hover:bg-indigo-700';
+        case 'PROGRESS': return 'success';
+        case 'REGRESS': return 'danger';
+        default: return 'primary';
     }
 });
 
@@ -228,12 +152,12 @@ watch(form, () => {
 // Fonction pour le résumé
 const getDecisionSummary = () => {
     switch(form.decision) {
-        case 'PROGRESS': 
-            return `Le patient passera de la Phase ${props.patient.currentPhase} à la Phase ${nextPhase.value}`;
+        case 'PROGRESS':
+            return t('toxicoScreens.eval_summary_progress', { from: props.patient.currentPhase, to: nextPhase.value });
         case 'REGRESS':
-            return `Le patient retournera de la Phase ${props.patient.currentPhase} à la Phase ${prevPhase.value} (Rechute)`;
+            return t('toxicoScreens.eval_summary_regress', { from: props.patient.currentPhase, to: prevPhase.value });
         default:
-            return `Le patient restera en Phase ${props.patient.currentPhase}`;
+            return t('toxicoScreens.eval_summary_maintain', { phase: props.patient.currentPhase });
     }
 };
 

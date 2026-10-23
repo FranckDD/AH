@@ -1,60 +1,41 @@
 <template>
-  <div class="fixed inset-0 z-50 bg-gray-900/60 backdrop-blur-xs flex items-end md:items-center justify-center md:p-4" @click.self="close">
-    <div class="w-full md:max-w-lg bg-white shadow-2xl rounded-t-2xl md:rounded-2xl border border-gray-200 flex flex-col max-h-[92vh]">
-      <div class="px-4 md:px-6 py-4 border-b border-gray-100 bg-red-50 rounded-t-2xl flex items-start justify-between gap-3">
-        <div class="min-w-0">
-          <h3 class="text-lg font-bold text-red-800">{{ t('toxico.stays.discharge_title') }}</h3>
-          <p v-if="patientName" class="text-sm text-red-700 truncate">{{ patientName }}</p>
-        </div>
-        <button type="button" @click="close" :disabled="isSubmitting" :aria-label="t('toxico.stays.cancel')"
-                class="min-h-[44px] min-w-[44px] lg:min-h-0 lg:min-w-0 lg:p-1 flex items-center justify-center text-red-400 hover:text-red-700 disabled:opacity-50">
-          <span class="text-2xl font-bold leading-none">&times;</span>
-        </button>
-      </div>
-
-      <form @submit.prevent="submit" class="p-4 md:p-6 space-y-4 overflow-y-auto">
-        <fieldset :disabled="isSubmitting">
-          <legend class="block text-sm font-medium text-gray-700 mb-2">
-            {{ t('toxico.stays.reason_label') }} <span class="text-red-500">*</span>
-          </legend>
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <label v-for="r in DISCHARGE_REASONS" :key="r"
-                   :class="['flex items-center gap-2 px-3 min-h-[44px] lg:min-h-[40px] rounded-lg border cursor-pointer text-sm',
-                            reason === r ? 'border-red-500 bg-red-50 text-red-800 font-semibold' : 'border-gray-300 text-gray-700 hover:bg-gray-50']">
-              <input type="radio" name="discharge-reason" :value="r" v-model="reason" class="text-red-600 focus:ring-red-500" />
-              {{ t(dischargeReasonLabelKey(r)) }}
-            </label>
-          </div>
-        </fieldset>
-
-        <div>
-          <label for="discharge-note" class="block text-sm font-medium text-gray-700 mb-1">
-            {{ t('toxico.stays.note_label') }}
-            <span v-if="reason === 'autre'" class="text-red-500">*</span>
-            <span v-else class="text-gray-400 text-xs">{{ t('toxico.stays.optional') }}</span>
+  <FullScreenPanel :title="t('toxico.stays.discharge_title')" :subtitle="patientName" tone="danger" @close="close">
+    <form id="toxico-discharge-form" @submit.prevent="submit" class="grid gap-4">
+      <fieldset :disabled="isSubmitting" class="grid gap-2">
+        <legend class="mb-1 text-base font-medium text-ink">
+          {{ t('toxico.stays.reason_label') }} <span class="text-tone-danger-text" aria-hidden="true">*</span>
+        </legend>
+        <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+          <label v-for="r in DISCHARGE_REASONS" :key="r"
+                 :class="['flex min-h-11 cursor-pointer items-center gap-2 rounded-control border-2 px-3 text-base',
+                          reason === r ? 'border-tone-danger-border bg-tone-danger-bg font-semibold text-tone-danger-text' : 'border-tone-neutral-border text-ink hover:bg-tone-neutral-bg']">
+            <input type="radio" name="discharge-reason" :value="r" v-model="reason" class="h-5 w-5 accent-tone-danger-solid" />
+            {{ t(dischargeReasonLabelKey(r)) }}
           </label>
-          <textarea id="discharge-note" v-model="note" rows="3" :maxlength="NOTE_MAX_LENGTH" :disabled="isSubmitting"
-                    :placeholder="t('toxico.stays.note_placeholder')"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-red-500 focus:border-red-500"></textarea>
         </div>
+      </fieldset>
 
-        <p class="text-xs text-gray-500">{{ t('toxico.stays.discharge_warning') }}</p>
+      <FormField id="discharge-note" :label="noteLabel" :required="reason === 'autre'" v-slot="{ describedBy }">
+        <textarea id="discharge-note" v-model="note" rows="3" :maxlength="NOTE_MAX_LENGTH" :disabled="isSubmitting" :aria-describedby="describedBy"
+                  :placeholder="t('toxico.stays.note_placeholder')" :class="[fieldClass, 'py-2']"></textarea>
+      </FormField>
 
-        <div v-if="errorText" role="alert" class="bg-red-50 border-l-4 border-red-500 p-3 rounded-sm text-sm text-red-700">{{ errorText }}</div>
+      <p class="rounded-card border p-3 text-base" :class="toneClasses('warning')">{{ t('toxico.stays.discharge_warning') }}</p>
 
-        <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-2 border-t border-gray-100">
-          <button type="button" @click="close" :disabled="isSubmitting"
-                  class="min-h-[44px] lg:min-h-[40px] px-4 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium disabled:opacity-50">
-            {{ t('toxico.stays.cancel') }}
-          </button>
-          <button type="submit" :disabled="isSubmitting"
-                  class="min-h-[44px] lg:min-h-[40px] px-4 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium disabled:opacity-60 disabled:cursor-not-allowed">
-            {{ isSubmitting ? t('toxico.stays.submitting') : t('toxico.stays.confirm') }}
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
+      <p v-if="errorText" role="alert" class="rounded-card border p-3 text-base" :class="toneClasses('danger')">{{ errorText }}</p>
+    </form>
+
+    <template #footer>
+      <ActionBar>
+        <template #secondary>
+          <AppButton variant="secondary" :disabled="isSubmitting" @click="close">{{ t('toxico.stays.cancel') }}</AppButton>
+        </template>
+        <AppButton type="submit" form="toxico-discharge-form" variant="danger" :disabled="isSubmitting" :loading="isSubmitting">
+          {{ isSubmitting ? t('toxico.stays.submitting') : t('toxico.stays.confirm') }}
+        </AppButton>
+      </ActionBar>
+    </template>
+  </FullScreenPanel>
 </template>
 
 <script setup>
@@ -62,6 +43,8 @@ import { ref, computed, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useToxicoStore } from '@/stores/toxicoStore';
 import { DISCHARGE_REASONS, NOTE_MAX_LENGTH, dischargeReasonLabelKey, validateDischarge, apiErrorMessage } from '@/utils/toxicoStays';
+import { AppButton, FormField, ActionBar, FullScreenPanel } from '@/components/ui';
+import { toneClasses } from '@/design/tones';
 
 const props = defineProps({
   dossierId: { type: Number, required: true },
@@ -70,6 +53,10 @@ const props = defineProps({
 const emit = defineEmits(['close', 'discharged']);
 const { t } = useI18n();
 const toxicoStore = useToxicoStore();
+
+// Style commun des champs ; la note est obligatoire pour le motif « autre », facultative sinon.
+const fieldClass = 'block w-full min-h-11 lg:min-h-10 rounded-control border border-tone-neutral-border bg-white px-3 text-base text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand-600';
+const noteLabel = computed(() => (reason.value === 'autre' ? t('toxico.stays.note_label') : `${t('toxico.stays.note_label')} ${t('toxico.stays.optional')}`));
 
 const reason = ref('');
 const note = ref('');

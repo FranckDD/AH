@@ -1,231 +1,135 @@
 <template>
-  <div class="fixed inset-0 bg-gray-900/60 overflow-y-auto h-full w-full z-50 flex items-center justify-center backdrop-blur-xs">
-    
-    <div class="relative mx-auto w-full max-w-2xl bg-white shadow-xl rounded-2xl border border-gray-200 flex flex-col max-h-[90vh]">
-      
-      <div class="px-6 py-4 border-b border-gray-100 bg-indigo-600 rounded-t-2xl flex justify-between items-center shrink-0">
-        <h3 class="text-lg font-bold text-white flex items-center">
-            <UserPlusIcon class="h-6 w-6 mr-2" />
-            {{ t('toxico.admission.title') }}
-        </h3>
-        <button @click="$emit('close')" class="text-indigo-100 hover:text-white transition">
-          <span class="text-2xl font-bold">&times;</span>
-        </button>
-      </div>
+  <FullScreenPanel :title="t('toxico.admission.title')" accent @close="$emit('close')">
+    <form id="toxico-admission-form" @submit.prevent="handleSubmit" class="grid gap-4">
 
-      <div class="p-6 overflow-y-auto">
-        <form @submit.prevent="handleSubmit" class="space-y-6">
-            
-            <div class="bg-gray-50 p-4 rounded-xl border border-gray-200">
-                <h4 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 border-b border-gray-200 pb-2">
-                    {{ t('toxico.admission.section_patient') }}
-                </h4>
-
-                <div v-if="!showNewPatientForm && !selectedExistingPatient" class="space-y-2">
-                    <input v-model="searchQuery" @input="onSearchInput" type="text"
-                           placeholder="Rechercher un patient existant (nom, code)..."
-                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500" />
-                    <ul v-if="searchResults.length" class="border border-gray-200 rounded-lg divide-y divide-gray-100 max-h-48 overflow-y-auto">
-                        <li v-for="p in searchResults" :key="p.patient_id" @click="selectExistingPatient(p)"
-                            class="px-3 py-2 hover:bg-indigo-50 cursor-pointer text-sm">
-                            <span class="font-medium">{{ p.first_name }} {{ p.last_name }}</span>
-                            <span class="text-gray-500 ml-2">{{ p.code_patient }} — {{ p.birth_date }}</span>
-                        </li>
-                    </ul>
-                    <p v-if="isSearching" class="text-xs text-gray-400">Recherche...</p>
-                    <button type="button" @click="startNewPatient" class="text-sm text-indigo-600 font-medium hover:underline">
-                        + Nouveau patient
-                    </button>
-                </div>
-
-                <div v-if="selectedExistingPatient" class="flex items-center justify-between bg-indigo-50 border border-indigo-200 rounded-lg px-3 py-2">
-                    <span class="text-sm font-medium text-indigo-900">
-                        {{ selectedPatientLabel }}
-                    </span>
-                    <button type="button" @click="clearExistingPatient" class="text-xs text-indigo-600 hover:underline min-h-[44px] lg:min-h-0 px-2">Changer</button>
-                </div>
-
-                <p v-if="dossierCheck === 'loading'" class="mt-2 text-xs text-gray-400">{{ t('toxico.stays.checking') }}</p>
-                <div v-else-if="dossierCheck === 'readmission'" role="status"
-                     class="mt-3 bg-amber-50 border-l-4 border-amber-500 rounded-sm p-3 text-sm text-amber-900 space-y-1">
-                    <p class="font-semibold">{{ t('toxico.stays.readmission_banner', { n: nextStayNumber }) }}</p>
-                    <p>{{ t('toxico.stays.readmission_phase_reset') }}</p>
-                    <p v-if="lastDischargeDate">{{ t('toxico.stays.readmission_min_date', { date: lastDischargeDate }) }}</p>
-                </div>
-                <div v-else-if="dossierCheck === 'active'" role="alert"
-                     class="mt-3 bg-red-50 border-l-4 border-red-500 rounded-sm p-3 text-sm text-red-700">
-                    {{ t('toxico.stays.already_active') }}
-                </div>
-                <div v-else-if="dossierCheck === 'error'" class="mt-2 flex flex-wrap items-center gap-2 text-xs text-red-600">
-                    <span>{{ t('toxico.stays.check_failed') }}</span>
-                    <button type="button" @click="checkToxicoDossier(selectedExistingPatient.patient_id)"
-                            class="min-h-[44px] lg:min-h-0 px-3 py-1 rounded-lg border border-red-300 bg-white text-red-700 font-medium hover:bg-red-50">
-                        {{ t('toxico.stays.retry') }}
-                    </button>
-                </div>
-
-                <div v-if="selectedExistingPatient || showNewPatientForm" class="space-y-4 mt-3">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('toxico.admission.date') }} <span class="text-red-500">*</span></label>
-                        <input v-model="form.admissionDate" type="date" required
-                               :max="today" :min="minAdmissionDate || undefined"
-                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500" />
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('toxico.admission.substance') }} <span class="text-red-500">*</span></label>
-                            <select v-model="form.substance" required
-                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
-                                <option value="Alcool">{{ t('toxico.substances.alcohol') }}</option>
-                                <option value="Cannabis">{{ t('toxico.substances.cannabis') }}</option>
-                                <option value="Opioïdes">{{ t('toxico.substances.opioids') }}</option>
-                                <option value="Cocaïne">{{ t('toxico.substances.cocaine') }}</option>
-                                <option value="Polytoxicomanie">{{ t('toxico.substances.poly') }}</option>
-                                <option value="Autre">Autre</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('toxico.admission.psychologist') }} <span class="text-red-500">*</span></label>
-                            <select v-model="form.psychologist" required
-                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
-                                <option :value="null" disabled selected>-- Sélectionner --</option>
-                                <option v-for="psy in psychologistsList" :key="psy.id" :value="psy.id">
-                                    {{ psy.name }}
-                                </option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
-                <div v-if="showNewPatientForm" class="space-y-4 mt-3">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('toxico.admission.firstname') }} <span class="text-red-500">*</span></label>
-                            <input v-model="form.firstName" type="text" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500" />
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('toxico.admission.lastname') }} <span class="text-red-500">*</span></label>
-                            <input v-model="form.lastName" type="text" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500" />
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('toxico.admission.dob') }} <span class="text-red-500">*</span></label>
-                            <input v-model="form.dob" type="date" required
-                                   :max="maxDate"
-                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500" />
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('toxico.admission.mothers_name') }} <span class="text-red-500">*</span></label>
-                            <input v-model="form.mothersName" type="text" required
-                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
-                                   placeholder="Nom de jeune fille..." />
-                        </div>
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('toxico.admission.address') }}</label>
-                        <div class="relative">
-                            <MapPinIcon class="h-5 w-5 text-gray-400 absolute top-2.5 left-3" />
-                            <input v-model="form.address" type="text"
-                                   class="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500" />
-                        </div>
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('toxico.admission.contact') }}</label>
-                        <input v-model="form.contact" type="tel"
-                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
-                               placeholder="Numéro de téléphone..." />
-                    </div>
-                </div>
-            </div>
-
-            <div class="bg-indigo-50 p-4 rounded-xl border border-indigo-100">
-                <h4 class="text-xs font-bold text-indigo-800 uppercase tracking-wider mb-3 border-b border-indigo-200 pb-2">
-                    {{ t('toxico.admission.section_guardian') }}
-                </h4>
-                <div class="space-y-4">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('toxico.admission.guardian_name') }} <span class="text-red-500">*</span></label>
-                            <input v-model="form.guardianName" type="text" required 
-                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500" />
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('toxico.admission.guardian_contact') }} <span class="text-red-500">*</span></label>
-                            <input v-model="form.guardianContact" type="tel" required 
-                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500" />
-                        </div>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('toxico.admission.consent_file') }}</label>
-                        <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg bg-white hover:bg-gray-50 transition cursor-pointer relative">
-                            <div class="space-y-1 text-center">
-                                <PaperClipIcon class="mx-auto h-8 w-8 text-gray-400" />
-                                <div class="flex text-sm text-gray-600 justify-center">
-                                    <label for="file-upload" class="relative cursor-pointer bg-white rounded-md font-medium text-indigo-600 hover:text-indigo-500 focus-within:outline-hidden">
-                                        <span>{{ fileName || t('toxico.admission.upload_placeholder') }}</span>
-                                        <input id="file-upload" name="file-upload" type="file" 
-                                               class="sr-only" @change="handleFileUpload" accept=".pdf,.jpg,.png" />
-                                    </label>
-                                </div>
-                                <p class="text-xs text-gray-500">PDF, PNG, JPG jusqu'à 5MB</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('toxico.admission.notes') }}</label>
-                <textarea v-model="form.notes" rows="3" 
-                          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
-                          placeholder="Notes supplémentaires..."></textarea>
-            </div>
-
-            <!-- Messages d'erreur -->
-            <div v-if="errorMessage" class="bg-red-50 border-l-4 border-red-500 p-4 rounded-sm">
-                <div class="flex">
-                    <div class="shrink-0">
-                        <ExclamationCircleIcon class="h-5 w-5 text-red-400" />
-                    </div>
-                    <div class="ml-3">
-                        <p class="text-sm text-red-700">{{ errorMessage }}</p>
-                    </div>
-                </div>
-            </div>
-
-            <div class="pt-4 flex justify-end space-x-3 border-t border-gray-100 shrink-0">
-                <button type="button" @click="$emit('close')" :disabled="isLoading" 
-                        class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition disabled:opacity-50">
-                    {{ t('toxico.admission.cancel') }}
+      <FormSection :title="t('toxico.admission.section_patient')">
+        <div class="grid gap-3 md:col-span-2">
+          <div v-if="!showNewPatientForm && !selectedExistingPatient" class="grid gap-2">
+            <FormField id="tox-adm-search" :label="t('toxicoScreens.search_existing')" v-slot="{ describedBy }">
+              <input id="tox-adm-search" v-model="searchQuery" @input="onSearchInput" type="text" :placeholder="t('toxicoScreens.search_existing')"
+                     :aria-describedby="describedBy" :class="fieldClass" />
+            </FormField>
+            <p v-if="isSearching" role="status" class="text-sm text-ink-muted">{{ t('toxicoScreens.searching') }}</p>
+            <ul v-if="searchResults.length" :aria-label="t('toxicoScreens.search_results')" class="max-h-56 divide-y divide-tone-neutral-border overflow-y-auto rounded-control border border-tone-neutral-border">
+              <li v-for="p in searchResults" :key="p.patient_id">
+                <button type="button" @click="selectExistingPatient(p)"
+                        class="flex min-h-11 w-full flex-wrap items-center gap-x-2 px-3 py-2 text-left text-base hover:bg-action-50 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand-600">
+                  <span class="font-medium text-ink">{{ p.first_name }} {{ p.last_name }}</span>
+                  <span class="text-sm text-ink-muted">{{ t('toxicoScreens.patient_meta', { code: p.code_patient, date: p.birth_date }) }}</span>
                 </button>
-                <button 
-                    type="submit" 
-                    :disabled="isLoading || !isFormValid"
-                    class="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium shadow-md transition flex items-center disabled:opacity-75 disabled:cursor-not-allowed"
-                >
-                    <template v-if="isLoading">
-                        <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        Traitement...
-                    </template>
-                    <template v-else>
-                        <CheckCircleIcon class="h-5 w-5 mr-2" />
-                        {{ t('toxico.admission.submit') }}
-                    </template>
-                </button>
-            </div>
+              </li>
+            </ul>
+            <AppButton variant="secondary" size="sm" :icon="UserPlusIcon" class="justify-self-start" @click="startNewPatient">{{ t('toxicoScreens.new_patient') }}</AppButton>
+          </div>
 
-        </form>
-      </div>
-    </div>
-  </div>
+          <div v-if="selectedExistingPatient" class="flex items-center justify-between gap-3 rounded-control border border-action-600 bg-action-50 px-3 py-2">
+            <span class="min-w-0 break-words text-base font-medium text-action-700">{{ selectedPatientLabel }}</span>
+            <AppButton variant="ghost" size="sm" @click="clearExistingPatient">{{ t('toxicoScreens.change_patient') }}</AppButton>
+          </div>
+
+          <p v-if="dossierCheck === 'loading'" role="status" class="text-sm text-ink-muted">{{ t('toxico.stays.checking') }}</p>
+          <div v-else-if="dossierCheck === 'readmission'" role="status" class="grid gap-1 rounded-card border p-3 text-base" :class="toneClasses('warning')">
+            <p class="font-semibold">{{ t('toxico.stays.readmission_banner', { n: nextStayNumber }) }}</p>
+            <p>{{ t('toxico.stays.readmission_phase_reset') }}</p>
+            <p v-if="lastDischargeDate">{{ t('toxico.stays.readmission_min_date', { date: lastDischargeDate }) }}</p>
+          </div>
+          <div v-else-if="dossierCheck === 'active'" role="alert" class="rounded-card border p-3 text-base" :class="toneClasses('danger')">
+            {{ t('toxico.stays.already_active') }}
+          </div>
+          <div v-else-if="dossierCheck === 'error'" role="alert" class="flex flex-wrap items-center gap-2 rounded-card border p-3 text-base" :class="toneClasses('danger')">
+            <span>{{ t('toxico.stays.check_failed') }}</span>
+            <AppButton variant="secondary" size="sm" @click="checkToxicoDossier(selectedExistingPatient.patient_id)">{{ t('toxico.stays.retry') }}</AppButton>
+          </div>
+        </div>
+
+        <template v-if="selectedExistingPatient || showNewPatientForm">
+          <FormField id="tox-adm-date" :label="t('toxico.admission.date')" required class="md:col-span-2" v-slot="{ describedBy }">
+            <input id="tox-adm-date" v-model="form.admissionDate" type="date" required :max="today" :min="minAdmissionDate || undefined" :aria-describedby="describedBy" :class="fieldClass" />
+          </FormField>
+
+          <FormField id="tox-adm-substance" :label="t('toxico.admission.substance')" required v-slot="{ describedBy }">
+            <select id="tox-adm-substance" v-model="form.substance" required :aria-describedby="describedBy" :class="fieldClass">
+              <option value="Alcool">{{ t('toxico.substances.alcohol') }}</option>
+              <option value="Cannabis">{{ t('toxico.substances.cannabis') }}</option>
+              <option value="Opioïdes">{{ t('toxico.substances.opioids') }}</option>
+              <option value="Cocaïne">{{ t('toxico.substances.cocaine') }}</option>
+              <option value="Polytoxicomanie">{{ t('toxico.substances.poly') }}</option>
+              <option value="Autre">{{ t('toxicoScreens.substance_other') }}</option>
+            </select>
+          </FormField>
+          <FormField id="tox-adm-psy" :label="t('toxico.admission.psychologist')" required v-slot="{ describedBy }">
+            <select id="tox-adm-psy" v-model="form.psychologist" required :aria-describedby="describedBy" :class="fieldClass">
+              <option :value="null" disabled selected>{{ t('toxicoScreens.select_placeholder') }}</option>
+              <option v-for="psy in psychologistsList" :key="psy.id" :value="psy.id">{{ psy.name }}</option>
+            </select>
+          </FormField>
+        </template>
+
+        <template v-if="showNewPatientForm">
+          <FormField id="tox-adm-first" :label="t('toxico.admission.firstname')" required v-slot="{ describedBy }">
+            <input id="tox-adm-first" v-model="form.firstName" type="text" required :aria-describedby="describedBy" :class="fieldClass" />
+          </FormField>
+          <FormField id="tox-adm-last" :label="t('toxico.admission.lastname')" required v-slot="{ describedBy }">
+            <input id="tox-adm-last" v-model="form.lastName" type="text" required :aria-describedby="describedBy" :class="fieldClass" />
+          </FormField>
+          <FormField id="tox-adm-dob" :label="t('toxico.admission.dob')" required v-slot="{ describedBy }">
+            <input id="tox-adm-dob" v-model="form.dob" type="date" required :max="maxDateFormatted" :aria-describedby="describedBy" :class="fieldClass" />
+          </FormField>
+          <FormField id="tox-adm-mother" :label="t('toxico.admission.mothers_name')" required v-slot="{ describedBy }">
+            <input id="tox-adm-mother" v-model="form.mothersName" type="text" required :placeholder="t('toxicoScreens.mothers_name_placeholder')" :aria-describedby="describedBy" :class="fieldClass" />
+          </FormField>
+          <FormField id="tox-adm-address" :label="t('toxico.admission.address')" v-slot="{ describedBy }">
+            <div class="relative">
+              <MapPinIcon class="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-ink-muted" aria-hidden="true" />
+              <input id="tox-adm-address" v-model="form.address" type="text" :aria-describedby="describedBy" :class="[fieldClass, 'pl-10']" />
+            </div>
+          </FormField>
+          <FormField id="tox-adm-contact" :label="t('toxico.admission.contact')" v-slot="{ describedBy }">
+            <input id="tox-adm-contact" v-model="form.contact" type="tel" :placeholder="t('toxicoScreens.phone_placeholder')" :aria-describedby="describedBy" :class="fieldClass" />
+          </FormField>
+        </template>
+      </FormSection>
+
+      <FormSection :title="t('toxico.admission.section_guardian')">
+        <FormField id="tox-adm-guardian" :label="t('toxico.admission.guardian_name')" required v-slot="{ describedBy }">
+          <input id="tox-adm-guardian" v-model="form.guardianName" type="text" required :aria-describedby="describedBy" :class="fieldClass" />
+        </FormField>
+        <FormField id="tox-adm-guardian-contact" :label="t('toxico.admission.guardian_contact')" required v-slot="{ describedBy }">
+          <input id="tox-adm-guardian-contact" v-model="form.guardianContact" type="tel" required :aria-describedby="describedBy" :class="fieldClass" />
+        </FormField>
+        <div class="md:col-span-2">
+          <p class="mb-1.5 text-base font-medium text-ink">{{ t('toxico.admission.consent_file') }}</p>
+          <label for="tox-adm-file"
+                 class="flex cursor-pointer flex-col items-center gap-1 rounded-card border-2 border-dashed border-tone-neutral-border bg-white px-6 py-5 text-center hover:bg-tone-neutral-bg focus-within:outline-2 focus-within:outline-offset-1 focus-within:outline-brand-600">
+            <PaperClipIcon class="h-8 w-8 text-ink-muted" aria-hidden="true" />
+            <span class="break-all text-base font-medium text-action-700">{{ fileName || t('toxico.admission.upload_placeholder') }}</span>
+            <span class="text-sm text-ink-muted">{{ t('toxicoScreens.file_hint') }}</span>
+            <input id="tox-adm-file" name="file-upload" type="file" class="sr-only" @change="handleFileUpload" accept=".pdf,.jpg,.png" />
+          </label>
+        </div>
+      </FormSection>
+
+      <FormField id="tox-adm-notes" :label="t('toxico.admission.notes')" v-slot="{ describedBy }">
+        <textarea id="tox-adm-notes" v-model="form.notes" rows="3" :placeholder="t('toxicoScreens.notes_placeholder')" :aria-describedby="describedBy" :class="[fieldClass, 'py-2']"></textarea>
+      </FormField>
+
+      <p v-if="errorMessage" role="alert" class="flex items-start gap-2 whitespace-pre-line rounded-card border p-3 text-base" :class="toneClasses('danger')">
+        <ExclamationCircleIcon class="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
+        {{ errorMessage }}
+      </p>
+    </form>
+
+    <template #footer>
+      <ActionBar>
+        <template #secondary>
+          <AppButton variant="secondary" :disabled="isLoading" @click="$emit('close')">{{ t('toxico.admission.cancel') }}</AppButton>
+        </template>
+        <AppButton type="submit" form="toxico-admission-form" :icon="CheckCircleIcon" :disabled="isLoading || !isFormValid" :loading="isLoading">
+          {{ isLoading ? t('toxicoScreens.processing') : t('toxico.admission.submit') }}
+        </AppButton>
+      </ActionBar>
+    </template>
+  </FullScreenPanel>
 </template>
 
 <script setup>
@@ -235,12 +139,14 @@ import { useToxicoStore } from '@/stores/toxicoStore';
 import { ToxicoGateway } from '@/services/ToxicoGateway';
 import { apiErrorMessage } from '@/utils/toxicoStays';
 import { displayName } from '@/utils/toxicoDischarged';
-import { 
-    UserPlusIcon, 
-    CheckCircleIcon, 
-    MapPinIcon, 
+import { AppButton, FormField, FormSection, ActionBar, FullScreenPanel } from '@/components/ui';
+import { toneClasses } from '@/design/tones';
+import {
+    UserPlusIcon,
+    CheckCircleIcon,
+    MapPinIcon,
     PaperClipIcon,
-    ExclamationCircleIcon 
+    ExclamationCircleIcon
 } from '@heroicons/vue/24/outline';
 
 const { t } = useI18n();
@@ -255,6 +161,9 @@ const today = new Date().toISOString().split('T')[0];
 const maxDate = new Date();
 maxDate.setFullYear(maxDate.getFullYear() - 10); // Minimum 10 ans
 const maxDateFormatted = maxDate.toISOString().split('T')[0];
+
+// Style commun des champs (zone tactile >= 44 px, focus visible).
+const fieldClass = 'block w-full min-h-11 lg:min-h-10 rounded-control border border-tone-neutral-border bg-white px-3 text-base text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand-600';
 
 const fileName = ref('');
 const isLoading = ref(false);

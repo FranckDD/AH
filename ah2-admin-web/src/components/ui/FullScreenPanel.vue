@@ -7,6 +7,7 @@ import { ref, onMounted, onBeforeUnmount, useId } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { XMarkIcon } from '@heroicons/vue/24/outline';
 import { nextFocusIndex } from '@/utils/ui';
+import { toneClasses } from '@/design/tones';
 
 const props = defineProps({
     title: { type: String, required: true },
@@ -14,6 +15,8 @@ const props = defineProps({
     // Fenetre plus large (formulaires a deux colonnes) et en-tete colore (accent) a partir de lg.
     wide: { type: Boolean, default: false },
     accent: { type: Boolean, default: false },
+    // En-tete teinte selon un etat (ex. 'danger' pour une sortie ou une suppression) ; sans effet si `accent` est actif.
+    tone: { type: String, default: '' },
 });
 const emit = defineEmits(['close']);
 
@@ -58,7 +61,8 @@ onMounted(() => {
     previouslyFocused = document.activeElement;
     // Premier champ de saisie du corps, sinon le bouton de fermeture.
     const first = focusables().find((el) => el !== closeButton.value?.$el && el !== closeButton.value) || closeButton.value;
-    first?.focus?.();
+    // preventScroll : un lien ou un champ plus bas dans le contenu ne doit pas faire defiler le panneau a l'ouverture.
+    first?.focus?.({ preventScroll: true });
 });
 
 onBeforeUnmount(() => {
@@ -75,15 +79,15 @@ onBeforeUnmount(() => {
             :aria-labelledby="titleId"
             :class="['app-refonte flex h-full w-full flex-col bg-white lg:h-auto lg:max-h-[92dvh] lg:rounded-card lg:shadow-card', wide ? 'lg:max-w-6xl' : 'lg:max-w-4xl']"
         >
-            <header :class="['flex shrink-0 items-center justify-between gap-3 px-4 py-3 md:px-6 lg:rounded-t-card', accent ? 'bg-brand-600 text-white' : 'border-b border-tone-neutral-border text-ink']">
+            <header :class="['flex shrink-0 items-center justify-between gap-3 px-4 py-3 md:px-6 lg:rounded-t-card', accent ? 'bg-brand-600 text-white' : tone ? `border-b ${toneClasses(tone)}` : 'border-b border-tone-neutral-border text-ink']">
                 <div class="min-w-0">
                     <h2 :id="titleId" class="text-xl font-bold">{{ title }}</h2>
-                    <p v-if="subtitle" :class="['text-base', accent ? 'text-white/90' : 'text-ink-muted']">{{ subtitle }}</p>
+                    <p v-if="subtitle" :class="['text-base', accent ? 'text-white/90' : tone ? '' : 'text-ink-muted']">{{ subtitle }}</p>
                 </div>
                 <button
                     ref="closeButton"
                     type="button"
-                    :class="['inline-flex min-h-11 min-w-11 items-center justify-center rounded-control focus-visible:outline-2', accent ? 'text-white hover:bg-white/20 focus-visible:outline-white' : 'text-ink-muted hover:bg-tone-neutral-bg focus-visible:outline-brand-600']"
+                    :class="['inline-flex min-h-11 min-w-11 items-center justify-center rounded-control focus-visible:outline-2', accent ? 'text-white hover:bg-white/20 focus-visible:outline-white' : tone ? 'hover:bg-white/60 focus-visible:outline-brand-600' : 'text-ink-muted hover:bg-tone-neutral-bg focus-visible:outline-brand-600']"
                     :aria-label="t('ui.close')"
                     @click="emit('close')"
                 >

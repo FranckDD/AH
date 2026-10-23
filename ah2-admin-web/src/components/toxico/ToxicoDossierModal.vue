@@ -1,156 +1,107 @@
 <template>
-  <div class="fixed inset-0 bg-gray-900/75 overflow-y-auto h-full w-full z-50 flex items-center justify-center backdrop-blur-xs">
-    
-    <div class="relative mx-auto w-full max-w-4xl bg-white shadow-2xl rounded-2xl border border-gray-200 flex flex-col max-h-[90vh]">
-      
-      <div v-if="isLoading" class="p-20 flex justify-center items-center">
-          <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
-      </div>
+  <FullScreenPanel :title="patient ? `${patient.firstName || ''} ${patient.lastName || ''}`.trim() : t('toxicoScreens.dossier_title')"
+                   :subtitle="patient ? t('toxicoScreens.dossier_code_substance', { code: patient.code, substance: patient.substance }) : ''" wide accent @close="$emit('close')">
+    <p v-if="isLoading" role="status" class="p-10 text-center text-base text-ink-muted">{{ t('ui.loading') }}</p>
 
-      <div v-else-if="!patient" class="p-10 text-center">
-          <p class="text-red-500 mb-4">Impossible de charger le dossier.</p>
-          <button @click="$emit('close')" class="text-indigo-600 hover:underline">Fermer</button>
-      </div>
-
-      <div v-else class="flex flex-col h-full">
-          <div class="px-6 py-5 border-b border-gray-100 bg-indigo-50 rounded-t-2xl flex justify-between items-start shrink-0">
-            <div class="flex items-center">
-                <div class="h-12 w-12 rounded-full bg-indigo-200 flex items-center justify-center text-indigo-700 font-bold text-xl mr-4 uppercase">
-                    {{ (patient.firstName ? patient.firstName.charAt(0) : '?') }}
-                </div>
-                <div>
-                    <h3 class="text-xl font-bold text-gray-900">
-                        {{ patient.firstName }} {{ patient.lastName }}
-                        <span v-if="patient.isActive === false" class="ml-2 align-middle px-2 py-0.5 text-xs font-bold rounded-full bg-gray-200 text-gray-700">
-                            {{ t('toxico.discharged.badge_inactive') }}
-                        </span>
-                    </h3>
-                    <p class="text-sm text-indigo-600 font-medium">
-                        Code: {{ patient.code }} • Substance: {{ patient.substance }}
-                    </p>
-                </div>
-            </div>
-            <button @click="$emit('close')" class="text-gray-400 hover:text-gray-600 bg-white p-2 rounded-full shadow-xs transition">
-                <span class="text-2xl font-bold">&times;</span>
-            </button>
-          </div>
-
-          <div class="bg-white border-b border-gray-200 px-6 shrink-0">
-              <nav class="-mb-px flex space-x-8">
-                  <button 
-                    v-for="tab in visibleTabs" 
-                    :key="tab.id"
-                    @click="currentTab = tab.id"
-                    :class="[
-                      currentTab === tab.id 
-                        ? 'border-indigo-500 text-indigo-600' 
-                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
-                      'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center'
-                    ]"
-                  >
-                      <component :is="tab.icon" class="h-5 w-5 mr-2" />
-                      {{ t(tab.label) }}
-                  </button>
-              </nav>
-          </div>
-
-          <div class="p-6 overflow-y-auto bg-gray-50 flex-1">
-            <div v-if="dischargeSuccess" role="status" class="mb-4 bg-green-50 border-l-4 border-green-500 rounded-sm p-3 text-sm text-green-800">
-                {{ t('toxico.stays.discharge_success') }}
-            </div>
-            
-            <div v-if="currentTab === 'history'" class="space-y-6">
-                <div class="bg-white p-5 rounded-xl shadow-xs border border-gray-100">
-                    <h4 class="text-sm font-bold text-gray-700 uppercase mb-4">Progression</h4>
-                    <div class="relative pt-1">
-                        <div class="overflow-hidden h-4 mb-4 text-xs flex rounded-sm bg-indigo-100">
-                            <div :style="{ width: ((patient.currentPhase || 1) / 4) * 100 + '%' }" class="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-indigo-500 transition-all duration-500"></div>
-                        </div>
-                        <div class="flex justify-between text-xs text-gray-500 font-medium">
-                            <span>Phase 1</span><span>Phase 2</span><span>Phase 3</span><span>Phase 4</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="bg-white p-5 rounded-xl shadow-xs border border-gray-100">
-                    <h4 class="text-sm font-bold text-gray-700 uppercase mb-4">{{ t('toxico.dossier.tabs.history') }}</h4>
-                    
-                    <ToxicoStaysTimeline :stays="patient.stays || []" :phaseHistory="patient.phaseHistory || []" :evaluations="patient.evaluations || []" />
-                </div>
-            </div>
-
-            <div v-if="currentTab === 'medical'" class="space-y-6">
-                <div class="bg-white p-5 rounded-xl shadow-xs border border-gray-100">
-                    <div class="flex items-center justify-between mb-4">
-                        <h4 class="text-sm font-bold text-gray-700 uppercase">{{ t('toxico.dossier.recent.medical_title') }}</h4>
-                        <button v-if="canOpenFullHistory" @click="openFullHistory('MEDICAL')"
-                                class="text-xs font-bold text-indigo-600 hover:text-indigo-800 transition">
-                            {{ t('toxico.dossier.recent.see_all') }} &rarr;
-                        </button>
-                    </div>
-                    <p v-if="recentLoading" class="text-gray-400 text-center py-4 italic">{{ t('toxico.dossier.recent.loading') }}</p>
-                    <p v-else-if="recentError || recent?.historique_medical === null" class="text-red-500 text-center py-4">{{ t('toxico.dossier.recent.error') }}</p>
-                    <p v-else-if="!recent?.historique_medical?.length" class="text-gray-500 text-center py-4 italic">{{ t('toxico.dossier.recent.empty_medical') }}</p>
-                    <ul v-else class="divide-y divide-gray-100">
-                        <li v-for="r in recent.historique_medical" :key="r.record_id" class="py-3 flex justify-between gap-4">
-                            <div class="min-w-0">
-                                <p class="text-sm font-semibold text-gray-800 truncate">{{ r.diagnosis || r.motif_code }}</p>
-                                <p v-if="r.symptoms" class="text-xs text-gray-500 truncate">{{ r.symptoms }}</p>
-                            </div>
-                            <span class="text-xs text-gray-400 whitespace-nowrap">{{ formatDate(r.consultation_date) }}</span>
-                        </li>
-                    </ul>
-                </div>
-            </div>
-
-            <div v-if="currentTab === 'prescriptions'" class="space-y-6">
-                <div class="bg-white p-5 rounded-xl shadow-xs border border-gray-100">
-                    <div class="flex items-center justify-between mb-4">
-                        <h4 class="text-sm font-bold text-gray-700 uppercase">{{ t('toxico.dossier.recent.prescriptions_title') }}</h4>
-                        <button v-if="canOpenFullHistory" @click="openFullHistory('PHARMA')"
-                                class="text-xs font-bold text-indigo-600 hover:text-indigo-800 transition">
-                            {{ t('toxico.dossier.recent.see_all') }} &rarr;
-                        </button>
-                    </div>
-                    <p v-if="recentLoading" class="text-gray-400 text-center py-4 italic">{{ t('toxico.dossier.recent.loading') }}</p>
-                    <p v-else-if="recentError || recent?.prescriptions === null" class="text-red-500 text-center py-4">{{ t('toxico.dossier.recent.error') }}</p>
-                    <p v-else-if="!recent?.prescriptions?.length" class="text-gray-500 text-center py-4 italic">{{ t('toxico.dossier.recent.empty_prescriptions') }}</p>
-                    <ul v-else class="divide-y divide-gray-100">
-                        <li v-for="p in recent.prescriptions" :key="p.prescription_id" class="py-3 flex justify-between gap-4">
-                            <div class="min-w-0">
-                                <p class="text-sm font-semibold text-gray-800 truncate">{{ prescriptionLabel(p) }}</p>
-                                <p v-if="p.dosage || p.frequency" class="text-xs text-gray-500 truncate">{{ [p.dosage, p.frequency].filter(Boolean).join(' · ') }}</p>
-                            </div>
-                            <span class="text-xs text-gray-400 whitespace-nowrap">{{ formatDate(p.start_date) }}</span>
-                        </li>
-                    </ul>
-                </div>
-            </div>
-
-          </div>
-
-          <div class="px-4 md:px-6 py-4 border-t border-gray-100 bg-gray-50 rounded-b-2xl flex flex-col-reverse sm:flex-row sm:justify-end gap-2 shrink-0">
-            <p v-if="exportError" role="alert" class="text-sm text-red-600 sm:mr-auto self-center">{{ t(exportError) }}</p>
-            <button v-if="canExportDossier" type="button" @click="exportPdf" :disabled="isExporting"
-                    class="min-h-[44px] lg:min-h-0 px-5 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-100 font-medium transition disabled:opacity-50">
-                {{ isExporting ? t('toxico.export.exporting') : t('toxico.export.dossier_pdf') }}
-            </button>
-            <button v-if="canDischarge" type="button" @click="showDischarge = true"
-                    class="min-h-[44px] lg:min-h-0 px-5 py-2 bg-red-50 text-red-700 border border-red-200 rounded-lg hover:bg-red-100 font-medium transition">
-                {{ t('toxico.stays.discharge_action') }}
-            </button>
-            <button @click="$emit('close')" class="min-h-[44px] lg:min-h-0 px-5 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium transition shadow-md">
-                Fermer le dossier
-            </button>
-          </div>
-      </div>
-
+    <div v-else-if="!patient" role="alert" class="grid justify-items-center gap-3 p-6 text-center">
+      <p class="text-base font-medium text-tone-danger-text">{{ t('toxicoScreens.dossier_load_error') }}</p>
+      <AppButton variant="secondary" @click="$emit('close')">{{ t('toxicoScreens.close') }}</AppButton>
     </div>
 
-    <ToxicoDischargeModal v-if="showDischarge && patient" :dossierId="patient.dossier_id"
-        :patientName="`${patient.firstName || ''} ${patient.lastName || ''}`.trim()"
-        @close="showDischarge = false" @discharged="onDischarged" />
-  </div>
+    <div v-else class="grid gap-4">
+      <div v-if="patient.isActive === false" class="flex flex-wrap items-center gap-2">
+        <StatusBadge tone="neutral" :label="t('toxico.discharged.badge_inactive')" />
+      </div>
+
+      <div role="tablist" :aria-label="t('toxicoScreens.dossier_title')" class="flex gap-1 overflow-x-auto border-b border-tone-neutral-border">
+        <button v-for="tab in visibleTabs" :key="tab.id" type="button" role="tab" :id="`tox-tab-${tab.id}`" :aria-selected="currentTab === tab.id" :aria-controls="`tox-panel-${tab.id}`"
+                @click="currentTab = tab.id"
+                :class="[
+                  currentTab === tab.id ? 'border-action-600 font-semibold text-action-700' : 'border-transparent text-ink-muted hover:border-tone-neutral-border hover:text-ink',
+                  'flex min-h-11 shrink-0 items-center gap-2 border-b-4 px-3 text-base focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand-600'
+                ]">
+          <component :is="tab.icon" class="h-5 w-5 shrink-0" aria-hidden="true" />
+          {{ t(tab.label) }}
+        </button>
+      </div>
+
+      <p v-if="dischargeSuccess" role="status" class="rounded-card border p-3 text-base" :class="toneClasses('success')">{{ t('toxico.stays.discharge_success') }}</p>
+
+      <section v-if="currentTab === 'history'" role="tabpanel" id="tox-panel-history" aria-labelledby="tox-tab-history" class="grid gap-4">
+        <AppCard :title="t('toxicoScreens.progress_title')">
+          <div class="h-4 w-full overflow-hidden rounded-full bg-tone-neutral-bg" role="progressbar" :aria-valuenow="patient.currentPhase || 1" aria-valuemin="1" aria-valuemax="4"
+               :aria-label="t('toxicoScreens.phase_progress', { phase: patient.currentPhase || 1 })">
+            <div class="h-4 rounded-full transition-all duration-500" :class="phaseMeta(patient.currentPhase || 1).bar"
+                 :style="{ width: ((patient.currentPhase || 1) / 4) * 100 + '%' }"></div>
+          </div>
+          <div class="mt-2 flex justify-between text-sm text-ink-muted">
+            <span v-for="n in 4" :key="n">{{ t('toxicoScreens.phase_short', { n }) }}</span>
+          </div>
+        </AppCard>
+
+        <AppCard :title="t('toxico.dossier.tabs.history')">
+          <ToxicoStaysTimeline :stays="patient.stays || []" :phaseHistory="patient.phaseHistory || []" :evaluations="patient.evaluations || []" />
+        </AppCard>
+      </section>
+
+      <section v-if="currentTab === 'medical'" role="tabpanel" id="tox-panel-medical" aria-labelledby="tox-tab-medical">
+        <AppCard :title="t('toxico.dossier.recent.medical_title')">
+          <template #actions>
+            <AppButton v-if="canOpenFullHistory" variant="secondary" size="sm" @click="openFullHistory('MEDICAL')">{{ t('toxico.dossier.recent.see_all') }}</AppButton>
+          </template>
+          <p v-if="recentLoading" role="status" class="py-4 text-center text-base italic text-ink-muted">{{ t('toxico.dossier.recent.loading') }}</p>
+          <p v-else-if="recentError || recent?.historique_medical === null" role="alert" class="py-4 text-center text-base text-tone-danger-text">{{ t('toxico.dossier.recent.error') }}</p>
+          <p v-else-if="!recent?.historique_medical?.length" class="py-4 text-center text-base italic text-ink-muted">{{ t('toxico.dossier.recent.empty_medical') }}</p>
+          <ul v-else class="divide-y divide-tone-neutral-border">
+            <li v-for="r in recent.historique_medical" :key="r.record_id" class="flex justify-between gap-4 py-3">
+              <div class="min-w-0">
+                <p class="break-words text-base font-semibold text-ink">{{ r.diagnosis || r.motif_code }}</p>
+                <p v-if="r.symptoms" class="break-words text-sm text-ink-muted">{{ r.symptoms }}</p>
+              </div>
+              <span class="shrink-0 whitespace-nowrap text-sm text-ink-muted">{{ formatDate(r.consultation_date) }}</span>
+            </li>
+          </ul>
+        </AppCard>
+      </section>
+
+      <section v-if="currentTab === 'prescriptions'" role="tabpanel" id="tox-panel-prescriptions" aria-labelledby="tox-tab-prescriptions">
+        <AppCard :title="t('toxico.dossier.recent.prescriptions_title')">
+          <template #actions>
+            <AppButton v-if="canOpenFullHistory" variant="secondary" size="sm" @click="openFullHistory('PHARMA')">{{ t('toxico.dossier.recent.see_all') }}</AppButton>
+          </template>
+          <p v-if="recentLoading" role="status" class="py-4 text-center text-base italic text-ink-muted">{{ t('toxico.dossier.recent.loading') }}</p>
+          <p v-else-if="recentError || recent?.prescriptions === null" role="alert" class="py-4 text-center text-base text-tone-danger-text">{{ t('toxico.dossier.recent.error') }}</p>
+          <p v-else-if="!recent?.prescriptions?.length" class="py-4 text-center text-base italic text-ink-muted">{{ t('toxico.dossier.recent.empty_prescriptions') }}</p>
+          <ul v-else class="divide-y divide-tone-neutral-border">
+            <li v-for="p in recent.prescriptions" :key="p.prescription_id" class="flex justify-between gap-4 py-3">
+              <div class="min-w-0">
+                <p class="break-words text-base font-semibold text-ink">{{ prescriptionLabel(p) }}</p>
+                <p v-if="p.dosage || p.frequency" class="break-words text-sm text-ink-muted">{{ [p.dosage, p.frequency].filter(Boolean).join(', ') }}</p>
+              </div>
+              <span class="shrink-0 whitespace-nowrap text-sm text-ink-muted">{{ formatDate(p.start_date) }}</span>
+            </li>
+          </ul>
+        </AppCard>
+      </section>
+    </div>
+
+    <template v-if="patient" #footer>
+      <ActionBar>
+        <template #secondary>
+          <p v-if="exportError" role="alert" class="self-center text-sm text-tone-danger-text">{{ t(exportError) }}</p>
+          <AppButton v-if="canExportDossier" variant="secondary" :disabled="isExporting" :loading="isExporting" @click="exportPdf">
+            {{ isExporting ? t('toxico.export.exporting') : t('toxico.export.dossier_pdf') }}
+          </AppButton>
+        </template>
+        <AppButton v-if="canDischarge" variant="danger" @click="showDischarge = true">{{ t('toxico.stays.discharge_action') }}</AppButton>
+        <AppButton @click="$emit('close')">{{ t('toxicoScreens.dossier_close') }}</AppButton>
+      </ActionBar>
+    </template>
+  </FullScreenPanel>
+
+  <ToxicoDischargeModal v-if="showDischarge && patient" :dossierId="patient.dossier_id"
+      :patientName="`${patient.firstName || ''} ${patient.lastName || ''}`.trim()"
+      @close="showDischarge = false" @discharged="onDischarged" />
 </template>
 
 <script setup>
@@ -163,6 +114,9 @@ import { ToxicoGateway } from '@/services/ToxicoGateway';
 import { ClockIcon, HeartIcon, BeakerIcon } from '@heroicons/vue/24/outline';
 import ToxicoStaysTimeline from '@/components/toxico/ToxicoStaysTimeline.vue';
 import ToxicoDischargeModal from '@/components/toxico/ToxicoDischargeModal.vue';
+import { AppButton, AppCard, StatusBadge, ActionBar, FullScreenPanel } from '@/components/ui';
+import { toneClasses } from '@/design/tones';
+import { phaseMeta } from '@/utils/toxicoUi';
 import { TOXICO_DOSSIER_EXPORT_ROLES, TOXICO_DISCHARGE_ROLES, downloadPdfBlob, dossierExportFilename, exportErrorKey } from '@/utils/toxicoExport';
 
 const { t } = useI18n();

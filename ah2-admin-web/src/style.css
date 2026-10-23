@@ -59,6 +59,11 @@ html, body, #app {
   --color-tone-danger-border: #fca5a5;
   /* Fond des boutons rouges pleins : plus vif que le texte rouge, texte blanc lisible (4,8:1) */
   --color-tone-danger-solid: #dc2626;
+  /* Remplissages pleins des barres de progression (phases toxico, etc.) : meme logique que le rouge plein, jamais seuls
+     (la valeur est toujours ecrite a cote). */
+  --color-tone-warning-solid: #d97706;
+  --color-tone-info-solid: #2563eb;
+  --color-tone-success-solid: #16a34a;
   /* Boutons pleins : indigo (action principale), vert (valider), bleu ciel (consulter) ; texte blanc >= 4,5:1 */
   --color-action-50: #eef2ff;
   --color-action-600: #4f46e5;
