@@ -1,243 +1,154 @@
 <template>
-  <div class="h-full overflow-y-auto bg-gray-50 p-6">
-    <div class="max-w-5xl mx-auto pb-20 space-y-6">
-      
-      <div class="flex items-center justify-between" id="top-anchor">
-        <div>
-          <h1 class="text-2xl font-bold text-gray-800">{{ $t('lab.reception.title') }}</h1>
-          <p class="text-sm text-gray-500">{{ $t('lab.reception.subtitle') }}</p>
-        </div>
-        
-        <transition name="fade">
-          <div v-if="labStore.successMessage" class="bg-green-100 text-green-800 px-4 py-2 rounded-lg flex items-center shadow-xs border border-green-200">
-             <CheckCircleIcon class="w-5 h-5 mr-2"/> 
-             <span class="font-medium">{{ labStore.successMessage || $t('lab.reception.success_message') }}</span>
-          </div>
-        </transition>
-      </div>
-  
-      <div class="bg-white rounded-2xl shadow-xs border border-gray-200 overflow-visible relative z-30">
-        <div class="bg-gray-50 border-b border-gray-200 px-6 py-3 flex justify-between items-center">
-          <h2 class="font-bold text-gray-700 flex items-center gap-2">
-            <UserIcon class="w-5 h-5"/> {{ $t('lab.reception.section1_title') }}
-          </h2>
-          
-          <div class="bg-gray-200 p-1 rounded-lg flex text-sm font-medium">
-            <button  
-              @click="setMode('internal')"
-              :class="mode === 'internal' ? 'bg-white text-indigo-600 shadow-xs' : 'text-gray-500 hover:text-gray-700'"
-              class="px-4 py-1.5 rounded-md transition-all"
-            >
+  <div class="h-full overflow-y-auto p-4 text-sm md:p-6 [&_table]:text-sm [&_dd]:text-sm">
+    <div class="mx-auto grid max-w-5xl gap-6 pb-6" id="top-anchor">
+
+      <PageHeader :title="$t('lab.reception.title')" :subtitle="$t('lab.reception.subtitle')" />
+
+      <p v-if="labStore.successMessage" role="status" class="flex items-center gap-2 rounded-card border p-4 text-sm" :class="toneClasses('success')">
+        <CheckCircleIcon class="h-5 w-5 shrink-0" aria-hidden="true" />
+        <span class="font-medium">{{ labStore.successMessage || $t('lab.reception.success_message') }}</span>
+      </p>
+
+      <!-- Patient -->
+      <AppCard :title="$t('lab.reception.section1_title')" class="relative z-30">
+        <template #actions>
+          <div role="group" :aria-label="$t('labScreens.mode_label')" class="flex gap-2">
+            <AppButton :variant="mode === 'internal' ? 'primary' : 'secondary'" :aria-pressed="mode === 'internal'" @click="setMode('internal')">
               {{ $t('lab.reception.mode_internal') }}
-            </button>
-            <button  
-              @click="setMode('external')"
-              :class="mode === 'external' ? 'bg-white text-orange-600 shadow-xs' : 'text-gray-500 hover:text-gray-700'"
-              class="px-4 py-1.5 rounded-md transition-all"
-            >
+            </AppButton>
+            <AppButton :variant="mode === 'external' ? 'primary' : 'secondary'" :aria-pressed="mode === 'external'" @click="setMode('external')">
               {{ $t('lab.reception.mode_external') }}
-            </button>
+            </AppButton>
           </div>
-        </div>
-  
-        <div class="p-6">
-          <div v-if="mode === 'internal'" class="space-y-4">
-            <div v-if="!selectedPatient" class="relative">
-              <input 
-                v-model="searchQuery" 
-                type="text" 
-                :placeholder="$t('lab.reception.search_placeholder')" 
-                class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"
-                autocomplete="off"
-              />
-              <MagnifyingGlassIcon class="w-5 h-5 text-gray-400 absolute left-3 top-3.5"/>
-              
-              <div v-if="labStore.loading" class="absolute right-3 top-3.5">
-                  <ArrowPathIcon class="w-5 h-5 text-indigo-300 animate-spin"/>
-              </div>
+        </template>
 
-              <div v-if="showResults" class="absolute z-50 w-full mt-2 bg-white rounded-xl shadow-2xl border border-gray-200 max-h-80 overflow-y-auto">
-                <div v-if="labStore.loading" class="py-8 flex flex-col items-center justify-center text-indigo-500">
-                    <ArrowPathIcon class="w-8 h-8 animate-spin mb-2"/>
-                    <span class="text-sm font-medium">Recherche en cours...</span>
-                </div>
-                <div v-else-if="labStore.searchResults && labStore.searchResults.length > 0">
-                    <div 
-                      v-for="p in labStore.searchResults" 
-                      :key="p.prescription_id" 
-                      @click="selectInternalPatient(p)"
-                      class="px-4 py-3 hover:bg-indigo-50 cursor-pointer border-b border-gray-50 last:border-0 flex justify-between items-center group transition-colors"
-                    >
-                      <div>
-                        <div class="font-bold text-gray-800 group-hover:text-indigo-700">{{ p.nom }}</div>
-                        <div class="text-xs text-indigo-500 mt-1 flex items-center gap-1">
-                            <BeakerIcon class="w-3 h-3"/>
-                            <span v-if="p.exams_prescribed && p.exams_prescribed.length">
-                                 {{ p.exams_prescribed.length }} examens prescrits
-                            </span>
-                            <span v-else>Prescription vide</span>
-                        </div>
-                      </div>
-                      <span class="bg-gray-100 group-hover:bg-white text-gray-600 text-[10px] font-mono uppercase px-2 py-1 rounded-sm border border-gray-200">
-                        {{ p.patient_code }}
+        <div v-if="mode === 'internal'" class="grid gap-4">
+          <div v-if="!selectedPatient" class="relative">
+            <FormField id="lab-reception-search" :label="$t('labScreens.search_label')" v-slot="{ describedBy }">
+              <input id="lab-reception-search" v-model="searchQuery" type="text" autocomplete="off" :placeholder="$t('lab.reception.search_placeholder')"
+                     :aria-describedby="describedBy" :class="fieldClass" />
+            </FormField>
+
+            <div v-if="showResults" class="absolute z-50 mt-2 max-h-80 w-full overflow-y-auto rounded-card border border-tone-neutral-border bg-white shadow-card">
+              <p v-if="labStore.loading" role="status" class="flex items-center justify-center gap-2 px-4 py-6 text-sm text-ink-muted">
+                <ArrowPathIcon class="h-5 w-5 animate-spin" aria-hidden="true" />
+                {{ $t('labScreens.searching') }}
+              </p>
+              <ul v-else-if="labStore.searchResults && labStore.searchResults.length > 0" class="divide-y divide-tone-neutral-border">
+                <li v-for="p in labStore.searchResults" :key="p.prescription_id">
+                  <button type="button" @click="selectInternalPatient(p)"
+                          class="flex min-h-11 w-full items-center justify-between gap-3 px-4 py-3 text-left hover:bg-brand-50 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand-600">
+                    <span class="min-w-0">
+                      <span class="block break-words text-sm font-semibold text-ink">{{ p.nom }}</span>
+                      <span class="flex items-center gap-1 text-sm text-ink-muted">
+                        <BeakerIcon class="h-4 w-4 shrink-0" aria-hidden="true" />
+                        <template v-if="p.exams_prescribed && p.exams_prescribed.length">{{ $t('labScreens.exams_prescribed_count', { n: p.exams_prescribed.length }) }}</template>
+                        <template v-else>{{ $t('labScreens.prescription_empty') }}</template>
                       </span>
-                    </div>
-                </div>
-                <div v-else class="px-6 py-8 text-center">
-                   <div class="bg-gray-50 w-10 h-10 rounded-full flex items-center justify-center mx-auto mb-2">
-                       <MagnifyingGlassIcon class="w-5 h-5 text-gray-400"/>
-                   </div>
-                   <p class="text-sm text-gray-500 font-medium">{{ $t('lab.reception.no_results') }}</p>
-                </div>
-              </div>
-            </div>
-  
-            <div v-else class="flex items-center justify-between bg-indigo-50 border border-indigo-100 p-4 rounded-xl animate-fade-in">
-              <div class="flex items-center gap-4">
-                <div class="w-12 h-12 rounded-full bg-indigo-600 text-white flex items-center justify-center text-xl font-bold uppercase">
-                  {{ selectedPatient.nom.charAt(0) }}
-                </div>
-                <div>
-                  <h3 class="font-bold text-indigo-900">{{ selectedPatient.nom }}</h3>
-                  <p class="text-sm text-indigo-700">
-                      {{ $t('lab.reception.patient_internal_label') }} #{{ selectedPatient.patient_code }}
-                  </p>
-                  <p v-if="autoImportedCount > 0" class="text-xs text-green-600 font-medium mt-1">
-                      ✓ {{ autoImportedCount }} examens importés de la prescription
-                  </p>
-                </div>
-              </div>
-              <button @click="resetPatient" class="text-sm text-red-600 hover:underline font-medium">
-                  {{ $t('lab.reception.change_patient') }}
-              </button>
+                    </span>
+                    <StatusBadge tone="neutral" :label="String(p.patient_code)" />
+                  </button>
+                </li>
+              </ul>
+              <p v-else role="status" class="px-4 py-6 text-center text-sm text-ink-muted">{{ $t('lab.reception.no_results') }}</p>
             </div>
           </div>
-  
-          <div v-else class="space-y-4 animate-fade-in">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label class="block text-xs font-bold text-gray-500 uppercase mb-1">{{ $t('lab.reception.ext_name_label') }}</label>
-                <input v-model="extForm.full_name" type="text" class="w-full border-gray-300 rounded-lg focus:ring-orange-500 focus:border-orange-500" placeholder="Ex: KOUAM Jean">
-              </div>
-              <div class="grid grid-cols-2 gap-4">
-                 <div>
-                   <label class="block text-xs font-bold text-gray-500 uppercase mb-1">{{ $t('lab.reception.ext_age_label') }}</label>
-                   <input v-model.number="extForm.age" type="number" class="w-full border-gray-300 rounded-lg focus:ring-orange-500 focus:border-orange-500">
-                 </div>
-                 <div>
-                   <label class="block text-xs font-bold text-gray-500 uppercase mb-1">{{ $t('lab.reception.ext_gender_label') }}</label>
-                   <select v-model="extForm.gender" class="w-full border-gray-300 rounded-lg focus:ring-orange-500 focus:border-orange-500">
-                     <option value="M">{{ $t('lab.gender.m') }}</option>
-                     <option value="F">{{ $t('lab.gender.f') }}</option>
-                   </select>
-                 </div>
-              </div>
-            </div>
-            <div class="bg-orange-50 text-orange-800 text-xs p-3 rounded-sm border border-orange-100 flex items-start gap-2">
-              <ExclamationCircleIcon class="w-4 h-4 mt-0.5 shrink-0"/>
-              <p>{{ $t('lab.reception.ext_warning') }}</p>
-            </div>
-          </div>
-        </div>
-      </div>
 
-      <div class="bg-white rounded-2xl shadow-xs border border-gray-200 overflow-visible relative z-20">
-        <div class="bg-gray-50 border-b border-gray-200 px-6 py-3">
-          <h2 class="font-bold text-gray-700 flex items-center gap-2">
-            <IdentificationIcon class="w-5 h-5"/> {{ $t('lab.reception.prescriber_info') || 'Information Prescription' }}
-          </h2>
-        </div>
-        <div class="p-6">
-          <div class="max-w-md">
-            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Prescrit par (Médecin/Infirmier)</label>
-            <div class="relative">
-              <select 
-                v-model="selectedDoctorId" 
-                class="w-full border-gray-300 rounded-xl py-3 pl-10"
-              >
-                <option :value="null">-- Choisir le prescripteur --</option>
-                
-                <option v-for="doc in doctors" :key="doc.user_id" :value="doc.user_id">
-                  {{ doc.full_name }} — {{ doc.specialty_name || 'Médecin' }}
-                </option>
-              </select>
-              <UserIcon class="w-5 h-5 text-gray-400 absolute left-3 top-3.5"/>
+          <div v-else class="flex flex-col gap-3 rounded-card border border-brand-600 bg-brand-50 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div class="flex items-center gap-4">
+              <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-brand-600 text-xl font-bold uppercase text-white" aria-hidden="true">
+                {{ selectedPatient.nom.charAt(0) }}
+              </span>
+              <div>
+                <h3 class="text-lg font-bold text-ink">{{ selectedPatient.nom }}</h3>
+                <p class="text-sm text-ink-muted">{{ $t('lab.reception.patient_internal_label') }} #{{ selectedPatient.patient_code }}</p>
+                <p v-if="autoImportedCount > 0" class="mt-1 flex items-center gap-1 text-sm font-medium text-tone-success-text">
+                  <CheckCircleIcon class="h-5 w-5 shrink-0" aria-hidden="true" />
+                  {{ $t('labScreens.imported_count', { n: autoImportedCount }) }}
+                </p>
+              </div>
             </div>
-            <p class="text-[10px] text-gray-400 mt-1 italic">Si le prescripteur est externe, choisissez un responsable interne référent.</p>
+            <AppButton variant="secondary" @click="resetPatient">{{ $t('lab.reception.change_patient') }}</AppButton>
           </div>
         </div>
-      </div>
-  
-      <div class="bg-white rounded-2xl shadow-xs border border-gray-200 overflow-hidden relative z-0">
-        <div class="bg-gray-50 border-b border-gray-200 px-6 py-3">
-          <h2 class="font-bold text-gray-700 flex items-center gap-2">
-            <BeakerIcon class="w-5 h-5"/> {{ $t('lab.reception.section2_title') }}
-          </h2>
+
+        <div v-else class="grid gap-4">
+          <div class="grid gap-4 md:grid-cols-2">
+            <FormField id="lab-ext-name" :label="$t('lab.reception.ext_name_label')" v-slot="{ describedBy }">
+              <input id="lab-ext-name" v-model="extForm.full_name" type="text" :placeholder="$t('labScreens.ext_name_placeholder')" :aria-describedby="describedBy" :class="fieldClass" />
+            </FormField>
+            <div class="grid grid-cols-2 gap-4">
+              <FormField id="lab-ext-age" :label="$t('lab.reception.ext_age_label')" v-slot="{ describedBy }">
+                <input id="lab-ext-age" v-model.number="extForm.age" type="number" :aria-describedby="describedBy" :class="fieldClass" />
+              </FormField>
+              <FormField id="lab-ext-gender" :label="$t('lab.reception.ext_gender_label')" v-slot="{ describedBy }">
+                <select id="lab-ext-gender" v-model="extForm.gender" :aria-describedby="describedBy" :class="fieldClass">
+                  <option value="M">{{ $t('lab.gender.m') }}</option>
+                  <option value="F">{{ $t('lab.gender.f') }}</option>
+                </select>
+              </FormField>
+            </div>
+          </div>
+          <p class="flex items-start gap-2 rounded-control border p-3 text-sm" :class="toneClasses('warning')">
+            <ExclamationCircleIcon class="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
+            {{ $t('lab.reception.ext_warning') }}
+          </p>
         </div>
-  
-        <div class="p-6 space-y-6">
-          <div class="flex gap-3">
-            <select v-model="selectedExamId" class="flex-1 border-gray-300 rounded-xl focus:ring-indigo-500 focus:border-indigo-500 py-3">
-              <option :value="null">{{ $t('lab.reception.select_exam_placeholder') }}</option>
-              <option v-for="exam in labStore.exams" :key="exam.id" :value="exam.id">
-                {{ exam.nom }} ({{ exam.code }})
+      </AppCard>
+
+      <!-- Prescripteur -->
+      <AppCard :title="$t('labScreens.prescriber_section')" class="relative z-20">
+        <div class="max-w-md">
+          <FormField id="lab-reception-doctor" :label="$t('labScreens.prescribed_by')" :help="$t('labScreens.prescriber_help')" v-slot="{ describedBy }">
+            <select id="lab-reception-doctor" v-model="selectedDoctorId" :aria-describedby="describedBy" :class="fieldClass">
+              <option :value="null">{{ $t('labScreens.choose_prescriber') }}</option>
+              <option v-for="doc in doctors" :key="doc.user_id" :value="doc.user_id">
+                {{ doc.full_name }}, {{ doc.specialty_name || $t('labScreens.doctor_default') }}
               </option>
             </select>
-            <button 
-              @click="addExamToCart" 
-              :disabled="!selectedExamId"
-              class="bg-gray-800 text-white px-6 py-2 rounded-xl font-bold hover:bg-gray-900 transition disabled:opacity-50 flex items-center gap-2"
-            >
-              <PlusCircleIcon class="w-5 h-5"/> {{ $t('lab.reception.add_btn') }}
-            </button>
-          </div>
-  
-          <div v-if="cart.length > 0" class="border border-gray-200 rounded-xl overflow-hidden animate-fade-in">
-            <table class="w-full text-sm text-left">
-              <thead class="bg-gray-50 text-gray-500 uppercase text-xs">
-                <tr>
-                  <th class="px-4 py-3">{{ $t('lab.reception.cart_exam_col') }}</th>
-                  <th class="px-4 py-3 text-right">{{ $t('lab.reception.cart_action_col') }}</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-gray-100">
-                <tr v-for="(item, index) in cart" :key="index" class="hover:bg-gray-50">
-                  <td class="px-4 py-3 font-medium text-gray-900">
-                      {{ item.nom }}
-                      <span v-if="item.is_prescribed" class="ml-2 text-[10px] bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded-full">Prescrit</span>
-                  </td>
-                  <td class="px-4 py-3 text-right">
-                    <button @click="removeFromCart(index)" class="text-red-500 hover:text-red-700 p-1">
-                      <TrashIcon class="w-5 h-5"/>
-                    </button>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-          
-          <div v-else class="text-center py-8 text-gray-400 border-2 border-dashed border-gray-200 rounded-xl">
-             {{ $t('lab.reception.cart_empty') }}
-          </div>
+          </FormField>
         </div>
-      </div>
-  
-      <div class="flex justify-end pt-4">
-        <button 
-          @click="submitRequest" 
-          :disabled="!canSubmit || labStore.loading"
-          class="bg-indigo-600 text-white px-8 py-4 rounded-xl font-bold text-lg shadow-lg hover:bg-indigo-700 transition transform hover:-translate-y-1 flex items-center gap-3 disabled:opacity-50 disabled:transform-none"
-        >
-          <ArrowPathIcon v-if="labStore.loading" class="w-6 h-6 animate-spin"/>
-          <PaperAirplaneIcon v-else class="w-6 h-6"/>
-          <span>{{ $t('lab.reception.submit_btn') }} ({{ cart.length }})</span>
-        </button>
-      </div>
+      </AppCard>
+
+      <!-- Examens -->
+      <AppCard :title="$t('lab.reception.section2_title')" class="relative z-0">
+        <div class="grid gap-6">
+          <div class="flex flex-col gap-3 sm:flex-row sm:items-end">
+            <div class="flex-1">
+              <FormField id="lab-reception-exam" :label="$t('lab.reception.select_exam_placeholder')" v-slot="{ describedBy }">
+                <select id="lab-reception-exam" v-model="selectedExamId" :aria-describedby="describedBy" :class="fieldClass">
+                  <option :value="null">{{ $t('lab.reception.select_exam_placeholder') }}</option>
+                  <option v-for="exam in labStore.exams" :key="exam.id" :value="exam.id">{{ exam.nom }} ({{ exam.code }})</option>
+                </select>
+              </FormField>
+            </div>
+            <AppButton variant="secondary" :icon="PlusCircleIcon" :disabled="!selectedExamId" @click="addExamToCart">{{ $t('lab.reception.add_btn') }}</AppButton>
+          </div>
+
+          <ResponsiveTable v-if="cart.length > 0" :columns="cartColumns" :rows="cartRows" row-key="id" :aria-label="$t('labScreens.cart_table')" role="region" striped>
+            <template #cell-exam="{ row: item }">
+              <span class="font-medium">{{ item.nom }}</span>
+              <span v-if="item.is_prescribed" class="ml-2 inline-block"><StatusBadge tone="info" :label="$t('labScreens.prescribed_badge')" /></span>
+            </template>
+            <template #cell-action="{ row: item }">
+              <AppButton variant="danger" :icon="TrashIcon" @click="removeFromCart(item.index)">{{ $t('labScreens.remove') }}</AppButton>
+            </template>
+          </ResponsiveTable>
+          <p v-else class="rounded-card border-2 border-dashed border-tone-neutral-border py-8 text-center text-sm text-ink-muted">
+            {{ $t('lab.reception.cart_empty') }}
+          </p>
+        </div>
+      </AppCard>
+
+      <ActionBar class="rounded-card border">
+        <AppButton :icon="PaperAirplaneIcon" :disabled="!canSubmit || labStore.loading" :loading="labStore.loading" @click="submitRequest">
+          {{ $t('lab.reception.submit_btn') }} ({{ cart.length }})
+        </AppButton>
+      </ActionBar>
     </div>
   </div>
-  
 </template>
-  
+
 <script setup>
   import { ref, computed, onMounted, watch } from 'vue';
   import { useLabStore } from '@/stores/labStore';
@@ -245,9 +156,11 @@
   import debounce from 'lodash/debounce';
   import { useI18n } from 'vue-i18n'; 
   import { 
-    UserIcon, MagnifyingGlassIcon, BeakerIcon, PlusCircleIcon, IdentificationIcon,
+    BeakerIcon, PlusCircleIcon,
     TrashIcon, PaperAirplaneIcon, CheckCircleIcon, ExclamationCircleIcon, ArrowPathIcon 
   } from '@heroicons/vue/24/outline';
+  import { AppButton, AppCard, PageHeader, FormField, StatusBadge, ResponsiveTable, ActionBar } from '@/components/ui';
+  import { toneClasses } from '@/design/tones';
   import api from '@/services/api';
   import { useAuthStore } from '@/stores/auth';
 
@@ -256,6 +169,15 @@
   const authStore = useAuthStore();
   
   
+  // Colonnes du panier et style commun des champs.
+  const cartColumns = computed(() => [
+    { key: 'exam', label: t('lab.reception.cart_exam_col') },
+    { key: 'action', label: t('lab.reception.cart_action_col'), align: 'right' },
+  ]);
+  // Chaque ligne garde sa position dans le panier pour pouvoir la retirer.
+  const cartRows = computed(() => cart.value.map((item, index) => ({ ...item, index })));
+  const fieldClass = 'block w-full min-h-11 lg:min-h-10 rounded-control border border-tone-neutral-border bg-white px-3 text-sm text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand-600';
+
   // UI State
   const mode = ref('internal'); 
   const searchQuery = ref('');
@@ -464,15 +386,3 @@
     }
   };
 </script>
-
-<style scoped>
-.animate-fade-in {
-  animation: fadeIn 0.3s ease-out;
-}
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(5px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-.fade-enter-active, .fade-leave-active { transition: opacity 0.5s; }
-.fade-enter-from, .fade-leave-to { opacity: 0; }
-</style>

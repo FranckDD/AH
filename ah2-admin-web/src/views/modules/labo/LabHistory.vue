@@ -1,161 +1,104 @@
 <template>
-  <div class="max-w-7xl mx-auto p-6 space-y-6 animate-fade-in-up h-full flex flex-col">
+  <div class="h-full overflow-y-auto p-4 text-sm md:p-6 [&_table]:text-sm [&_dd]:text-sm">
+    <div class="mx-auto grid max-w-7xl gap-6">
 
-    <div class="bg-white p-4 rounded-2xl shadow-xs border border-gray-100 flex flex-col md:flex-row gap-4 items-center justify-between">
-      <div class="flex flex-1 gap-4 w-full md:w-auto">
-        <div class="relative flex-1 max-w-md">
-            <MagnifyingGlassIcon class="w-5 h-5 text-gray-400 absolute left-3 top-3"/>
-            <input 
-                v-model="filters.query"
-                @input="handleSearch"
-                type="text" 
-                :placeholder="t('lab.history_view.search_ph')" 
-                class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-xl focus:ring-indigo-500 focus:border-indigo-500 transition"
-            >
-        </div>
-        <select v-model="filters.status" @change="handleFilterChange" class="border border-gray-300 rounded-xl px-4 py-2 bg-white text-gray-700">
+      <PageHeader :title="t('lab.nav.history')" />
+
+      <section :aria-label="t('labScreens.filters_label')" class="grid gap-4 rounded-card border border-tone-neutral-border bg-white p-4 shadow-card md:grid-cols-2 lg:grid-cols-[1fr_16rem_auto_auto] lg:items-end">
+        <FormField id="lab-history-search" :label="t('labScreens.history_search')" v-slot="{ describedBy }">
+          <input id="lab-history-search" v-model="filters.query" @input="handleSearch" type="text" :placeholder="t('lab.history_view.search_ph')"
+                 :aria-describedby="describedBy" :class="fieldClass" />
+        </FormField>
+        <FormField id="lab-history-status" :label="t('labScreens.status_filter')" v-slot="{ describedBy }">
+          <select id="lab-history-status" v-model="filters.status" @change="handleFilterChange" :aria-describedby="describedBy" :class="fieldClass">
             <option value="">{{ t('lab.history_view.all_statuses') }}</option>
             <option value="pending">{{ t('lab.status.pending') }}</option>
             <option value="completed">{{ t('lab.history_view.completed_tech') }}</option>
-        </select>
+          </select>
+        </FormField>
+
+        <AppButton v-if="filters.abnormal" variant="secondary" :icon="ExclamationTriangleIcon" :title="t('lab.history_view.clear_abnormal')" @click="clearAbnormal">
+          {{ t('lab.history_view.abnormal_only') }}<template v-if="filters.period">, {{ t(`lab.dashboard.period_${filters.period}`) }}</template>
+          <XMarkIcon class="h-5 w-5 shrink-0" aria-hidden="true" />
+        </AppButton>
+
+        <AppButton variant="secondary" :icon="ArrowPathIcon" :loading="store.loading" @click="refresh">{{ t('lab.history_view.refresh') }}</AppButton>
+      </section>
+
+      <p v-if="store.loading && store.paginatedHistory.items.length === 0" role="status" class="p-10 text-center text-sm text-ink-muted">{{ t('ui.loading') }}</p>
+      <section v-else-if="store.paginatedHistory.items.length === 0" class="rounded-card border border-tone-neutral-border bg-white shadow-card">
+        <EmptyState :title="t('lab.history_view.empty')" :message="t('lab.history_view.empty_hint')" />
+      </section>
+
+      <!-- Un passage patient = une carte : le patient une seule fois, tous ses examens dedans -->
+      <!-- Un dossier (passage patient) par ligne, separe par jour ; les examens se deplient -->
+      <div v-else class="grid gap-6">
+        <section v-for="day in days" :key="day.key" :aria-label="dayLabel(day.key)" class="grid gap-3">
+          <h2 class="sticky top-0 z-10 bg-page py-1 text-sm font-semibold capitalize text-ink-muted">{{ dayLabel(day.key) }}</h2>
+          <LabHistoryPassage v-for="passage in day.passages" :key="passage.key" :passage="passage" @view="openView" @pdf="downloadPdf" @pdf-batch="downloadBatchPdf" />
+        </section>
       </div>
-      
-      <button v-if="filters.abnormal" @click="clearAbnormal"
-              class="flex items-center gap-2 bg-red-50 text-red-700 border border-red-200 px-3 py-1.5 rounded-full text-xs font-bold hover:bg-red-100 transition"
-              :title="t('lab.history_view.clear_abnormal')">
-        <ExclamationTriangleIcon class="w-4 h-4" />
-        {{ t('lab.history_view.abnormal_only') }}
-        <span v-if="filters.period" class="font-medium opacity-80">· {{ t(`lab.dashboard.period_${filters.period}`) }}</span>
-        <XMarkIcon class="w-4 h-4" />
-      </button>
 
-      <button @click="refresh" class="p-2 text-gray-500 hover:bg-gray-100 rounded-full transition" :title="t('lab.history_view.refresh')">
-        <ArrowPathIcon class="w-5 h-5" :class="{'animate-spin': store.loading}"/>
-      </button>
-    </div>
-
-    <div class="bg-white rounded-2xl shadow-xs border border-gray-100 flex-1 overflow-hidden flex flex-col">
-      <div class="overflow-y-auto flex-1">
-        <table class="w-full text-sm text-left">
-            <thead class="bg-gray-50 text-gray-500 uppercase font-bold text-xs border-b border-gray-100 sticky top-0 z-10">
-            <tr>
-                <th class="px-6 py-4">{{ t('lab.history_view.col_date') }}</th>
-                <th class="px-6 py-4">{{ t('lab.history_view.col_patient') }}</th>
-                <th class="px-6 py-4">{{ t('lab.history_view.col_exam') }}</th>
-                <th class="px-6 py-4">{{ t('lab.history_view.col_status') }}</th>
-                <th class="px-6 py-4 text-center">{{ t('lab.history_view.col_actions') }}</th>
-            </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-100">
-            <tr v-for="res in store.paginatedHistory.items" :key="res.result_id" class="hover:bg-gray-50 transition group">
-                <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="text-gray-900 font-medium">{{ formatDate(res.test_date) }}</div>
-                    <div class="text-[10px] text-gray-400 font-mono">#{{ res.result_id }} <span v-if="res.code">| {{ res.code }}</span></div>
-                </td>
-                
-                <td class="px-6 py-4">
-                    <div class="font-bold text-gray-800">{{ res.patient_name }}</div>
-                    <div class="flex gap-2 mt-1">
-                        <span class="text-[10px] text-gray-500">{{ res.patient_age }} • {{ res.patient_sexe }}</span>
-                        <span v-if="res.is_external" class="text-[9px] bg-orange-50 text-orange-600 px-1.5 py-0.5 rounded-sm font-black uppercase">{{ t('lab.result_modal.external') }}</span>
-                    </div>
-                </td>
-
-                <td class="px-6 py-4 text-gray-600 font-medium">
-                    {{ res.examen_nom }}
-                </td>
-                
-                <td class="px-6 py-4">
-                    <span :class="getStatusColor(res.status)" class="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider">
-                        {{ translateStatus(res.status) }}
-                    </span>
-                </td>
-                
-                <td class="px-6 py-4">
-                    <div class="flex items-center justify-center gap-2">
-                        <button 
-                            @click="openView(res)"
-                            class="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition border border-transparent hover:border-indigo-100"
-                            :title="t('lab.history_view.view_details')"
-                        >
-                            <EyeIcon class="w-5 h-5"/>
-                        </button>
-
-                        <button 
-                            v-if="res.status !== 'pending'"
-                            @click="downloadPdf(res)" 
-                            class="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition border border-transparent hover:border-red-100"
-                            :title="t('lab.history_view.download_pdf')"
-                        >
-                            <PrinterIcon class="w-5 h-5"/>
-                        </button>
-                        <span v-else class="w-9"></span>
-                    </div>
-                </td>
-            </tr>
-            </tbody>
-        </table>
-        
-        <div v-if="store.paginatedHistory.items.length === 0 && !store.loading" class="flex flex-col items-center justify-center h-64 text-gray-400">
-            <DocumentMagnifyingGlassIcon class="w-16 h-16 mb-2 opacity-20"/>
-            <p class="font-medium">{{ t('lab.history_view.empty') }}</p>
-            <p class="text-xs">{{ t('lab.history_view.empty_hint') }}</p>
+      <nav v-if="store.paginatedHistory.total_pages > 0" :aria-label="t('labScreens.pagination_label')"
+           class="flex flex-col gap-3 rounded-card border border-tone-neutral-border bg-white p-3 shadow-card sm:flex-row sm:items-center sm:justify-between">
+        <p class="text-sm text-ink-muted">
+          {{ t('labScreens.history_passages', { n: passages.length, total: store.paginatedHistory.total_items }) }}
+        </p>
+        <div class="flex items-center justify-between gap-3 sm:justify-end">
+          <AppButton variant="secondary" :disabled="filters.page === 1" @click="prevPage">{{ t('lab.history_view.prev') }}</AppButton>
+          <span class="text-sm font-medium text-ink">
+            {{ t('lab.history_view.page', { current: store.paginatedHistory.current_page, total: store.paginatedHistory.total_pages }) }}
+          </span>
+          <AppButton variant="secondary" :disabled="filters.page >= store.paginatedHistory.total_pages" @click="nextPage">{{ t('lab.history_view.next') }}</AppButton>
         </div>
-      </div>
+      </nav>
 
-      <div v-if="store.paginatedHistory.total_pages > 0" class="border-t border-gray-100 bg-gray-50 px-6 py-3 flex items-center justify-between">
-          <div class="text-sm text-gray-500">
-              {{ t('lab.history_view.showing', { n: store.paginatedHistory.items.length, total: store.paginatedHistory.total_items }) }}
-          </div>
-          <div class="flex items-center space-x-2 text-sm">
-              <button 
-                  @click="prevPage" 
-                  :disabled="filters.page === 1"
-                  class="px-3 py-1 rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition"
-              >
-                  {{ t('lab.history_view.prev') }}
-              </button>
-              <span class="px-3 py-1 text-gray-600 font-medium">
-                  {{ t('lab.history_view.page', { current: store.paginatedHistory.current_page, total: store.paginatedHistory.total_pages }) }}
-              </span>
-              <button 
-                  @click="nextPage" 
-                  :disabled="filters.page >= store.paginatedHistory.total_pages"
-                  class="px-3 py-1 rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition"
-              >
-                  {{ t('lab.history_view.next') }}
-              </button>
-          </div>
-      </div>
+      <ResultDetailModal
+          v-if="selectedResult"
+          :result="selectedResult"
+          @close="selectedResult = null"
+          @print="downloadPdf"
+      />
     </div>
-
-    <ResultDetailModal 
-        v-if="selectedResult" 
-        :result="selectedResult" 
-        @close="selectedResult = null"
-        @print="downloadPdf"
-    />
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { useLabStore } from '@/stores/labStore';
 import { useI18n } from 'vue-i18n';
 import ResultDetailModal from '@/components/lab/ResultDetailModal.vue';
-import dayjs from 'dayjs';
+import LabHistoryPassage from '@/components/lab/LabHistoryPassage.vue';
 import debounce from 'lodash/debounce';
-import { 
-    MagnifyingGlassIcon, ArrowPathIcon, PrinterIcon, 
-    DocumentMagnifyingGlassIcon, EyeIcon, ExclamationTriangleIcon, XMarkIcon
-} from '@heroicons/vue/24/outline';
+import { ArrowPathIcon, ExclamationTriangleIcon, XMarkIcon } from '@heroicons/vue/24/outline';
+import { AppButton, PageHeader, FormField, EmptyState } from '@/components/ui';
+import { groupHistory, groupPassagesByDay } from '@/utils/labPassages';
 
 // --- INIT ---
 const store = useLabStore();
-const { t } = useI18n();
+const { t, locale } = useI18n();
 const selectedResult = ref(null);
 const route = useRoute();
+
+// Un passage patient (batch_id) = une carte avec tous ses examens ; la pagination serveur porte sur les passages.
+const passages = computed(() => groupHistory(store.paginatedHistory.items));
+// Separes par jour (le plus recent d'abord), comme une chronologie.
+const days = computed(() => groupPassagesByDay(passages.value));
+
+const localKey = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const dayLabel = (key) => {
+    if (key === 'unknown') return t('labScreens.day_unknown');
+    const long = new Date(`${key}T00:00:00`).toLocaleDateString(locale.value, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(today.getDate() - 1);
+    if (key === localKey(today)) return `${t('labScreens.today')}, ${long}`;
+    if (key === localKey(yesterday)) return `${t('labScreens.yesterday')}, ${long}`;
+    return long;
+};
+// Style commun des champs.
+const fieldClass = 'block w-full min-h-11 lg:min-h-10 rounded-control border border-tone-neutral-border bg-white px-3 text-sm text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand-600';
 
 // Arrivee depuis la carte "Pathologiques" du dashboard : ?abnormal=1&period=month
 const PERIODS = ['day', 'month', 'year'];
@@ -182,7 +125,8 @@ const fetchData = async () => {
         search: q.length >= 2 ? q : null,
         status: filters.value.status || null,
         abnormal: filters.value.abnormal ? true : null,
-        period: filters.value.abnormal ? filters.value.period : null
+        period: filters.value.abnormal ? filters.value.period : null,
+        group: true
     });
 };
 
@@ -237,47 +181,16 @@ const openView = async (item) => {
     }
 };
 
+const downloadBatchPdf = async (passage) => {
+    await store.downloadBatchPDF(passage.batch_id, `Dossier_${passage.exams[0].code || passage.batch_id}.pdf`);
+};
+
 const downloadPdf = async (item) => {
     const filename = `Resultat_${item.result_id}.pdf`;
     await store.downloadPDF(item.result_id, filename);
-};
-
-// --- HELPERS ---
-const formatDate = (d) => {
-    if (!d) return t('lab.history_view.na');
-    return dayjs(d).format('DD/MM/YYYY HH:mm');
-};
-
-const translateStatus = (status) => {
-    const map = {
-        'pending': t('lab.status.pending'),
-        'completed': t('lab.status.completed'),
-        'validated': t('lab.status.validated')
-    };
-    return map[status] || status || t('lab.result_modal.unknown');
-};
-
-const getStatusColor = (status) => {
-    switch(status) {
-        case 'pending': return 'bg-amber-50 text-amber-700 border border-amber-100';
-        case 'completed': return 'bg-blue-50 text-blue-700 border border-blue-100';
-        case 'validated': return 'bg-green-50 text-green-700 border border-green-100';
-        default: return 'bg-gray-100 text-gray-500';
-    }
 };
 
 onMounted(() => {
     fetchData();
 });
 </script>
-
-<style scoped>
-.animate-fade-in-up {
-  animation: fadeInUp 0.4s ease-out;
-}
-
-@keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-</style>

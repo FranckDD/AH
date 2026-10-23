@@ -331,6 +331,11 @@ export const LabGateway = {
         });
     },
 
+    // PDF unique d'un passage patient : tous les examens termines du lot
+    async downloadBatchPDF(batchId) {
+        return api.get(`/labo/batch/${batchId}/pdf`, { responseType: 'blob' });
+    },
+
     // Ajoutez ceci dans la section "GESTION DES DOSSIERS"
     async getWorklist() {
         return api.get('/labo/worklist');
@@ -358,7 +363,9 @@ export const LabGateway = {
                             CASE WHEN lr.patient_id IS NULL
                                  THEN COALESCE(json_extract(lr.external_patient_info, '$.age'), '-')
                                  ELSE '-' END AS patient_age,
-                            CASE WHEN lr.patient_id IS NULL THEN 1 ELSE 0 END AS is_external
+                            CASE WHEN lr.patient_id IS NULL THEN 1 ELSE 0 END AS is_external,
+                            lr.batch_uuid AS batch_id,
+                            lr.status AS status
                      FROM lab_results lr
                      LEFT JOIN patients_lookup p ON p.patient_id = lr.patient_id
                      LEFT JOIN exam_catalog ec ON ec.server_id = lr.examen_id
@@ -369,6 +376,24 @@ export const LabGateway = {
                        )
                      ORDER BY lr.test_date DESC`
                 );
+                // Examens de chaque passage (termines compris), comme le serveur : de quoi regrouper l'affichage.
+                const batchIds = [...new Set(rows.map((r) => r.batch_id).filter(Boolean))];
+                const siblings = batchIds.length
+                    ? await db.getAll(
+                        `SELECT lr.id AS result_id, lr.batch_uuid AS batch_id, ec.nom AS examen_nom, lr.status AS status
+                         FROM lab_results lr
+                         LEFT JOIN exam_catalog ec ON ec.server_id = lr.examen_id
+                         WHERE lr.batch_uuid IN (${batchIds.map(() => '?').join(',')})`,
+                        batchIds
+                    )
+                    : [];
+                const byBatch = {};
+                for (const e of siblings) {
+                    (byBatch[e.batch_id] ||= []).push({ result_id: e.result_id, examen_nom: e.examen_nom, status: e.status });
+                }
+                for (const r of rows) {
+                    r.batch_exams = r.batch_id ? (byBatch[r.batch_id] || []) : [];
+                }
                 return { data: rows };
             }
             throw err;

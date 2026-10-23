@@ -1,141 +1,92 @@
 <template>
-  <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
-    <div class="bg-white w-full max-w-4xl max-h-[90vh] rounded-3xl shadow-2xl overflow-hidden flex flex-col animate-zoom-in">
-      
-      <div class="px-8 py-6 border-b border-gray-100 flex justify-between items-start bg-gray-50/50">
-        <div>
-          <div class="flex items-center gap-3 mb-1">
-            <h2 class="text-2xl font-bold text-gray-900">{{ getPatientName }}</h2>
-            <span :class="statusStyles" class="px-3 py-1 rounded-full text-xs font-black uppercase tracking-widest">
-              {{ translateStatus(result.status) }}
+  <FullScreenPanel :title="getPatientName" :subtitle="`${t('lab.result_modal.exam_of')} ${formatDate(result.test_date || result.created_at)}`" wide @close="$emit('close')">
+    <div class="grid gap-6 text-sm [&_table]:text-sm [&_dd]:text-sm">
+
+      <div class="flex flex-wrap items-center gap-2">
+        <StatusBadge :tone="statusTone" :label="translateStatus(result.status)" />
+        <span class="rounded-full bg-tone-neutral-bg px-3 py-1 text-sm text-tone-neutral-text">{{ t('labScreens.result_id', { id: result.result_id || result.id }) }}</span>
+        <span v-if="result.code" class="rounded-full bg-tone-neutral-bg px-3 py-1 text-sm text-tone-neutral-text">{{ t('lab.result_modal.batch') }} : {{ result.code }}</span>
+      </div>
+
+      <div class="grid gap-4 md:grid-cols-2">
+        <section aria-labelledby="lab-detail-patient" class="grid content-start gap-2">
+          <h3 id="lab-detail-patient" class="text-lg font-semibold text-ink">{{ t('lab.result_modal.patient_info') }}</h3>
+          <dl class="grid gap-1 rounded-card border border-tone-neutral-border bg-tone-neutral-bg p-4 text-sm">
+            <div class="flex flex-wrap gap-x-2">
+              <dt class="text-ink-muted">{{ t('lab.result_modal.type') }} :</dt>
+              <dd class="font-semibold text-ink">{{ (result.is_external || result.external_patient_info) ? t('lab.result_modal.external') : t('lab.result_modal.internal') }}</dd>
+            </div>
+            <div class="flex flex-wrap gap-x-2">
+              <dt class="text-ink-muted">{{ t('lab.result_modal.sex') }} :</dt>
+              <dd class="text-ink">{{ result.patient_info?.sexe || result.patient_sexe || t('lab.result_modal.not_provided') }}</dd>
+            </div>
+            <div class="flex flex-wrap gap-x-2">
+              <dt class="text-ink-muted">{{ t('lab.result_modal.age') }} :</dt>
+              <dd class="text-ink">{{ result.patient_info?.age ? `${result.patient_info.age} ${t('lab.result_modal.years')}` : (result.patient_age || t('lab.result_modal.not_provided')) }}</dd>
+            </div>
+          </dl>
+        </section>
+
+        <section aria-labelledby="lab-detail-presc" class="grid content-start gap-2">
+          <h3 id="lab-detail-presc" class="text-lg font-semibold text-ink">{{ t('lab.result_modal.prescription') }}</h3>
+          <dl class="grid gap-1 rounded-card border border-tone-neutral-border bg-tone-neutral-bg p-4 text-sm">
+            <div class="flex flex-wrap gap-x-2">
+              <dt class="text-ink-muted">{{ t('lab.result_modal.prescriber') }} :</dt>
+              <dd class="text-ink">{{ result.medecin_prescripteur || result.prescriber || t('lab.result_modal.not_specified') }}</dd>
+            </div>
+            <div class="flex flex-wrap gap-x-2">
+              <dt class="text-ink-muted">{{ t('lab.result_modal.exam') }} :</dt>
+              <dd class="font-semibold text-ink">{{ result.examen_nom || result.exam_name || t('lab.result_modal.not_specified') }}</dd>
+            </div>
+          </dl>
+        </section>
+      </div>
+
+      <section aria-labelledby="lab-detail-results" class="grid gap-2">
+        <h3 id="lab-detail-results" class="text-lg font-semibold text-ink">{{ t('lab.result_modal.bio_results') }}</h3>
+        <ResponsiveTable :columns="columns" :rows="result.details || []" row-key="detail_id" :empty-title="t('lab.result_modal.no_params')" :empty-message="' '" striped>
+          <template #cell-param="{ row: detail }"><span class="font-semibold">{{ detail.nom || detail.parameter_name || t('lab.result_modal.unknown') }}</span></template>
+          <template #cell-result="{ row: detail }">
+            <span class="text-lg font-bold" :class="isAbnormal(detail) ? 'text-tone-danger-text' : 'text-ink'">
+              {{ detail.valeur !== null && detail.valeur !== undefined && detail.valeur !== '' ? detail.valeur : '-' }}
             </span>
-          </div>
-          <p class="text-gray-500 text-sm flex items-center gap-2">
-            <CalendarIcon class="w-4 h-4"/> {{ t('lab.result_modal.exam_of') }} {{ formatDate(result.test_date || result.created_at) }}
-            <span class="text-gray-300">|</span>
-            <span class="font-mono text-xs">ID: {{ result.result_id || result.id }}</span>
-            <span v-if="result.code" class="font-mono text-xs text-indigo-400">| {{ t('lab.result_modal.batch') }}: {{ result.code }}</span>
-          </p>
-        </div>
-        <button @click="$emit('close')" class="p-2 hover:bg-gray-200 rounded-full transition">
-          <XMarkIcon class="w-6 h-6 text-gray-400" />
-        </button>
-      </div>
+            <span v-if="isAbnormal(detail)" class="ml-2 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-sm font-semibold" :class="toneClasses('danger')" :title="t('lab.result_modal.abnormal')">
+              <component :is="flagIcon(detail)" class="h-4 w-4 shrink-0" aria-hidden="true" />
+              {{ flagLabel(detail) }}
+            </span>
+          </template>
+          <template #cell-unit="{ row: detail }">{{ detail.unite || detail.unit || '-' }}</template>
+          <template #cell-ref="{ row: detail }"><span class="whitespace-nowrap">{{ getRange(detail.ranges, result.patient_info?.sexe) }}</span></template>
+          <template #cell-interp="{ row: detail }">
+            <StatusBadge v-if="detail.interpretation" :tone="isAbnormal(detail) ? 'danger' : 'neutral'" :label="detail.interpretation" />
+            <span v-else class="text-ink-muted">-</span>
+          </template>
+        </ResponsiveTable>
+      </section>
 
-      <div class="flex-1 overflow-y-auto p-8 space-y-8">
-        
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div class="space-y-3">
-            <h3 class="text-xs font-bold text-indigo-600 uppercase tracking-wider">{{ t('lab.result_modal.patient_info') }}</h3>
-            <div class="bg-gray-50 p-4 rounded-2xl border border-gray-100">
-                <p class="text-sm font-medium text-gray-700">{{ t('lab.result_modal.type') }}: 
-                  <span class="text-gray-900 font-bold">
-                    {{ (result.is_external || result.external_patient_info) ? t('lab.result_modal.external') : t('lab.result_modal.internal') }}
-                  </span>
-                </p>
-                <p class="text-sm font-medium text-gray-700">{{ t('lab.result_modal.sex') }}: 
-                  <span class="text-gray-900">
-                    {{ result.patient_info?.sexe || result.patient_sexe || t('lab.result_modal.not_provided') }}
-                  </span>
-                </p>
-                <p class="text-sm font-medium text-gray-700">{{ t('lab.result_modal.age') }}: 
-                  <span class="text-gray-900">
-                    {{ result.patient_info?.age ? `${result.patient_info.age} ${t('lab.result_modal.years')}` : (result.patient_age || t('lab.result_modal.not_provided')) }} 
-                  </span>
-                </p>
-            </div>
-          </div>
-
-          <div class="space-y-3">
-            <h3 class="text-xs font-bold text-indigo-600 uppercase tracking-wider">{{ t('lab.result_modal.prescription') }}</h3>
-            <div class="bg-gray-50 p-4 rounded-2xl border border-gray-100">
-                <p class="text-sm font-medium text-gray-700">{{ t('lab.result_modal.prescriber') }}: 
-                  <span class="text-gray-900">{{ result.medecin_prescripteur || result.prescriber || t('lab.result_modal.not_specified') }}</span>
-                </p>
-                <p class="text-sm font-medium text-gray-700">{{ t('lab.result_modal.exam') }}: 
-                  <span class="text-gray-900 font-bold">{{ result.examen_nom || result.exam_name || t('lab.result_modal.not_specified') }}</span>
-                </p>
-            </div>
-          </div>
-        </div>
-
-        <div class="space-y-4">
-          <h3 class="text-xs font-bold text-indigo-600 uppercase tracking-wider">{{ t('lab.result_modal.bio_results') }}</h3>
-          <div class="border border-gray-100 rounded-2xl overflow-hidden shadow-xs">
-            <table class="w-full text-left border-collapse">
-              <thead class="bg-gray-50 border-b border-gray-100 text-[10px] uppercase font-bold text-gray-500">
-                <tr>
-                  <th class="px-6 py-3">{{ t('lab.result_modal.param') }}</th>
-                  <th class="px-6 py-3 text-center">{{ t('lab.result_modal.result') }}</th>
-                  <th class="px-6 py-3">{{ t('lab.result_modal.unit') }}</th>
-                  <th class="px-6 py-3">{{ t('lab.result_modal.ref_values') }}</th>
-                  <th class="px-6 py-3 text-right">{{ t('lab.result_modal.interpretation') }}</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-gray-50">
-                
-                <tr v-for="(detail, index) in result.details" :key="detail.detail_id || index" class="hover:bg-blue-50/30 transition">
-                  <td class="px-6 py-4 font-semibold text-gray-700">{{ detail.nom || detail.parameter_name || t('lab.result_modal.unknown') }}</td>
-                  
-                  <td class="px-6 py-4 text-center">
-                    <span :class="getValueStyle(detail)" class="text-lg font-bold">
-                      {{ detail.valeur !== null && detail.valeur !== undefined && detail.valeur !== '' ? detail.valeur : '-' }}
-                    </span>
-                    <span v-if="isAbnormal(detail)" class="text-xs ml-1 text-red-500 font-bold" :title="t('lab.result_modal.abnormal')">
-                      ({{ flagLabel(detail) }})
-                    </span>
-                  </td>
-                  
-                  <td class="px-6 py-4 text-gray-500 italic text-sm">{{ detail.unite || detail.unit || '-' }}</td>
-                  
-                  <td class="px-6 py-4 text-gray-400 text-sm font-mono whitespace-nowrap">
-                    {{ getRange(detail.ranges, result.patient_info?.sexe) }}
-                  </td>
-                  
-                  <td class="px-6 py-4 text-right">
-                    <span v-if="detail.interpretation" :class="isAbnormal(detail) ? 'bg-red-50 text-red-700 border border-red-200' : 'bg-gray-100 text-gray-600'" class="text-xs px-2 py-1 rounded-sm font-medium">
-                        {{ detail.interpretation }}
-                    </span>
-                    <span v-else class="text-gray-300">-</span>
-                  </td>
-                </tr>
-                
-                <tr v-if="!result.details?.length">
-                  <td colspan="5" class="px-6 py-8 text-center text-gray-400 text-sm">
-                    {{ t('lab.result_modal.no_params') }}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <div v-if="result.note || result.comments" class="bg-amber-50 p-4 rounded-2xl border border-amber-100">
-            <h4 class="text-xs font-bold text-amber-800 uppercase mb-1">{{ t('lab.result_modal.notes') }}</h4>
-            <p class="text-gray-700 text-sm italic whitespace-pre-line">" {{ result.note || result.comments }} "</p>
-        </div>
-      </div>
-
-      <div class="px-8 py-6 bg-gray-50 border-t border-gray-100 flex justify-end gap-3">
-        <button @click="$emit('close')" class="px-6 py-2 text-gray-600 font-bold hover:bg-gray-200 rounded-xl transition">
-          {{ t('lab.result_modal.close') }}
-        </button>
-        <button 
-          v-if="result.status !== 'pending'"
-          @click="printPdf" 
-          class="px-6 py-2 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 shadow-lg shadow-indigo-200 flex items-center gap-2 transition"
-        >
-          <PrinterIcon class="w-5 h-5"/> {{ t('lab.result_modal.print') }}
-        </button>
-      </div>
+      <section v-if="result.note || result.comments" aria-labelledby="lab-detail-notes" class="rounded-card border p-4" :class="toneClasses('warning')">
+        <h3 id="lab-detail-notes" class="mb-1 text-sm font-semibold">{{ t('lab.result_modal.notes') }}</h3>
+        <p class="whitespace-pre-line text-sm">{{ result.note || result.comments }}</p>
+      </section>
     </div>
-  </div>
+
+    <template #footer>
+      <ActionBar>
+        <template #secondary>
+          <AppButton variant="ghost" @click="$emit('close')">{{ t('lab.result_modal.close') }}</AppButton>
+        </template>
+        <AppButton v-if="result.status !== 'pending'" variant="info" :icon="PrinterIcon" @click="printPdf">{{ t('lab.result_modal.print') }}</AppButton>
+      </ActionBar>
+    </template>
+  </FullScreenPanel>
 </template>
 
 <script setup>
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { XMarkIcon, CalendarIcon, PrinterIcon } from '@heroicons/vue/24/outline';
+import { PrinterIcon, ArrowUpIcon, ArrowDownIcon, ExclamationTriangleIcon } from '@heroicons/vue/24/outline';
+import { AppButton, StatusBadge, ResponsiveTable, FullScreenPanel, ActionBar } from '@/components/ui';
+import { toneClasses } from '@/design/tones';
 import dayjs from 'dayjs';
 
 const props = defineProps({
@@ -154,13 +105,22 @@ const getPatientName = computed(() => {
   return t('lab.result_modal.anonymous');
 });
 
-const statusStyles = computed(() => {
+const statusTone = computed(() => {
     switch(props.result.status) {
-        case 'validated': return 'bg-green-100 text-green-700 border border-green-200';
-        case 'completed': return 'bg-blue-100 text-blue-700 border border-blue-200';
-        default: return 'bg-amber-100 text-amber-700 border border-amber-200';
+        case 'validated': return 'success';
+        case 'completed': return 'info';
+        default: return 'warning';
     }
 });
+
+// Colonnes du tableau des resultats (cartes empilees sous lg).
+const columns = computed(() => [
+    { key: 'param', label: t('lab.result_modal.param') },
+    { key: 'result', label: t('lab.result_modal.result') },
+    { key: 'unit', label: t('lab.result_modal.unit') },
+    { key: 'ref', label: t('lab.result_modal.ref_values') },
+    { key: 'interp', label: t('lab.result_modal.interpretation'), align: 'right' },
+]);
 
 // --- METHODS ---
 const translateStatus = (status) => {
@@ -196,17 +156,13 @@ const flagLabel = (detail) => {
     return t('lab.result_modal.abnormal');
 };
 
-const getValueStyle = (detail) => (isAbnormal(detail) ? 'text-red-600' : 'text-gray-900');
+// Icone de l'anomalie, a cote du texte (haut, bas, ou anormal sans sens).
+const flagIcon = (detail) => {
+    const interp = (detail.interpretation || '').toLowerCase();
+    if (interp === 'haut') return ArrowUpIcon;
+    if (interp === 'bas') return ArrowDownIcon;
+    return ExclamationTriangleIcon;
+};
 
 const printPdf = () => emit('print', props.result);
 </script>
-
-<style scoped>
-@keyframes zoom-in {
-  from { opacity: 0; transform: scale(0.95); }
-  to { opacity: 1; transform: scale(1); }
-}
-.animate-zoom-in {
-  animation: zoom-in 0.2s ease-out;
-}
-</style>

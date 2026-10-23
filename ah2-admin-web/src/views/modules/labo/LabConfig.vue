@@ -1,52 +1,25 @@
 <template>
-  <div class="space-y-6 animate-fade-in-up">
-    
-    <div class="flex justify-between items-end">
-      <div>
-        <h2 class="text-xl font-bold text-gray-800">{{ t('lab.config.title') }}</h2>
-        <p class="text-sm text-gray-500">{{ t('lab.config.subtitle') }}</p>
-      </div>
-      
-      <button 
-        v-if="isAdmin"
-        @click="openModal()"
-        class="px-4 py-2 bg-indigo-600 text-white rounded-xl shadow-sm hover:bg-indigo-700 transition flex items-center gap-2"
-      >
-        <PlusIcon class="w-5 h-5" /> {{ t('lab.config.new_exam') }}
-      </button>
+  <div class="h-full overflow-y-auto p-4 text-sm md:p-6 [&_table]:text-sm [&_dd]:text-sm">
+    <div class="mx-auto grid max-w-7xl gap-6">
+
+      <PageHeader :title="t('lab.config.title')" :subtitle="t('lab.config.subtitle')">
+        <template #actions>
+          <AppButton v-if="isAdmin" :icon="PlusIcon" @click="openModal()">{{ t('lab.config.new_exam') }}</AppButton>
+        </template>
+      </PageHeader>
+
+      <ResponsiveTable :columns="columns" :rows="labStore.exams" row-key="id" striped>
+        <template #cell-code="{ row: exam }"><span class="font-medium">{{ exam.code }}</span></template>
+        <template #cell-name="{ row: exam }"><span class="font-medium">{{ exam.nom }}</span></template>
+        <template #cell-category="{ row: exam }"><StatusBadge tone="info" :label="String(exam.categorie)" /></template>
+        <template v-if="isAdmin" #actions="{ row: exam }">
+          <AppButton variant="danger" :icon="TrashIcon" @click="removeExam(exam)">{{ t('labScreens.delete_exam') }}</AppButton>
+        </template>
+      </ResponsiveTable>
     </div>
 
-    <div class="bg-white rounded-2xl shadow-xs border border-gray-100 overflow-hidden">
-      <table class="w-full text-sm text-left">
-        <thead class="bg-gray-50 text-gray-500 uppercase font-bold text-xs">
-          <tr>
-            <th class="px-6 py-4">{{ t('lab.config.col_code') }}</th>
-            <th class="px-6 py-4">{{ t('lab.config.col_name') }}</th>
-            <th class="px-6 py-4">{{ t('lab.config.col_category') }}</th>
-            <th v-if="isAdmin" class="px-6 py-4 text-right">{{ t('lab.config.col_actions') }}</th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-gray-100">
-          <tr v-for="exam in labStore.exams" :key="exam.id" class="hover:bg-gray-50">
-            <td class="px-6 py-4 font-mono text-gray-600 font-medium">{{ exam.code }}</td>
-            <td class="px-6 py-4 font-medium text-gray-900">{{ exam.nom }}</td>
-            <td class="px-6 py-4">
-               <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs">
-                 {{ exam.categorie }}
-               </span>
-            </td>
-            
-            <td v-if="isAdmin" class="px-6 py-4 text-right">
-              <button @click="labStore.deleteExam(exam.id)" class="text-gray-400 hover:text-red-600">
-                <TrashIcon class="w-5 h-5"/>
-              </button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-    </div>
+    <ExamFormModal v-if="showExamModal" :examen="selectedExam" @close="showExamModal = false" @saved="onExamSaved" />
+  </div>
 </template>
 
 <script setup>
@@ -54,11 +27,22 @@ import { ref, computed, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useLabStore } from '@/stores/labStore';
 import { useAuthStore } from '@/stores/auth';
+import { useConfigStore } from '@/stores/configStore';
+import ExamFormModal from '@/components/config/ExamFormModal.vue';
 import { PlusIcon, TrashIcon } from '@heroicons/vue/24/outline';
+import { AppButton, PageHeader, StatusBadge, ResponsiveTable } from '@/components/ui';
 
 const labStore = useLabStore();
 const authStore = useAuthStore();
+const configStore = useConfigStore();
 const { t } = useI18n();
+
+// Colonnes du tableau (cartes empilees sous lg).
+const columns = computed(() => [
+    { key: 'code', label: t('lab.config.col_code') },
+    { key: 'name', label: t('lab.config.col_name') },
+    { key: 'category', label: t('lab.config.col_category') },
+]);
 
 // Vérification du rôle pour l'affichage conditionnel
 const isAdmin = computed(() => {
@@ -69,5 +53,24 @@ onMounted(() => {
     labStore.fetchExams();
 });
 
-// ... reste du script (openModal, saveExam) inchangé
+// Creation d'un examen : meme fenetre que la configuration systeme (code, nom, categorie, prix).
+const showExamModal = ref(false);
+const selectedExam = ref(null);
+
+const openModal = (exam = null) => {
+    selectedExam.value = exam;
+    showExamModal.value = true;
+};
+
+const onExamSaved = async () => {
+    showExamModal.value = false;
+    await labStore.fetchExams();
+};
+
+// Suppression (admin seul cote serveur) : confirmation avec le nom de l'examen, puis liste rechargee.
+const removeExam = async (exam) => {
+    if (!window.confirm(t('labScreens.delete_exam_confirm', { name: exam.nom }))) return;
+    await configStore.deleteExamen(exam.id);
+    await labStore.fetchExams();
+};
 </script>

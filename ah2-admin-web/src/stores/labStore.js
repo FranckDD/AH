@@ -141,7 +141,9 @@ export const useLabStore = defineStore('lab', {
                     search: params.search || null,
                     status: params.status || null,
                     abnormal: params.abnormal || null,
-                    period: params.period || null
+                    period: params.period || null,
+                    // Pagination par passage patient (un batch_id = un passage), demandee par l'historique du labo.
+                    group: params.group || null
                 };
 
                 const response = await LabGateway.getPaginatedHistory(queryParams);
@@ -279,6 +281,27 @@ export const useLabStore = defineStore('lab', {
             } catch (err) {
                 console.error("Erreur PDF", err);
                 this.error = "Erreur lors de la génération du PDF.";
+                return false;
+            }
+        },
+
+        // PDF unique d'un passage patient (« dossier complet ») : meme telechargement que le PDF d'un examen.
+        async downloadBatchPDF(batchId, filename = 'dossier.pdf') {
+            try {
+                const response = await LabGateway.downloadBatchPDF(batchId);
+                const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
+                const link = document.createElement('a');
+                link.href = url;
+                link.setAttribute('download', filename);
+                document.body.appendChild(link);
+                link.click();
+
+                link.remove();
+                window.URL.revokeObjectURL(url);
+                return true;
+            } catch (err) {
+                console.error("Erreur PDF dossier", err);
+                this.error = "Erreur lors de la génération du PDF du dossier.";
                 return false;
             }
         },

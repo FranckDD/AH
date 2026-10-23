@@ -36,6 +36,8 @@ const BUTTON_VARIANTS = {
 
 // Zones tactiles >= 44 px (min-h-11) ; un peu plus compactes à partir de lg pour la souris.
 const BUTTON_SIZES = {
+    // Compact : actions repetees sur chaque ligne d'une liste (cible tactile conservee a 44 px sur telephone).
+    sm: 'min-h-11 px-3 py-1.5 text-sm lg:min-h-9',
     md: 'min-h-11 px-4 py-2 text-base lg:min-h-10',
     lg: 'min-h-12 px-6 py-3 text-base',
 };
