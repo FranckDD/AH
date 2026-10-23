@@ -10,6 +10,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 # Adapte l'import selon ton projet
 from repositories.prescription_repo import PrescriptionRepository
+from models.prescription import Prescription
 
 def make_repo_with_mock_session():
     mock_session = MagicMock()
@@ -17,9 +18,12 @@ def make_repo_with_mock_session():
     return repo, mock_session
 
 def test_create_prescription_success():
+    """
+    repo.create() passe par l'ORM (plus de procedure stockee) : il ajoute la ligne, valide la transaction,
+    rafraichit l'objet (identifiant et valeurs par defaut) et RENVOIE l'objet Prescription - pas un booleen.
+    """
     repo, mock_session = make_repo_with_mock_session()
 
-    # Données d'exemple envoyées à la proc stockée
     data = {
         "patient_id": 1,
         "medication": "Amoxicillin",
@@ -34,14 +38,16 @@ def test_create_prescription_success():
         "prescribed_by_name": "Dr. X"
     }
 
-    # simulate successful execute + commit
-    mock_session.execute.return_value = None
-
     res = repo.create(data)
 
-    assert res is True
-    mock_session.execute.assert_called_once()
+    assert isinstance(res, Prescription)
+    assert res.medication == "Amoxicillin"
+    assert res.patient_id == 1
+    mock_session.add.assert_called_once_with(res)
     mock_session.commit.assert_called_once()
+    mock_session.refresh.assert_called_once_with(res)
+    mock_session.rollback.assert_not_called()
+
 
 def test_create_prescription_db_error_rollback_and_raise():
     repo, mock_session = make_repo_with_mock_session()

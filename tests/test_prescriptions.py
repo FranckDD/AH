@@ -15,32 +15,10 @@ TEST_PASSWORD = "Correct123!"
 
 def test_create_prescription_success(db_session, api_client):
     """
-    Documente un bug reel sur HEAD, plus grave que prevu par la spec
-    (SUIVI-AVANCEMENT.md registre E5) : prescriptions_endpoints.py::
-    create_prescription() ne renvoie JAMAIS la prescription creee, meme
-    en cas de succes complet. repo.create() renvoie le booleen True ;
-    en Python, bool est une sous-classe de int, donc
-    `isinstance(True, int)` vaut True (ligne 183) - la branche
-    `elif created is True or created is None:` (ligne 191), ecrite pour
-    gerer exactement ce cas, n'est JAMAIS atteinte : elle est
-    court-circuitee par la branche int au-dessus. Le code prend donc le
-    chemin `prescription_ctrl.get_prescription(True)` ->
-    `repo.get(True)` -> `session.get(Prescription, True)`, qui plante
-    contre PostgreSQL (`operator does not exist: integer = boolean` -
-    confirme par execution directe pendant le cadrage de ce plan). Cette
-    exception est avalee silencieusement (`except Exception: obj = None`),
-    et l'endpoint retourne son repli generique : 201 avec
-    {"detail": "Prescription creee (lecture non disponible)"} - jamais
-    le corps PrescriptionResponse pourtant declare par
-    response_model=PrescriptionResponse sur la route (le repli utilise
-    JSONResponse directement, qui contourne la validation de response_model).
-    Un vrai client (le frontend Vue) ne recoit donc jamais la prescription
-    qu'il vient de creer.
-
-    Un second bug, independant, vit dans la meme branche de repli (le
-    `recent[0]` sur un dict) : voir l'entree E5 (etendue) de
-    SUIVI-AVANCEMENT.md pour le detail. Les deux doivent etre corriges
-    ensemble avant que l'assertion de ce test n'ait besoin de changer.
+    POST /prescriptions/ renvoie la prescription creee (corps PrescriptionResponse complet).
+    Corrige le defaut E5 du registre (SUIVI-AVANCEMENT.md) : repo.create() renvoie desormais l'objet
+    Prescription (plus un booleen), donc l'endpoint relit et renvoie la vraie ligne au lieu du repli
+    generique « Prescription creee (lecture non disponible) ».
     """
     user = create_test_user(db_session, "test_presc_medecin_create", "medecin", password=TEST_PASSWORD)
     patient_id, _ = create_test_patient(db_session, user)
@@ -58,7 +36,15 @@ def test_create_prescription_success(db_session, api_client):
     resp = client.post("/prescriptions/", json=payload, headers=headers)
 
     assert resp.status_code == 201
-    assert resp.json() == {"detail": "Prescription créée (lecture non disponible)"}
+    body = resp.json()
+    assert "detail" not in body, "le repli generique ne doit plus etre renvoye"
+    assert isinstance(body["prescription_id"], int)
+    assert body["patient_id"] == patient_id
+    assert body["medication"] == "Amoxicilline"
+    assert body["dosage"] == "500mg"
+    assert body["frequency"] == "2x/jour"
+    assert body["duration"] == "7 jours"
+    assert body["start_date"] == "2026-08-11"
 
 
 def test_create_prescription_missing_required_field_returns_422(db_session, api_client):
@@ -78,18 +64,11 @@ def test_create_prescription_missing_required_field_returns_422(db_session, api_
     assert resp.status_code == 422
 
 
-def test_create_prescription_invalid_dates_crashes_validation_handler(db_session, api_client):
+def test_create_prescription_invalid_dates_returns_422(db_session, api_client):
     """
-    Documente un bug transversal, pas specifique aux prescriptions (voir
-    SUIVI-AVANCEMENT.md registre E1) : main.py::validation_exception_handler
-    serialise exc.errors() tel quel en JSON (json.dumps standard, pas
-    jsonable_encoder). Quand l'erreur vient d'un model_validator qui leve
-    ValueError (PrescriptionBase.check_dates ici), Pydantic inclut
-    l'exception ELLE-MEME (pas son texte) dans error['ctx']['error'] - non
-    serialisable -> TypeError non intercepte, au lieu d'un 422 propre.
-    Constate par execution reelle contre un worktree jetable base sur HEAD
-    pendant le cadrage de ce plan (jamais contre le repertoire de travail
-    principal, contamine par le travail en cours sur ce module).
+    Dates incoherentes (fin avant debut) : 422 propre, plus de plantage du gestionnaire de validation global.
+    Corrige le defaut E1 du registre : main.py::validation_exception_handler convertit desormais tout le
+    contenu de exc.errors() en JSON (dont l'exception brute d'un model_validator) au lieu de lever un TypeError.
     """
     user = create_test_user(db_session, "test_presc_medecin_dates", "medecin", password=TEST_PASSWORD)
     patient_id, _ = create_test_patient(db_session, user)
@@ -104,8 +83,10 @@ def test_create_prescription_invalid_dates_crashes_validation_handler(db_session
         "start_date": "2026-08-20",
         "end_date": "2026-08-10",
     }
-    with pytest.raises(TypeError, match="not JSON serializable"):
-        client.post("/prescriptions/", json=payload, headers=headers)
+    resp = client.post("/prescriptions/", json=payload, headers=headers)
+
+    assert resp.status_code == 422
+    assert "detail" in resp.json()
 
 
 def test_create_prescription_forbidden_for_secretaire(db_session, api_client):
@@ -299,18 +280,11 @@ def test_update_prescription_success(db_session, api_client):
     assert resp.json()["dosage"] == "1000mg"
 
 
-def test_update_prescription_partial_payload_returns_409(db_session, api_client):
+def test_update_prescription_partial_payload_keeps_other_fields(db_session, api_client):
     """
-    Documente un bug reel sur HEAD (constate par execution reelle,
-    SUIVI-AVANCEMENT.md registre E4) : public.update_prescription
-    reecrit TOUTES les colonnes inconditionnellement, y compris celles
-    omises du payload (mises a NULL). Comme medication/frequency/
-    duration/start_date sont NOT NULL en base, un PUT partiel (ici :
-    seulement patient_id + dosage) declenche une violation de contrainte
-    -> IntegrityError -> 409. PUT /prescriptions/{id} n'est donc
-    utilisable en pratique qu'avec un payload complet (voir le test
-    precedent), jamais partiel comme un client REST l'attendrait
-    normalement d'un verbe PUT.
+    PUT partiel (ici : seulement patient_id + dosage) : 200, le dosage change et les autres champs sont conserves.
+    Corrige le defaut E4 du registre : la procedure de mise a jour utilise COALESCE(parametre, valeur_actuelle)
+    (migration 003), donc un champ omis n'est plus reecrit a NULL (ce qui violait les NOT NULL -> 409).
     """
     user = create_test_user(db_session, "test_presc_medecin_updatepartial", "medecin", password=TEST_PASSWORD)
     patient_id, _ = create_test_patient(db_session, user)
@@ -319,7 +293,8 @@ def test_update_prescription_partial_payload_returns_409(db_session, api_client)
     headers = auth_headers(client, "test_presc_medecin_updatepartial", TEST_PASSWORD)
 
     list_resp = client.get(f"/prescriptions/?patient_id={patient_id}", headers=headers)
-    prescription_id = list_resp.json()["data"][0]["prescription_id"]
+    before = list_resp.json()["data"][0]
+    prescription_id = before["prescription_id"]
 
     resp = client.put(
         f"/prescriptions/{prescription_id}",
@@ -327,23 +302,18 @@ def test_update_prescription_partial_payload_returns_409(db_session, api_client)
         headers=headers,
     )
 
-    assert resp.status_code == 409
-    assert resp.json()["detail"] == "Conflit en base de données"
+    assert resp.status_code == 200
+    after = resp.json()
+    assert after["dosage"] == "750mg"
+    for champ in ("medication", "frequency", "duration", "start_date"):
+        assert after[champ] == before[champ], f"{champ} ne doit pas etre modifie par un PUT partiel"
 
 
-def test_update_prescription_not_found_returns_500(db_session, api_client):
+def test_update_prescription_not_found_returns_404(db_session, api_client):
     """
-    Documente un bug reel sur HEAD (constate par execution reelle,
-    SUIVI-AVANCEMENT.md registre E3 - corrige l'hypothese initiale de
-    la spec, qui supposait un message anglais 404) : la procedure
-    stockee public.update_prescription fait elle-meme sa verification
-    d'existence et leve une exception PL/pgSQL francaise
-    ("Aucune prescription avec l'ID {id} n'existe."). Cote Python, cette
-    exception remonte comme SQLAlchemyError generique (pas ValueError -
-    la branche qui le leverait dans repositories/prescription_repo.py::
-    update() ne se declenche jamais via l'API, patient_id etant toujours
-    present dans le payload). L'endpoint capture SQLAlchemyError et
-    repond 500, pas 404.
+    PUT sur un id inexistant : 404 avec le message du depot.
+    Corrige le defaut E3 du registre : repo.update() verifie l'existence avant la mise a jour et leve
+    ValueError, que l'endpoint traduit en 404 (au lieu d'une erreur SQL generique renvoyee en 500).
     """
     user = create_test_user(db_session, "test_presc_medecin_update404", "medecin", password=TEST_PASSWORD)
     patient_id, _ = create_test_patient(db_session, user)
@@ -352,18 +322,14 @@ def test_update_prescription_not_found_returns_500(db_session, api_client):
 
     resp = client.put("/prescriptions/999999999", json={"patient_id": patient_id}, headers=headers)
 
-    assert resp.status_code == 500
-    assert resp.json()["detail"] == "Erreur serveur lors de la mise à jour de la prescription"
+    assert resp.status_code == 404
+    assert resp.json()["detail"]
 
 
-def test_update_prescription_invalid_dates_crashes_validation_handler(db_session, api_client):
+def test_update_prescription_invalid_dates_returns_422(db_session, api_client):
     """
-    Meme mecanisme que test_create_prescription_invalid_dates_crashes_
-    validation_handler (Task 2) : PrescriptionUpdate herite du meme
-    model_validator que PrescriptionCreate sur PrescriptionBase, et
-    passe par le meme gestionnaire d'erreurs global. Confirme par
-    execution reelle sur PUT specifiquement (pas seulement deduit par
-    analogie) pendant le cadrage de ce plan.
+    Meme regle que a la creation : PrescriptionUpdate partage le model_validator de PrescriptionBase,
+    donc des dates incoherentes sur un PUT donnent un 422 propre (defaut E1 du registre, corrige).
     """
     from datetime import date as date_cls, timedelta
 
@@ -389,8 +355,10 @@ def test_update_prescription_invalid_dates_crashes_validation_handler(db_session
         "end_date": "2026-08-10",
         "notes": None,
     }
-    with pytest.raises(TypeError, match="not JSON serializable"):
-        client.put(f"/prescriptions/{prescription_id}", json=full_payload, headers=headers)
+    resp = client.put(f"/prescriptions/{prescription_id}", json=full_payload, headers=headers)
+
+    assert resp.status_code == 422
+    assert "detail" in resp.json()
 
 
 def test_delete_prescription_success(db_session, api_client):
@@ -410,14 +378,11 @@ def test_delete_prescription_success(db_session, api_client):
     assert get_resp.status_code == 404
 
 
-def test_delete_prescription_nonexistent_returns_204_not_404(db_session, api_client):
+def test_delete_prescription_nonexistent_returns_404(db_session, api_client):
     """
-    Documente un bug reel sur HEAD (SUIVI-AVANCEMENT.md registre E2) :
-    repositories/prescription_repo.py::delete() execute un DELETE FROM
-    brut sans verifier le rowcount, et retourne toujours True. Le
-    modele Prescription n'a pas de suppression logique (contrairement a
-    Patient) - c'est une suppression physique, mais sans garde-fou :
-    supprimer un id inexistant renvoie 204 au lieu du 404 attendu.
+    DELETE sur un id inexistant : 404.
+    Corrige le defaut E2 du registre : repo.delete() verifie le rowcount au lieu de renvoyer toujours True,
+    donc l'endpoint peut distinguer « supprime » (204) de « introuvable » (404).
     """
     create_test_user(db_session, "test_presc_medecin_delete404", "medecin", password=TEST_PASSWORD)
     client = api_client(auth_endpoints, prescriptions_endpoints)
@@ -425,7 +390,7 @@ def test_delete_prescription_nonexistent_returns_204_not_404(db_session, api_cli
 
     resp = client.delete("/prescriptions/999999999", headers=headers)
 
-    assert resp.status_code == 204
+    assert resp.status_code == 404
 
 
 def test_renewals_returns_prescription_within_window(db_session, api_client):
