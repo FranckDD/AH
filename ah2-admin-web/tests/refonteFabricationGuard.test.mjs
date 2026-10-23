@@ -108,7 +108,7 @@ test('(b) toutes les cles fabrication.* citees par les fichiers du module existe
 // chantiers suivants ne fassent pas echouer ce controle ; les fichiers non suivis ne figurent pas dans `git diff`,
 // d'ou le controle d'emplacement ci-dessous.
 const BASE = '755d4fa';
-const FIN = null;
+const FIN = 'dce04c8';
 
 // Fichiers existants que le chantier a le droit de modifier : enregistrement du module et du role seulement.
 const AUTORISES = new Set([
