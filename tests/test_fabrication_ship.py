@@ -226,6 +226,103 @@ def test_ship_role_guard(env):
         assert _ship(env, b["id"]).status_code == 403
 
 
+# ---------------- sorties declarees ----------------
+def _fctrl(env):
+    from controller.fabrication_controller import FabricationController
+    from repositories.fabrication_repo import FabricationRepository
+    db = env["db"]
+    return FabricationController(FabricationRepository(db), AuditRepository(db), env["user"])
+
+
+def test_ship_deducts_active_outputs(env):
+    b = _finished(env, 100)
+    ctrl = _fctrl(env)
+    ctrl.declare_output(b["id"], "echantillon", 12)
+    ctrl.declare_output(b["id"], "autre", 3, "don")
+    r = _ship(env, b["id"])
+    assert r.status_code == 200, r.text
+    out = r.json()
+    assert out["qty_outputs"] == 15 and out["qty_shipped"] == 85
+    lot = env["db"].get(ProductionLot, out["production_lot_id"])
+    assert lot.quantity_produced == 85
+    # bilan et cout inchanges : calcules sur les 100 bonnes
+    assert out["expected_qty"] == 100 and out["found_qty"] == 100 and out["missing_qty"] == 0
+    assert out["out_of_tolerance"] is False
+    assert Decimal(str(out["total_cost"])) == Decimal("20000.00")
+    assert Decimal(str(out["unit_cost"])) == Decimal("200.00")
+    audit = env["db"].query(AuditUserAction).filter_by(
+        resource_type="FabBatch", resource_id=b["id"], action_performed="SHIP").one()
+    assert audit.new_values["qty_shipped"] == 85
+    lot_audit = env["db"].query(AuditUserAction).filter_by(
+        resource_type="ProductionLot", resource_id=lot.id, action_performed="CREATE").one()
+    assert lot_audit.new_values["quantity_produced"] == 85
+
+
+def test_ship_without_output_unchanged(env):
+    b = _finished(env, 100)
+    out = _ship(env, b["id"]).json()
+    assert out["qty_outputs"] == 0 and out["qty_shipped"] == 100
+    assert env["db"].get(ProductionLot, out["production_lot_id"]).quantity_produced == 100
+    assert Decimal(str(out["unit_cost"])) == Decimal("200.00")
+
+
+def test_ship_cancelled_output_not_deducted(env):
+    b = _finished(env, 100)
+    ctrl = _fctrl(env)
+    o = ctrl.declare_output(b["id"], "echantillon", 12)
+    ctrl.cancel_output(b["id"], o["id"], "erreur")
+    ctrl.declare_output(b["id"], "echantillon", 2)
+    out = _ship(env, b["id"]).json()
+    assert env["db"].get(ProductionLot, out["production_lot_id"]).quantity_produced == 98
+
+
+def test_ship_all_bottles_out_refused(env):
+    b = _finished(env, 100)
+    _fctrl(env).declare_output(b["id"], "echantillon", 100)
+    before = env["db"].query(ProductionLot).filter_by(product_id=b["product_id"]).count()
+    r = _ship(env, b["id"])
+    assert r.status_code == 422, r.text
+    assert r.json()["detail"] == "Toutes les bouteilles sont sorties : rien a expedier."
+    env["db"].expire_all()
+    row = env["db"].get(FabBatch, b["id"])
+    assert row.status == "termine" and row.production_lot_id is None
+    assert env["db"].query(ProductionLot).filter_by(product_id=b["product_id"]).count() == before == 0
+
+
+def test_ship_zero_good_message_unchanged(env):
+    b = _finished(env, 0, damaged=99)
+    r = _ship(env, b["id"], justification="x")
+    assert r.status_code == 422 and r.json()["detail"] == "Aucune bouteille bonne : rien a expedier."
+
+
+def test_bilan_same_with_or_without_outputs(env):
+    a = _finished(env, 95)
+    b = _finished(env, 95)
+    _fctrl(env).declare_output(b["id"], "echantillon", 10)
+    oa = _ship(env, a["id"], justification="casse").json()
+    ob = _ship(env, b["id"], justification="casse").json()
+    for k in ("expected_qty", "found_qty", "missing_qty", "missing_pct", "tolerance_applied",
+              "out_of_tolerance", "total_cost", "unit_cost"):
+        assert oa[k] == ob[k], k
+    assert oa["missing_qty"] == 5 and oa["out_of_tolerance"] is True
+    assert ob["qty_shipped"] == 85 and oa["qty_shipped"] == 95
+
+
+def test_reopen_refused_with_active_output_then_allowed(env):
+    b = _finished(env, 100)
+    ctrl = _fctrl(env)
+    o = ctrl.declare_output(b["id"], "echantillon", 5)
+    r = _post(env, f"/fabrication/batches/{b['id']}/reopen")
+    assert r.status_code == 409, r.text
+    assert r.json()["detail"] == "Annulez d'abord les sorties declarees."
+    env["db"].expire_all()
+    assert env["db"].get(FabBatch, b["id"]).status == "termine"
+    ctrl.cancel_output(b["id"], o["id"], "erreur")
+    r = _post(env, f"/fabrication/batches/{b['id']}/reopen")
+    assert r.status_code == 200, r.text
+    assert r.json()["status"] == "en_production"
+
+
 # ---------------- reglages ----------------
 def test_settings_get_and_put_guards(env):
     for role in ("ProductionManager", "promoteur", "admin"):

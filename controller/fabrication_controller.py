@@ -8,13 +8,16 @@ PermissionError -> 403, ValueError -> 422.
 Lots et consommations (tache 4) : sections a la suite.
 """
 import json
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from decimal import Decimal
 from typing import Any, Dict, List, Optional
 
-from models.fabrication import FabBatch, FabConsumption, FabIntrant, FabIntrantPurchase, FabSettings
+from models.fabrication import FabBatch, FabBatchOutput, FabConsumption, FabIntrant, FabIntrantPurchase, FabSettings
 from repositories.audit_repo import AuditRepository
-from utils.fabrication_rules import TRANSITIONS, compute_bilan, compute_cost, next_batch_number
+from utils.fabrication_rules import (
+    OUTPUT_REASONS, TRANSITIONS, OutputExceedsAvailable, compute_bilan, compute_cost, next_batch_number,
+    validate_output,
+)
 from repositories.fabrication_repo import (
     FabricationConflictError, FabricationJustificationRequired, FabricationNotFoundError, FabricationRepository,
 )
@@ -98,6 +101,21 @@ def _purchase_d(p: FabIntrantPurchase, intrant_name: Optional[str] = None,
             "purchase_date": p.purchase_date, "quantity": p.quantity, "unit_cost": p.unit_cost,
             "remaining_qty": p.remaining_qty, "status": p.status, "cancel_reason": p.cancel_reason,
             "created_by": p.created_by, "created_at": p.created_at}
+
+
+def _iso_utc_naive(dt: Optional[datetime]) -> Optional[str]:
+    """Horodatage UTC naif (colonne DateTime sans fuseau) -> ISO avec +00:00 explicite.
+    Sans decalage, le navigateur le lirait comme une heure locale (1 h d'avance a Douala)."""
+    return dt.replace(tzinfo=timezone.utc).isoformat() if dt is not None else None
+
+
+def _output_d(o: FabBatchOutput, names: Optional[Dict[int, str]] = None) -> Dict[str, Any]:
+    names = names or {}
+    return {"id": o.id, "batch_id": o.batch_id, "reason": o.reason, "quantity": o.quantity,
+            "note": o.note, "status": o.status, "declared_by": o.declared_by,
+            "declared_by_name": names.get(o.declared_by), "declared_at": _iso_utc_naive(o.declared_at),
+            "cancelled_by": o.cancelled_by, "cancelled_at": _iso_utc_naive(o.cancelled_at),
+            "cancel_reason": o.cancel_reason}
 
 
 class FabricationController:
@@ -300,6 +318,11 @@ class FabricationController:
             out["cost_so_far"] = compute_cost(pairs, 0)[0]
             out["product_name"] = self.repo.product_name(b.product_id)
             out["production_lot_number"] = self.repo.production_lot_number(b.production_lot_id)
+            outputs = self.repo.outputs_of(b.id)
+            names = self.repo.user_names(o.declared_by for o in outputs)
+            out["outputs"] = [_output_d(o, names) for o in outputs]
+            out["qty_outputs"] = sum(o.quantity for o in outputs if o.status == "active")
+            out["qty_shipped"] = (b.qty_good or 0) - out["qty_outputs"]
         return out
 
     def _locked_batch(self, batch_id: int) -> FabBatch:
@@ -488,6 +511,8 @@ class FabricationController:
             b = self._locked_batch(batch_id)
             if b.status != "termine":
                 raise FabricationConflictError("Seul un lot termine peut etre rouvert.")
+            if self.repo.active_output_total(b.id) > 0:
+                raise FabricationConflictError("Annulez d'abord les sorties declarees.")
             old = self._batch_d(b)
             self._move(b, "en_production")
             b.finished_at = None
@@ -502,6 +527,9 @@ class FabricationController:
         def run():
             r = _text(reason, "Le motif", 500, required=True)
             b = self._locked_batch(batch_id)
+            # comme reopen_batch : un lot termine qui a des sorties actives ne s'annule pas en bloc
+            if b.status == "termine" and self.repo.active_output_total(b.id) > 0:
+                raise FabricationConflictError("Annulez d'abord les sorties declarees.")
             old = self._batch_d(b, with_detail=True)
             reserved = b.status in ("en_production", "termine")
             self._move(b, "annule")
@@ -537,6 +565,10 @@ class FabricationController:
             self._move(b, "expedie")
             if not b.qty_good or b.qty_good <= 0:
                 raise ValueError("Aucune bouteille bonne : rien a expedier.")
+            # somme active lue sous le verrou du lot : les sorties sont figees une fois expedie
+            shipped = b.qty_good - self.repo.active_output_total(b.id)
+            if shipped <= 0:
+                raise ValueError("Toutes les bouteilles sont sorties : rien a expedier.")
             settings = self.repo.get_settings()
             tol = Decimal(settings.tolerance_pct) if settings else Decimal("2.00")
             try:
@@ -559,7 +591,7 @@ class FabricationController:
             b.delivery_date = delivery_date
             b.expiry_date = expiry_date
             lot = self.repo.create_production_lot(
-                product_id=b.product_id, quantity_produced=b.qty_good,
+                product_id=b.product_id, quantity_produced=shipped,
                 production_date=b.production_date, delivery_date=delivery_date,
                 expiry_date=expiry_date,
                 producer=(getattr(self.user, "full_name", None) or getattr(self.user, "username", None)),
@@ -624,9 +656,70 @@ class FabricationController:
         _check_range(date_from, date_to)
         batches = self.repo.list_batches(status, date_from, date_to)
         names = self.repo.product_names(b.product_id for b in batches)
+        totals = self.repo.active_output_totals(b.id for b in batches)
         out = [self._batch_d(b) for b in batches]
         for d in out:
             d["product_name"] = names.get(d["product_id"])
+            d["qty_outputs"] = totals.get(d["id"], 0)
+            d["qty_shipped"] = (d["qty_good"] or 0) - d["qty_outputs"]
+        return out
+
+    # ================= sorties declarees (echantillons, autres) =================
+    def declare_output(self, batch_id: int, reason, quantity, note=None) -> Dict[str, Any]:
+        """Sortie declaree d'un lot termine ; verrou du lot avant la lecture de la somme active
+        (deux declarations simultanees sont serialisees)."""
+        def run():
+            b = self._locked_batch(batch_id)
+            if b.status != "termine":
+                raise FabricationConflictError("Une sortie ne se declare que sur un lot termine.")
+            available = (b.qty_good or 0) - self.repo.active_output_total(b.id)
+            try:
+                r, q, n = validate_output(reason, quantity, note, available)
+            except OutputExceedsAvailable as e:
+                raise FabricationConflictError(str(e))
+            o = self.repo.add(FabBatchOutput(batch_id=b.id, reason=r, quantity=q, note=n, status="active",
+                                             declared_by=self.user.user_id))
+            out = _output_d(o, self.repo.user_names([o.declared_by]))
+            self._audit("FabBatchOutput", "CREATE", o.id, new=out)
+            return out
+        return self._tx(run)
+
+    def cancel_output(self, batch_id: int, output_id: int, reason) -> Dict[str, Any]:
+        def run():
+            r = _text(reason, "Le motif", 500, required=True)
+            b = self._locked_batch(batch_id)
+            o = self.repo.get_output(output_id, lock=True)
+            if o is None or o.batch_id != b.id:
+                raise FabricationNotFoundError("Sortie introuvable.")
+            if b.status != "termine":
+                raise FabricationConflictError("Une sortie ne s'annule que sur un lot termine.")
+            if o.status != "active":
+                raise FabricationConflictError("Cette sortie est deja annulee.")
+            names = self.repo.user_names([o.declared_by])
+            old = _output_d(o, names)
+            uid, now = self.user.user_id, datetime.utcnow()
+            with self.session.no_autoflush:
+                o.cancelled_by, o.cancelled_at, o.cancel_reason = uid, now, r
+                o.status = "annulee"
+            self.session.flush()
+            out = _output_d(o, names)
+            self._audit("FabBatchOutput", "CANCEL", o.id, old=old, new=out)
+            return out
+        return self._tx(run)
+
+    def list_outputs(self, date_from: Optional[date] = None, date_to: Optional[date] = None,
+                     reason: Optional[str] = None) -> List[Dict[str, Any]]:
+        _check_range(date_from, date_to)
+        if reason is not None and reason not in OUTPUT_REASONS:
+            raise ValueError("Motif de sortie invalide : echantillon ou autre.")
+        rows = self.repo.recent_outputs(date_from, date_to, reason, limit=200)
+        products = self.repo.product_names(pid for _, _, pid in rows)
+        names = self.repo.user_names(o.declared_by for o, _, _ in rows)
+        out = []
+        for o, number, pid in rows:
+            d = _output_d(o, names)
+            d.update({"batch_number": number, "product_id": pid, "product_name": products.get(pid)})
+            out.append(d)
         return out
 
     # ================= anomalies, resume, cout, tracabilite (lecture seule) =================
@@ -650,12 +743,12 @@ class FabricationController:
             out.append({"kind": "lot_trop_long", "ref": b.batch_number, "detail": {
                 "batch_id": b.id, "status": b.status, "started_at": b.started_at,
                 "days": (now - b.started_at).days, "stale_days": stale_days}})
-        for b, received in self.repo.shipped_vs_received():
-            if received != (b.qty_good or 0):
+        for b, shipped, received in self.repo.shipped_vs_received():
+            if received != shipped:
                 out.append({"kind": "ecart_expedie_recu", "ref": b.batch_number, "detail": {
                     "batch_id": b.id, "production_lot_id": b.production_lot_id,
-                    "qty_good": b.qty_good, "received_good": received,
-                    "gap": (b.qty_good or 0) - received}})
+                    "qty_good": b.qty_good, "expedie": shipped, "received_good": received,
+                    "gap": shipped - received}})
         return out
 
     def summary(self) -> Dict[str, Any]:

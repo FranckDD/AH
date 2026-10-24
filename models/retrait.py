@@ -7,7 +7,8 @@ from sqlalchemy import (
     Text,
     DateTime,
     ForeignKey,
-    String
+    String,
+    func
 )
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
@@ -31,6 +32,8 @@ class CaisseRetrait(Base):
     category = Column(String(50), nullable=True)       # Peut être null
     payment_method = Column(String(50), nullable=True) # Peut être null
     uuid = Column(UUID(as_uuid=True), unique=True, nullable=False, default=uuid.uuid4)
+    # Heure de reception serveur (migration 024), remplie par la base : ne jamais l'ecrire.
+    received_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
     # Relation SQLAlchemy vers l’utilisateur
     user                  = relationship(

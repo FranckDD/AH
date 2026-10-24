@@ -16,7 +16,7 @@ from repositories.caisse_repo import CaisseRepository
 from repositories.discount_request_repo import DiscountRequestRepository
 from repositories.notification_repo import NotificationRepository
 from tests.conftest import create_test_user
-from tests.test_caisse_staff_discount import _only_rule, _patient, _med, _payload
+from tests.test_caisse_staff_discount import _only_rule, _patient, _med, _payload, _catalog_exam  # noqa: F401 (fixture autouse)
 
 PWD = "TestPass123!"
 

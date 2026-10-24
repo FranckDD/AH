@@ -49,14 +49,14 @@ check('FinancialList', list, [
 ]);
 
 check('FinanceModal', modal, [
-    "defineEmits(['close', 'save'])", "emit('save', { ...form });", "const today = new Date().toISOString().substring(0, 10);",
-    "type: 'INCOME'", "amount: ''", 'date: today', "category: ''", "paymentMethod: 'Espèces'", "description: ''",
+    "defineEmits(['close', 'save'])", "emit('save', { ...form });", "const today = todayLocalISO();",
+    "type: 'INCOME'", "amount: ''", 'date: today', "category: ''", "paymentMethod: ''","description: ''",
     "form.type = type;", "form.category = '';", "setTransactionType('INCOME')", "setTransactionType('EXPENSE')",
     'if (form.amount <= 0) {', 'alert("Le montant doit être supérieur à 0");', 'if (!form.category) {', 'alert("Veuillez sélectionner une catégorie");',
     "key: 'CONSULTATION'", "key: 'PHARMACY'", "key: 'HOSPITALIZATION'", "key: 'LAB'", "key: 'DETOX'", "key: 'SUPPLIES'", "key: 'SALARY'", "key: 'MAINTENANCE'", "key: 'BILLS'", "key: 'OTHER'",
     'v-model.number="form.amount"', 'min="1"', 'v-model="form.date"', 'v-model="form.category"', 'v-model="form.paymentMethod"', 'v-model="form.description"', 'required',
     'v-for="cat in availableCategories"', ':value="cat.key"', '{{ cat.label }}',
-    'value="Espèces"', 'value="Mobile Money"', 'value="Virement"', 'value="Chèque"',
+    'v-for="m in paymentModes"', ':value="m.code"',
     "t('finance.modal.title_new')", "t('finance.modal.type')", "t('finance.modal.amount')", "t('finance.modal.date')", "t('finance.modal.category')", "t('finance.modal.method')",
     "t('finance.modal.desc')", "t('finance.modal.cancel')", "t('finance.modal.save')", "t('finance.income')", "t('finance.expense')",
 ]);

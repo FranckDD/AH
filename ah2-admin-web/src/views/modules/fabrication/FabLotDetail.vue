@@ -108,6 +108,51 @@
         </div>
       </AppCard>
 
+      <!-- Sorties declarees (echantillons, autres). Bilan lu du serveur. Ecriture : ProductionManager, lot termine. -->
+      <AppCard v-if="showOutputs" :title="t('fabrication.outputs.title')">
+        <p class="mb-4 text-base font-semibold text-ink">{{ t('fabrication.outputs.bilan_line', { good: batch.qty_good, outputs: batch.qty_outputs, shipped: batch.qty_shipped }) }}</p>
+        <p v-if="!(batch.outputs || []).length" class="text-base text-ink-muted">{{ t('fabrication.outputs.empty') }}</p>
+        <ul v-else class="grid gap-3">
+          <li v-for="o in batch.outputs" :key="o.id" class="grid gap-1 rounded-control border border-tone-neutral-border p-3" :class="o.status === 'annulee' ? 'bg-tone-neutral-bg text-ink-muted' : 'text-ink'">
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="text-base font-semibold" :class="o.status === 'annulee' ? 'line-through' : ''">{{ t(`fabrication.outputs.reason.${o.reason}`) }}, {{ o.quantity }}</span>
+              <StatusBadge v-if="o.status === 'annulee'" tone="neutral" :label="t('fabrication.outputs.status_annulee')" />
+              <span class="ml-auto"></span>
+              <AppButton v-if="canDeclare && o.status === 'active'" variant="ghost" :icon="XMarkIcon" :disabled="outputBusy" @click="openCancelOutput(o)">{{ t('fabrication.outputs.cancel') }}</AppButton>
+            </div>
+            <p v-if="o.note" class="text-base">{{ t('fabrication.outputs.note') }} : {{ o.note }}</p>
+            <p class="text-sm">{{ t('fabrication.outputs.declared_by', { name: o.declared_by_name || '-', date: formatDateTime(o.declared_at) }) }}</p>
+            <p v-if="o.status === 'annulee'" class="text-sm">{{ t('fabrication.outputs.cancelled_info', { date: formatDateTime(o.cancelled_at), reason: o.cancel_reason || '-' }) }}</p>
+          </li>
+        </ul>
+
+        <p v-if="canDeclare && allBottlesOut" role="status" class="mt-6 border-t border-tone-neutral-border pt-4 text-base text-ink-muted">{{ t('fabrication.outputs.nothing_to_ship') }}</p>
+        <form v-if="canDeclare && !nothingToShip" id="fab-output-form" @submit.prevent="confirmDeclareOutput" class="mt-6 grid gap-4 border-t border-tone-neutral-border pt-4">
+          <h3 class="text-base font-semibold text-ink">{{ t('fabrication.outputs.form_title') }}</h3>
+          <p v-if="outputError" role="alert" class="rounded-control border p-3 text-base" :class="toneClasses('danger')">{{ outputError }}</p>
+          <div class="grid gap-4 sm:grid-cols-2">
+            <FormField id="fab-output-reason" :label="t('fabrication.outputs.reason_label')" required v-slot="{ describedBy }">
+              <select id="fab-output-reason" v-model="outputForm.reason" required :aria-describedby="describedBy" :class="fieldClass">
+                <option value="" disabled>{{ t('fabrication.outputs.choose_reason') }}</option>
+                <option value="echantillon">{{ t('fabrication.outputs.reason.echantillon') }}</option>
+                <option value="autre">{{ t('fabrication.outputs.reason.autre') }}</option>
+              </select>
+            </FormField>
+            <FormField id="fab-output-qty" :label="t('fabrication.outputs.quantity_label', { max: batch.qty_shipped })" required v-slot="{ describedBy }">
+              <input id="fab-output-qty" v-model="outputForm.quantity" type="text" inputmode="numeric" required :aria-describedby="describedBy" :class="[fieldClass, 'text-right']" />
+            </FormField>
+          </div>
+          <FormField id="fab-output-note" :label="t('fabrication.outputs.note')" :required="outputForm.reason === 'autre'" v-slot="{ describedBy }">
+            <textarea id="fab-output-note" v-model="outputForm.note" rows="2" maxlength="2000" :aria-describedby="describedBy" :class="[fieldClass, 'py-2']"></textarea>
+          </FormField>
+          <p v-if="outputForm.reason === 'autre'" class="text-base" :class="outputNoteMissing ? 'text-tone-danger-text' : 'text-ink-muted'">{{ t('fabrication.outputs.note_required_autre') }}</p>
+          <p v-else-if="outputForm.reason === 'echantillon'" class="text-base text-ink-muted">{{ t('fabrication.outputs.note_hint_echantillon') }}</p>
+          <div class="flex flex-wrap justify-end gap-3">
+            <AppButton type="submit" variant="info" :icon="MinusCircleIcon" :disabled="outputBusy || outputBlocked" :loading="outputBusy">{{ t('fabrication.outputs.declare') }}</AppButton>
+          </div>
+        </form>
+      </AppCard>
+
       <!-- Actions selon le statut (ProductionManager seul) -->
       <div v-if="canWrite && batch.status === 'brouillon'" class="flex flex-wrap justify-end gap-3">
         <AppButton variant="danger" :disabled="busy" @click="openCancel">{{ t('fabrication.cancel_batch') }}</AppButton>
@@ -121,7 +166,8 @@
       <div v-if="canWrite && batch.status === 'termine'" class="flex flex-wrap justify-end gap-3">
         <AppButton variant="danger" :disabled="busy" @click="openCancel">{{ t('fabrication.cancel_batch') }}</AppButton>
         <AppButton variant="secondary" :icon="ArrowUturnLeftIcon" :disabled="busy" :loading="busy" @click="reopenBatch">{{ t('fabrication.reopen_batch') }}</AppButton>
-        <AppButton v-if="batch.qty_good > 0" variant="success" :icon="TruckIcon" :disabled="busy" @click="openShip">{{ t('fabrication.ship_batch') }}</AppButton>
+        <AppButton v-if="batch.qty_good > 0" variant="success" :icon="TruckIcon" :disabled="busy || nothingToShip" @click="openShip">{{ t('fabrication.ship_batch') }}</AppButton>
+        <p v-if="allBottlesOut" role="status" class="basis-full text-right text-base text-ink-muted">{{ t('fabrication.outputs.nothing_to_ship') }}</p>
       </div>
     </template>
 
@@ -173,11 +219,30 @@
       </template>
     </FullScreenPanel>
 
+    <!-- Annuler une sortie declaree : motif obligatoire -->
+    <FullScreenPanel v-if="outputCancelTarget" :title="t('fabrication.outputs.cancel_title')" @close="outputCancelTarget = null">
+      <form id="fab-output-cancel-form" @submit.prevent="confirmCancelOutput" class="grid gap-4">
+        <p class="text-base text-ink">{{ t('fabrication.outputs.cancel_help', { reason: t(`fabrication.outputs.reason.${outputCancelTarget.reason}`), quantity: outputCancelTarget.quantity }) }}</p>
+        <p v-if="outputCancelError" role="alert" class="rounded-control border p-3 text-base" :class="toneClasses('danger')">{{ outputCancelError }}</p>
+        <FormField id="fab-output-cancel-reason" :label="t('fabrication.outputs.cancel_reason')" required v-slot="{ describedBy }">
+          <textarea id="fab-output-cancel-reason" v-model="outputCancelReason" rows="3" required maxlength="500" :aria-describedby="describedBy" :class="[fieldClass, 'py-2']"></textarea>
+        </FormField>
+      </form>
+      <template #footer>
+        <ActionBar>
+          <template #secondary>
+            <AppButton variant="ghost" @click="outputCancelTarget = null">{{ t('stockOps.close') }}</AppButton>
+          </template>
+          <AppButton type="submit" form="fab-output-cancel-form" variant="danger" :disabled="outputBusy || !outputCancelReason.trim()" :loading="outputBusy">{{ t('fabrication.outputs.cancel_confirm') }}</AppButton>
+        </ActionBar>
+      </template>
+    </FullScreenPanel>
+
     <!-- Valider le bilan et expedier -->
     <FullScreenPanel v-if="shipOpen && batch" :title="t('fabrication.ship_title')" @close="shipOpen = false">
       <form id="fab-ship-form" @submit.prevent="confirmShip" class="grid gap-4">
         <p v-if="modalError" role="alert" class="rounded-control border p-3 text-base" :class="toneClasses('danger')">{{ modalError }}</p>
-        <p class="text-base text-ink">{{ t('fabrication.ship_help', { good: batch.qty_good }) }}</p>
+        <p class="text-base text-ink">{{ t('fabrication.ship_help', { good: batch.qty_shipped }) }}</p>
         <div class="grid gap-4 sm:grid-cols-2">
           <FormField id="fab-ship-delivery" :label="t('fabrication.delivery_date')" required v-slot="{ describedBy }">
             <input id="fab-ship-delivery" v-model="shipForm.delivery_date" type="date" required :aria-describedby="describedBy" :class="fieldClass" />
@@ -207,7 +272,7 @@
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
-import { PlusIcon, TrashIcon, CheckIcon, PlayIcon, FlagIcon, ArrowUturnLeftIcon, TruckIcon, ArrowLeftIcon } from '@heroicons/vue/24/outline';
+import { PlusIcon, TrashIcon, CheckIcon, PlayIcon, FlagIcon, ArrowUturnLeftIcon, TruckIcon, ArrowLeftIcon, XMarkIcon, MinusCircleIcon } from '@heroicons/vue/24/outline';
 import { useAuthStore } from '@/stores/auth';
 import { FabricationGateway, describeFabricationError } from '@/services/FabricationGateway';
 import { AppButton, AppCard, PageHeader, FormField, StatusBadge, ResponsiveTable, FullScreenPanel, ActionBar, StatTile } from '@/components/ui';
@@ -439,6 +504,76 @@ const confirmShip = async () => {
     console.error('Expedition du lot echouee :', err);
   } finally {
     busy.value = false;
+  }
+};
+
+// ---- Sorties declarees ----
+// Bilan (qty_good, qty_outputs, qty_shipped) lu du serveur ; la borne de quantite est qty_shipped.
+const showOutputs = computed(() => !!batch.value && (['termine', 'expedie'].includes(batch.value.status) || (batch.value.outputs || []).length > 0));
+const canDeclare = computed(() => canWrite.value && batch.value?.status === 'termine');
+const nothingToShip = computed(() => num(batch.value?.qty_shipped) <= 0);
+// Message "tout est sorti" : seulement s'il y avait des bouteilles bonnes ET des sorties (zero bouteille bonne : comportement d'avant).
+const allBottlesOut = computed(() => num(batch.value?.qty_good) > 0 && num(batch.value?.qty_outputs) > 0 && nothingToShip.value);
+const formatDateTime = (v) => (v ? new Date(v).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' }) : '-');
+
+const outputBusy = ref(false);
+const outputError = ref('');
+const emptyOutputForm = () => ({ reason: '', quantity: '', note: '' });
+const outputForm = ref(emptyOutputForm());
+const outputNoteMissing = computed(() => outputForm.value.reason === 'autre' && !(outputForm.value.note || '').trim());
+const outputBlocked = computed(() => !outputForm.value.reason || !String(outputForm.value.quantity).trim() || outputNoteMissing.value);
+
+const confirmDeclareOutput = async () => {
+  if (outputBusy.value) return;
+  outputError.value = '';
+  const f = outputForm.value;
+  if (!['echantillon', 'autre'].includes(f.reason)) { outputError.value = t('fabrication.outputs.err_reason'); return; }
+  const raw = String(f.quantity ?? '').trim();
+  const q = /^\d+$/.test(raw) ? Number(raw) : 0;
+  if (q < 1 || q > num(batch.value.qty_shipped)) {
+    outputError.value = t('fabrication.outputs.err_quantity', { max: num(batch.value.qty_shipped) }); return;
+  }
+  const note = (f.note || '').trim();
+  if (outputNoteMissing.value) { outputError.value = t('fabrication.outputs.note_required_autre'); return; }
+  outputBusy.value = true;
+  try {
+    await FabricationGateway.declareOutput(batchId.value, { reason: f.reason, quantity: q, note: note || undefined });
+    outputForm.value = emptyOutputForm();
+    flash(t('fabrication.outputs.declared'));
+    await load();
+  } catch (err) {
+    outputError.value = describeFabricationError(err, t('fabrication.error_save'));
+    console.error('Declaration de sortie echouee :', err);
+  } finally {
+    outputBusy.value = false;
+  }
+};
+
+const outputCancelTarget = ref(null);
+const outputCancelReason = ref('');
+const outputCancelError = ref('');
+const openCancelOutput = (o) => {
+  outputCancelError.value = '';
+  outputCancelReason.value = '';
+  outputCancelTarget.value = o;
+};
+
+const confirmCancelOutput = async () => {
+  if (outputBusy.value) return;
+  outputCancelError.value = '';
+  const reason = (outputCancelReason.value || '').trim();
+  if (!reason) { outputCancelError.value = t('fabrication.outputs.err_cancel_reason'); return; }
+  outputBusy.value = true;
+  try {
+    await FabricationGateway.cancelOutput(batchId.value, outputCancelTarget.value.id, reason);
+    outputCancelTarget.value = null;
+    flash(t('fabrication.outputs.cancelled'));
+    await load();
+  } catch (err) {
+    outputCancelError.value = describeFabricationError(err, t('fabrication.error_save'));
+    console.error('Annulation de sortie echouee :', err);
+  } finally {
+    outputBusy.value = false;
   }
 };
 

@@ -20,7 +20,7 @@
             </FormField>
 
             <FormField id="product-price" :label="t('stock.modal.price') + ' (FCFA)'" required v-slot="{ describedBy }">
-                <input id="product-price" v-model.number="form.price" type="number" required min="0" inputmode="numeric" :aria-describedby="describedBy" :class="[fieldClass, 'bg-white text-right']" />
+                <input id="product-price" v-model.number="form.price" type="number" required min="0" step="any" inputmode="decimal" :aria-describedby="describedBy" :class="[fieldClass, 'bg-white text-right']" />
             </FormField>
 
             <template v-if="form.category === 'PHARMA'">

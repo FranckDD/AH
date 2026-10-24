@@ -95,6 +95,56 @@
         </div>
       </form>
     </AppCard>
+
+    <!-- Sorties declarees recentes : lecture seule pour tous les roles lecteurs du suivi. Place apres les reglages
+         pour que les seuls champs de saisie avant la carte admin restent absents (filtres = lecture). -->
+    <AppCard :title="t('fabrication.outputs.recent_title')">
+      <div class="grid gap-4">
+        <div class="flex flex-wrap items-end gap-4">
+          <FormField id="fab-out-from" :label="t('fabrication.filter_date_from')" v-slot="{ describedBy }">
+            <input id="fab-out-from" v-model="outDateFrom" type="date" :aria-describedby="describedBy" :class="fieldClass" @change="loadOutputs" />
+          </FormField>
+          <FormField id="fab-out-to" :label="t('fabrication.filter_date_to')" v-slot="{ describedBy }">
+            <input id="fab-out-to" v-model="outDateTo" type="date" :aria-describedby="describedBy" :class="fieldClass" @change="loadOutputs" />
+          </FormField>
+          <FormField id="fab-out-reason" :label="t('fabrication.outputs.reason_label')" v-slot="{ describedBy }">
+            <select id="fab-out-reason" v-model="outReason" :aria-describedby="describedBy" :class="fieldClass" @change="loadOutputs">
+              <option value="">{{ t('fabrication.outputs.all_reasons') }}</option>
+              <option v-for="r in REASONS" :key="r" :value="r">{{ t(`fabrication.outputs.reason.${r}`) }}</option>
+            </select>
+          </FormField>
+          <AppButton v-if="outDateFrom || outDateTo || outReason" variant="ghost" class="min-h-11" @click="resetOutputFilters">{{ t('fabrication.filter_reset') }}</AppButton>
+        </div>
+        <p v-if="outputsError" role="alert" class="rounded-control border p-3 text-base" :class="toneClasses('danger')">{{ outputsError }}</p>
+        <p v-if="outputsCapped" role="status" class="rounded-control border p-3 text-base" :class="toneClasses('warning')">{{ t('fabrication.outputs.limit_hint') }}</p>
+        <ResponsiveTable
+          :columns="outputColumns"
+          :rows="outputs"
+          row-key="id"
+          :loading="outputsLoading"
+          :empty-title="t('fabrication.outputs.recent_empty')"
+          :empty-message="t('fabrication.outputs.recent_empty_message')"
+          striped
+        >
+          <template #cell-batch_number="{ row: o }">
+            <AppButton v-if="o.batch_id" variant="ghost" class="min-h-11" @click="openBatch(o.batch_id)">{{ o.batch_number }}</AppButton>
+            <span v-else class="font-medium text-ink">{{ o.batch_number }}</span>
+          </template>
+          <template #cell-reason="{ row: o }">
+            <span :class="o.status === 'annulee' ? 'text-ink-muted' : 'text-ink'">{{ t(`fabrication.outputs.reason.${o.reason}`) }}</span>
+            <StatusBadge v-if="o.reason === 'autre'" class="ml-2" tone="warning" :label="t('fabrication.outputs.to_check')" />
+          </template>
+          <template #cell-quantity="{ row: o }"><span :class="o.status === 'annulee' ? 'text-ink-muted line-through' : 'text-ink'">{{ qty(o.quantity) }}</span></template>
+          <template #cell-note="{ row: o }">{{ o.note || '-' }}</template>
+          <template #cell-declared_by="{ row: o }">{{ o.declared_by_name || o.declared_by || '-' }}</template>
+          <template #cell-declared_at="{ row: o }">{{ formatDateTime(o.declared_at) }}</template>
+          <template #cell-status="{ row: o }">
+            <StatusBadge v-if="o.status === 'annulee'" tone="neutral" :label="t('fabrication.outputs.status_annulee')" />
+            <StatusBadge v-else tone="info" :label="t('fabrication.outputs.status_active')" />
+          </template>
+        </ResponsiveTable>
+      </div>
+    </AppCard>
   </div>
 </template>
 
@@ -154,10 +204,64 @@ const detailText = (a) => {
     hors_tolerance: { missing: qty(d.missing_qty), pct: qty(d.missing_pct), tolerance: qty(d.tolerance_applied) },
     intrant_sous_seuil: { stock: qty(d.stock), threshold: qty(d.alert_threshold), unit: d.unit || '' },
     lot_trop_long: { days: qty(d.days), limit: qty(d.stale_days) },
-    ecart_expedie_recu: { shipped: qty(d.qty_good), received: qty(d.received_good), gap: qty(d.gap) },
+    // d.expedie = quantite expediee figee (bonnes - sorties) ; repli sur qty_good pour un ancien serveur.
+    ecart_expedie_recu: { shipped: qty(d.expedie ?? d.qty_good), received: qty(d.received_good), gap: qty(d.gap) },
   }[a.kind];
   return params ? t(`fabrication.anomaly_detail_${a.kind}`, params) : '';
 };
+
+// ---- sorties declarees recentes (lecture) ----
+const REASONS = ['echantillon', 'autre'];
+const OUTPUTS_CAP = 200; // meme valeur que limit=200 de FabricationRepository.recent_outputs (serveur), qui plafonne sans le dire
+const outputColumns = computed(() => [
+  { key: 'batch_number', label: t('fabrication.outputs.col_batch') },
+  { key: 'product_name', label: t('fabrication.outputs.col_product') },
+  { key: 'reason', label: t('fabrication.outputs.reason_label') },
+  { key: 'quantity', label: t('fabrication.outputs.col_quantity') },
+  { key: 'note', label: t('fabrication.outputs.note') },
+  { key: 'declared_by', label: t('fabrication.outputs.col_author') },
+  { key: 'declared_at', label: t('fabrication.outputs.col_date') },
+  { key: 'status', label: t('fabrication.outputs.col_status') },
+]);
+const outputs = ref([]);
+const outputsLoading = ref(false);
+const outputsError = ref('');
+const outDateFrom = ref(''); // valeurs AAAA-MM-JJ du champ date, deja locales
+const outDateTo = ref('');
+const outReason = ref('');
+const outputsCapped = computed(() => outputs.value.length === OUTPUTS_CAP);
+// declared_at arrive en ISO avec decalage explicite : affichage a l'heure locale du poste.
+const formatDateTime = (v) => (v ? new Date(v).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' }) : '-');
+
+// Compteur de requetes : seule la reponse de la derniere requete est appliquee (filtres changes vite).
+let outputsSeq = 0;
+const loadOutputs = async () => {
+  const seq = ++outputsSeq;
+  outputsError.value = '';
+  if (outDateFrom.value && outDateTo.value && outDateFrom.value > outDateTo.value) {
+    outputsLoading.value = false;
+    outputsError.value = t('fabrication.outputs.err_dates');
+    return;
+  }
+  outputsLoading.value = true;
+  try {
+    const list = await FabricationGateway.listOutputs({
+      dateFrom: outDateFrom.value || undefined,
+      dateTo: outDateTo.value || undefined,
+      reason: outReason.value || undefined,
+    });
+    if (seq !== outputsSeq) return;
+    outputs.value = Array.isArray(list) ? list : [];
+  } catch (err) {
+    if (seq !== outputsSeq) return;
+    outputs.value = [];
+    outputsError.value = describeFabricationError(err, t('fabrication.outputs.error_load'));
+    console.error('Chargement des sorties declarees echoue :', err);
+  } finally {
+    if (seq === outputsSeq) outputsLoading.value = false;
+  }
+};
+const resetOutputFilters = () => { outDateFrom.value = ''; outDateTo.value = ''; outReason.value = ''; loadOutputs(); };
 
 const openBatch = (id) => router.push({ name: 'fabrication-lot', params: { id } });
 
@@ -172,6 +276,7 @@ onBeforeUnmount(() => clearTimeout(msgTimer));
 const load = async () => {
   isLoading.value = true;
   pageError.value = '';
+  loadOutputs(); // panneau independant : son erreur ne bloque pas le reste de la page
   try {
     const [summary, list] = await Promise.all([
       FabricationGateway.getSummary(),

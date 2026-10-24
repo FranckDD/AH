@@ -11,10 +11,18 @@ from typing import Dict, List, Optional
 from sqlalchemy import func, or_, text
 from sqlalchemy.orm import Session
 
-from models.fabrication import FabBatch, FabConsumption, FabIntrant, FabIntrantPurchase, FabSettings
+from models.fabrication import FabBatch, FabBatchOutput, FabConsumption, FabIntrant, FabIntrantPurchase, FabSettings
 from models.pharmacy import Pharmacy
+from models.user import User
 from models.stock_reception import ProductionLot, StockReceipt, StockReceiptLine
 from repositories.stock_repo import StockRepository
+from utils.business_time import BUSINESS_TZ
+
+
+def _local_day_start_utc(d: date) -> datetime:
+    """Debut du jour local (Douala) d, en datetime UTC naif (format de declared_at)."""
+    from datetime import timezone
+    return datetime(d.year, d.month, d.day, tzinfo=BUSINESS_TZ).astimezone(timezone.utc).replace(tzinfo=None)
 
 
 # Produits fabricables : type naturel ou traditionnel (valeurs reelles : 'Naturel', 'Traditionnel'...).
@@ -197,6 +205,56 @@ class FabricationRepository:
                 .filter(FabConsumption.batch_id == batch_id)
                 .order_by(FabConsumption.id).all())
 
+    # ---------- sorties declarees ----------
+    def outputs_of(self, batch_id: int, include_cancelled: bool = True) -> List[FabBatchOutput]:
+        q = self.session.query(FabBatchOutput).filter(FabBatchOutput.batch_id == batch_id)
+        if not include_cancelled:
+            q = q.filter(FabBatchOutput.status == 'active')
+        return q.order_by(FabBatchOutput.declared_at, FabBatchOutput.id).all()
+
+    def active_output_total(self, batch_id: int) -> int:
+        return int(self.session.query(func.coalesce(func.sum(FabBatchOutput.quantity), 0))
+                   .filter(FabBatchOutput.batch_id == batch_id, FabBatchOutput.status == 'active')
+                   .scalar())
+
+    def active_output_totals(self, batch_ids) -> Dict[int, int]:
+        """{batch_id: somme des sorties actives} en une requete groupee."""
+        ids = {i for i in batch_ids if i is not None}
+        if not ids:
+            return {}
+        rows = (self.session.query(FabBatchOutput.batch_id, func.sum(FabBatchOutput.quantity))
+                .filter(FabBatchOutput.batch_id.in_(ids), FabBatchOutput.status == 'active')
+                .group_by(FabBatchOutput.batch_id))
+        return {b: int(s) for b, s in rows}
+
+    def get_output(self, output_id: int, lock: bool = False) -> Optional[FabBatchOutput]:
+        q = self.session.query(FabBatchOutput).filter(FabBatchOutput.id == output_id)
+        if lock:
+            q = q.with_for_update().populate_existing()
+        return q.one_or_none()
+
+    def recent_outputs(self, date_from: Optional[date] = None, date_to: Optional[date] = None,
+                       reason: Optional[str] = None, limit: int = 200) -> List[tuple]:
+        """(sortie, numero de lot, product_id), du plus recent au plus ancien."""
+        q = (self.session.query(FabBatchOutput, FabBatch.batch_number, FabBatch.product_id)
+             .join(FabBatch, FabBatch.id == FabBatchOutput.batch_id))
+        # declared_at est en UTC naif ; les bornes recues sont des jours locaux (Douala) :
+        # [date_from 00:00 local, date_to + 1 jour 00:00 local) converti en UTC naif.
+        if date_from is not None:
+            q = q.filter(FabBatchOutput.declared_at >= _local_day_start_utc(date_from))
+        if date_to is not None:
+            q = q.filter(FabBatchOutput.declared_at < _local_day_start_utc(date_to + timedelta(days=1)))
+        if reason is not None:
+            q = q.filter(FabBatchOutput.reason == reason)
+        return q.order_by(FabBatchOutput.declared_at.desc(), FabBatchOutput.id.desc()).limit(limit).all()
+
+    def user_names(self, ids) -> Dict[int, str]:
+        ids = {i for i in ids if i is not None}
+        if not ids:
+            return {}
+        return {u: n for u, n in self.session.query(User.user_id, User.full_name)
+                .filter(User.user_id.in_(ids))}
+
     def get_settings(self, lock: bool = False) -> Optional[FabSettings]:
         if not lock:
             return self.session.get(FabSettings, 1)
@@ -236,19 +294,23 @@ class FabricationRepository:
                 .order_by(FabBatch.started_at, FabBatch.id).all())
 
     def shipped_vs_received(self) -> List[tuple]:
-        """(lot, bouteilles bonnes recues) des lots expedies ayant au moins une reception validee.
+        """(lot, quantite expediee, bouteilles bonnes recues) des lots expedies ayant au moins
+        une reception validee.
 
-        'Recu bon' = somme de stock_receipt_lines.qty_good des receptions au statut 'valide'
-        liees au lot de production (c'est ce que validate_receipt ajoute au stock).
+        'Expedie' = production_lots.quantity_produced, figee a l'expedition (bonnes moins
+        sorties declarees actives). 'Recu bon' = somme de stock_receipt_lines.qty_good des
+        receptions au statut 'valide' liees au lot de production (ce que validate_receipt
+        ajoute au stock).
         """
         received = func.coalesce(func.sum(StockReceiptLine.qty_good), 0)
-        rows = (self.session.query(FabBatch, received)
+        rows = (self.session.query(FabBatch, ProductionLot.quantity_produced, received)
+                .join(ProductionLot, ProductionLot.id == FabBatch.production_lot_id)
                 .join(StockReceipt, StockReceipt.production_lot_id == FabBatch.production_lot_id)
                 .join(StockReceiptLine, StockReceiptLine.receipt_id == StockReceipt.id)
                 .filter(FabBatch.status == "expedie", StockReceipt.status == "valide",
                         StockReceiptLine.product_id == FabBatch.product_id)
-                .group_by(FabBatch.id).order_by(FabBatch.id).all())
-        return [(b, int(r)) for b, r in rows]
+                .group_by(FabBatch.id, ProductionLot.quantity_produced).order_by(FabBatch.id).all())
+        return [(b, int(s or 0), int(r)) for b, s, r in rows]
 
     def counts_by_status(self) -> Dict[str, int]:
         return dict(self.session.query(FabBatch.status, func.count(FabBatch.id)).group_by(FabBatch.status))

@@ -25,7 +25,7 @@ import {
   ExclamationCircleIcon,
   CheckBadgeIcon, ClockIcon, ReceiptPercentIcon,
   ClipboardDocumentCheckIcon, ArrowsRightLeftIcon, AdjustmentsHorizontalIcon,
-  ShoppingCartIcon
+  ShoppingCartIcon, LockClosedIcon
 } from '@heroicons/vue/24/outline';
 
 const authStore = useAuthStore();
@@ -89,6 +89,12 @@ const menuItems = [
     path: '/dashboard/discount-history',
     labelKey: 'discount_history.title',
     icon: ClockIcon,
+    roles: [ROLES.ADMIN, ROLES.PROMOTEUR]
+  },
+  {
+    path: '/dashboard/cash-closures',
+    labelKey: 'cashClosure.review_title',
+    icon: LockClosedIcon,
     roles: [ROLES.ADMIN, ROLES.PROMOTEUR]
   },
   {

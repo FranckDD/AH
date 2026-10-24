@@ -81,6 +81,7 @@ import { ref, reactive, computed, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/vue/24/outline';
 import { DiscountRequestGateway } from '@/services/DiscountRequestGateway';
+import { todayLocalISO } from '@/utils/localDate';
 import { AppButton, PageHeader, FormField, StatTile, StatusBadge, ResponsiveTable } from '@/components/ui';
 
 const { t } = useI18n();
@@ -114,7 +115,7 @@ const periodPresets = [
   { key: 'custom', labelKey: 'discount_history.preset.custom' },
 ];
 
-const toISO = (d) => d.toISOString().slice(0, 10);
+const toISO = (d) => todayLocalISO(d); // date locale (pas UTC)
 
 const applyPreset = (key) => {
   activePreset.value = key;

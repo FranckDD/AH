@@ -133,3 +133,34 @@ class FabSettings(Base):
     stale_days = Column(Integer, nullable=False, default=7, server_default='7')
     updated_by = Column(Integer, ForeignKey('users.user_id'), nullable=True)
     updated_at = Column(DateTime, nullable=True)
+
+
+class FabBatchOutput(Base):
+    """Sortie declaree d'un lot (echantillon, autre), migration 025."""
+    __tablename__ = 'fab_batch_outputs'
+    __table_args__ = (
+        CheckConstraint("quantity > 0", name="fab_batch_outputs_quantity_check"),
+        CheckConstraint("reason IN ('echantillon','autre')", name="fab_batch_outputs_reason_check"),
+        CheckConstraint("status IN ('active','annulee')", name="fab_batch_outputs_status_check"),
+        CheckConstraint("reason <> 'autre' OR length(trim(coalesce(note,''))) > 0",
+                        name="fab_batch_outputs_autre_note_check"),
+        CheckConstraint("status <> 'annulee' OR (cancelled_by IS NOT NULL "
+                        "AND length(trim(coalesce(cancel_reason,''))) > 0)",
+                        name="fab_batch_outputs_cancel_check"),
+        Index("idx_fab_batch_outputs_batch", "batch_id"),
+        Index("idx_fab_batch_outputs_status", "status"),
+    )
+
+    id = Column(Integer, primary_key=True)
+    batch_id = Column(Integer, ForeignKey('fab_batches.id'), nullable=False)
+    reason = Column(String(20), nullable=False)
+    quantity = Column(Integer, nullable=False)
+    note = Column(Text, nullable=True)
+    status = Column(String(20), nullable=False, default='active', server_default='active')
+    declared_by = Column(Integer, ForeignKey('users.user_id'), nullable=False)
+    declared_at = Column(DateTime, nullable=False, default=datetime.utcnow, server_default=func.now())
+    cancelled_by = Column(Integer, ForeignKey('users.user_id'), nullable=True)
+    cancelled_at = Column(DateTime, nullable=True)
+    cancel_reason = Column(Text, nullable=True)
+
+    batch = relationship('FabBatch')

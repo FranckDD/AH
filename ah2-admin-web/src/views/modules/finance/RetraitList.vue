@@ -50,7 +50,7 @@
         <template #cell-date="{ row: r }"><span class="font-mono">{{ formatDate(r.retrait_at) }}</span></template>
         <template #cell-justification="{ row: r }">{{ r.justification }}</template>
         <template #cell-category="{ row: r }">{{ r.category }}</template>
-        <template #cell-method="{ row: r }">{{ r.payment_method }}</template>
+        <template #cell-method="{ row: r }">{{ modeLabel(r.payment_method) }}</template>
         <template #cell-amount="{ row: r }">
           <span class="font-bold" :class="r.status === 'active' ? 'text-tone-danger-text' : 'text-ink-muted line-through'">- {{ formatCurrency(r.amount) }}</span>
         </template>
@@ -96,6 +96,7 @@ import {
 } from '@heroicons/vue/24/outline';
 import { AppButton, PageHeader, FormField, StatusBadge, ResponsiveTable } from '@/components/ui';
 import { toneClasses } from '@/design/tones';
+import { modeLabel } from '@/utils/paymentModes';
 
 const { t } = useI18n();
 const retraitStore = useRetraitStore();

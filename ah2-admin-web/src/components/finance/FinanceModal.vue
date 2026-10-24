@@ -35,12 +35,10 @@
             </option>
           </select>
         </FormField>
-        <FormField id="fin-method" :label="t('finance.modal.method')" v-slot="{ describedBy }">
-          <select id="fin-method" v-model="form.paymentMethod" :aria-describedby="describedBy" :class="fieldClass">
-            <option value="Espèces">{{ t('finance.payment_methods.cash') }}</option>
-            <option value="Mobile Money">{{ t('finance.payment_methods.mobile') }}</option>
-            <option value="Virement">{{ t('finance.payment_methods.transfer') }}</option>
-            <option value="Chèque">{{ t('finance.payment_methods.check') }}</option>
+        <FormField id="fin-method" :label="t('finance.modal.method')" required v-slot="{ describedBy }">
+          <select id="fin-method" v-model="form.paymentMethod" required :aria-describedby="describedBy" :class="fieldClass">
+            <option value="" disabled>{{ t('paymentModeChoice.placeholder') }}</option>
+            <option v-for="m in paymentModes" :key="m.code" :value="m.code">{{ m.label }}</option>
           </select>
         </FormField>
       </div>
@@ -67,22 +65,26 @@ import { reactive, computed, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { BanknotesIcon, ArrowTrendingDownIcon } from '@heroicons/vue/24/outline';
 import { AppButton, FormField, ActionBar, FullScreenPanel } from '@/components/ui';
+import { usePaymentModes } from '@/utils/paymentModes';
+import { todayLocalISO } from '@/utils/localDate';
 
 const { t } = useI18n();
+// Liste officielle des modes (repli fige hors ligne) ; la valeur envoyee est le CODE.
+const paymentModes = usePaymentModes();
 
 // Style commun des champs : zone tactile >= 44 px, focus visible.
 const fieldClass = 'block w-full min-h-11 lg:min-h-10 rounded-control border border-tone-neutral-border bg-white px-3 text-base text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand-600';
 const emit = defineEmits(['close', 'save']);
 
 // Date du jour YYYY-MM-DD
-const today = new Date().toISOString().substring(0, 10);
+const today = todayLocalISO();
 
 const form = reactive({
   type: 'INCOME',
   amount: '', // Vide par défaut pour forcer la saisie
   date: today,
   category: '',
-  paymentMethod: 'Espèces',
+  paymentMethod: '', // aucun defaut : on choisit un mode de la liste officielle (code stocke)
   description: ''
 });
 
@@ -123,6 +125,10 @@ const handleSubmit = () => {
     }
     if (!form.category) {
         alert("Veuillez sélectionner une catégorie");
+        return;
+    }
+    if (!form.paymentMethod) {
+        alert(t('paymentModeChoice.placeholder'));
         return;
     }
 

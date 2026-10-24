@@ -347,6 +347,15 @@ const routes = [
         meta: { requiresAuth: true, roles: [ROLES.ADMIN, ROLES.PROMOTEUR] }
       },
 
+      // 7c bis. Revue des clotures de caisse (lecture seule, decision des corrections ; modes et
+      // initialisation de la caisse pour l'admin seulement)
+      {
+        path: 'cash-closures',
+        name: 'cash-closures-review',
+        component: () => import('@/views/modules/caisse/CashClosuresReview.vue'),
+        meta: { requiresAuth: true, roles: [ROLES.ADMIN, ROLES.PROMOTEUR] }
+      },
+
       // 7d. Regles de reduction personnel + gestion des membres "Personnel"
       {
         path: 'reductions-personnel',
@@ -530,6 +539,15 @@ const routes = [
         path: 'retrait',
         name: 'secretariat-retrait',
         component: () => import('@/views/modules/finance/RetraitList.vue'),
+        meta: {
+          requiresAuth: true,
+          roles: [ROLES.SECRETAIRE]
+        }
+      },
+      {
+        path: 'cloture',
+        name: 'secretariat-cash-closure',
+        component: () => import('@/views/modules/caisse/CashClosure.vue'),
         meta: {
           requiresAuth: true,
           roles: [ROLES.SECRETAIRE]

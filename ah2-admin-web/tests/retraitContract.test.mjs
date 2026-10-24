@@ -24,7 +24,7 @@ function check(name, src, needles) {
 check('RetraitList', list, [
     'retraitStore.fetchRetraits()', 'retraitStore.createRetrait(payload)', 'retraitStore.cancelRetrait(cancellingRetrait.value.retrait_id, justification)',
     'openCancelModal(r)', `r.status === 'active'`, ':disabled="!r.retrait_id"',
-    'formatCurrency(r.amount)', 'formatDate(r.retrait_at)', 'r.justification', 'r.category', 'r.payment_method',
+    'formatCurrency(r.amount)', 'formatDate(r.retrait_at)', 'r.justification', 'r.category', 'modeLabel(r.payment_method)',
     'v-model="searchQuery"', 'v-model="startDate"', 'v-model="endDate"', 'v-model="statusFilter"', 'value="active"', 'value="cancelled"',
     'retraitStore.filters.searchQuery', 'retraitStore.filters.startDate', 'retraitStore.filters.endDate', 'retraitStore.filters.status',
     'retraitStore.setFilters({ searchQuery: val })', 'retraitStore.setFilters({ startDate: val })', 'retraitStore.setFilters({ endDate: val })', 'retraitStore.setFilters({ status: val })',
@@ -41,10 +41,10 @@ check('RetraitList', list, [
 
 check('RetraitModal', modal, [
     `emit('save', {`, 'amount: Number(form.amount),', 'justification: form.justification.trim(),', 'category: form.category || null,', 'payment_method: form.paymentMethod,',
-    'Number(form.amount) > 0 && form.justification.trim().length > 0', 'if (!isFormValid.value) return;',
-    "paymentMethod: 'Espèces'", 'v-model.number="form.amount"', 'min="1"', 'step="0.01"', 'v-model="form.category"', 'v-model="form.paymentMethod"', 'v-model="form.justification"',
+    'Number(form.amount) > 0 && form.justification.trim().length > 0 && !!form.paymentMethod', 'if (!isFormValid.value) return;',
+    "paymentMethod: ''", 'v-model.number="form.amount"', 'min="1"', 'step="0.01"', 'v-model="form.category"', 'v-model="form.paymentMethod"', 'v-model="form.justification"',
     'required', 'value="SUPPLIES"', 'value="SALARY"', 'value="MAINTENANCE"', 'value="BILLS"', 'value="OTHER"',
-    'value="Espèces"', 'value="Mobile Money"', 'value="Virement"', 'value="Chèque"',
+    'v-for="m in paymentModes"', ':value="m.code"', 'usePaymentModes()',
     ':disabled="isSaving || !isFormValid"', "$emit('close')", "t('retrait.modal.title')", "t('retrait.modal.amount')", "t('retrait.modal.category')",
     "t('retrait.modal.justification')", "t('retrait.modal.justification_placeholder')", "t('finance.modal.method')", "t('finance.modal.cancel')", "t('finance.modal.save')",
     "t('caisse.cancel_modal.saving')", '{{ errorMessage }}', "defineEmits(['close', 'save'])",

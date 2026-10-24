@@ -1,6 +1,6 @@
 # Suivi d'avancement — AH2 / Glostone-Kare
 
-**Dernière mise à jour :** 2026-10-23 (chantier Fabrication / production livré, non commité ; à vérifier par l'utilisateur dans le navigateur)
+**Dernière mise à jour :** 2026-10-24 (sorties déclarées de la production livrées, non commitées, à vérifier dans le navigateur ; clôture de caisse livrée, tâches 1 à 11 sauf la 8, non commitée, à vérifier dans le navigateur ; Fabrication commitée et poussée ; chantier Rapports en 4 morceaux)
 **But de ce document :** état d'avancement des chantiers de remise en service et de sécurisation, et registre des découvertes faites en cours de route mais non encore traitées. Pour le contexte général du projet, voir `docs/superpowers/CONTEXTE-PROJET.md`. Pour le détail d'un chantier, voir les fichiers correspondants dans `docs/superpowers/specs/` et `docs/superpowers/plans/`.
 
 ## Feuille de route
@@ -1572,9 +1572,9 @@ Plan `plans/2026-10-23-refonte-ux-labo-toxico.md`. Base `9e52fd8`. **Vérifié**
 
 **Reste à faire** : documentation d'utilisation par rôle, onglet Rapports, chantier 8 (déploiement) ; autres espaces à migrer, s'il y en a (caisse hors secrétariat, etc., à confirmer).
 
-### Fabrication / production : livrée (Tâches 1 à 11), NON COMMITÉE, à vérifier par l'utilisateur (2026-10-23)
+### Fabrication / production : livrée (Tâches 1 à 11), COMMITÉE ET POUSSÉE (`dce04c8`, garde-fou `b6c6e09`), à vérifier par l'utilisateur dans le navigateur (2026-10-23)
 
-Spec `specs/2026-10-23-fabrication-production-design.md` · Plan `plans/2026-10-23-fabrication-production.md` · Migration `alembic/versions/023_fabrication.py`. **Le chantier est non commité** (arbre de travail). Le garde-fou `ah2-admin-web/tests/refonteFabricationGuard.test.mjs` compare l'arbre de travail à `BASE = '755d4fa'` (dernier commit avant le chantier) avec `FIN = null` : **au moment du commit, renseigner `FIN` avec le hash du dernier commit du lot, dans un commit séparé**, pour que les chantiers suivants ne fassent pas échouer le contrôle de périmètre.
+Spec `specs/2026-10-23-fabrication-production-design.md` · Plan `plans/2026-10-23-fabrication-production.md` · Migration `alembic/versions/023_fabrication.py`. **Commité et poussé sur `AH2_V3-1`** (`dce04c8`, puis `b6c6e09` qui renseigne `FIN = 'dce04c8'` dans `refonteFabricationGuard.test.mjs`, `BASE = '755d4fa'`). Après le correctif du jour : un intrant ne se modifie (nom, unité, contenant) que tant qu'il n'a aucun achat non annulé, il peut être désactivé/réactivé à tout moment (liste complète avec bouton « Afficher les désactivés »), filtres de dates sur achats et lots, intrant désactivé refusé dans un brouillon, produits limités au type naturel/traditionnel, dates par défaut en date locale.
 
 **Livré, serveur** (`/fabrication`, modèles `models/fabrication.py`, dépôt `repositories/fabrication_repo.py`, règles `utils/fabrication_rules.py`, contrôleur `controller/fabrication_controller.py`)
 - Intrants et achats (coût unitaire, fournisseur, référence de livraison), seuil d'alerte par intrant, stock restant par achat.
@@ -1630,3 +1630,122 @@ Spec `specs/2026-10-23-fabrication-production-design.md` · Plan `plans/2026-10-
 | Suivi | L'anomalie hors tolérance apparaît dans « Suivi et anomalies » avec sa nature écrite ; en admin, modifier la tolérance et le délai |
 | Accès | Un compte secrétaire et un compte `StockController` n'ont aucune entrée de menu Fabrication et sont refusés sur `/fabrication` |
 | Promoteur | Le promoteur voit tout en lecture seule, sans bouton d'écriture ni réglage |
+
+
+### Rapports : découpage en quatre morceaux, clôture de caisse prête à exécuter (2026-10-23)
+
+**Décision de cadrage (utilisateur)** : les Rapports ne sont pas un seul projet. Quatre morceaux, dans cet ordre : **1 clôture de caisse**, **3 sorties déclarées de la production**, **2 comptage physique du stock**, **4 Rapports et contrôle quotidien** (qui lit les trois autres). Exemples de décisions déjà prises pour l'ensemble :
+- Le promoteur veut savoir : produits vendus contre reçus, montant de vente contre argent réel, état de la production, et si de la production est détournée (la production est chez le promoteur, hors du centre).
+- **Sorties déclarées** (projet 3) : le responsable de production déclare ce qui sort d'un lot ; motifs retenus : **échantillon** et **autre** (motif écrit obligatoire, pour une situation imprévue discutée avec le promoteur) ; ni don ni vente directe ; approbation du promoteur obligatoire ; entre dans le bilan du lot comme catégorie expliquée.
+- **Comptage physique du stock** (projet 2) : écran du contrôleur de stock (rôle `StockController`), comparaison avec le stock système, écart = demande d'ajustement existante ; les Rapports signalent les produits jamais ou trop peu comptés. Le stock théorique (entrées moins ventes, avaries, ajustements) est calculé.
+- **Contrôle quotidien** (projet 4) : une notification unique par destinataire (promoteur et admin) **seulement en cas d'anomalie** ; la notification de clôture de caisse sert de preuve que la journée a tourné.
+- **Comparaison des secrétaires** : par jour réellement travaillé (jours où le compte a encaissé), jamais par semaine ; chacune encaisse avec son compte ; la seconde secrétaire aura d'autres tâches et une alternance par semaines sans règle d'égalité.
+
+**1. Clôture de caisse** : conception **validée par l'utilisateur** (`specs/2026-10-23-cloture-caisse-design.md`) et plan **validé** (`plans/2026-10-23-cloture-caisse.md`, 11 tâches), à exécuter en **subagent-driven** (non commencé). Points clés : une caisse commune, comptage à l'aveugle par mode puis révélation, ouverture + entrées − retraits, clôture automatique à 23 h (rattrapage à la première lecture + script cron, aucun planificateur n'existe), notification à chaque clôture, mode obligatoire sur les retraits, liste officielle des modes (Espèces, Orange Money, MTN Money, Autre mobile) y compris dans les formulaires de facture et de paiement échelonné, vente annulée = sortie « vente annulée », consultations spirituelles dans le même tiroir, modes mobiles saisis d'après le relevé de l'opérateur. Faits du code relevés : `.superpowers/recon-cloture-caisse.md` (avance écrite à la fois dans la vente et dans le paiement : ne jamais additionner ; trois fuseaux horaires mélangés : nouvelle colonne `received_at`). Ces deux documents sont **non commités** (arbre de travail).
+
+**Reprise demain** : lancer l'exécution du plan de clôture de caisse avec `superpowers:subagent-driven-development` (workspace `.superpowers/sdd/2026-10-23-cloture-caisse/`), puis brainstormer le projet 3 (sorties déclarées), puis le 2, puis le 4.
+
+
+### Clôture de caisse : livrée (tâches 1 à 11, sauf la tâche 8), NON COMMITÉE, à vérifier dans le navigateur (2026-10-24)
+
+Spec `specs/2026-10-23-cloture-caisse-design.md` ; Plan `plans/2026-10-23-cloture-caisse.md` ; Migration `alembic/versions/024_cash_closure.py`. Rien n'est commité (règle de l'utilisateur). Garde-fou front `tests/clotureCaisseGuard.test.mjs` avec `BASE = 'b6c6e09'` et `FIN = null` (arbre de travail) : **au commit du chantier, renseigner `FIN` dans un commit séparé**. Le garde-fou de la Fabrication a été borné à son commit (son contrôle des fichiers nouveaux ne tourne plus que si `FIN` est nul). Rapports de tâche : `.superpowers/sdd/2026-10-23-cloture-caisse/` (`progress.md` = registre des arbitrages).
+
+**Livré, serveur**
+- Migration 024 : colonne `received_at` (heure de réception réelle) sur `paiement_echelonne` et `caisse_retrait`, avec rattrapage des lignes existantes ; tables `payment_modes` (4 modes officiels : espèces, Orange Money, MTN Money, autre mobile), `cash_closures`, `cash_closure_lines`, `cash_closure_corrections`, `cash_closure_start` (une seule ligne).
+- **Immutabilité par trigger** : toute modification ou suppression d'une clôture, de ses lignes ou de la ligne de départ est refusée par la base. Seules les demandes de correction ont un statut qui évolue.
+- Règles pures (`utils/cash_rules.py` : normalisation des modes, calcul d'une ligne, jours de retard), dépôt (`cash_closure_repo.py`, flux d'une période), contrôleur (`cash_closure_controller.py`) : statut, clôture manuelle, clôture automatique, rattrapage, corrections, notifications promoteur et admin.
+- Endpoints `/cash-closure` (statut, liste, détail, clôture, `start`, `catchup`, corrections et leur décision) et `/payment-modes` (liste, modification du libellé, de l'activation et de l'ordre). Aucun PUT/PATCH/DELETE sur les clôtures.
+- Mode de paiement : liste officielle imposée côté serveur (`payment_mode_guard.py`) ; un mode désactivé ou inconnu est refusé (422) sur une opération en ligne ; **mode obligatoire sur les retraits**.
+- Intégrité de `settle` et de `PUT /caisse/{id}` : ils passent par la même résolution du mode.
+- Script de rattrapage `scripts/cash_closure_catchup.py` (à planifier en cron : crée les clôtures automatiques des jours oubliés, code de sortie 1 en cas d'erreur).
+
+**Livré, web**
+- `CashClosure.vue` (secrétaire) : comptage à l'aveugle par mode, révélation de l'attente et de l'écart après validation, commentaire obligatoire en cas d'écart, jeton `last_closed_at` contre le double envoi, clôture bloquée tant que la file hors ligne n'est pas vidée.
+- `CashClosuresReview.vue` (promoteur et admin) : liste filtrable (dates, manuelle/automatique, seulement avec écart), détail par mode, décision sur les corrections demandées, panneau des modes (admin seul, sans création), formulaire de départ de la caisse (admin seul, double confirmation, une seule fois).
+- Formulaires de facture, d'échéance et de retrait : liste officielle des modes (repli figé si l'API est indisponible), libellés des modes sur les listes, les tickets thermiques (trois chemins d'impression) et `FinancialList`. `RetraitModal` : aucun mode par défaut. `DossierConnector.js` : toast visible quand un retrait rejoué est refusé. Cloche de notifications : notifications de clôture.
+- Menu et routes `cash-closure` (secrétaire) et `cash-closures` (promoteur, admin) ; aucun autre compte n'a d'entrée ni d'accès.
+
+**Décisions**
+- Liste officielle de modes : espèces, Orange Money, MTN Money, autre mobile. Un nouvel opérateur tombe dans « autre mobile » ; l'admin ne crée pas de mode (il désactive ou renomme).
+- Une vente annulée compte comme une **sortie** de caisse.
+- Les périodes se découpent sur l'**heure de réception** (`received_at`), pas sur la date saisie.
+- Rattrapage **sans planificateur** dans l'application : un appel `catchup` et le script CLI ; le vrai planificateur viendra au chantier 8.
+- Comptage **à l'aveugle puis révélation** ; une clôture est immuable une fois enregistrée.
+- Une journée déjà clôturée à la main ne reçoit **pas** de clôture automatique.
+- **Sondage limité** : le serveur ne révèle l'écart (via la demande de commentaire) que pour 3 refus tracés par période ; ensuite il accepte la clôture avec le commentaire « commentaire non fourni » et une anomalie.
+- Une opération **rejouée** (marqueur de synchronisation) n'est jamais rejetée pour un mode : mode absent = non classé, mode désactivé = accepté tel quel.
+- **Solde de départ** saisi **une seule fois par l'admin** (table `cash_closure_start`, hors spec initiale, arbitrage du chantier) ; tant qu'il n'existe pas, le statut renvoie `configured: false` et les clôtures sont refusées ou sans effet. Les opérations avant ce départ ne sont jamais comptées.
+
+**Résiduels et points ouverts**
+- **Tâche 8 (consultations spirituelles) NON FAITE.** La table n'a pas de date de création fiable (seule `consultation_date`, naïve et saisie par le client), `fr_amount_paid` est modifiable et les lignes sont supprimées pour de bon, et ce montant sert aussi de prix prérempli dans la facture de caisse : le compter en plus risque un **double compte**. À décider avec l'utilisateur (le conseiller encaisse-t-il via la caisse ou en espèces hors caisse ?). La clôture fonctionne sans, le cash spirituel n'est pas dans l'attendu tant que ce n'est pas tranché.
+- **`DELETE /caisse/{id}` : CORRIGÉ le 2026-10-24** sur décision de l'utilisateur : réservé à l'admin (la secrétaire garde l'annulation, tracée). Aucun bouton de suppression côté interface.
+- Planificateur réel au chantier 8 ; fuseau horaire du conteneur à fixer (les règles utilisent Africa/Douala).
+- Modes mobiles : pas de solde reporté d'une clôture à l'autre (seul le cash est reporté).
+- Une 422 sur un mode désactivé **perd** une opération hors ligne si elle n'est pas rejouée (les opérations rejouées, elles, sont acceptées).
+- `FinanceModal` propose encore des modes libres (autre registre, non migré).
+- Le détail d'une clôture n'affiche ni annulations ni corrections approuvées (la donnée n'est pas exposée ; les corrections approuvées ne sont consommées nulle part, ce sera aux Rapports).
+- Le marqueur « commentaire non fourni » est détecté côté écran par le texte du commentaire (fragile si la constante serveur change).
+- Les tests backend supposent une base de dev sans ligne de départ ni clôture et utilisent l'horloge réelle (ils peuvent échouer peu après 23 h Douala).
+- Ids de chemin non bornés : un id hors plage entier renvoie 500 au lieu de 422.
+- Redis 6379 est réservé par Windows sur ce poste : lancer les tests avec le conteneur sur 16379 (`REDIS_URL=redis://localhost:16379/0`).
+- Reste à faire : revue finale de toute la branche (la limite de sondage et son audit n'ont pas eu de relecteur séparé).
+
+**Vérifié** : tests backend ciblés par tâche (rapports de tâche), tests front ciblés (`cashClosureContract`, `cashClosureShell`, `cashClosureReviewContract`, garde-fous) et `vite build` à la tâche 10. **Non vérifié dans un navigateur** : aucun des deux écrans, les impressions ni la cloche.
+
+**Checklist à vérifier par l'utilisateur**
+| Étape | Point précis |
+|---|---|
+| Initialisation | En admin, saisir le solde de départ de la caisse (double confirmation) ; impossible de le changer ensuite |
+| Clôture à l'aveugle | En secrétaire, compter avec un écart : le commentaire est exigé, l'attendu n'apparaît qu'après validation |
+| Clôture automatique | Oublier un jour, lancer `python scripts/cash_closure_catchup.py` : une clôture automatique est créée, avec notification |
+| Retrait | Un retrait sans mode est refusé dans le formulaire (aucun mode par défaut) |
+| Vente annulée | Annuler une vente puis la reprendre : l'annulation apparaît en sortie et le total reste juste |
+| Hors ligne | Encaisser hors ligne, se reconnecter puis clôturer : l'opération est comptée, la clôture attend la synchro |
+| Notifications | Promoteur et admin reçoivent la notification de clôture |
+| Accès | Un compte non prévu n'a ni menu ni accès aux deux écrans |
+| Corrections | Demander une correction en secrétaire, la décider en promoteur ou admin |
+
+**Revue finale et correctifs (2026-10-24)** : aucune erreur critique ; trois points importants corrigés. (1) Les écritures d'argent (paiements, annulations, retraits) prennent un verrou partagé et sont horodatées par l'horloge de la base après ce verrou, la clôture prend son heure de fin sur l'horloge de la base : plus de paiement hors de toute période, même avec l'application et la base sur deux machines. (2) Les corrections approuvées sont appliquées une seule fois à la période qui contient la décision (entrée si positive, sortie si négative), la décision prend le même verrou ; la secrétaire dispose d'un formulaire de demande de régularisation ; le détail d'une clôture renvoie `cancellations` et `corrections_applied`, affichés sur les deux écrans. (3) `DELETE /caisse/{id}` réservé à l'admin. Aussi : sondage du comptage à l'aveugle plafonné à 3 refus par période (tracés), tests isolés de l'état réel de la base (fixture `tests/cash_closure_isolation.py`, horloge fixe), identifiants bornés. **Vérification : suite serveur complète 2192 passés, 2 xfail, 0 échec ; suite navigateur (node) complète et build vite OK ; rien vérifié dans un navigateur réel.** Reste à décider : la tâche 8 (consultations spirituelles).
+
+### Chantier 8 : exigences de déploiement issues de la clôture de caisse (audit du 2026-10-24)
+
+Audit complet : `.superpowers/sdd/2026-10-23-cloture-caisse/timezone-audit.md` (git-ignoré ; les conclusions sont ici).
+
+**Politique de fuseau retenue : tout tourne en `Africa/Douala`** (pas d'heure d'été, donc aucune ambiguïté). Raison : environ 45 appels `date.today()`/`datetime.now()` et environ 25 colonnes `timestamp without time zone` avec défaut SQL supposent « local = Douala ». Les passer en UTC exigerait de corriger chacun d'eux d'abord ; les mettre tous en Douala reproduit le comportement du développement sans changer de code.
+- Postgres : `postgres -c timezone=Africa/Douala -c log_timezone=Africa/Douala` (ou `ALTER DATABASE ... SET timezone`).
+- Conteneurs API, worker Celery, planificateur, pont d'impression : `TZ=Africa/Douala`, avec `tzdata` installé (déjà dans `requirements-api.txt` et `requirements.txt`).
+- L'horloge de l'hôte (VPS à Londres) peut rester en UTC avec NTP : seul le fuseau des conteneurs compte.
+- Base de production : **neuve** (schéma via `ci/schema_only.sql` puis `alembic stamp head`, plus données de référence), car les données actuelles sont des données de test à purger ; aucune conversion de fuseau n'est donc nécessaire. Ne JAMAIS mettre la base en UTC avec des données migrées sans convertir les colonnes naïves.
+- La clôture de caisse elle-même ne dépend pas du fuseau du serveur : `ZoneInfo('Africa/Douala')` explicite, colonnes `timestamptz`, heure prise sur `clock_timestamp()` de la base ; `cancelled_at` est écrit en UTC naïf par `utc_naive(...)`, ce que la clôture suppose.
+
+**Planificateur de la clôture automatique** : le script `scripts/cash_closure_catchup.py` est prêt (idempotent, code de sortie 0 même si rien à faire ou si le verrou est pris, non nul sur erreur). À planifier **toutes les heures à la minute 5** (`5 * * * *`, fuseau Douala) : le passage de 23 h 05 ferme la journée, les autres servent de filet après une panne. Forme recommandée : un conteneur `scheduler` (même image que l'API, `TZ=Africa/Douala`, boucle cron type supercronic) lancé par le docker-compose du chantier 8 ; à défaut un cron de l'hôte avec `docker compose exec api python scripts/cash_closure_catchup.py`. Rien n'est installé tant que le squelette Docker (aucun Dockerfile ni compose d'application n'existe) n'est pas écrit.
+
+**Autres constats de l'audit à traiter avant ou pendant le chantier 8** : `paid_at` des ventes écrit en heure locale par le dépôt (`caisse_repo.py` ~221) alors que le modèle a un défaut UTC (convention mixte à unifier) ; clé Redis `caisse:daily_total:{date.today()}` basée sur le jour du serveur ; `DiscountRequestsHistory.vue:117` utilise `toISOString().slice(0,10)` (décale d'un jour entre minuit et 1 h en UTC+1) ; migration 024 : remplissage de `received_at` avec `'Africa/Lagos'` (même décalage que Douala, correct sur base neuve car la colonne est alors remplie par défaut).
+
+**Modes libres de `FinanceModal` : corrigé (2026-10-24).** Le formulaire d'écriture manuelle propose la liste officielle (codes `especes`, `orange_money`, `mtn_money`, `autre_mobile`), sans Virement ni Chèque, choix obligatoire avec une première option vide. Le serveur n'a pas changé : ces écritures passent par `POST /caisse/` et `POST /retrait/` qui normalisent déjà. Résiduel : `financialStore.js` affiche « Espèces » pour une ligne sans mode au lieu de « non classé » ; les clés i18n `finance.payment_methods.*` ne sont plus utilisées par ce formulaire. Suite navigateur (node) 5524 passés, build vite OK.
+
+**Trois bugs de date corrigés (2026-10-24)** : `Caisse.paid_at` suit la convention « heure locale de Douala » (nouvel `utils/business_time.py` : `business_now()`, `business_today()`, horloge injectable), la clé Redis `caisse:daily_total:{jour}` et son lecteur utilisent le jour métier, `DiscountRequestsHistory.vue` n'utilise plus `toISOString().slice(0,10)`. Serveur : 76 tests ciblés passés ; navigateur : 5528 passés, build OK. Résiduels : `caisseStore.js` (lignes ~151 et ~180) écrit `new Date().toISOString()` (UTC) comme `paid_at` de la ligne locale hors ligne ; le connecteur d'envoi ne semble pas transmettre ce champ au serveur (à confirmer) ; `test_daily_total_reflects_created_transaction` utilise encore `date.today()` (fragile entre 23 h et 24 h UTC sur une machine UTC). **Tâche 8 (consultations spirituelles) close : non nécessaire** (le carnet est facturé par la caisse, donc déjà compté ; `fr_amount_paid` n'est qu'un prix de référence) ; à rouvrir seulement si le conseiller encaisse hors caisse.
+
+**Prix unitaire verrouillé sur le catalogue pour la secrétaire : livré, NON COMMITÉ (2026-10-24).** Décision utilisateur : la secrétaire ne modifie plus le prix des lignes qui ont un prix de catalogue (médicament = `pharmacy.price`, examen = `examens.prix`, consultation restauration familiale = `fr_amount_paid`) ; un autre prix passe par la demande de réduction existante ; admin et promoteur restent libres ; lignes sans catalogue (service libre, consultation spirituelle) restent libres, sans justification (pas de migration). Prix NULL ou 0 = non défini = invendable par la secrétaire (422 en ligne). Facture rejouée depuis la file hors ligne (uuid) avec un prix différent : jamais perdue, enregistrée telle quelle + trace d'audit `PRICE_MISMATCH` + notification `price_mismatch` au promoteur et aux admins (l'admin va au registre financier ; le promoteur ne navigue pas). Contrôles ajoutés : quantité entière de 1 à 100000, prix >= 0, total de ligne = prix x quantité (refusés pour tous les rôles, y compris pour une facture rejouée, qui finit alors dans l'écran des échecs de synchronisation) ; même règle pour la modification d'une facture (PUT avec lignes) et la création d'une vente par demande de réduction (pas de rejeu sur ce chemin). Fiche produit : le champ prix accepte les décimales (`step="any"`, cause probable du « bug » rapporté par l'utilisateur : navigateur qui bloque sans erreur). **Vérification : suite serveur complète 2252 passés, 2 xfail, 0 échec ; suite navigateur 5537 passés ; build vite OK.** Résiduels : une ligne « service » à prix libre peut vendre autre chose qu'un service (inhérent ; seul indice : le stock ne baisse pas) ; une alerte `price_mismatch` peut venir d'une vente hors ligne faite avant un changement de prix (libellé le dit) ; exam/produit à 0 non vendables par la secrétaire tant que l'admin n'a pas défini les prix ; Redis 6379 à libérer après redémarrage du PC (`docker start ah2_redis`, puis redémarrer API et Celery), l'alerte Celery de stock échoue d'ici là.
+
+## Sorties declarees de la production : livrees, NON COMMITEES, a verifier dans le navigateur (2026-10-24)
+
+**Livre.** Migration 025 et table `fab_batch_outputs` (une ligne par sortie : lot, motif `echantillon` ou `autre`, quantite, note, statut, auteur, date, champs d'annulation). Regles, depot et controleur de la Fabrication etendus. Routes : `POST /fabrication/batches/{id}/outputs` (declarer), `POST /fabrication/batches/{id}/outputs/{output_id}/cancel` (annuler avec motif), `GET /fabrication/outputs` (liste, filtres date_from, date_to, reason). Section "Sorties declarees" sur la fiche du lot (`FabLotDetail.vue`) : bilan bonnes / sorties / a expedier, formulaire de declaration, annulation. Panneau "Sorties declarees recentes" dans le suivi (`FabSuivi.vue`) : lot (lien vers la fiche), produit, motif dit par un mot ("Autre" signale par le badge "A verifier"), quantite, note, auteur, date et heure locales, statut "Annulee" grise mais visible ; filtres Du / Au en dates locales et motif ; indication quand 200 lignes reviennent. Expedition = bouteilles bonnes - sorties actives. Reouverture d'un lot refusee tant qu'une sortie active existe. L'anomalie "ecart expedie / recu" compare la quantite reellement expediee (quantite du lot de production, `expedie`) et non plus les bouteilles bonnes. Heures stockees en UTC et renvoyees avec un decalage explicite (+00:00), affichees a l'heure du poste.
+
+**Decisions.** Pas d'approbation : la sortie est enregistree des sa declaration. Une sortie = des bouteilles bonnes retirees AVANT l'expedition (impossible apres). Pas de notification. Cout par bouteille bonne inchange (les sorties ne le modifient pas). Annulation possible, avec motif obligatoire, jusqu'a l'expedition du lot. Motif d'annulation limite a 500 caracteres. Liste des sorties plafonnee a 200 lignes, les plus recentes.
+
+**Residuels.** Liste limitee a 200 sans pagination (l'ecran le signale, il faut affiner les dates). `qty_shipped` de la fiche du lot est calcule en direct (bonnes - sorties actives) et non lu depuis le lot de production. Le controle quotidien des Rapports (morceau 4) devra signaler les sorties `autre`. Le test de concurrence serveur ecrit dans la base de developpement (donnees commitees) puis nettoie.
+
+**Liste de verification utilisateur.**
+- Declarer un echantillon sur un lot termine : la quantite a expedier baisse d'autant.
+- Declarer plus que les bouteilles disponibles : refuse.
+- Motif "Autre" sans note : refuse.
+- Annuler une sortie avec un motif : elle reste visible, grisee "Annulee", et les bouteilles reviennent.
+- Expedier le lot : verifier que la quantite arrivee au stock = bonnes - sorties.
+- Rouvrir un lot qui a une sortie active : refuse.
+- Heures affichees correctes a Douala (fiche du lot et panneau du suivi).
+- Roles : ProductionManager declare et annule ; promoteur et admin en lecture ; les autres roles sans acces.
+
+**Verification.** Serveur : tache 2, 93 passes (depot et regles) ; tache 3, 129 passes (expedition) ; tache 4, 413 passes (routes et roles) ; tache 5, 58 passes cibles. Navigateur : tache 5, 5548 passes ; tache 6, contrats cibles 66 passes. Suite serveur complete lancee le 2026-10-24 AVANT la vague de corrections de la revue finale : 2428 passes, 2 xfail, 0 echec. Apres la vague de corrections : tests serveur cibles Fabrication (sorties, routes des sorties, lots, expedition, roles) 476 passes ; suite navigateur complete 5555 passes, 0 echec ; build vite OK.
+
+**Revue finale, corrections (2026-10-24).** Annuler en bloc un lot termine qui a une sortie active est refuse (409, "Annulez d'abord les sorties declarees."), comme la reouverture ; un lot dont les sorties sont toutes annulees s'annule normalement. Le filtre de dates de `GET /fabrication/outputs` compare maintenant declared_at (UTC) aux bornes du jour local de Douala converties en UTC : une sortie declaree entre 00:00 et 01:00 heure locale tombe sur le bon jour. Le panneau du suivi ignore les reponses perimees quand les filtres changent vite.

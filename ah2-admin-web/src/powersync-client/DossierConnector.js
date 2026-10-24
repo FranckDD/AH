@@ -614,6 +614,16 @@ export class DossierConnector {
             console.error('Impossible d\'afficher la notification de prescription en echec:', toastError);
           }
         }
+        // Retrait refuse definitivement (cloture de caisse, tache 9) : il sortait de la file avec un simple log
+        // console. L'argent est pourtant deja sorti du tiroir : notification visible, comme les prescriptions.
+        if (lastOp?.table === 'caisse_retrait') {
+          try {
+            const detail = describeServerError(error, 'contacter un administrateur.');
+            useToastStore().push(i18n.global.t('retraitScreens.sync_failed', { detail }));
+          } catch (toastError) {
+            console.error("Impossible d'afficher la notification de retrait en echec:", toastError);
+          }
+        }
         // Patient refuse definitivement (doublon national_id, donnees
         // invalides) : mis en quarantaine locale - ses consultations et
         // prescriptions suivantes y seront retenues (cases ci-dessus) au lieu

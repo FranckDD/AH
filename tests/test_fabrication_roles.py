@@ -21,7 +21,10 @@ from tests.conftest import auth_headers, create_test_user
 
 PWD = "TestPass123!"
 ROLES = ("ProductionManager", "promoteur", "admin", "Assistant", "StockController", "secretaire",
-         "medecin", "nurse", "laborantin", "ToxicoManager", "Psychologist")
+         "medecin", "nurse", "laborantin", "ToxicoManager", "Psychologist", "SpiritualCounsellor", "manager")
+# manager (alias gestionnaire) : role canonique de role_map.py sans ligne application_roles ;
+# l'utilisateur est seme sous un role existant puis user.roles est force a "manager".
+NO_DB_ROW = {"manager": "Assistant"}
 READ_OK = {"ProductionManager", "promoteur", "admin"}
 WRITE_OK = {"ProductionManager"}
 ADMIN_OK = {"admin"}
@@ -48,6 +51,9 @@ ROUTES = {
     ("POST", "/fabrication/batches/{batch_id}/reopen"): (WRITE, None),
     ("POST", "/fabrication/batches/{batch_id}/cancel"): (WRITE, {"reason": "x"}),
     ("POST", "/fabrication/batches/{batch_id}/ship"): (WRITE, {}),
+    ("POST", "/fabrication/batches/{batch_id}/outputs"): (WRITE, {}),
+    ("POST", "/fabrication/batches/{batch_id}/outputs/{output_id}/cancel"): (WRITE, {"reason": "x"}),
+    ("GET", "/fabrication/outputs"): (READ, None),
     ("GET", "/fabrication/settings"): (READ, None),
     ("PUT", "/fabrication/settings"): (ADMIN, {}),
     ("GET", "/fabrication/anomalies"): (READ, None),
@@ -101,7 +107,8 @@ def _memoized_password_hash():
 
 @pytest.fixture
 def env(db_session, api_client):
-    users = {r: create_test_user(db_session, f"t_fabrole_{r.lower()}", r, password=PWD) for r in ROLES}
+    users = {r: create_test_user(db_session, f"t_fabrole_{r.lower()}", NO_DB_ROW.get(r, r), password=PWD)
+             for r in ROLES}
     client = api_client(auth_endpoints, ep, stock_endpoints, pharmacy_endpoints)
     return {"db": db_session, "client": client, "users": users}
 
@@ -143,7 +150,8 @@ def test_role_matrix(env, route, role):
 def test_unauthenticated_refused(env):
     for route in sorted(ROUTES):
         r = _call(env["client"], route[0], route[1], ROUTES[route][1])
-        assert r.status_code in (401, 403), (route, r.status_code)
+        # OAuth2PasswordBearer (auth_endpoints.oauth2_scheme) : sans jeton -> 401
+        assert r.status_code == 401, (route, r.status_code)
 
 
 def _keys(node):
@@ -191,3 +199,12 @@ def test_real_login_wiring(env):
     h_sec = auth_headers(c, "t_fabrole_secretaire", PWD)
     assert c.get("/fabrication/intrants", headers=h_pm).status_code == 200
     assert c.get("/fabrication/intrants", headers=h_sec).status_code == 403
+    # sorties declarees : meme cablage jeton -> role
+    assert c.get("/fabrication/outputs", headers=h_pm).status_code == 200
+    assert c.get("/fabrication/outputs", headers=h_sec).status_code == 403
+    body = {"reason": "autre", "quantity": 1, "note": "n"}
+    r = c.post(f"/fabrication/batches/{BIG}/outputs", json=body, headers=h_sec)
+    assert r.status_code == 403, r.text
+    # en dernier : le 404 du controleur annule la transaction de test (utilisateurs semes compris)
+    r = c.post(f"/fabrication/batches/{BIG}/outputs", json=body, headers=h_pm)
+    assert r.status_code == 404, r.text

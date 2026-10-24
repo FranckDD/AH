@@ -147,6 +147,7 @@ test('(c) aucun ecran, magasin ou service existant (stock, caisse, labo, toxico,
 });
 
 test('(c) les fichiers nouveaux du module vivent tous aux emplacements prevus', () => {
+    if (FIN) return; // chantier commite : les fichiers non suivis appartiennent a un chantier suivant
     // `git diff` ignore les fichiers non suivis : on controle l'emplacement directement.
     const out = (() => {
         try {

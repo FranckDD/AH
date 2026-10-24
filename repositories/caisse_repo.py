@@ -3,6 +3,7 @@
 from sqlalchemy.orm import Session
 from sqlalchemy.orm import relationship,joinedload
 from datetime import datetime, date
+from decimal import Decimal
 from sqlalchemy import select, func, or_
 from typing import List, Dict
 
@@ -16,6 +17,8 @@ from api_backend.backend_app.utils.pdf_header import get_pdf_header_context
 from controller.config_controller import ConfigController
 from repositories.config_repo import ConfigRepository
 from utils.item_types import touches_stock
+from utils.cash_lock import lock_cash_write, utc_naive
+from utils.business_time import business_now
 
 
 class CaisseRepository:
@@ -216,7 +219,7 @@ class CaisseRepository:
             patient_label    = data.get("patient_label"),
             amount           = data["amount"],      # Montant TOTAL de la facture
             advance_amount   = 0.0,                 # Initialisé à 0
-            paid_at          = data.get("paid_at", datetime.now()),
+            paid_at          = data.get("paid_at") or business_now(),
             created_by_name  = current_user.username,
             handled_by       = current_user.user_id,
             payment_method   = data["payment_method"], # Méthode préférée (sera utilisée pour le 1er paiement)
@@ -345,6 +348,8 @@ class CaisseRepository:
             handled_by     = current_user.user_id,
             note           = data.get("note", "")
         )
+        # Verrou partage de la cloture puis heure reelle (jamais l'heure de debut de transaction)
+        payment.received_at = lock_cash_write(self.session)
         if data.get("uuid"):
             import uuid
             payment.uuid = uuid.UUID(str(data["uuid"]))
@@ -505,7 +510,7 @@ class CaisseRepository:
         # (cancelled_by...) que le trigger fn_caisse_protect_cancelled refuse.
         cancelled_by = getattr(current_user, "user_id", None)
         tx.cancelled_by = cancelled_by
-        tx.cancelled_at = datetime.utcnow()
+        tx.cancelled_at = utc_naive(lock_cash_write(self.session))  # sous verrou partage de la cloture
         tx.cancel_justification = justification
         tx.status = 'cancelled'
         self.session.add(tx)
@@ -527,22 +532,28 @@ class CaisseRepository:
             self.session.commit()
         return tx
     
-    def settle_transaction(self, transaction_id: int, user_id: int) -> Caisse:
+    def settle_transaction(self, transaction_id: int, current_user, payment_method: str) -> Caisse:
         """
-        Solde une transaction : met l'avance égale au montant total.
+        Solde une transaction : verse le reste du sous forme d'une ligne
+        paiement_echelonne 'SOLDE' (tout argent encaisse a sa ligne de paiement,
+        cloture de caisse). payment_method : mode deja normalise par le controller.
         """
         tx = self.get_by_id(transaction_id)
         if not tx:
             raise ValueError("Transaction introuvable")
-        
+
         if tx.status == 'cancelled':
             raise ValueError("Impossible de solder une transaction annulée")
 
-        # Mise à jour : l'avance devient le total (tout est payé)
-        tx.advance_amount = tx.amount
-        # On pourrait aussi ajouter une note système ici si on voulait
-        # tx.note = (tx.note or "") + f"\n[Soldé par user {user_id} le {datetime.now()}]"
-        
+        remaining = Decimal(str(tx.amount or 0)) - Decimal(str(tx.advance_amount or 0))
+        if remaining > 0:
+            self.add_payment_installment(transaction_id, {
+                "paid_amount": remaining,
+                "payment_method": payment_method,
+                "payment_type": "SOLDE",
+                "note": "Solde de la facture",
+            }, current_user, commit=False)
+
         self.session.commit()
         self.session.refresh(tx)
         return tx

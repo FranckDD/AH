@@ -12,10 +12,7 @@
 
       <FormField id="installment-method" :label="t('finance.modal.method')" v-slot="{ describedBy }">
         <select id="installment-method" v-model="paymentMethod" :aria-describedby="describedBy" :class="fieldClass">
-          <option value="Espèces">{{ t('finance.payment_methods.cash') }}</option>
-          <option value="Mobile Money">{{ t('finance.payment_methods.mobile') }}</option>
-          <option value="Virement">{{ t('finance.payment_methods.transfer') }}</option>
-          <option value="Chèque">{{ t('finance.payment_methods.check') }}</option>
+          <option v-for="m in paymentModes" :key="m.code" :value="m.code">{{ m.label }}</option>
         </select>
       </FormField>
 
@@ -44,6 +41,7 @@ import { useI18n } from 'vue-i18n';
 import { ExclamationCircleIcon } from '@heroicons/vue/20/solid';
 import { AppButton, FormField, ActionBar, FullScreenPanel } from '@/components/ui';
 import { toneClasses } from '@/design/tones';
+import { usePaymentModes } from '@/utils/paymentModes';
 
 const props = defineProps({
   remainingDue: { type: Number, required: true },
@@ -57,7 +55,9 @@ const { t } = useI18n();
 const fieldClass = 'block w-full min-h-11 rounded-control border border-tone-neutral-border bg-white px-3 text-base text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand-600';
 
 const paidAmount = ref(props.remainingDue);
-const paymentMethod = ref('Espèces');
+// Liste officielle des modes (codes stables, GET /payment-modes, repli hors ligne).
+const paymentModes = usePaymentModes();
+const paymentMethod = ref('especes');
 
 const formatCurrency = (value) => new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XAF' }).format(value || 0).replace('XOF', 'FCFA');
 

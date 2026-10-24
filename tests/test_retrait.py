@@ -30,6 +30,28 @@ def test_create_retrait_success(db_session, api_client):
     assert body["retrait_id"]
 
 
+def test_create_retrait_without_mode_returns_422(db_session, api_client):
+    create_test_user(db_session, "test_retrait_secretaire_nomode", "secretaire", password=TEST_PASSWORD)
+    client = api_client(auth_endpoints, retrait_endpoints)
+    headers = auth_headers(client, "test_retrait_secretaire_nomode", TEST_PASSWORD)
+
+    resp = client.post("/retrait/", json={"amount": 5.0, "justification": "Sans mode"}, headers=headers)
+
+    assert resp.status_code == 422
+
+
+def test_create_retrait_old_mode_normalized(db_session, api_client):
+    create_test_user(db_session, "test_retrait_secretaire_oldmode", "secretaire", password=TEST_PASSWORD)
+    client = api_client(auth_endpoints, retrait_endpoints)
+    headers = auth_headers(client, "test_retrait_secretaire_oldmode", TEST_PASSWORD)
+
+    resp = client.post("/retrait/", json={"amount": 5.0, "justification": "Ancien mode",
+                                          "payment_method": "Mobile Money"}, headers=headers)
+
+    assert resp.status_code == 201
+    assert resp.json()["payment_method"] == "autre_mobile"
+
+
 def test_create_retrait_negative_amount_returns_422(db_session, api_client):
     create_test_user(db_session, "test_retrait_secretaire_negative", "secretaire", password=TEST_PASSWORD)
     client = api_client(auth_endpoints, retrait_endpoints)

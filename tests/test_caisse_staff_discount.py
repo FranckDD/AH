@@ -13,8 +13,11 @@ from repositories.staff_discount_repo import StaffDiscountRepository
 from models.caisse import Caisse
 from models.patient import Patient
 from models.pharmacy import Pharmacy
+from models.lab import Examen
 from models.staff_discount_rule import StaffDiscountRule
 from tests.conftest import create_test_user, create_test_patient, auth_headers
+import uuid as _uuid
+import pytest
 
 PWD = "Correct123!"
 MSG = "Réduction personnel incohérente avec les règles en vigueur."
@@ -38,8 +41,24 @@ def _patient(db, user, staff=True):
     return pid
 
 
-def _med(db, qty=100):
-    m = Pharmacy(drug_name="Medoc staff test", quantity=qty, threshold=1, medication_type="comprime")
+# Prix verrouille au catalogue (2026-10-24) : la secretaire facture au prix
+# catalogue. Medicament et examen de test a 1 FCFA, le montant de ligne vient
+# de la quantite (line_total = 1 x t) : memes totaux qu'avant.
+_CATALOG = {"exam_id": None}
+
+
+@pytest.fixture(autouse=True)
+def _catalog_exam(db_session):
+    ex = Examen(code=f"SD-{_uuid.uuid4().hex[:8]}", nom="Examen staff test", categorie="Bio", prix=1)
+    db_session.add(ex)
+    db_session.flush()
+    _CATALOG["exam_id"] = ex.id
+    yield
+
+
+def _med(db, qty=100000):
+    m = Pharmacy(drug_name="Medoc staff test", quantity=qty, threshold=1, medication_type="comprime",
+                 price=1)
     db.add(m)
     db.flush()
     return m.medication_id
@@ -48,8 +67,8 @@ def _med(db, qty=100):
 def _payload(patient_id, med_id, totals=(3000.0, 4000.0), discount=None, amount=None):
     # 1re ligne medicament (stock), lignes suivantes examens (spec : 3000 med + 4000 examens)
     items = [{"item_type": "médicament" if i == 0 else "Examens",
-              "item_ref_id": med_id if i == 0 else 1, "unit_price": t,
-              "quantity": 1, "line_total": t} for i, t in enumerate(totals)]
+              "item_ref_id": med_id if i == 0 else _CATALOG["exam_id"], "unit_price": 1.0,
+              "quantity": int(t), "line_total": t} for i, t in enumerate(totals)]
     gross = sum(totals)
     p = {
         "patient_id": patient_id,

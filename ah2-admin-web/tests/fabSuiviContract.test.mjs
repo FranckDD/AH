@@ -82,6 +82,61 @@ test('FabSuivi : cles fabrication.* et common.* en FR et EN, sans caractere inte
     }
 });
 
+// ---- Sorties declarees recentes (chantier sorties declarees, tache 6) ----
+test('FabSuivi : le panneau des sorties appelle listOutputs avec les filtres et se recharge avec la page', () => {
+    assert.match(view, /FabricationGateway\.listOutputs\(\{/);
+    assert.match(view, /dateFrom: outDateFrom\.value \|\| undefined/);
+    assert.match(view, /reason: outReason\.value \|\| undefined/);
+    assert.match(view, /loadOutputs\(\)/);
+    const load = view.slice(view.indexOf('const load = async'));
+    assert.ok(load.slice(0, load.indexOf('};')).includes('loadOutputs()'), 'load() recharge aussi les sorties');
+});
+
+test('FabSuivi : filtres Du/Au en dates locales, sans toISOString, bouton d\'effacement', () => {
+    const t = templateOf(view);
+    assert.match(t, /v-model="outDateFrom" type="date"/);
+    assert.match(t, /v-model="outDateTo" type="date"/);
+    assert.match(t, /v-model="outReason"/);
+    assert.match(t, /@click="resetOutputFilters"/);
+    assert.doesNotMatch(view, /toISOString/);
+    assert.match(view, /outDateFrom\.value > outDateTo\.value/);
+});
+
+test('FabSuivi : motif dit par un mot, Autre mis en evidence par un texte, Annulee visible', () => {
+    const t = templateOf(view);
+    assert.match(t, /fabrication\.outputs\.reason\.\$\{o\.reason\}/);
+    assert.match(t, /v-if="o\.reason === 'autre'"[^>]*:label="t\('fabrication\.outputs\.to_check'\)"/);
+    assert.match(t, /fabrication\.outputs\.status_annulee/);
+    assert.match(t, /openBatch\(o\.batch_id\)/);
+});
+
+test('FabSuivi : indication quand le serveur renvoie exactement 200 lignes', () => {
+    assert.match(view, /OUTPUTS_CAP = 200/);
+    assert.match(view, /outputs\.value\.length === OUTPUTS_CAP/);
+    for (const l of ['fr', 'en']) assert.ok(pick(msgs[l], 'fabrication.outputs.limit_hint'));
+    assert.match(pick(msgs.fr, 'fabrication.outputs.limit_hint'), /200 plus r[eé]centes/);
+});
+
+test('FabSuivi : une reponse perimee de listOutputs est ignoree (compteur de requetes)', () => {
+    assert.match(view, /const seq = \+\+outputsSeq;/);
+    assert.match(view, /if \(seq !== outputsSeq\) return;/);
+    assert.match(view, /OUTPUTS_CAP = 200;.*recent_outputs/);
+});
+
+test('FabSuivi : ecart_expedie_recu affiche la quantite expediee figee (d.expedie, repli d.qty_good)', () => {
+    assert.match(view, /shipped: qty\(d\.expedie \?\? d\.qty_good\)/);
+});
+
+test('FabSuivi : fabrication.outputs.* a les memes cles en FR et EN, sans caractere interdit', () => {
+    const flat = (o, p = '', out = {}) => { for (const [k, v] of Object.entries(o)) { const key = p ? `${p}.${k}` : k; if (v && typeof v === 'object') flat(v, key, out); else out[key] = v; } return out; };
+    const fr = flat(msgs.fr.fabrication.outputs), en = flat(msgs.en.fabrication.outputs);
+    assert.deepEqual(Object.keys(fr).sort(), Object.keys(en).sort());
+    for (const v of [...Object.values(fr), ...Object.values(en)]) assert.doesNotMatch(v, FORBIDDEN);
+    const used = [...view.matchAll(/['"`(](fabrication\.outputs\.[a-zA-Z_]+)['"`)]/g)].map((m) => m[1]);
+    assert.ok(used.length >= 10, `seulement ${used.length} cles`);
+    for (const k of used) for (const l of ['fr', 'en']) assert.equal(typeof pick(msgs[l], k), 'string', `${l}.${k}`);
+});
+
 test('FabSuivi : jetons, texte >= 13 px, cibles >= 44 px, aucun texte en dur', () => {
     assert.doesNotMatch(view, /\b(emerald|indigo|slate|yellow|red|gray|blue|teal|amber|purple|rose|orange|green|sky|pink)-\d{2,3}\b/);
     assert.doesNotMatch(view, /#[0-9a-fA-F]{3,8}\b/);

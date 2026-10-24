@@ -22,7 +22,8 @@ from .prayer_book_type import PrayerBookType
 from .retrait import CaisseRetrait
 from .stock_movement import StockMovement
 from .stock_reception import ProductionLot, StockReceipt, StockReceiptLine, StockIncident, StockAdjustmentRequest
-from .fabrication import FabIntrant, FabIntrantPurchase, FabBatch, FabConsumption, FabSettings
+from .fabrication import FabIntrant, FabIntrantPurchase, FabBatch, FabBatchOutput, FabConsumption, FabSettings
+from .cash_closure import PaymentMode, CashClosure, CashClosureLine, CashClosureCorrection, CashClosureStart
 from .lab_stock import (
     LabStockProduct, LabStockReceipt, LabStockReceiptLine, LabStockCount,
     LabStockCountLine, LabStockMovement, LabStockRequest,

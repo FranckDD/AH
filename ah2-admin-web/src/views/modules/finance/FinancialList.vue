@@ -67,7 +67,7 @@
         <template #cell-date="{ row: tx }"><span class="font-mono">{{ tx.date }}</span></template>
         <template #cell-desc="{ row: tx }">
           <span class="font-medium">{{ tx.description }}</span>
-          <span class="block text-sm text-ink-muted">{{ tx.paymentMethod }}</span>
+          <span class="block text-sm text-ink-muted">{{ modeLabel(tx.paymentMethod) }}</span>
         </template>
         <template #cell-category="{ row: tx }">{{ tx.category }}</template>
         <template #cell-amount="{ row: tx }">
@@ -106,6 +106,7 @@ import { FinanceGateway } from '@/services/FinanceGateway';
 import { useI18n } from 'vue-i18n';
 import FinanceModal from '@/components/finance/FinanceModal.vue';
 import { AppButton, PageHeader, FormField, StatTile, StatusBadge, ResponsiveTable } from '@/components/ui';
+import { modeLabel } from '@/utils/paymentModes';
 import { 
     PlusCircleIcon, 
     ArrowTrendingUpIcon, 

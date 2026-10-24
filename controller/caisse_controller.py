@@ -5,6 +5,7 @@ import json
 import logging
 import redis
 from datetime import datetime, date
+from utils.business_time import business_today
 from typing import Dict, List, Optional
 from dotenv import load_dotenv
 from celery import Task
@@ -17,6 +18,8 @@ from models.consultation_spirituelle import ConsultationSpirituel
 from models.patient import Patient
 from repositories.staff_discount_repo import StaffDiscountRepository
 from utils.staff_discount import compute_staff_discount
+from utils.payment_mode_guard import resolve_payment_mode
+from utils.price_lock import check_line_prices, record_price_mismatches, validate_lines
 from decimal import Decimal, ROUND_HALF_UP
 
 # --- Imports Optimisation ---
@@ -43,6 +46,18 @@ _CENTS = Decimal("0.01")
 
 def _q(v) -> Decimal:
     return Decimal(str(v)).quantize(_CENTS, rounding=ROUND_HALF_UP)
+
+
+def _same_instant(raw, stored) -> bool:
+    """paid_at du payload (chaine ISO ou datetime) == valeur stockee (a la seconde, sans fuseau)."""
+    try:
+        val = raw if isinstance(raw, datetime) else datetime.fromisoformat(str(raw).replace("Z", "+00:00"))
+    except (TypeError, ValueError):
+        return False
+    if stored is None:
+        return False
+    strip = lambda d: d.replace(tzinfo=None, microsecond=0)
+    return strip(val) == strip(stored)
 
 
 def _gross(items) -> Decimal:
@@ -118,7 +133,7 @@ def validate_staff_discount(session, data: dict, sent) -> tuple:
 
 class CaisseController:
     def __init__(self, repo: CaisseRepository, current_user, audit_repo: Optional[AuditRepository] = None,
-                 discount_repo=None):
+                 discount_repo=None, notification_repo=None):
         """
         - repo         : instance de CaisseRepository
         - current_user : instance de User (doit avoir l’attribut 'user_id' et 'username')
@@ -131,6 +146,9 @@ class CaisseController:
         self.user = current_user
         self.audit_repo = audit_repo
         self.discount_repo = discount_repo
+        # Notifications d'ecart de prix (rejeu hors ligne) : cablee par
+        # get_caisse_controller ; None -> audit seul, jamais d'exception.
+        self.notification_repo = notification_repo
 
     # --- LECTURE AVEC CACHE REDIS ---
 
@@ -272,6 +290,11 @@ class CaisseController:
                 if not cs:
                     raise ValueError(f"Aucune consultation pour l'ID = {line['item_ref_id']}")
 
+        # Prix verrouille au catalogue (secretaire) : 422 en ligne, trace en rejeu.
+        replay = bool(data.get("uuid"))
+        validate_lines(data["items"])  # tous roles, rejeu compris
+        price_mismatches = check_line_prices(self.repo.session, data["items"], self.user, replay)
+
         # Invariant net : Σ lignes − reduction personnel == amount (montant du)
         staff_sent, amount = check_invoice_amounts(data)
 
@@ -282,14 +305,20 @@ class CaisseController:
             "amount": amount,
             "staff_discount_amount": staff_sent,
             "staff_discount_details": staff_details,
+            # Code officiel (valeur ancienne normalisee, mode desactive refuse)
+            # uuid client = operation rejouee depuis la file hors ligne (jamais refusee pour le mode)
+            "payment_method": resolve_payment_mode(self.repo.session, data["payment_method"], required=False,
+                                                   replay=bool(data.get("uuid"))),
         }
 
         # 2. Création DB (Action bloquante)
         tx = self.repo.create_transaction(data, self.user)
+        record_price_mismatches(self.repo.session, self.audit_repo, self.notification_repo,
+                                self.user, tx, price_mismatches)
 
         # 3. 🟢 Invalidation Cache (Le total du jour a changé)
         try:
-            today = date.today()
+            today = business_today()
             # On supprime la clé du total journalier pour forcer le recalcul
             redis_client.delete(f"caisse:daily_total:{today}")
             # Note: Invalider les KPIs par range de date est complexe, on laisse le TTL (5min) expirer
@@ -327,12 +356,15 @@ class CaisseController:
         # Petite tolérance pour les float
         if data["paid_amount"] > remaining + 0.01: 
             raise ValueError(f"Montant trop élevé. Reste à payer : {remaining}")
-            
+        data = {**data, "payment_method": resolve_payment_mode(
+            self.repo.session, data.get("payment_method"), required=False,
+            replay=bool(data.get("uuid")))}
+
         result = self.repo.add_payment_installment(transaction_id, data, self.user)
 
         # 🟢 Invalidation Cache
         try:
-            today = date.today()
+            today = business_today()
             redis_client.delete(f"caisse:daily_total:{today}")
         except Exception: pass
 
@@ -373,10 +405,33 @@ class CaisseController:
         if "items" in data:
             if not data["items"] and data.get("advance_amount", 0) == 0:
                 raise ValueError("La liste d'items ne peut pas être vide ET advance_amount = 0.")
+            # Meme controles qu'a la creation (PUT = toujours en ligne, uuid ignore).
+            validate_lines(data["items"])
+            check_line_prices(self.repo.session, data["items"], self.user, replay=False)
 
         # La reduction personnel n'est jamais fournie par le client sur PUT.
         data = {k: v for k, v in data.items()
                 if k not in ("staff_discount_amount", "staff_discount_details")}
+
+        # Cloture de caisse : l'argent encaisse ne bouge que via une ligne
+        # paiement_echelonne (/payment, /settle). PUT accepte une valeur identique
+        # (ignoree) mais refuse de changer advance_amount, ou paid_at d'une vente encaissee.
+        if "advance_amount" in data:
+            try:
+                same = _q(data["advance_amount"] or 0) == _q(tx.advance_amount or 0)
+            except Exception:
+                same = False
+            if not same:
+                raise ValueError("Le montant payé ne se modifie pas : enregistrez un versement.")
+            data.pop("advance_amount")
+        if "paid_at" in data:
+            if _q(tx.advance_amount or 0) > 0 and not _same_instant(data["paid_at"], tx.paid_at):
+                raise ValueError("La date d'une facture déjà encaissée ne se modifie pas.")
+            if _q(tx.advance_amount or 0) > 0:
+                data.pop("paid_at")
+        if "payment_method" in data:
+            data["payment_method"] = resolve_payment_mode(self.repo.session, data["payment_method"],
+                                                          required=False)
 
         if any(k in data for k in ("items", "patient_id", "amount")):
             # Etat fusionne : valeur du payload, sinon valeur stockee.
@@ -416,7 +471,7 @@ class CaisseController:
         
         # Invalidation cache simple (on suppose que le montant a pu changer)
         try:
-            redis_client.delete(f"caisse:daily_total:{date.today()}")
+            redis_client.delete(f"caisse:daily_total:{business_today()}")
         except Exception: pass
 
         return updated_tx
@@ -442,7 +497,7 @@ class CaisseController:
             
         # Invalidation Cache
         try:
-            redis_client.delete(f"caisse:daily_total:{date.today()}")
+            redis_client.delete(f"caisse:daily_total:{business_today()}")
         except Exception: pass
 
         return tx
@@ -453,7 +508,7 @@ class CaisseController:
             raise ValueError("Facture en attente de validation d'une réduction - action impossible.")
         # Action destructrice, on invalide tout ce qu'on peut
         try:
-            redis_client.delete(f"caisse:daily_total:{date.today()}")
+            redis_client.delete(f"caisse:daily_total:{business_today()}")
         except Exception: pass
         return self.repo.delete_transaction(transaction_id)
 
@@ -461,9 +516,11 @@ class CaisseController:
         tx = self.repo.get_by_id(transaction_id)
         if tx and tx.status == "pending_approval":
             raise ValueError("Facture en attente de validation d'une réduction - action impossible.")
-        res = self.repo.settle_transaction(transaction_id, self.user.user_id)
+        # Mode de la ligne SOLDE : celui de la vente, normalise (valeur ancienne -> code officiel)
+        mode = resolve_payment_mode(self.repo.session, getattr(tx, "payment_method", None), required=False)
+        res = self.repo.settle_transaction(transaction_id, self.user, mode)
         try:
-            redis_client.delete(f"caisse:daily_total:{date.today()}")
+            redis_client.delete(f"caisse:daily_total:{business_today()}")
         except Exception: pass
         return res
     

@@ -65,6 +65,8 @@ import router from '@/router';
 import { useI18n } from 'vue-i18n';
 import { stockDecidedLabel, adjustmentKindLabel } from '@/utils/stockNotificationLabels';
 import { labNotificationLabel } from '@/utils/labStockLabels';
+import { gapWords } from '@/utils/cashClosure';
+import { modeLabel } from '@/utils/paymentModes';
 
 const { t } = useI18n();
 
@@ -87,7 +89,9 @@ const maybePrintApprovedDiscountTicket = async (n) => {
 
   try {
     const resp = await CaisseGateway.getTicket(n.payload.transaction_id);
-    await PrinterBridgeGateway.printTicket(resp.data);
+    // libelle lisible du mode (code stocke, ex. orange_money) ; vide reste vide (pas de ligne Mode)
+    const pm = resp.data?.payment_method;
+    await PrinterBridgeGateway.printTicket({ ...resp.data, payment_method: pm ? modeLabel(pm) : pm });
   } catch (err) {
     console.error('Impression automatique post-décision échouée:', err);
     // Pas de bandeau ici (composant global monté partout) - l'utilisateur
@@ -172,6 +176,25 @@ const labelFor = (n) => {
     const l = labNotificationLabel(n.type, n.payload);
     return t(l.key, l.params);
   }
+  if (n.type === 'cash_closure') {
+    // payload : business_date, expected_cash, counted_cash, difference (chaines), auto, anomaly
+    const p = n.payload || {};
+    const params = { date: p.business_date || '?', expected: p.expected_cash ?? '?', counted: p.counted_cash ?? '?' };
+    const gap = gapWords(p.difference ?? null);
+    const label = p.auto
+      ? t('notifications.cash_closure_auto', params)
+      : t('notifications.cash_closure', { ...params, difference: t(gap.key, { amount: gap.amount ?? '' }) });
+    return p.anomaly ? t('notifications.cash_closure_anomaly', { label }) : label;
+  }
+  if (n.type === 'price_mismatch') {
+    // payload : transaction_id, item_type, sent_price, catalog_price (null/0 = non defini), author_name
+    const p = n.payload || {};
+    const params = { id: p.transaction_id ?? '?', item: p.item_type || '?', sent: p.sent_price ?? '?',
+      catalog: p.catalog_price ?? '?', author: p.author_name || '?' };
+    return Number(p.catalog_price) > 0
+      ? t('notifications.price_mismatch', params)
+      : t('notifications.price_mismatch_undefined', params);
+  }
   return n.type;
 };
 
@@ -209,6 +232,15 @@ const handleClick = async (n) => {
     else if (n.type === 'lab_stock_expiry') pushIfRoute('/dashboard/lab-stock-alerts');
     else if (n.type === 'lab_stock_count_reminder') pushIfRoute('/dashboard/lab-stock-count');
     else if (n.type === 'lab_stock_received') pushIfRoute('/dashboard/lab-stock-products');
+  }
+  if (n.type === 'cash_closure') {
+    // Ecran de revue des clotures (promoteur/admin) ; les autres roles ne recoivent pas ce type.
+    if (authStore.hasRole(['promoteur', 'admin'])) pushIfRoute('/dashboard/cash-closures');
+  }
+  if (n.type === 'price_mismatch') {
+    // Journal financier unifie (ventes caisse comprises) : admin seulement ; le
+    // promoteur n'a pas de liste des ventes, il ne navigue pas.
+    if (authStore.hasRole(['admin'])) pushIfRoute('/dashboard/finance');
   }
   if (n.type === 'stock_decided') {
     const kind = n.payload?.kind;

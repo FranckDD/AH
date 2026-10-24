@@ -11,7 +11,7 @@ from contextlib import contextmanager
 from datetime import date
 from typing import Any, List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
 from sqlalchemy.orm import Session
 
 from ...database import SessionLocal
@@ -24,7 +24,7 @@ from repositories.audit_repo import AuditRepository
 from repositories.fabrication_repo import FabricationRepository
 
 from .fabrication_schemas import (
-    BatchCreate, BatchFinish, BatchShip, BatchUpdate, CancelBody, SettingsUpdate, IntrantCreate, IntrantUpdate, PurchaseCreate, PurchaseUpdate, ThresholdBody,
+    BatchCreate, BatchFinish, BatchShip, BatchUpdate, CancelBody, OutputCancel, OutputCreate, SettingsUpdate, IntrantCreate, IntrantUpdate, PurchaseCreate, PurchaseUpdate, ThresholdBody,
 )
 
 router = APIRouter(prefix="/fabrication", tags=["Fabrication"])
@@ -187,6 +187,34 @@ def ship_batch(batch_id: int, payload: BatchShip,
     with _errors():
         return ctrl.ship_batch(batch_id, payload.delivery_date, payload.expiry_date,
                                payload.justification)
+
+
+# ---------------- sorties declarees ----------------
+MAX_ID = 2**31 - 1  # identifiants de chemin bornes (Integer Postgres)
+
+
+@router.post("/batches/{batch_id}/outputs", status_code=status.HTTP_201_CREATED,
+             dependencies=[Depends(role_required(*WRITERS))])
+def declare_output(payload: OutputCreate, batch_id: int = Path(ge=1, le=MAX_ID),
+                   ctrl: FabricationController = Depends(get_fabrication_controller)):
+    with _errors():
+        return ctrl.declare_output(batch_id, payload.reason, payload.quantity, payload.note)
+
+
+@router.post("/batches/{batch_id}/outputs/{output_id}/cancel", dependencies=[Depends(role_required(*WRITERS))])
+def cancel_output(payload: OutputCancel, batch_id: int = Path(ge=1, le=MAX_ID), output_id: int = Path(ge=1, le=MAX_ID),
+                  ctrl: FabricationController = Depends(get_fabrication_controller)):
+    with _errors():
+        return ctrl.cancel_output(batch_id, output_id, payload.reason)
+
+
+@router.get("/outputs", dependencies=[Depends(role_required(*READERS))])
+def list_outputs(date_from: Optional[date] = Query(None), date_to: Optional[date] = Query(None),
+                 reason: Optional[str] = Query(None),
+                 ctrl: FabricationController = Depends(get_fabrication_controller)):
+    """200 lignes au plus (plafond du controleur), les plus recentes d'abord."""
+    with _errors():
+        return ctrl.list_outputs(date_from, date_to, reason)
 
 
 # ---------------- reglages ----------------

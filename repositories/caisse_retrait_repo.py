@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 from models.retrait import CaisseRetrait
 from datetime import datetime
+from utils.cash_lock import lock_cash_write, utc_naive
 
 
 class CaisseRetraitRepository:
@@ -45,6 +46,8 @@ class CaisseRetraitRepository:
             category=category,
             payment_method=payment_method
         )
+        # Verrou partage de la cloture puis heure reelle (jamais l'heure de debut de transaction)
+        new_retrait.received_at = lock_cash_write(self.session)
         if uuid:
             # Alias necessaire ici : le parametre de cette methode s'appelle
             # deja "uuid", un `import uuid` nu ecraserait sa valeur avant
@@ -142,7 +145,7 @@ class CaisseRetraitRepository:
 
         retrait.status               = 'cancelled'
         retrait.cancelled_by         = cancelled_by
-        retrait.cancelled_at         = datetime.utcnow()
+        retrait.cancelled_at         = utc_naive(lock_cash_write(self.session))
         retrait.cancel_justification = justification
 
         self.session.commit()

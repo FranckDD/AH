@@ -16,6 +16,8 @@ class PaiementEchelonne(Base):
     payment_type = Column(String(50), nullable=False) # Ex: 'AVANCE', 'SOLDE', 'VERSEMENT_ECHEANCE'
     handled_by = Column(Integer, ForeignKey('users.user_id'), nullable=False)
     note = Column(Text)
+    # Heure de reception serveur (migration 024), remplie par la base : ne jamais l'ecrire.
+    received_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
     uuid = Column(UUID(as_uuid=True), unique=True, nullable=False, default=uuid.uuid4)
 
     # Relation vers Caisse (utile pour le patient)

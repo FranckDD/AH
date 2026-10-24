@@ -15,6 +15,7 @@ from sqlalchemy import text
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import relationship
 from .database import Base
+from utils.business_time import business_now
 
 
 class Caisse(Base):
@@ -24,7 +25,8 @@ class Caisse(Base):
     patient_id = Column(Integer, ForeignKey("patients.patient_id"), nullable=True)
     amount = Column(Numeric(10, 2), nullable=False)
     advance_amount    = Column(Numeric(10,2), nullable=False, default=0)
-    paid_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    # Convention : heure locale de Douala, naive (cf. utils/business_time.py)
+    paid_at = Column(DateTime, nullable=False, default=business_now)
     created_by_name = Column(String(100), nullable=False)
     handled_by = Column(Integer, ForeignKey("users.user_id"), nullable=False)
     payment_method = Column(String(50), nullable=False)    # ex. 'Espèces', 'Carte', 'Chèque', etc.

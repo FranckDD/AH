@@ -56,6 +56,7 @@ def test_create_retrait_avec_uuid_client_le_persiste(db_session, api_client):
     resp = client.post("/retrait/", json={
         "amount": 20.0,
         "justification": "Test retrait uuid",
+        "payment_method": "especes",  # tache 6 : mode obligatoire
         "uuid": client_uuid,
     }, headers=headers)
 

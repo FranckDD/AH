@@ -358,7 +358,7 @@ def create_test_retrait(session, current_user, **overrides):
         "justification": "Retrait de test",
         "handled_by": current_user.user_id,
         "category": None,
-        "payment_method": None,
+        "payment_method": "especes",  # tache 6 : un retrait neuf a toujours un mode
         **overrides,
     }
     repo = CaisseRetraitRepository(session)

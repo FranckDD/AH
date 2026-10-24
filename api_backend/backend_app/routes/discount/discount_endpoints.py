@@ -16,6 +16,8 @@ from controller.discount_request_controller import DiscountRequestController
 from .discount_schemas import DiscountRequestCreate, DiscountRequestCancel, DiscountRequestDecide
 
 from utils.patient_display import resolve_patient_display_name
+from utils.payment_mode_guard import PaymentModeError
+from utils.price_lock import PriceLockError
 
 router = APIRouter(prefix="/discount-requests", tags=["discount-requests"])
 
@@ -46,6 +48,8 @@ def create_discount_request(payload: DiscountRequestCreate, ctrl: DiscountReques
     try:
         req = ctrl.create_request(payload.invoice_data, payload.requested_to)
         return {"id": req.id, "transaction_id": req.transaction_id, "status": req.status}
+    except (PaymentModeError, PriceLockError) as pe:
+        raise HTTPException(status_code=422, detail=str(pe))
     except ValueError as ve:
         raise HTTPException(status_code=400, detail=str(ve))
 

@@ -71,7 +71,7 @@ check('CaisseInvoiceModal (gabarit)', templateOf(modal), [
     'formatCurrency(lineTotal(line))', 'line.knownStock !== null && Number(line.quantity) > line.knownStock',
     'v-model="transactionType"', 'v-model="paymentMethod"', 'v-model.number="advanceAmount"', ':max="invoiceTotals.net"', 'v-model="note"',
     'value="CONSULTATION"', 'value="PHARMACY"', 'value="HOSPITALIZATION"', 'value="LAB"', 'value="DETOX"', 'value="OTHER"',
-    'value="Espèces"', 'value="Mobile Money"', 'value="Virement"', 'value="Chèque"',
+    'v-for="m in paymentModes"', ':value="m.code"',
     // montants affichés = valeurs déjà calculées
     'formatCurrency(invoiceTotals.net)', 'formatCurrency(invoiceTotals.gross)', 'formatCurrency(invoiceTotals.staffDiscountAmount)',
     'invoiceTotals.staffDiscountAmount > 0',

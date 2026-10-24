@@ -11,6 +11,8 @@ from repositories.notification_repo import NotificationRepository
 from models.discount_request import DiscountRequest
 from models.user import User
 from utils.patient_display import resolve_patient_display_name
+from utils.payment_mode_guard import resolve_payment_mode
+from utils.price_lock import check_line_prices, validate_lines
 from models.application_role import ApplicationRole
 
 # Les seuls pourcentages proposes par l'UI (DiscountDecisionModal) - toute
@@ -73,11 +75,19 @@ class DiscountRequestController:
             raise ValueError("Aucune avance ne peut être encaissée sur une facture en attente de validation d'une réduction.")
         if not invoice_data["items"] and invoice_data.get("advance_amount", 0) == 0:
             raise ValueError("La transaction doit contenir au moins une ligne ou indiquer une avance.")
+        # Prix verrouille au catalogue, meme regle que la facturation directe.
+        # Chemin en ligne uniquement (appel reseau direct) : un uuid client
+        # n'en fait PAS un rejeu, tout ecart est refuse (422).
+        validate_lines(invoice_data["items"])
+        check_line_prices(self.repo.session, invoice_data["items"], self.user, replay=False)
         # Meme invariant et memes arrondis que la facturation directe.
         staff_sent, amount = check_invoice_amounts(invoice_data)
         staff_sent, staff_details = validate_staff_discount(self.repo.session, invoice_data, staff_sent)
         invoice_data = {**invoice_data, "amount": amount, "staff_discount_amount": staff_sent,
-                        "staff_discount_details": staff_details}
+                        "staff_discount_details": staff_details,
+                        "payment_method": resolve_payment_mode(
+                            self.repo.session, invoice_data["payment_method"], required=False,
+                            replay=bool(invoice_data.get("uuid")))}
 
         tx = self.caisse_repo.create_transaction(invoice_data, self.user, initial_status="pending_approval")
 

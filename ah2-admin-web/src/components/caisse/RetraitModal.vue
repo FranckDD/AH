@@ -18,12 +18,10 @@
           </select>
         </FormField>
 
-        <FormField id="retrait-method" :label="t('finance.modal.method')" v-slot="{ describedBy }">
-          <select id="retrait-method" v-model="form.paymentMethod" :aria-describedby="describedBy" :class="fieldClass">
-            <option value="Espèces">{{ t('finance.payment_methods.cash') }}</option>
-            <option value="Mobile Money">{{ t('finance.payment_methods.mobile') }}</option>
-            <option value="Virement">{{ t('finance.payment_methods.transfer') }}</option>
-            <option value="Chèque">{{ t('finance.payment_methods.check') }}</option>
+        <FormField id="retrait-method" :label="t('finance.modal.method')" required v-slot="{ describedBy }">
+          <select id="retrait-method" v-model="form.paymentMethod" required :aria-describedby="describedBy" :class="fieldClass">
+            <option value="" disabled>{{ t('paymentModeChoice.placeholder') }}</option>
+            <option v-for="m in paymentModes" :key="m.code" :value="m.code">{{ m.label }}</option>
           </select>
         </FormField>
       </div>
@@ -58,6 +56,7 @@ import { useI18n } from 'vue-i18n';
 import { ExclamationCircleIcon } from '@heroicons/vue/20/solid';
 import { AppButton, FormField, ActionBar, FullScreenPanel } from '@/components/ui';
 import { toneClasses } from '@/design/tones';
+import { usePaymentModes } from '@/utils/paymentModes';
 
 const props = defineProps({
   isSaving: { type: Boolean, default: false },
@@ -65,6 +64,9 @@ const props = defineProps({
 });
 const emit = defineEmits(['close', 'save']);
 const { t } = useI18n();
+// Liste officielle des modes (codes stables) ; le mode est obligatoire : la file hors ligne accepterait un
+// mode absent (classe non_classe par le serveur), c'est donc le formulaire qui l'exige.
+const paymentModes = usePaymentModes();
 
 // Style commun des champs : zone tactile >= 44 px, focus visible.
 const fieldClass = 'block w-full min-h-11 lg:min-h-10 rounded-control border border-tone-neutral-border bg-white px-3 text-base text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand-600';
@@ -72,11 +74,11 @@ const fieldClass = 'block w-full min-h-11 lg:min-h-10 rounded-control border bor
 const form = reactive({
   amount: '',
   category: '',
-  paymentMethod: 'Espèces',
+  paymentMethod: '', // aucun defaut : la secretaire choisit le mode
   justification: '',
 });
 
-const isFormValid = computed(() => Number(form.amount) > 0 && form.justification.trim().length > 0);
+const isFormValid = computed(() => Number(form.amount) > 0 && form.justification.trim().length > 0 && !!form.paymentMethod);
 
 const handleSubmit = () => {
   if (!isFormValid.value) return;

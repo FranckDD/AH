@@ -80,7 +80,9 @@ class PaymentDistributionSchema(BaseModel):
 # --- NOUVEAU SCHÉMA POUR UN VERSEMENT ÉCHELONNÉ ---
 class InstallmentPaymentIn(BaseModel):
     paid_amount: float = Field(..., gt=0, description="Montant du versement effectué maintenant.")
-    payment_method: str = Field(..., description="Mode de paiement utilisé pour ce versement (ex: Espèces, Virement).") 
+    # Optionnel : un versement rejoue hors ligne avec un mode null ne doit pas etre
+    # rejete ici ; le garde-fou (resolve_payment_mode) stocke alors 'non_classe'.
+    payment_method: Optional[str] = Field(None, description="Mode de paiement utilisé pour ce versement.")
     payment_type: Optional[str] = Field("VERSEMENT_ECHEANCE", description="Type de versement. Par défaut 'VERSEMENT_ECHEANCE', peut être 'SOLDE'.")
     note: Optional[str] = Field(None, description="Note spécifique à ce versement.")
     uuid: Optional[str] = Field(None, description="UUID client (creation hors ligne PowerSync) - si absent, Postgres en genere un")

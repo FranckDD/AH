@@ -4,6 +4,7 @@ from typing import List
 from datetime import datetime
 from models.retrait import CaisseRetrait
 from repositories.caisse_retrait_repo import CaisseRetraitRepository
+from utils.payment_mode_guard import resolve_payment_mode
 
 
 class CaisseRetraitController:
@@ -69,6 +70,10 @@ class CaisseRetraitController:
         """
         if amount <= 0:
             raise ValueError("Le montant du retrait doit être strictement positif.")
+        # Mode obligatoire ; valeur ancienne normalisee (jamais rejetee) ; mode desactive refuse.
+        # uuid client = operation venue de la file hors ligne : jamais refusee pour le mode.
+        payment_method = resolve_payment_mode(self.repo.session, payment_method, required=True,
+                                              replay=bool(uuid))
 
         return self.repo.create(
             amount=amount,

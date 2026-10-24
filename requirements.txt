@@ -3,3 +3,4 @@
 # requirements-api.txt (CI, deploiement API) ou requirements-desktop.txt
 # (build/dev desktop PyQt6) selon le besoin reel.
 -r requirements-desktop.txt
+tzdata==2025.2  # utils/cash_rules.py (zoneinfo Africa/Douala)

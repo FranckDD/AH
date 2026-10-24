@@ -11,6 +11,7 @@ from controller.caisse_retrait_controller import CaisseRetraitController
 from repositories.caisse_retrait_repo import CaisseRetraitRepository
 from api_backend.backend_app.routes.auth.auth_endpoints import get_current_user, role_required
 from api_backend.backend_app.exceptions import translate_integrity_error
+from utils.payment_mode_guard import PaymentModeError
 from .mapping import normalize_retrait_data
 
 logger = logging.getLogger(__name__)
@@ -143,6 +144,8 @@ def create_retrait(
             uuid=uuid,
         )
         return normalize_retrait_data(retrait)
+    except PaymentModeError as pe:
+        raise HTTPException(status_code=422, detail=str(pe))
     except ValueError as ve:
         raise HTTPException(status_code=400, detail=str(ve))
     except IntegrityError as ie:

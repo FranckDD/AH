@@ -31,6 +31,10 @@ Flask-Login==0.6.3  # controller/lab_controller.py
 Jinja2==3.1.6  # api_backend/backend_app/utils/pdf_generator.py, utils/pdf_header.py
 weasyprint==68.1  # api_backend/backend_app/utils/pdf_generator.py, utils/pdf_header.py
 
+# === Fuseau Africa/Douala (cloture de caisse) ===
+# Windows n'a pas de base de fuseaux systeme ; zoneinfo en a besoin.
+tzdata==2025.2  # utils/cash_rules.py
+
 # === Tests ===
 pytest==8.4.2
 httpx==0.28.1

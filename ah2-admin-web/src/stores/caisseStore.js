@@ -4,6 +4,7 @@ import { CaisseGateway } from '@/services/CaisseGateway';
 import { db } from '@/powersync-client/client';
 import { useAuthStore } from '@/stores/auth';
 import { resolvePatientName } from '@/utils/patientDisplayName';
+import { todayLocalISO } from '@/utils/localDate';
 
 export const useCaisseStore = defineStore('caisse', () => {
 
@@ -107,8 +108,8 @@ export const useCaisseStore = defineStore('caisse', () => {
         kpiError.value = false;
         try {
             const resp = await CaisseGateway.fetchKpis({
-                startDate: filters.value.startDate || new Date().toISOString().slice(0, 10),
-                endDate: filters.value.endDate || new Date().toISOString().slice(0, 10),
+                startDate: filters.value.startDate || todayLocalISO(),
+                endDate: filters.value.endDate || todayLocalISO(),
             });
             kpi.value = resp.data;
         } catch (err) {

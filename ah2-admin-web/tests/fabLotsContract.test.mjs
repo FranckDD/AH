@@ -35,7 +35,7 @@ test('passerelle : listPurchases et listBatches transmettent date_from et date_t
     const gw = readFileSync(new URL('../src/services/FabricationGateway.js', import.meta.url), 'utf8');
     assert.match(gw, /listPurchases\(\{ intrantId, dateFrom, dateTo \} = \{\}\)/);
     assert.match(gw, /listBatches\(\{ status, dateFrom, dateTo \} = \{\}\)/);
-    assert.equal((gw.match(/date_from: dateFrom, date_to: dateTo/g) || []).length, 2);
+    assert.equal((gw.match(/date_from: dateFrom, date_to: dateTo/g) || []).length, 3); // + listOutputs (sorties declarees)
 });
 
 test('FabLots : catalogue lu par la Fabrication, pas par le stock', () => {

@@ -110,3 +110,51 @@ def test_next_batch_number_rejects_trailing_newline():
 def test_next_batch_number_past_9999():
     assert next_batch_number("FAB-2026-9999", 2026) == "FAB-2026-10000"
     assert next_batch_number("FAB-2026-10000", 2026) == "FAB-2026-10001"
+
+
+# ---------------- sorties declarees ----------------
+from utils.fabrication_rules import OUTPUT_REASONS, validate_output  # noqa: E402
+
+
+def test_output_reasons():
+    assert OUTPUT_REASONS == ("echantillon", "autre")
+
+
+def test_validate_output_valid():
+    assert validate_output("echantillon", 5, None, 10) == ("echantillon", 5, None)
+    assert validate_output("echantillon", 2.0, "  ", 10) == ("echantillon", 2, None)
+    assert validate_output("autre", 10, "  don  ", 10) == ("autre", 10, "don")
+    r = validate_output("echantillon", 1, "x" * 2000, 1)
+    assert len(r[2]) == 2000
+
+
+@pytest.mark.parametrize("qty", [0, -1, True, False, 2.5, "2", None, float("nan")])
+def test_validate_output_bad_quantity(qty):
+    with pytest.raises(ValueError):
+        validate_output("echantillon", qty, None, 100)
+
+
+def test_validate_output_bad_reason_note_and_overflow():
+    with pytest.raises(ValueError):
+        validate_output("vol", 1, None, 10)
+    with pytest.raises(ValueError):
+        validate_output(None, 1, None, 10)
+    with pytest.raises(ValueError):
+        validate_output("autre", 1, None, 10)
+    with pytest.raises(ValueError):
+        validate_output("autre", 1, "   ", 10)
+    with pytest.raises(ValueError):
+        validate_output("echantillon", 1, "x" * 2001, 10)
+    with pytest.raises(ValueError):
+        validate_output("echantillon", 1, 12, 10)
+    with pytest.raises(ValueError):
+        validate_output("echantillon", 11, None, 10)
+
+
+def test_validate_output_messages_ascii_punctuation():
+    for args in (("vol", 1, None, 10), ("autre", 1, None, 10), ("echantillon", 0, None, 10),
+                 ("echantillon", 11, None, 10), ("echantillon", 1, "x" * 2001, 10)):
+        with pytest.raises(ValueError) as e:
+            validate_output(*args)
+        for ch in "—–…·→":
+            assert ch not in str(e.value)

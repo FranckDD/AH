@@ -277,6 +277,42 @@ def test_ecart_ignores_other_products_lines(env):
     assert _mine(env, "ecart_expedie_recu", b["batch_number"]) == []
 
 
+def _declare(env, bid, qty):
+    from controller.fabrication_controller import FabricationController
+    from repositories.audit_repo import AuditRepository
+    from repositories.fabrication_repo import FabricationRepository
+    db = env["db"]
+    FabricationController(FabricationRepository(db), AuditRepository(db), env["user"]).declare_output(
+        bid, "echantillon", qty)
+
+
+def test_ecart_uses_shipped_quantity_after_outputs(env):
+    b = _batch(env)
+    _finish(env, b["id"], 100)
+    _declare(env, b["id"], 15)
+    out = _ship(env, b["id"])
+    rec = _receipt(env, out["production_lot_id"], b["product_id"], 85)
+    assert _mine(env, "ecart_expedie_recu", b["batch_number"]) == []  # 85 expedie, 85 recu
+    rec.lines[0].qty_good = 80
+    env["db"].flush()
+    found = _mine(env, "ecart_expedie_recu", b["batch_number"])
+    assert len(found) == 1
+    d = found[0]["detail"]
+    assert d["expedie"] == 85 and d["received_good"] == 80 and d["gap"] == 5
+    assert d["qty_good"] == 100
+
+
+def test_ecart_reads_frozen_production_lot_quantity(env):
+    """La quantite expediee est celle du lot de production, pas qty_good modifie apres coup."""
+    b = _batch(env)
+    _finish(env, b["id"], 100)
+    out = _ship(env, b["id"])
+    _receipt(env, out["production_lot_id"], b["product_id"], 100)
+    env["db"].get(FabBatch, b["id"]).qty_good = 120  # alteration hors circuit
+    env["db"].flush()
+    assert _mine(env, "ecart_expedie_recu", b["batch_number"]) == []
+
+
 # ---------------- cout par produit ----------------
 def test_cost_by_product(env):
     pid = _product(env["db"])

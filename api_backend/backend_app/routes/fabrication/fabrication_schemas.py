@@ -5,9 +5,9 @@ Quantites Numeric(12,3), couts Numeric(12,2), en Decimal (jamais float). Champs 
 """
 from datetime import date
 from decimal import Decimal
-from typing import Annotated, List, Optional
+from typing import Annotated, List, Literal, Optional
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, StrictInt
 
 Quantity = Annotated[Decimal, Field(gt=0, max_digits=12, decimal_places=3, allow_inf_nan=False)]
 Cost = Annotated[Decimal, Field(ge=0, max_digits=12, decimal_places=2, allow_inf_nan=False)]
@@ -92,6 +92,21 @@ class BatchShip(_Strict):
     delivery_date: date
     expiry_date: Optional[date] = None
     justification: Optional[str] = Field(None, max_length=5000)
+
+
+# ---------------- sorties declarees ----------------
+class OutputCreate(_Strict):
+    """Motif strict, sans rognage ni casse : ' autre ' et 'Echantillon' -> 422 (str_strip_whitespace
+    desactive ici). quantity : entier JSON strict (2.5, 2.0, "2", true -> 422)."""
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=False)
+
+    reason: Literal["echantillon", "autre"]
+    quantity: Annotated[StrictInt, Field(ge=1, le=1_000_000)]
+    note: Optional[str] = Field(None, max_length=2000)
+
+
+class OutputCancel(_Strict):
+    reason: str = Field(min_length=1, max_length=500)  # aligne sur le controleur (_text ..., 500)
 
 
 # ---------------- reglages ----------------

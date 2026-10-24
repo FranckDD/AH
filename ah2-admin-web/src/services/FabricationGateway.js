@@ -82,6 +82,21 @@ export const FabricationGateway = {
         }))).data;
     },
 
+    // ---- sorties declarees (echantillon / autre) d'un lot termine ----
+    // quantity : entier ; note exigee par le serveur quand reason = 'autre'
+    async declareOutput(batchId, { reason, quantity, note }) {
+        return (await api.post(`/fabrication/batches/${batchId}/outputs`, clean({ reason, quantity, note }))).data;
+    },
+    async cancelOutput(batchId, outputId, reason) {
+        return (await api.post(`/fabrication/batches/${batchId}/outputs/${outputId}/cancel`, { reason })).data;
+    },
+    // dateFrom / dateTo : AAAA-MM-JJ, bornes incluses ; reason : 'echantillon' | 'autre'
+    async listOutputs({ dateFrom, dateTo, reason } = {}) {
+        return (await api.get('/fabrication/outputs', {
+            params: clean({ date_from: dateFrom, date_to: dateTo, reason }),
+        })).data || [];
+    },
+
     // ---- produits finis (liste {id, name}, lecture) ----
     async listProducts() { return (await api.get('/fabrication/products')).data || []; },
 

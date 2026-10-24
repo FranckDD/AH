@@ -67,9 +67,9 @@ check('CaisseCancelModal', cancel, [
 
 check('CaisseInstallmentModal', installment, [
     `emit('confirm', { paid_amount: Number(paidAmount.value), payment_method: paymentMethod.value, note: null })`,
-    'const paidAmount = ref(props.remainingDue);', "const paymentMethod = ref('Espèces');", 'v-model.number="paidAmount"', 'v-model="paymentMethod"',
+    'const paidAmount = ref(props.remainingDue);', "const paymentMethod = ref('especes');", 'v-model.number="paidAmount"', 'v-model="paymentMethod"',
     ':max="remainingDue"', 'min="0.01"', 'step="0.01"', '!(paidAmount > 0)',
-    'value="Espèces"', 'value="Mobile Money"', 'value="Virement"', 'value="Chèque"',
+    'v-for="m in paymentModes"', ':value="m.code"', 'usePaymentModes()',
     "t('caisse.installment_modal.title')", "t('caisse.installment_modal.remaining_due')", "t('finance.modal.amount')", "t('finance.modal.method')",
     "t('finance.modal.cancel')", "t('finance.modal.save')", 'formatCurrency(remainingDue)', 'remainingDue:', 'errorMessage',
 ]);

@@ -95,9 +95,12 @@
                 <input :id="`line-${line.key}-qty`" v-model.number="line.quantity" type="number" min="1" step="1" inputmode="numeric"
                        :disabled="line.itemType === 'Consultation'" :aria-describedby="describedBy" :class="[fieldClass, 'text-right disabled:bg-tone-neutral-bg']" />
               </FormField>
-              <FormField :id="`line-${line.key}-price`" :label="t('caisse.invoice_modal.unit_price')" v-slot="{ describedBy }">
+              <!-- Prix verrouille au catalogue pour la secretaire (autre prix : demande de reduction) -->
+              <FormField :id="`line-${line.key}-price`" :label="t('caisse.invoice_modal.unit_price')"
+                         :help="isPriceLocked(line) && !isPriceUndefined(line) ? t('caisseInvoice.price_locked_help') : ''" v-slot="{ describedBy }">
                 <input :id="`line-${line.key}-price`" v-model.number="line.unitPrice" type="number" min="0" step="0.01" inputmode="decimal"
-                       :aria-describedby="describedBy" :class="[fieldClass, 'text-right']" />
+                       :readonly="isPriceLocked(line)" :tabindex="isPriceLocked(line) ? -1 : undefined"
+                       :aria-describedby="describedBy" :class="[fieldClass, 'text-right', isPriceLocked(line) ? 'cursor-default bg-tone-neutral-bg text-ink-muted' : '']" />
               </FormField>
               <div class="flex flex-col gap-1.5">
                 <span class="text-base font-medium text-ink">{{ t('caisse.invoice_modal.line_total') }}</span>
@@ -133,6 +136,10 @@
                 </button>
               </li>
             </ul>
+
+            <p v-if="isPriceUndefined(line)" role="alert" class="rounded-control border px-3 py-2 text-base" :class="toneClasses('danger')">
+              {{ t('caisseInvoice.price_undefined') }}
+            </p>
 
             <p v-if="line.itemType === 'Médicament' && line.knownStock !== null && Number(line.quantity) > line.knownStock"
                class="rounded-control border px-3 py-2 text-base" :class="toneClasses('warning')">
@@ -174,10 +181,7 @@
           </FormField>
           <FormField id="inv-method" :label="t('finance.modal.method')" v-slot="{ describedBy }">
             <select id="inv-method" v-model="paymentMethod" :aria-describedby="describedBy" :class="fieldClass">
-              <option value="Espèces">{{ t('finance.payment_methods.cash') }}</option>
-              <option value="Mobile Money">{{ t('finance.payment_methods.mobile') }}</option>
-              <option value="Virement">{{ t('finance.payment_methods.transfer') }}</option>
-              <option value="Chèque">{{ t('finance.payment_methods.check') }}</option>
+              <option v-for="m in paymentModes" :key="m.code" :value="m.code">{{ m.label }}</option>
             </select>
           </FormField>
           <FormField id="inv-advance" :label="t('caisse.invoice_modal.advance_amount')" v-slot="{ describedBy }">
@@ -281,6 +285,7 @@ import { useAuthStore } from '@/stores/auth';
 import { TrashIcon, PlusIcon } from '@heroicons/vue/24/outline';
 import { AppButton, FormField, FormSection, ActionBar, FullScreenPanel } from '@/components/ui';
 import { toneClasses } from '@/design/tones';
+import { usePaymentModes } from '@/utils/paymentModes';
 
 const props = defineProps({
   isSaving: { type: Boolean, default: false },
@@ -384,8 +389,19 @@ const addLine = (itemType) => {
     quantity: 1,
     unitPrice: 0,
     knownStock: null,
+    // Ligne a prix catalogue : medicament et examen toujours, consultation
+    // seulement FamilyRestoration (fixe a la selection) ; Service : libre.
+    catalogLine: itemType === 'Médicament' || itemType === 'Examen',
   }));
 };
+
+// Prix catalogue verrouille pour tout role autre qu'admin/promoteur (la
+// secretaire) : un autre prix passe par la demande de reduction. Le serveur
+// applique la meme regle (utils/price_lock.py).
+const canEditCatalogPrice = computed(() => authStore.hasRole(['admin', 'promoteur']));
+const isPriceLocked = (line) => !canEditCatalogPrice.value && line.catalogLine;
+// Prix catalogue 0 ou absent = "prix non defini" : la ligne ne peut pas etre vendue.
+const isPriceUndefined = (line) => isPriceLocked(line) && line.refId !== null && !(Number(line.unitPrice) > 0);
 const removeLine = (idx) => lines.value.splice(idx, 1);
 
 let lineSearchTimeout = null;
@@ -419,6 +435,7 @@ const selectConsultationLine = (line, consultation) => {
   line.refId = consultation.consultation_id;
   line.refLabel = `#${consultation.consultation_id} — ${consultation.type_consultation || ''}`.trim();
   line.quantity = 1;
+  line.catalogLine = consultation.type_consultation === 'FamilyRestoration';
   line.unitPrice = Number(consultation.fr_amount_paid) || 0;
   line.searchResults = [];
 };
@@ -428,7 +445,9 @@ const totalAmount = computed(() => lines.value.reduce((sum, l) => sum + lineTota
 
 // --- Paiement ---
 const transactionType = ref('CONSULTATION');
-const paymentMethod = ref('Espèces');
+// Liste officielle des modes (codes stables, GET /payment-modes, repli hors ligne).
+const paymentModes = usePaymentModes();
+const paymentMethod = ref('especes');
 const advanceAmount = ref(0);
 const note = ref('');
 
@@ -448,6 +467,7 @@ const showRulesUnavailable = computed(() => invoiceTotals.value.rulesMissing && 
 
 const isLineComplete = (line) => {
   const qtyOk = Number.isInteger(Number(line.quantity)) && Number(line.quantity) > 0;
+  if (isPriceUndefined(line)) return false;
   if (line.itemType === 'Service') return line.label.trim().length > 0 && lineTotal(line) > 0 && qtyOk;
   return line.refId !== null && lineTotal(line) > 0 && qtyOk;
 };

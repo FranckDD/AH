@@ -16,11 +16,14 @@ from controller.caisse_controller import CaisseController
 from repositories.caisse_repo import CaisseRepository
 from repositories.audit_repo import AuditRepository
 from repositories.discount_request_repo import DiscountRequestRepository
+from repositories.notification_repo import NotificationRepository
+from utils.price_lock import PriceLockError
 from api_backend.backend_app.utils.pdf_header import get_ticket_header_context
 from controller.config_controller import ConfigController
 from repositories.config_repo import ConfigRepository
 from api_backend.backend_app.routes.auth.auth_endpoints import get_current_user, role_required
 from api_backend.backend_app.exceptions import translate_integrity_error
+from utils.payment_mode_guard import PaymentModeError
 from .mapping import normalize_caisse_data
 from ..caisse.caisse_schemas import (
     FinancialKpiSchema,
@@ -60,6 +63,7 @@ def get_caisse_controller(
         current_user=current_user,
         audit_repo=audit_repo,
         discount_repo=DiscountRequestRepository(db),
+        notification_repo=NotificationRepository(db),
     )
 
 # =================================================================
@@ -210,6 +214,8 @@ def create_transaction(
     try:
         tx = caisse_ctrl.create_transaction(data)
         return normalize_caisse_data(tx)
+    except (PaymentModeError, PriceLockError) as pe:
+        raise HTTPException(status_code=422, detail=str(pe))
     except ValueError as ve:
         raise HTTPException(status_code=400, detail=str(ve))
     except IntegrityError as ie:
@@ -238,6 +244,8 @@ def add_payment(
     """
     try:
         return caisse_ctrl.add_installment_payment(transaction_id, payment_data.model_dump())
+    except (PaymentModeError, PriceLockError) as pe:
+        raise HTTPException(status_code=422, detail=str(pe))
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except IntegrityError as ie:
@@ -259,6 +267,8 @@ def settle_transaction(
     try:
         tx = caisse_ctrl.settle_transaction(transaction_id)
         return normalize_caisse_data(tx)
+    except (PaymentModeError, PriceLockError) as pe:
+        raise HTTPException(status_code=422, detail=str(pe))
     except ValueError as ve:
         raise HTTPException(status_code=400, detail=str(ve))
 
@@ -351,6 +361,8 @@ def update_transaction(
         if not tx:
             raise HTTPException(status_code=404, detail="Transaction non trouvée après mise à jour")
         return normalize_caisse_data(tx)
+    except (PaymentModeError, PriceLockError) as pe:
+        raise HTTPException(status_code=422, detail=str(pe))
     except ValueError as ve:
         raise HTTPException(status_code=400, detail=str(ve))
     except IntegrityError as ie:
@@ -363,7 +375,9 @@ def update_transaction(
         logger.exception("SQLAlchemyError updating transaction: %s", e)
         raise HTTPException(status_code=500, detail="Erreur serveur lors de la mise à jour de la transaction")
 
-@router.delete("/{transaction_id}", status_code=status.HTTP_204_NO_CONTENT)
+# Suppression definitive d'une vente : admin uniquement (la secretaire annule, ce qui est trace).
+@router.delete("/{transaction_id}", status_code=status.HTTP_204_NO_CONTENT,
+               dependencies=[Depends(role_required("admin"))])
 def delete_transaction(transaction_id: int, caisse_ctrl: CaisseController = Depends(get_caisse_controller)):
     try:
         deleted = caisse_ctrl.delete_transaction(transaction_id)

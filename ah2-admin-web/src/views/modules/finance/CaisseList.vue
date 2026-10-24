@@ -180,6 +180,7 @@ import { useConfigStore } from '@/stores/configStore';
 import { useToastStore } from '@/stores/toastStore';
 import { AppButton, PageHeader, FormField, StatTile, StatusBadge, ResponsiveTable, ActionBar, FullScreenPanel } from '@/components/ui';
 import { toneClasses } from '@/design/tones';
+import { modeLabel } from '@/utils/paymentModes';
 
 const { t } = useI18n();
 const caisseStore = useCaisseStore();
@@ -333,7 +334,8 @@ const printTicketForTransaction = async (transactionId) => {
     // buildLocalTicketData ci-dessous) : Image.open() echoue silencieusement
     // cote pont, le ticket s'imprime mais sans logo. On substitue le cache
     // data URI local, seule forme que printer_bridge peut effectivement lire.
-    await PrinterBridgeGateway.printTicket({ ...resp.data, ticket_logo_path: configStore.ticketLogoDataUri || null });
+    // payment_method : libelle lisible (le serveur stocke un code, ex. orange_money) ; donnees stockees intactes.
+    await PrinterBridgeGateway.printTicket({ ...resp.data, payment_method: resp.data?.payment_method ? modeLabel(resp.data.payment_method) : resp.data?.payment_method, ticket_logo_path: configStore.ticketLogoDataUri || null });
   } catch (err) {
     notifyPrintFailure(err);
     console.error('Erreur impression ticket:', err);
@@ -367,7 +369,7 @@ const buildLocalTicketData = (localTransactionId, payload, patientDisplayName) =
   amount: payload.amount,
   advance_amount: payload.advance_amount,
   remaining: payload.amount - payload.advance_amount,
-  payment_method: payload.payment_method,
+  payment_method: payload.payment_method ? modeLabel(payload.payment_method) : payload.payment_method, // libelle imprime, le code stocke ne change pas
   items: (payload.items || []).map((i) => ({
     item_name: i.note || i.item_type,
     quantity: i.quantity,

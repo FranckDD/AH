@@ -331,10 +331,10 @@ def test_update_transaction_not_found(db_session, api_client):
 
 
 def test_delete_transaction_success(db_session, api_client):
-    user = create_test_user(db_session, "test_caisse_secretaire_delete", "secretaire", password=TEST_PASSWORD)
+    user = create_test_user(db_session, "test_caisse_admin_delete", "admin", password=TEST_PASSWORD)
     tx = create_test_transaction(db_session, user)
     client = api_client(auth_endpoints, caisse_endpoints)
-    headers = auth_headers(client, "test_caisse_secretaire_delete", TEST_PASSWORD)
+    headers = auth_headers(client, "test_caisse_admin_delete", TEST_PASSWORD)
 
     delete_resp = client.delete(f"/caisse/{tx.transaction_id}", headers=headers)
     assert delete_resp.status_code == 204
@@ -345,9 +345,9 @@ def test_delete_transaction_success(db_session, api_client):
 
 def test_delete_transaction_nonexistent_returns_404(db_session, api_client):
     """Registre F2, corrige : DELETE sur un id inexistant renvoie 404."""
-    create_test_user(db_session, "test_caisse_secretaire_delete404", "secretaire", password=TEST_PASSWORD)
+    create_test_user(db_session, "test_caisse_admin_delete404", "admin", password=TEST_PASSWORD)
     client = api_client(auth_endpoints, caisse_endpoints)
-    headers = auth_headers(client, "test_caisse_secretaire_delete404", TEST_PASSWORD)
+    headers = auth_headers(client, "test_caisse_admin_delete404", TEST_PASSWORD)
 
     resp = client.delete("/caisse/999999999", headers=headers)
 
@@ -371,11 +371,28 @@ def test_add_installment_payment_success(db_session, api_client):
     body = resp.json()
     assert body["transaction_id"] == tx.transaction_id
     assert body["paid_amount"] == 20.0
-    assert body["payment_method"] == "Especes"
+    assert body["payment_method"] == "especes"  # tache 6 : code officiel stocke
     assert body["payment_id"]
 
     get_resp = client.get(f"/caisse/{tx.transaction_id}", headers=headers)
     assert get_resp.json()["advance_amount"] == "50.00"
+
+
+def test_create_transaction_old_mode_normalized(db_session, api_client):
+    """Tache 6 : 'Mobile Money' (ancienne valeur libre) est stocke en code officiel, jamais rejete."""
+    create_test_user(db_session, "test_caisse_secretaire_oldmode", "secretaire", password=TEST_PASSWORD)
+    client = api_client(auth_endpoints, caisse_endpoints)
+    headers = auth_headers(client, "test_caisse_secretaire_oldmode", TEST_PASSWORD)
+
+    payload = {
+        "patient_label": "Passant", "amount": 100.0, "advance_amount": 100.0,
+        "payment_method": "Mobile Money", "transaction_type": "Consultation",
+        "items": [{"item_type": "Service", "item_ref_id": 1, "unit_price": 100.0, "quantity": 1, "line_total": 100.0}],
+    }
+    resp = client.post("/caisse/", json=payload, headers=headers)
+
+    assert resp.status_code == 201
+    assert resp.json()["payment_method"] == "autre_mobile"
 
 
 def test_add_installment_payment_exceeds_remaining_returns_400(db_session, api_client):
@@ -499,6 +516,55 @@ def test_daily_total_reflects_created_transaction(db_session, api_client):
     after = client.get(f"/caisse/daily_total?for_date={today}", headers=headers).json()
 
     assert after == before + 77.0
+
+
+def test_sale_at_2330_utc_lands_on_next_douala_day(db_session, api_client, monkeypatch):
+    """Vente a 23:30 UTC le jour D = 00:30 a Douala le jour D+1 :
+    paid_at (heure locale Douala naive) et la cle du total du jour sont D+1."""
+    from datetime import datetime as dt_cls, date as date_cls, timezone
+    import utils.business_time as bt
+    import controller.caisse_controller as cc
+
+    monkeypatch.setattr(bt, "_utc_clock", lambda: dt_cls(2026, 3, 9, 23, 30, tzinfo=timezone.utc))
+
+    deleted = []
+
+    class FakeRedis:
+        def delete(self, key):
+            deleted.append(key)
+
+        def get(self, key):
+            return None
+
+        def setex(self, *a, **k):
+            pass
+
+    monkeypatch.setattr(cc, "redis_client", FakeRedis())
+
+    user = create_test_user(db_session, "test_caisse_secretaire_tzday", "secretaire", password=TEST_PASSWORD)
+    patient_id, _ = create_test_patient(db_session, user)
+    client = api_client(auth_endpoints, caisse_endpoints)
+    headers = auth_headers(client, "test_caisse_secretaire_tzday", TEST_PASSWORD)
+    payload = {
+        "patient_id": patient_id, "amount": 100.0, "advance_amount": 100.0,
+        "payment_method": "Especes", "transaction_type": "Consultation",
+        "items": [{"item_type": "Service", "item_ref_id": 1, "unit_price": 100.0, "quantity": 1, "line_total": 100.0}],
+    }
+    resp = client.post("/caisse/", json=payload, headers=headers)
+    assert resp.status_code == 201, resp.text
+
+    from models.caisse import Caisse
+    db_session.expire_all()
+    tx = db_session.get(Caisse, resp.json()["transaction_id"])
+    assert tx.paid_at.date() == date_cls(2026, 3, 10)
+    assert (tx.paid_at.hour, tx.paid_at.minute) == (0, 30)
+    assert "caisse:daily_total:2026-03-10" in deleted
+
+
+def test_caisse_model_paid_at_default_is_business_now():
+    from models.caisse import Caisse
+    assert Caisse.__table__.c.paid_at.default.arg.__name__ == "business_now"
+    assert Caisse.__table__.c.paid_at.server_default is None
 
 
 def test_total_transactions_reflects_created_transaction(db_session, api_client):

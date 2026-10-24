@@ -23,7 +23,8 @@ import {
   SparklesIcon,
   HomeIcon,
   ExclamationTriangleIcon,
-  ClockIcon
+  ClockIcon,
+  LockClosedIcon
 } from '@heroicons/vue/24/outline';
 
 const configStore = useConfigStore();
@@ -39,6 +40,7 @@ const menuGroups = [
       { path: '/secretariat/patients', labelKey: 'secretariat.nav.patients', icon: UserGroupIcon },
       { path: '/secretariat/caisse', labelKey: 'secretariat.nav.caisse', icon: BanknotesIcon },
       { path: '/secretariat/retrait', labelKey: 'secretariat.nav.retrait', icon: ArrowUpTrayIcon },
+      { path: '/secretariat/cloture', labelKey: 'secretariat.nav.cash_closure', icon: LockClosedIcon },
     ],
   },
   {
