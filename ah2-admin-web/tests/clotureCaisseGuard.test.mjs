@@ -110,7 +110,7 @@ test('(b) toutes les cles cashClosure.* et paymentModes.* citees par les fichier
 // chantiers suivants ne fassent pas echouer ce controle ; les fichiers non suivis ne figurent pas dans `git diff`,
 // d'ou le controle d'emplacement ci-dessous (qui ne tourne que tant que FIN est null).
 const BASE = 'b6c6e09';
-const FIN = null;
+const FIN = '20495ae';
 
 const AUTORISES = new Set([
     'src/i18n.js',                                          // cashClosure.*, paymentModes.*, libelles
