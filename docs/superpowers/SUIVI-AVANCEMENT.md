@@ -1,6 +1,6 @@
 # Suivi d'avancement — AH2 / Glostone-Kare
 
-**Dernière mise à jour :** 2026-10-24 (sorties déclarées de la production livrées, non commitées, à vérifier dans le navigateur ; clôture de caisse livrée, tâches 1 à 11 sauf la 8, non commitée, à vérifier dans le navigateur ; Fabrication commitée et poussée ; chantier Rapports en 4 morceaux)
+**Dernière mise à jour :** 2026-10-25 (comptage physique du stock livré, non commité, à vérifier dans le navigateur ; sorties déclarées de la production livrées, non commitées, à vérifier dans le navigateur ; clôture de caisse livrée, tâches 1 à 11 sauf la 8, non commitée, à vérifier dans le navigateur ; Fabrication commitée et poussée ; chantier Rapports en 4 morceaux)
 **But de ce document :** état d'avancement des chantiers de remise en service et de sécurisation, et registre des découvertes faites en cours de route mais non encore traitées. Pour le contexte général du projet, voir `docs/superpowers/CONTEXTE-PROJET.md`. Pour le détail d'un chantier, voir les fichiers correspondants dans `docs/superpowers/specs/` et `docs/superpowers/plans/`.
 
 ## Feuille de route
@@ -1749,3 +1749,40 @@ Audit complet : `.superpowers/sdd/2026-10-23-cloture-caisse/timezone-audit.md` (
 **Verification.** Serveur : tache 2, 93 passes (depot et regles) ; tache 3, 129 passes (expedition) ; tache 4, 413 passes (routes et roles) ; tache 5, 58 passes cibles. Navigateur : tache 5, 5548 passes ; tache 6, contrats cibles 66 passes. Suite serveur complete lancee le 2026-10-24 AVANT la vague de corrections de la revue finale : 2428 passes, 2 xfail, 0 echec. Apres la vague de corrections : tests serveur cibles Fabrication (sorties, routes des sorties, lots, expedition, roles) 476 passes ; suite navigateur complete 5555 passes, 0 echec ; build vite OK.
 
 **Revue finale, corrections (2026-10-24).** Annuler en bloc un lot termine qui a une sortie active est refuse (409, "Annulez d'abord les sorties declarees."), comme la reouverture ; un lot dont les sorties sont toutes annulees s'annule normalement. Le filtre de dates de `GET /fabrication/outputs` compare maintenant declared_at (UTC) aux bornes du jour local de Douala converties en UTC : une sortie declaree entre 00:00 et 01:00 heure locale tombe sur le bon jour. Le panneau du suivi ignore les reponses perimees quand les filtres changent vite.
+
+## Comptage physique du stock : livre, NON COMMITE (2026-10-24)
+
+**Livre.** Migration 026 et tables `stock_counts`, `stock_count_lines`, `stock_count_settings` (lignes et comptages clos immuables par trigger) ; regles pures (`utils/stock_count_rules.py`), depot (`repositories/stock_count_repo.py`) et controleur (`controller/stock_count_controller.py`) ; routes `/stock-counts` (demarrer, valider, abandonner, statut, reglage, historique, detail) ; ecran `StockCount.vue` avec le comptage, la frequence par produit et l'historique.
+
+**Decisions.**
+- Comptage a l'aveugle : rien avant la validation ne montre le stock du systeme ni un ecart.
+- Aucun refus ne depend de l'ecart ; l'observation par ligne est facultative.
+- Une demande de correction par ecart, dans le circuit existant des demandes d'ajustement ; le stock ne change qu'a l'approbation de l'admin.
+- Frequence par defaut 30 jours, reglable de 1 a 365 par l'admin seul.
+- Pas de notification push a l'ouverture ; un rappel visible a l'ecran suffit.
+- Comptage reserve au StockController : l'auteur d'une demande ne peut pas l'approuver, un comptage fait par l'admin serait inapprouvable avec un seul admin. Admin et promoteur lisent.
+- Une demande de comptage encore en attente est remplacee (statut annule, note "remplacee par le comptage n. X") par un nouveau comptage du meme produit ; les demandes d'autre origine ne sont jamais touchees ; l'admin est prevenu.
+- Stock negatif du systeme : la ligne est enregistree avec 0, la demande garde la valeur reelle et son motif le signale.
+
+**Corrige.**
+- Ventes pendant le comptage : corrige par l'heure de comptage par ligne (migration 027). L'ecart est calcule au moment ou le produit a ete compte ; le decalage d'horloge du navigateur est corrige jusqu'a 10 minutes (`client_now` envoye a la validation) et les ecarts d'horloge de plus de 2 minutes sont traces dans l'audit.
+- Historique pagine par 50 ; reprise d'un comptage en cours par le filtre serveur `mine=true`.
+- La modification d'une vente avec ses lignes (PUT /caisse/{id}) ecrit maintenant un mouvement de stock par produit. Avant, le journal de stock etait incomplet sur ce chemin : les ventes modifiees avant ce correctif n'ont pas de mouvement, un comptage couvrant ces dates reste faussable.
+
+**Residuels.**
+- `superseded_request_ids` est deduit du texte de la note de decision.
+- Le store n'est pas reinitialise a la deconnexion globale, mais il est lie a l'utilisateur.
+- Le test du store ecrit un fichier temporaire dans `tests/` (ignore par .gitignore).
+- La migration 027 remplit les anciennes lignes avec counted_at = date de validation.
+
+**Liste de verification utilisateur.**
+- [ ] Compter a l'aveugle sans voir le stock du systeme.
+- [ ] Valider et voir les ecarts.
+- [ ] La demande arrive chez l'admin et le stock ne change qu'apres son approbation.
+- [ ] Recompter un produit remplace la demande encore en attente.
+- [ ] Un produit jamais compte est signale.
+- [ ] Le reglage de la frequence est reserve a l'admin.
+- [ ] Le promoteur est en lecture seule.
+- [ ] L'admin n'a aucun bouton de comptage.
+
+**Verification.** Serveur : suite complete 2663 passes, 2 xfail avant les deux derniers correctifs (journal de stock de la modification de vente, decalage d'horloge), puis les comptes cibles des rapports (279 passes sur les tests du comptage et des demandes d'ajustement apres le correctif d'horloge). Navigateur : contrat du comptage 49 passes, suite complete 5604 passes ; `npx vite build` reussi.

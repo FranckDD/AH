@@ -25,3 +25,6 @@ dist-ssr
 
 .env
 .env.local
+
+# copies temporaires des tests node (tests/stockCountContract.test.mjs)
+tests/.tmp-*

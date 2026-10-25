@@ -239,6 +239,13 @@ const routes = [
         component: () => import('@/views/modules/stock/StockMovements.vue'),
         meta: { requiresAuth: true, roles: [ROLES.STOCK_CONTROLLER, ROLES.ADMIN, ROLES.ASSISTANT] }
       },
+      // Comptage du stock a l'aveugle : comptage StockController/admin, lecture promoteur (garde de route du serveur)
+      {
+        path: 'stock-count',
+        name: 'stock-count',
+        component: () => import('@/views/modules/stock/StockCount.vue'),
+        meta: { requiresAuth: true, roles: [ROLES.STOCK_CONTROLLER, ROLES.ADMIN, ROLES.PROMOTEUR] }
+      },
       // Stock du laboratoire : lecture = READERS du routeur /lab-stock (admin passe toujours)
       {
         path: 'lab-stock-products',

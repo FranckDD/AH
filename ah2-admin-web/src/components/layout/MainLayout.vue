@@ -162,6 +162,13 @@ const menuItems = [
     roles: [ROLES.STOCK_CONTROLLER, ROLES.ADMIN, ROLES.ASSISTANT]
   },
   {
+    path: '/dashboard/stock-count',
+    group: 'stock',
+    labelKey: 'stockCount.menu',
+    icon: ClipboardDocumentListIcon,
+    roles: [ROLES.STOCK_CONTROLLER, ROLES.ADMIN, ROLES.PROMOTEUR]
+  },
+  {
     path: '/dashboard/stock-adjustment-requests',
     group: 'stock',
     labelKey: 'stockAdjust.menu_admin',

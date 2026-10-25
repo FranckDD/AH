@@ -419,11 +419,16 @@ class CaisseRepository:
             self._lock_products_sorted(
                 [i.item_ref_id for i in existing_items if touches_stock(i.item_type)]
                 + [l["item_ref_id"] for l in data.get("items", []) if touches_stock(l["item_type"])])
+            # Registre de stock : un mouvement NET par produit (restitution - deduction),
+            # ecrit dans la meme transaction, sous le meme verrou que la quantite.
+            net_by_product = {}
             for old_item in existing_items:
                 if touches_stock(old_item.item_type):
                     med = self._lock_product(old_item.item_ref_id)
                     if med:
                         med.quantity += old_item.quantity
+                        net_by_product[med.medication_id] = (
+                            net_by_product.get(med.medication_id, 0) + int(old_item.quantity))
                         med.update_stock_status()
                         self.session.add(med)
             for old_item in existing_items:
@@ -451,6 +456,8 @@ class CaisseRepository:
                     med.quantity -= qty
                     med.update_stock_status()
                     self.session.add(med)
+                    net_by_product[med.medication_id] = (
+                        net_by_product.get(med.medication_id, 0) - int(qty))
 
                 new_item = CaisseItem(
                     transaction_id = transaction_id,
@@ -463,6 +470,17 @@ class CaisseRepository:
                     status         = 'active'
                 )
                 self.session.add(new_item)
+
+            for med_id, net in sorted(net_by_product.items()):
+                if net == 0:
+                    continue
+                self.session.add(StockMovement(
+                    medication_id = med_id,
+                    change_qty    = net,
+                    movement_type = "VENTE" if net < 0 else "ANNULATION_VENTE",
+                    created_by    = getattr(current_user, "username", "System"),
+                    note          = f"Modification de la vente #{tx.transaction_id}",
+                ))
 
         # 5) Commit final
         self.session.commit()

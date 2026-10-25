@@ -162,8 +162,20 @@ const labelFor = (n) => {
   if (n.type === 'stock_adjustment_request') {
     const p = n.payload || {};
     const k = adjustmentKindLabel(p.kind);
-    return t('notifications.stock_adjustment_request', {
+    const label = t('notifications.stock_adjustment_request', {
       author: p.requested_by_name || '?', kind: k.key ? t(k.key) : k.raw, product: p.product_name || '?', quantity: p.quantity ?? '?',
+    });
+    // recomptage : la demande remplace une demande de comptage encore en attente
+    return Array.isArray(p.supersedes) && p.supersedes.length
+      ? t('notifications.stock_adjustment_supersedes', { label, ids: p.supersedes.join(', ') })
+      : label;
+  }
+  if (n.type === 'stock_count_superseded') {
+    // payload : count_id, product_name, superseded_request_ids, counted_by_name
+    const p = n.payload || {};
+    return t('notifications.stock_count_superseded', {
+      author: p.counted_by_name || '?', product: p.product_name || '?',
+      ids: (p.superseded_request_ids || []).join(', ') || '?',
     });
   }
   if (n.type === 'stock_decided') {
@@ -223,7 +235,7 @@ const handleClick = async (n) => {
   if (n.type === 'stock_to_check') {
     pushIfRoute('/dashboard/stock-control');
   }
-  if (n.type === 'stock_adjustment_request') {
+  if (n.type === 'stock_adjustment_request' || n.type === 'stock_count_superseded') {
     pushIfRoute('/dashboard/stock-adjustment-requests');
   }
   if (typeof n.type === 'string' && n.type.startsWith('lab_stock_')) {
