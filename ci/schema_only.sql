@@ -5435,6 +5435,48 @@ CREATE TRIGGER trg_stock_counts_final_immutable
 ALTER TABLE public.stock_count_lines ADD COLUMN IF NOT EXISTS counted_at timestamp NOT NULL;
 ALTER TABLE public.stock_count_lines ADD COLUMN IF NOT EXISTS movements_net integer NOT NULL DEFAULT 0;
 
+-- 028_reports_control : controle quotidien (anomalies du jour) et seuils des rapports
+CREATE TABLE public.daily_controls (
+    id serial PRIMARY KEY,
+    business_date date NOT NULL,
+    anomalies jsonb NOT NULL DEFAULT '[]'::jsonb,
+    new_count integer NOT NULL DEFAULT 0,
+    open_count integer NOT NULL DEFAULT 0,
+    computed_at timestamp NOT NULL DEFAULT (now() AT TIME ZONE 'UTC'),
+    notified_at timestamp,
+    reminder_sent_at timestamp,
+    recomputed boolean NOT NULL DEFAULT false,
+    CONSTRAINT daily_controls_business_date_key UNIQUE (business_date),
+    CONSTRAINT daily_controls_anomalies_array_check CHECK (jsonb_typeof(anomalies) = 'array'),
+    CONSTRAINT daily_controls_new_count_check CHECK (new_count >= 0),
+    CONSTRAINT daily_controls_open_count_check CHECK (open_count >= 0)
+);
+CREATE INDEX idx_daily_controls_business_date
+    ON public.daily_controls (business_date);
+
+CREATE TABLE public.report_settings (
+    id smallint PRIMARY KEY,
+    cancelled_sales_threshold integer NOT NULL DEFAULT 3,
+    adjustment_pending_days integer NOT NULL DEFAULT 3,
+    updated_by integer REFERENCES public.users(user_id),
+    updated_at timestamp NOT NULL DEFAULT (now() AT TIME ZONE 'UTC'),
+    CONSTRAINT report_settings_single_row_check CHECK (id = 1),
+    CONSTRAINT report_settings_cancelled_threshold_check
+        CHECK (cancelled_sales_threshold BETWEEN 1 AND 1000),
+    CONSTRAINT report_settings_adjustment_days_check
+        CHECK (adjustment_pending_days BETWEEN 1 AND 365)
+);
+INSERT INTO public.report_settings (id, cancelled_sales_threshold, adjustment_pending_days)
+VALUES (1, 3, 3)
+ON CONFLICT (id) DO NOTHING;
+
+-- 029_daily_control_notify : decision d'envoi stockee avec l'instantane
+ALTER TABLE public.daily_controls ADD COLUMN notify_reason text;
+ALTER TABLE public.daily_controls ADD COLUMN notify_new_count integer NOT NULL DEFAULT 0;
+ALTER TABLE public.daily_controls ADD COLUMN notify_open_count integer NOT NULL DEFAULT 0;
+ALTER TABLE public.daily_controls ADD CONSTRAINT daily_controls_notify_reason_check
+    CHECK (notify_reason IN ('nouveau', 'rappel'));
+
 --
 -- Name: powersync; Type: PUBLICATION; Schema: -; Owner: -
 --

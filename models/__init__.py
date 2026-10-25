@@ -31,3 +31,4 @@ from .lab_stock import (
 from .toxico import ToxicoPhaseEnum, ToxicoDossier, ToxicoPhaseHistory, ToxicoEvaluation, ToxicoStay
 from .user import User
 from .stock_count import StockCount, StockCountLine, StockCountSettings
+from .report import DailyControl, ReportSettings

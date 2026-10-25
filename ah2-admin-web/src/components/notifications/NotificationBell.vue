@@ -207,6 +207,16 @@ const labelFor = (n) => {
       ? t('notifications.price_mismatch', params)
       : t('notifications.price_mismatch_undefined', params);
   }
+  if (n.type === 'daily_control') {
+    // payload : business_date, new_count, open_count (tous les points du jour), reason ('nouveau' | 'rappel')
+    const p = n.payload || {};
+    const total = Number(p.open_count) || 0;
+    const fresh = Number(p.new_count) || 0;
+    const params = { date: p.business_date || '?', new: fresh, open: Math.max(0, total - fresh) };
+    return p.reason === 'rappel'
+      ? t('notifications.daily_control_reminder', { ...params, open: total })
+      : t('notifications.daily_control', params);
+  }
   return n.type;
 };
 
@@ -253,6 +263,10 @@ const handleClick = async (n) => {
     // Journal financier unifie (ventes caisse comprises) : admin seulement ; le
     // promoteur n'a pas de liste des ventes, il ne navigue pas.
     if (authStore.hasRole(['admin'])) pushIfRoute('/dashboard/finance');
+  }
+  if (n.type === 'daily_control') {
+    // Page Rapports (promoteur/admin) ; les autres roles ne recoivent pas ce type.
+    if (authStore.hasRole(['promoteur', 'admin'])) pushIfRoute('/dashboard/reports');
   }
   if (n.type === 'stock_decided') {
     const kind = n.payload?.kind;

@@ -1,6 +1,6 @@
 # Suivi d'avancement — AH2 / Glostone-Kare
 
-**Dernière mise à jour :** 2026-10-25 (comptage physique du stock livré, non commité, à vérifier dans le navigateur ; sorties déclarées de la production livrées, non commitées, à vérifier dans le navigateur ; clôture de caisse livrée, tâches 1 à 11 sauf la 8, non commitée, à vérifier dans le navigateur ; Fabrication commitée et poussée ; chantier Rapports en 4 morceaux)
+**Dernière mise à jour :** 2026-10-25 (Rapports et contrôle quotidien livrés, non commités, à vérifier dans le navigateur ; comptage physique du stock livré, non commité, à vérifier dans le navigateur ; sorties déclarées de la production livrées, non commitées, à vérifier dans le navigateur ; clôture de caisse livrée, tâches 1 à 11 sauf la 8, non commitée, à vérifier dans le navigateur ; Fabrication commitée et poussée ; chantier Rapports en 4 morceaux)
 **But de ce document :** état d'avancement des chantiers de remise en service et de sécurisation, et registre des découvertes faites en cours de route mais non encore traitées. Pour le contexte général du projet, voir `docs/superpowers/CONTEXTE-PROJET.md`. Pour le détail d'un chantier, voir les fichiers correspondants dans `docs/superpowers/specs/` et `docs/superpowers/plans/`.
 
 ## Feuille de route
@@ -1786,3 +1786,48 @@ Audit complet : `.superpowers/sdd/2026-10-23-cloture-caisse/timezone-audit.md` (
 - [ ] L'admin n'a aucun bouton de comptage.
 
 **Verification.** Serveur : suite complete 2663 passes, 2 xfail avant les deux derniers correctifs (journal de stock de la modification de vente, decalage d'horloge), puis les comptes cibles des rapports (279 passes sur les tests du comptage et des demandes d'ajustement apres le correctif d'horloge). Navigateur : contrat du comptage 49 passes, suite complete 5604 passes ; `npx vite build` reussi.
+
+## Rapports et contrôle quotidien : livrés, NON COMMITÉS, à vérifier dans le navigateur (2026-10-25)
+
+**Livré.**
+- Migrations 028 (`daily_controls`, `report_settings`) et 029 (`notify_reason` et compteurs de notification sur l'instantané du jour).
+- Règles pures dans `utils/report_rules.py`. Dépôt `repositories/report_repo.py` et `ReportsController`, agrégateur en lecture seule : cartes argent, produits, production, croissance, et tableau « Total vendu par produit » filtrable (nom, type, catégorie, tri, pagination).
+- Contrôle quotidien : clés d'anomalie stables, un instantané par jour, notification seulement pour du nouveau, rappel à 7 jours, rattrapage des jours manqués en une seule notification, jours récents sans instantané recalculés en direct et plafonnés à 31 jours (les plus anciens sont comptés comme non contrôlés). Script `scripts/daily_control.py`.
+- Routes `/reports` : `overview`, `daily-control`, `products-sold`, `settings`, `export.pdf`. Réservées au promoteur et à l'admin ; les réglages sont modifiables par l'admin seul.
+- Page Rapports (disposition A) avec l'encadré « Contrôle du jour » et les cartes ; export PDF avec l'en-tête du centre ; type de notification `daily_control` dans la cloche.
+
+**Décisions.**
+- Disposition A, une carte par indicateur. Le serveur envoie 14 cartes pour 13 cartes dans la conception, parce que « nouveaux patients et consultations » regroupe des séries.
+- Ventes comptées par jour local de Douala, ventes actives seulement.
+- « Reçu au stock » = réceptions validées + réapprovisionnements approuvés, sans compter les lots de production (affichés à part).
+- Les réglages de la Fabrication ne sont pas dupliqués dans les Rapports.
+- Seuils par défaut : 3 ventes annulées et 3 jours d'attente, réglables par l'admin.
+- Les cartes d'état actuel sont marquées `current_state` / `as_of` (l'écran dit « tout le temps » ou « période » selon la carte).
+- Le bouton « Ouvrir » de l'encadré est masqué quand l'écran visé est réservé à l'admin (trouvé par la revue finale : le promoteur était envoyé vers `/dashboard/finance` et `/dashboard/stock-adjustment-requests`).
+- Notification seulement pour du nouveau ; un jour sans instantané n'est jamais inventé au-delà de 31 jours.
+
+**Résiduels.**
+- `lot_trop_long` utilise l'horloge réelle.
+- Un point qui apparaît et disparaît pendant un rattrapage n'est dans aucune notification.
+- Libellés d'anomalies et sources en français seulement côté serveur.
+- Le filtre de catégorie est un texte libre.
+- Le PDF ne reprend que les médicaments et ignore les filtres de la page.
+- Sur une ancienne période, l'encadré liste aussi les anomalies d'état actuel.
+- Un échec d'envoi du jour N peut laisser le jour N+1 décider d'un rappel (accepté).
+- La carte « encaissé » = entrées de clôture (paiements de ventes annulées plus tard et retraits annulés restitués inclus), alors que la carte par secrétaire compte les paiements reçus.
+- Les références d'anomalie de fabrication utilisent `batch_number`.
+- Le PDF n'a jamais été ouvert visuellement ; la page n'a jamais été vue avec un vrai serveur.
+- Chantier 8 : planifier `scripts/daily_control.py` chaque soir à 23 h 30 heure de Douala. Le rattrapage horaire de la clôture reste séparé ; une exécution horaire du contrôle est inoffensive.
+
+**Liste de vérification utilisateur.**
+- [ ] Ouvrir la page Rapports en promoteur, puis en admin.
+- [ ] Comparer chaque carte à l'écran d'origine (clôture, caisse, Fabrication, comptage).
+- [ ] Créer une anomalie (par exemple une sortie « autre » ou un écart de caisse), lancer `python scripts/daily_control.py` après 23 h 30 (ou simuler), vérifier que la notification arrive une seule fois et qu'il n'y en a pas de nouvelle le lendemain.
+- [ ] Vérifier le rappel au bout de 7 jours.
+- [ ] Filtrer le tableau des produits (nom, type, catégorie, tri, pagination).
+- [ ] Exporter le PDF et le lire (en-tête, période, chiffres, produits).
+- [ ] Vérifier qu'un rôle non prévu n'a ni menu ni accès.
+- [ ] Vérifier que seul l'admin modifie les seuils.
+- [ ] Vérifier que le promoteur ne voit pas de bouton menant à un écran admin.
+
+**Vérification.** Serveur : suite complète 2927 passes, 2 xfail, 0 échec (lancée avant les deux derniers tours de corrections), puis 252 passes ciblés après le tour de corrections de la revue finale serveur. Navigateur : suite complète 5636 passes ; `npx vite build` réussi.

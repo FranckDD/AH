@@ -371,6 +371,14 @@ const routes = [
         meta: { requiresAuth: true, roles: [ROLES.ADMIN, ROLES.PROMOTEUR] }
       },
 
+      // 7e. Rapports et controle quotidien (lecture ; reglages des seuils : admin seul)
+      {
+        path: 'reports',
+        name: 'reports',
+        component: () => import('@/views/modules/reports/Reports.vue'),
+        meta: { requiresAuth: true, roles: [ROLES.ADMIN, ROLES.PROMOTEUR] }
+      },
+
       // 8. Configuration & Logs
       {
         path: 'configuration',

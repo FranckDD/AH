@@ -37,6 +37,7 @@ from .routes.lab_stock import lab_stock_endpoints
 from .routes.fabrication import fabrication_endpoints
 from .routes.cash_closure import cash_closure_endpoints
 from .routes.stock_count import stock_count_endpoints
+from .routes.reports import reports_endpoints
 from .routes.admin import users_endpoint,config_endpoints
 from .routes import health_endpoint
 
@@ -189,6 +190,7 @@ app.include_router(fabrication_endpoints.router)  # prefixe /fabrication (intran
 app.include_router(cash_closure_endpoints.router)  # prefixe /cash-closure (cloture de caisse, corrections)
 app.include_router(cash_closure_endpoints.modes_router)  # prefixe /payment-modes (modes de paiement)
 app.include_router(stock_count_endpoints.router)  # prefixe /stock-counts (comptage physique, distinct de /stock)
+app.include_router(reports_endpoints.router)  # prefixe /reports (Rapports et controle quotidien, promoteur/admin)
 app.include_router(users_endpoint.router)
 app.include_router(config_endpoints.router)
 app.include_router(health_endpoint.router) 

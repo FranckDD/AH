@@ -25,7 +25,7 @@ import {
   ExclamationCircleIcon,
   CheckBadgeIcon, ClockIcon, ReceiptPercentIcon,
   ClipboardDocumentCheckIcon, ArrowsRightLeftIcon, AdjustmentsHorizontalIcon,
-  ShoppingCartIcon, LockClosedIcon
+  ShoppingCartIcon, LockClosedIcon, PresentationChartLineIcon
 } from '@heroicons/vue/24/outline';
 
 const authStore = useAuthStore();
@@ -101,6 +101,12 @@ const menuItems = [
     path: '/dashboard/reductions-personnel',
     labelKey: 'staffDiscount.title',
     icon: ReceiptPercentIcon,
+    roles: [ROLES.ADMIN, ROLES.PROMOTEUR]
+  },
+  {
+    path: '/dashboard/reports',
+    labelKey: 'reports.menu',
+    icon: PresentationChartLineIcon,
     roles: [ROLES.ADMIN, ROLES.PROMOTEUR]
   },
   {
