@@ -23,7 +23,11 @@
     </div>
 
     <section class="grid gap-3">
+
+      <LoadErrorState v-if="store.historyFailed" @retry="refresh()" />
+
       <ResponsiveTable
+        v-else
         :columns="columns"
         :rows="store.paginatedHistory.items"
         row-key="result_id"
@@ -39,7 +43,7 @@
         <template #cell-patient="{ row: res }">
           <div class="text-base font-bold text-ink">{{ res.patient_name }}</div>
           <div class="mt-1 flex flex-wrap items-center gap-2">
-            <span class="text-sm text-ink-muted">{{ res.patient_age }} • {{ res.patient_sexe }}</span>
+            <span class="text-sm text-ink-muted">{{ res.patient_age }} - {{ res.patient_sexe }}</span>
             <StatusBadge v-if="res.is_external" tone="warning" :label="t('lab.result_modal.external')" />
           </div>
         </template>
@@ -98,7 +102,7 @@ import { ref, computed, onMounted } from 'vue';
 import { useLabStore } from '@/stores/labStore';
 import { useI18n } from 'vue-i18n';
 import ResultDetailModal from '@/components/lab/ResultDetailModal.vue';
-import { AppButton, PageHeader, StatusBadge, ResponsiveTable } from '@/components/ui';
+import { AppButton, PageHeader, StatusBadge, ResponsiveTable, LoadErrorState } from '@/components/ui';
 import dayjs from 'dayjs';
 import debounce from 'lodash/debounce';
 import {

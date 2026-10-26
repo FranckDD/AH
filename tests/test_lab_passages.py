@@ -91,7 +91,7 @@ def test_dashboard_recent_passages_regroupe_les_examens_d_un_patient(db_session)
     stats = LabRepository(db_session).get_advanced_stats("month")
 
     passage = next(p for p in stats["recent_passages"] if p["batch_id"] == str(batch))
-    assert passage["patient_name"].startswith("PassB1")
+    assert passage["patient_name"] == "Patient PassB1"  # meme forme partout : Nom Prenom
     assert {e["result_id"] for e in passage["exams"]} == {r.result_id for r in rows}
     assert passage["first_pending_id"] in {r.result_id for r in rows if r.status == "pending"}
     assert len(stats["recent_passages"]) <= 3

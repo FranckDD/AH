@@ -82,6 +82,7 @@
 </template>
 
 <script setup>
+import { formatDateDMY } from '@/utils/localDate';
 import { ref, computed, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { LabStockGateway, describeLabStockError } from '@/services/LabStockGateway';
@@ -117,7 +118,7 @@ const bars = computed(() => (data.value ? buildMonthBars(data.value.by_month, da
 const formatDate = (v) => {
   if (!v) return '?';
   const [y, m, d] = String(v).slice(0, 10).split('-').map(Number);
-  return new Date(y, m - 1, d).toLocaleDateString();
+  return formatDateDMY(new Date(y, m - 1, d));
 };
 
 async function load() {

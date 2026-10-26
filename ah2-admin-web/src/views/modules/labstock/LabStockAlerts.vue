@@ -61,6 +61,7 @@
                 <p class="break-words text-base font-medium" :class="e.days_left < 0 ? 'text-tone-danger-text' : 'text-ink'">{{ e.product_name || '?' }}</p>
                 <p class="text-base text-ink-muted">{{ t('labStock.alerts_lot', { lot: e.lot_number || '?' }) }}</p>
                 <p class="text-base text-ink-muted">{{ t('labStock.alerts_expiry_on', { date: formatDate(e.expiry_date) }) }}</p>
+                <p v-if="e.received_qty != null" class="text-base text-ink-muted">{{ t('labStock.alerts_lot_stock', { received: e.received_qty, stock: e.product_quantity ?? '?' }) }}</p>
               </div>
               <StatusBadge class="shrink-0 self-start" :tone="daysTone(e.days_left)" :label="daysText(e.days_left)" />
             </li>
@@ -72,6 +73,7 @@
 </template>
 
 <script setup>
+import { formatDateDMY } from '@/utils/localDate';
 import { ref, computed, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '@/stores/auth';
@@ -92,7 +94,7 @@ const label = (l) => (l.key ? t(l.key) : l.raw);
 const formatDate = (v) => {
   if (!v) return '?';
   const [y, m, d] = String(v).slice(0, 10).split('-').map(Number);
-  return new Date(y, m - 1, d).toLocaleDateString();
+  return formatDateDMY(new Date(y, m - 1, d));
 };
 const sortedExpiring = computed(() => [...(data.value?.expiring || [])].sort((a, b) => a.days_left - b.days_left));
 const countDue = computed(() => !!data.value?.count_status?.reminder_due);

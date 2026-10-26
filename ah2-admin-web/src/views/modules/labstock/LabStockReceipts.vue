@@ -99,6 +99,7 @@
 </template>
 
 <script setup>
+import { formatDateDMY } from '@/utils/localDate';
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';
@@ -152,7 +153,7 @@ const busy = ref(false);
 
 const num = (v) => Number(v ?? 0);
 const money = formatMoney;
-const formatDate = (v) => (v ? new Date(v).toLocaleDateString() : '');
+const formatDate = (v) => (v ? formatDateDMY(v) : '');
 const statusText = (s) => (s === 'valide' ? t('labStock.receipt_valid') : s === 'annule' ? t('labStock.receipt_cancelled') : (s || '?'));
 
 let msgTimer = null;

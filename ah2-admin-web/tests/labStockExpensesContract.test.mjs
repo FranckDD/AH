@@ -25,7 +25,7 @@ check('LabStockExpenses', view, [
     'data.value = { total: r?.total ?? 0, from: r?.from, to: r?.to, by_month: r?.by_month || [], by_supplier: r?.by_supplier || [] };',
     "if (!from.value && r?.from) from.value = String(r.from).slice(0, 10);", "if (!to.value && r?.to) to.value = String(r.to).slice(0, 10);",
     "const bars = computed(() => (data.value ? buildMonthBars(data.value.by_month, data.value.from, data.value.to) : []));",
-    "const [y, m, d] = String(v).slice(0, 10).split('-').map(Number);", 'return new Date(y, m - 1, d).toLocaleDateString();',
+    "const [y, m, d] = String(v).slice(0, 10).split('-').map(Number);", 'return formatDateDMY(new Date(y, m - 1, d));',
     '@submit.prevent="load"', 'v-model="from"', 'v-model="to"', 'type="date"', ':disabled="isLoading"', 'v-model="productId"', '@change="loadPrices"',
     'if (!productId.value) return;', 'v-if="productId && !priceLoading && !priceError"', 'v-if="!prices.length"',
     "priceError.value = describeLabStockError(e, t('stockOps.error_load'));", "pageError.value = describeLabStockError(e, t('stockOps.error_load'));",

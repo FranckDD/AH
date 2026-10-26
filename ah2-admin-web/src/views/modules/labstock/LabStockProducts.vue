@@ -104,6 +104,7 @@
 </template>
 
 <script setup>
+import { formatDateDMY } from '@/utils/localDate';
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { PlusIcon, MagnifyingGlassIcon, PencilSquareIcon } from '@heroicons/vue/24/outline';
@@ -147,7 +148,7 @@ const form = ref({ name: '', packaging: '', supplier: '', alert_threshold: 0, is
 
 const num = (v) => Number(v ?? 0);
 const isLow = (p) => num(p.quantity) <= num(p.alert_threshold);
-const formatDate = (v) => (v ? new Date(v).toLocaleDateString() : '');
+const formatDate = (v) => (v ? formatDateDMY(new Date(v)) : '');
 const labelOf = (l) => (l.key ? t(l.key) : l.raw);
 
 const filtered = computed(() => {

@@ -123,7 +123,7 @@ def test_dernieres_entrees_ne_contiennent_que_des_dossiers_a_traiter(db_session)
     statuts = {db_session.get(LabResult, i["id"]).status for i in items}
     assert statuts <= {"pending", "partial", "analyzed"}
     mine = next(i for i in items if i["id"] == en_attente.result_id)
-    assert mine["patient_name"].startswith("Jeanne")
+    assert mine["patient_name"] == "Patient Jeanne"  # meme forme partout : Nom Prenom
 
 
 def test_historique_patient_expose_nb_anormaux(db_session):

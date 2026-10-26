@@ -193,6 +193,10 @@ class LabStockController:
                 raise LabStockConflictError(f"Un produit actif nommé « {clean['name']} » existe déjà.")
             # quantity toujours 0 a la creation : le stock n'entre que par reception/comptage
             p = self.repo.add(LabStockProduct(quantity=0, created_by=self.user.user_id, **clean))
+            # produit cree a 0 sous un seuil > 0 : la demande « seuil atteint » existe des la creation
+            # (sans attendre une livraison ou un comptage) ; seuil 0 : pas de fausse demande.
+            if p.is_active and (p.alert_threshold or 0) > 0:
+                self._ensure_threshold_request(p, 0)
             out = self._product_d(p)
             self.audit_repo.log_user_action(current_user=self.user, resource_type="LabStockProduct",
                                             action_performed="CREATE", resource_id=p.id, new_values=out)
@@ -673,8 +677,10 @@ class LabStockController:
             applied = []
             for ln in todo:
                 pid, p = ln["product_id"], products[ln["product_id"]]
-                new_qty = self.repo.apply_delta(pid, ln["counted_qty"] - p.quantity, "comptage",
-                                                "count", count.id, self.user)
+                delta = ln["counted_qty"] - p.quantity
+                # valeur inchangee : le comptage est enregistre mais aucun mouvement nul n'est cree
+                new_qty = (self.repo.apply_delta(pid, delta, "comptage", "count", count.id, self.user)
+                           if delta != 0 else p.quantity)
                 p.last_counted_at = now
                 count.lines.append(LabStockCountLine(product_id=pid, previous_qty=ln["previous_qty"],
                                                      counted_qty=ln["counted_qty"]))
@@ -725,6 +731,9 @@ class LabStockController:
             "product_name": ln.product.name if ln.product else None,
             "lot_number": ln.lot_number, "expiry_date": ln.expiry_date,
             "days_left": (ln.expiry_date - today).days, "receipt_id": ln.receipt_id,
+            # pas de suivi du reste par lot : on donne la quantite recue du lot et le stock actuel du produit
+            "received_qty": ln.received_qty,
+            "product_quantity": ln.product.quantity if ln.product else None,
         } for ln in self.repo.expiring_lines(today + timedelta(days=EXPIRY_WARNING_DAYS))]
         last = self.repo.last_count_at()
         days_since = (today - last.date()).days if last else None
@@ -749,6 +758,11 @@ class LabStockController:
                     if not self.repo.notification_exists(uid, "lab_stock_expiry", "receipt_line_id",
                                                          e["receipt_line_id"]):
                         self.notification_repo.create(uid, "lab_stock_expiry", payload)
+            # lot dans la fenetre de peremption : demande de reapprovisionnement « peremption » (une seule
+            # demande ouverte par produit ; aucune si une demande est deja ouverte)
+            for pid in sorted({e["product_id"] for e in alerts["expiring"]}):
+                if self.repo.open_request_for(pid) is None:
+                    self.repo.add(LabStockRequest(product_id=pid, origin="peremption", status="a_commander"))
             if clear_reminder:
                 for n in self.repo.unread_notifications("lab_stock_count_reminder"):
                     n.status = "read"

@@ -42,6 +42,21 @@
         </section>
       </div>
 
+      <section v-if="result.corrected" aria-labelledby="lab-detail-corrected" class="grid gap-2 rounded-card border p-4" :class="toneClasses('info')">
+        <h3 id="lab-detail-corrected" class="text-sm font-semibold">{{ t('lab.result_modal.corrected_title') }}</h3>
+        <ul class="grid gap-3 text-sm">
+          <li v-for="a in (result.amendments || [])" :key="a.amendment_id" class="grid gap-1">
+            <p class="font-medium">{{ t('lab.result_modal.corrected_by', { name: a.amended_by_name || t('lab.result_modal.unknown'), date: formatDate(a.amended_at) }) }}</p>
+            <p class="whitespace-pre-line">{{ a.reason }}</p>
+            <ul class="grid gap-0.5">
+              <li v-for="v in (a.previous_values || [])" :key="v.detail_id">
+                {{ t('lab.result_modal.previous_value') }} : {{ v.parametre_nom }} = {{ v.valeur_text !== null && v.valeur_text !== '' ? v.valeur_text : '-' }}
+              </li>
+            </ul>
+          </li>
+        </ul>
+      </section>
+
       <section aria-labelledby="lab-detail-results" class="grid gap-2">
         <h3 id="lab-detail-results" class="text-lg font-semibold text-ink">{{ t('lab.result_modal.bio_results') }}</h3>
         <ResponsiveTable :columns="columns" :rows="result.details || []" row-key="detail_id" :empty-title="t('lab.result_modal.no_params')" :empty-message="' '" striped>
@@ -87,6 +102,7 @@ import { useI18n } from 'vue-i18n';
 import { PrinterIcon, ArrowUpIcon, ArrowDownIcon, ExclamationTriangleIcon } from '@heroicons/vue/24/outline';
 import { AppButton, StatusBadge, ResponsiveTable, FullScreenPanel, ActionBar } from '@/components/ui';
 import { toneClasses } from '@/design/tones';
+import { rangeLabelForPatient } from '@/utils/labRanges';
 import dayjs from 'dayjs';
 
 const props = defineProps({
@@ -138,11 +154,7 @@ const formatDate = (date) => {
 };
 
 // Fonction récupérée de ta paillasse pour lire la valeur de référence correctement
-const getRange = (ranges, sexePatient) => {
-    if (!ranges || ranges.length === 0) return '-';
-    const range = ranges.find(r => r.sexe === sexePatient) || ranges[0];
-    return `${range.min} - ${range.max}`;
-};
+const getRange = (ranges, sexePatient) => rangeLabelForPatient(ranges, sexePatient);
 
 // Le backend (GET /labo/results/{id}) renvoie `is_abnormal` par parametre ;
 // `flag`/`flagged` restent lus en repli (autres sources, ex. saisie en cours).

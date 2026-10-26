@@ -13,18 +13,20 @@
         </template>
       </PageHeader>
 
+      <LoadErrorState v-if="labStore.statsFailed" compact @retry="loadData()" />
+
       <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
         <router-link :to="{ name: 'lab-technician' }" :class="tileLink">
-          <StatTile :title="t('lab.dashboard.pending')" :value="stats?.pending ?? 0" :note="t('lab.dashboard.pending_hint')" :icon="ClockIcon" tone="warning" />
+          <StatTile :title="t('lab.dashboard.pending')" :value="labStore.statsFailed ? '-' : (stats?.pending ?? 0)" :note="t('lab.dashboard.pending_hint')" :icon="ClockIcon" tone="warning" />
         </router-link>
 
-        <StatTile :title="t('lab.dashboard.completed')" :value="stats?.completed_today ?? 0" :note="t('lab.dashboard.completed_hint')" :icon="CheckBadgeIcon" tone="success" />
+        <StatTile :title="t('lab.dashboard.completed')" :value="labStore.statsFailed ? '-' : (stats?.completed_today ?? 0)" :note="t('lab.dashboard.completed_hint')" :icon="CheckBadgeIcon" tone="success" />
 
         <router-link :to="{ name: 'lab-history', query: { abnormal: '1', period: currentPeriod } }" :class="tileLink">
-          <StatTile :title="t('lab.dashboard.critical')" :value="stats?.critical ?? 0" :note="t('lab.dashboard.critical_hint')" :icon="ExclamationTriangleIcon" tone="danger" alert />
+          <StatTile :title="t('lab.dashboard.critical')" :value="labStore.statsFailed ? '-' : (stats?.critical ?? 0)" :note="t('lab.dashboard.critical_hint')" :icon="ExclamationTriangleIcon" tone="danger" alert />
         </router-link>
 
-        <StatTile :title="t('lab.dashboard.total')" :value="stats?.total_month ?? 0" :note="t('lab.dashboard.total_hint')" :icon="ClipboardDocumentListIcon" tone="info" />
+        <StatTile :title="t('lab.dashboard.total')" :value="labStore.statsFailed ? '-' : (stats?.total_month ?? 0)" :note="t('lab.dashboard.total_hint')" :icon="ClipboardDocumentListIcon" tone="info" />
       </div>
 
       <div class="grid grid-cols-1 items-start gap-6 lg:grid-cols-3">
@@ -83,7 +85,7 @@ import { ref, onMounted, onUnmounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useLabStore } from '@/stores/labStore';
-import { AppButton, AppCard, PageHeader, StatTile, StatusBadge, ResponsiveTable } from '@/components/ui';
+import { AppButton, AppCard, PageHeader, StatTile, StatusBadge, ResponsiveTable, LoadErrorState } from '@/components/ui';
 import { examStatusMeta } from '@/utils/labPassages';
 import { buttonClasses } from '@/utils/ui';
 import { 

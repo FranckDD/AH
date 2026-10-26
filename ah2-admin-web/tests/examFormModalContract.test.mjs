@@ -28,7 +28,7 @@ check('ExamFormModal', modal, [
     'const isEditing = computed(() => form.id !== null);', 'Object.assign(form, newVal);', 'form.id = null;', "form.code = '';", "form.nom = '';", "form.categorie = '';", 'form.prix = 0;',
     '{ immediate: true }',
     // enregistrement
-    'await configStore.saveExamen({ ...form });', "emit('saved');", "emit('close');", 'alert(error.message);', '@submit.prevent="handleSave"', ':disabled="configStore.isLoading"',
+    'await configStore.saveExamen({ ...form });', "emit('saved');", "emit('close');", 'notifyText(error.message);', '@submit.prevent="handleSave"', ':disabled="configStore.isLoading"',
     // champs : code verrouillé en modification, prix par pas de 100
     'v-model="form.nom"', 'v-model="form.code"', 'v-model="form.categorie"', 'v-model.number="form.prix"', ':disabled="isEditing"', 'type="number"', 'min="0"', 'step="100"', 'required',
     '@click="$emit(\'close\')"',

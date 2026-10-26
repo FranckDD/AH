@@ -27,7 +27,7 @@ check('LabReception', view, [
     "SELECT user_id, full_name FROM doctors_lookup ORDER BY full_name", 'specialty_name: null,',
     // recherche
     'debounce(async (val) => {', 'val.trim().length > 1', 'await labStore.searchInternal(val.trim());', '}, 300);', 'labStore.searchResults = [];', 'showResults.value = true;',
-    'v-model="searchQuery"', 'v-for="p in labStore.searchResults"', ':key="p.prescription_id"', '@click="selectInternalPatient(p)"', 'p.nom', 'p.patient_code', 'p.exams_prescribed.length',
+    'v-model="searchQuery"', 'v-for="p in labStore.searchResults"', ':key="p.prescription_id ?? `inv-${p.id}`"', '@click="selectInternalPatient(p)"', 'p.nom', 'p.patient_code', 'p.exams_prescribed.length',
     'v-if="showResults"', 'labStore.loading',
     // sélection et import des examens prescrits (appariement par nom)
     'selectedPatient.value = p;', 'cart.value = [];', 'autoImportedCount.value = 0;', 'p.exams_prescribed.forEach(prescribedName => {',
@@ -50,7 +50,7 @@ check('LabReception', view, [
     'examen_id: item.id,', 'valeur: null,', "unite: item.unite || ''", 'patient_id: null,', 'origin_prescription_id: null,', 'prescribed_by_id: selectedDoctorId.value,',
     'prescribed_by_name: doc ? doc.full_name : null,', 'external_patient_info: null', 'payload.patient_id = selectedPatient.value.id;',
     'selectedPatient.value.prescription_id || selectedPatient.value.last_prescription_id || null', 'nom: extForm.value.full_name,', "prenom: '',", 'age: extForm.value.age,',
-    'sexe: extForm.value.gender,', "telephone: ''", 'await labStore.createBatchRequest(payload);', 'alert("Dossier enregistré avec succès !");', 'alert("Erreur technique lors de l\'enregistrement.");',
+    'sexe: extForm.value.gender,', "telephone: ''", 'await labStore.createBatchRequest(payload);', "notify('alerts.lab_saved', {}, 'success');", "notify('alerts.lab_save_failed');",
     // clés
     "$t('lab.reception.title')", "$t('lab.reception.subtitle')", "$t('lab.reception.section1_title')", "$t('lab.reception.mode_internal')", "$t('lab.reception.mode_external')",
     "$t('lab.reception.search_placeholder')", "$t('lab.reception.no_results')", "$t('lab.reception.patient_internal_label')", "$t('lab.reception.change_patient')",

@@ -85,8 +85,8 @@ def test_count_sets_stock_traces_delta_and_last_counted(env):
     assert out["conflicts"] == [] and len(out["applied"]) == 2
     assert _qty(db, a["id"]) == 7 and _qty(db, b["id"]) == 0
     mv = db.query(LabStockMovement).filter_by(ref_type="count", ref_id=out["count_id"]).all()
-    assert sorted((m.product_id, m.change_qty, m.quantity_after) for m in mv) == sorted(
-        [(a["id"], -3, 7), (b["id"], 0, 0)])
+    # le produit compte a sa valeur actuelle (b : 0 -> 0) ne cree pas de mouvement nul
+    assert sorted((m.product_id, m.change_qty, m.quantity_after) for m in mv) == [(a["id"], -3, 7)]
     assert db.get(LabStockProduct, a["id"]).last_counted_at is not None
     assert db.get(LabStockProduct, b["id"]).last_counted_at is not None
     assert db.query(LabStockCountLine).filter_by(count_id=out["count_id"]).count() == 2
@@ -138,12 +138,14 @@ def test_below_threshold_creates_one_seuil_request_no_duplicate(env):
     assert _count(env, [{"product_id": a["id"], "previous_qty": 20, "counted_qty": 3}]).status_code == 200
     req = _open_req(db, a["id"])
     assert req.origin == "seuil" and req.status == "a_commander"
+    # une notification a la creation du produit (stock 0 sous le seuil), une apres ce comptage
     low = [n for n in _notifs(db, "lab_stock_low", u["promo"].user_id) if n.payload.get("product_id") == a["id"]]
-    assert len(low) == 1
+    assert len(low) == 2
     assert _count(env, [{"product_id": a["id"], "previous_qty": 3, "counted_qty": 2}]).status_code == 200
     low = [n for n in _notifs(db, "lab_stock_low", u["promo"].user_id) if n.payload.get("product_id") == a["id"]]
-    assert len(low) == 1
-    assert db.query(LabStockRequest).filter_by(product_id=a["id"]).count() == 1
+    assert len(low) == 2
+    # la demande de la creation a ete recue ; seule la demande ouverte apres le comptage reste ouverte
+    assert db.query(LabStockRequest).filter_by(product_id=a["id"], status="a_commander").count() == 1
 
 
 def test_rise_above_threshold_closes_only_uncommanded_seuil(env):

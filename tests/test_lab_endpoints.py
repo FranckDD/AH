@@ -61,6 +61,15 @@ class FakeLabRepo:
         self._results.append(r)
         return r
 
+    def lab_result_exists_for_prescription_exam(self, prescription_id, examen_id):
+        return any(r.origin_prescription_id == prescription_id and r.examen_id == examen_id for r in self._results)
+
+    def lab_result_exists_for_caisse_item(self, caisse_item_id):
+        return False
+
+    def get_caisse_item(self, item_id):
+        return None
+
     def get_lab_result_by_uuid(self, client_uuid):
         target = uuid.UUID(str(client_uuid))
         for r in self._results:

@@ -12,12 +12,16 @@
         <template #cell-code="{ row: exam }"><span class="font-medium">{{ exam.code }}</span></template>
         <template #cell-name="{ row: exam }"><span class="font-medium">{{ exam.nom }}</span></template>
         <template #cell-category="{ row: exam }"><StatusBadge tone="info" :label="String(exam.categorie)" /></template>
+        <template #cell-price="{ row: exam }"><span class="font-mono">{{ formatPrice(exam.prix) }}</span></template>
         <template v-if="isAdmin" #actions="{ row: exam }">
+          <AppButton variant="secondary" :icon="PencilSquareIcon" @click="openModal(exam)">{{ t('lab.config.edit_exam') }}</AppButton>
+          <AppButton variant="secondary" :icon="Cog6ToothIcon" @click="openParams(exam)">{{ t('lab.config.params_button') }}</AppButton>
           <AppButton variant="danger" :icon="TrashIcon" @click="removeExam(exam)">{{ t('labScreens.delete_exam') }}</AppButton>
         </template>
       </ResponsiveTable>
     </div>
 
+    <ExamParamsPanel v-if="paramsExam" :examen="paramsExam" @close="paramsExam = null" />
     <ExamFormModal v-if="showExamModal" :examen="selectedExam" @close="showExamModal = false" @saved="onExamSaved" />
   </div>
 </template>
@@ -29,7 +33,8 @@ import { useLabStore } from '@/stores/labStore';
 import { useAuthStore } from '@/stores/auth';
 import { useConfigStore } from '@/stores/configStore';
 import ExamFormModal from '@/components/config/ExamFormModal.vue';
-import { PlusIcon, TrashIcon } from '@heroicons/vue/24/outline';
+import ExamParamsPanel from '@/components/config/ExamParamsPanel.vue';
+import { PlusIcon, TrashIcon, PencilSquareIcon, Cog6ToothIcon } from '@heroicons/vue/24/outline';
 import { AppButton, PageHeader, StatusBadge, ResponsiveTable } from '@/components/ui';
 
 const labStore = useLabStore();
@@ -42,6 +47,7 @@ const columns = computed(() => [
     { key: 'code', label: t('lab.config.col_code') },
     { key: 'name', label: t('lab.config.col_name') },
     { key: 'category', label: t('lab.config.col_category') },
+    { key: 'price', label: t('lab.config.col_price') },
 ]);
 
 // Vérification du rôle pour l'affichage conditionnel
@@ -54,6 +60,9 @@ onMounted(() => {
 });
 
 // Creation d'un examen : meme fenetre que la configuration systeme (code, nom, categorie, prix).
+const paramsExam = ref(null);
+const openParams = (exam) => { paramsExam.value = exam; };
+const formatPrice = (v) => `${new Intl.NumberFormat('fr-FR').format(Number(v) || 0)} FCFA`;
 const showExamModal = ref(false);
 const selectedExam = ref(null);
 

@@ -59,6 +59,8 @@ export function validateReceipt(form, today = new Date()) {
         if (blank(l.lot_number)) errs.add('labStock.receipt_err_lot');
         if (blank(l.expiry_date)) errs.add('labStock.receipt_err_expiry');
         if (!isPrice(l.unit_price)) errs.add('labStock.receipt_err_price');
+        // la case « pointee » confirme qu'on a verifie la ligne livree : obligatoire pour confirmer
+        if (!l.checked) errs.add('labStock.receipt_err_unchecked');
     }
     return [...errs];
 }

@@ -29,6 +29,7 @@
               <h1 class="flex flex-wrap items-center gap-2 text-lg font-bold">
                 {{ activeDossier.examen_nom }}
                 <span class="rounded-control border border-white px-2 py-0.5 text-sm font-medium">#{{ activeDossier.code }}</span>
+                <span v-if="activeDossier.corrected" class="rounded-control border border-white px-2 py-0.5 text-sm font-medium">{{ t('lab.technician.corrected_badge') }}</span>
               </h1>
               <p class="mt-1 flex items-center gap-2 text-sm">
                 <UserIcon class="h-5 w-5 shrink-0" aria-hidden="true" />
@@ -58,6 +59,12 @@
             </button>
           </div>
 
+          <p v-if="amendNotice" role="status" class="rounded-card border p-4 text-sm" :class="toneClasses('success')">{{ amendNotice }}</p>
+          <p v-if="isLocked" role="status" class="flex items-start gap-2 rounded-card border p-4 text-sm" :class="toneClasses('info')">
+            <LockClosedIcon class="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
+            {{ t('lab.technician.locked_notice') }}
+          </p>
+
           <p v-if="!activeDossier.details || activeDossier.details.length === 0" role="status" class="rounded-card border p-4 text-sm" :class="toneClasses('warning')">
             {{ t('lab.technician.no_params') }}
           </p>
@@ -66,15 +73,15 @@
             <template #cell-name="{ row: detail }"><span class="text-sm font-medium">{{ detail.nom }}</span></template>
             <template #cell-value="{ row: detail }">
               <div class="grid gap-2">
-                <input v-if="detail.input_type === 'numeric'" v-model.number="formValues[detail.detail_id]" type="number" step="any" @wheel="$event.target.blur()"
+                <input v-if="detail.input_type === 'numeric'" v-model.number="formValues[detail.detail_id]" type="number" step="any" @wheel="$event.target.blur()" :disabled="isLocked"
                        :aria-label="t('labScreens.value_for', { name: detail.nom })" placeholder="-" :class="[fieldClass, 'text-center font-semibold lg:w-48']" />
-                <input v-else v-model="formValues[detail.detail_id]" type="text"
+                <input v-else v-model="formValues[detail.detail_id]" type="text" :disabled="isLocked"
                        :aria-label="t('labScreens.value_for', { name: detail.nom })" :placeholder="t('lab.technician.result_placeholder')" :class="[fieldClass, 'lg:w-48']" />
 
                 <template v-if="hasValue(formValues[detail.detail_id])">
                   <div role="radiogroup" :aria-label="t('labScreens.flag_for', { name: detail.nom })" class="flex flex-wrap gap-2">
                     <label v-for="opt in flagOptions" :key="opt.value" class="cursor-pointer">
-                      <input type="radio" class="peer sr-only" :name="`lab-flag-${detail.detail_id}`" :value="opt.value" v-model="formFlags[detail.detail_id]" />
+                      <input type="radio" class="peer sr-only" :name="`lab-flag-${detail.detail_id}`" :value="opt.value" v-model="formFlags[detail.detail_id]" :disabled="isLocked" />
                       <span :class="opt.checked"
                             class="inline-flex min-h-11 items-center gap-1.5 rounded-full border-2 border-tone-neutral-border bg-white px-3 text-sm font-medium text-ink-muted transition hover:bg-tone-neutral-bg peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-brand-600">
                         <component :is="opt.icon" class="h-5 w-5 shrink-0" aria-hidden="true" />
@@ -82,7 +89,7 @@
                       </span>
                     </label>
                   </div>
-                  <input v-model="formInterpretations[detail.detail_id]" type="text" :aria-label="t('labScreens.note_for', { name: detail.nom })"
+                  <input v-model="formInterpretations[detail.detail_id]" type="text" :disabled="isLocked" :aria-label="t('labScreens.note_for', { name: detail.nom })"
                          :placeholder="t('lab.technician.interp_placeholder')" :class="fieldClass" />
                 </template>
               </div>
@@ -93,12 +100,30 @@
 
           <section v-if="activeDossier.details && activeDossier.details.length > 0" class="rounded-card border border-tone-neutral-border bg-white p-4 shadow-card">
             <FormField id="lab-tech-note" :label="t('lab.technician.global_conclusion')" v-slot="{ describedBy }">
-              <textarea id="lab-tech-note" v-model="formGlobalNote" rows="3" :aria-describedby="describedBy" :placeholder="t('lab.technician.conclusion_placeholder')"
+              <textarea id="lab-tech-note" v-model="formGlobalNote" rows="3" :disabled="isLocked" :aria-describedby="describedBy" :placeholder="t('lab.technician.conclusion_placeholder')"
                         :class="[fieldClass, 'py-2']"></textarea>
             </FormField>
           </section>
 
-          <ActionBar class="rounded-card border">
+          <!-- Resultat valide : correction avec motif obligatoire (le medecin prescripteur est prevenu). -->
+          <section v-if="activeDossier.details && activeDossier.details.length > 0 && activeDossier.status === 'completed'" class="grid gap-3 rounded-card border border-tone-neutral-border bg-white p-4 shadow-card">
+            <template v-if="amending">
+              <FormField id="lab-tech-amend-reason" :label="t('lab.technician.amend_reason_label')" :error="amendError" v-slot="{ describedBy }">
+                <textarea id="lab-tech-amend-reason" v-model="amendReason" rows="3" :aria-describedby="describedBy"
+                          :placeholder="t('lab.technician.amend_reason_placeholder')" :class="[fieldClass, 'py-2']"></textarea>
+              </FormField>
+              <p v-if="labStore.error" role="alert" class="rounded-control border p-3 text-sm" :class="toneClasses('danger')">{{ labStore.error }}</p>
+            </template>
+            <ActionBar>
+              <template #secondary>
+                <AppButton v-if="amending" variant="secondary" :disabled="labStore.loading" @click="cancelAmend">{{ t('lab.technician.amend_cancel') }}</AppButton>
+              </template>
+              <AppButton v-if="!amending" variant="lab" :icon="PencilSquareIcon" @click="startAmend">{{ t('lab.technician.amend_btn') }}</AppButton>
+              <AppButton v-else variant="lab" :loading="labStore.loading" :disabled="labStore.loading" @click="submitAmend">{{ t('lab.technician.amend_save') }}</AppButton>
+            </ActionBar>
+          </section>
+
+          <ActionBar v-if="!isLocked && !amending" class="rounded-card border">
             <template #secondary>
               <AppButton variant="secondary" :disabled="labStore.loading" @click="submit(false)">{{ t('lab.technician.save_draft') }}</AppButton>
             </template>
@@ -116,23 +141,27 @@
 </template>
 
 <script setup>
+import { notifyText } from '@/utils/notify';
 import { ref, computed, onMounted } from 'vue';
 import { useLabStore } from '@/stores/labStore';
 import dayjs from 'dayjs';
 import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';
+import { useToastStore } from '@/stores/toastStore';
 import {
   ArrowPathIcon, BeakerIcon, UserIcon, PrinterIcon,
-  ArrowUpIcon, ArrowDownIcon, CheckCircleIcon, ExclamationTriangleIcon, MinusCircleIcon
+  ArrowUpIcon, ArrowDownIcon, CheckCircleIcon, ExclamationTriangleIcon, MinusCircleIcon, LockClosedIcon, PencilSquareIcon
 } from '@heroicons/vue/24/outline';
 import { AppButton, AppCard, FormField, StatusBadge, EmptyState, ResponsiveTable, ActionBar } from '@/components/ui';
 import LabPassageCard from '@/components/lab/LabPassageCard.vue';
 import { groupPaillasse } from '@/utils/labPassages';
+import { rangeLabelForPatient } from '@/utils/labRanges';
 import { toneClasses } from '@/design/tones';
 
 const labStore = useLabStore();
 const { t } = useI18n();
 const route = useRoute();
+const toast = useToastStore();
 const activeId = ref(null);
 
 // Un patient une seule fois, avec tous les examens de son passage (termines compris).
@@ -165,6 +194,13 @@ const formGlobalNote = ref('');
 
 // Récupère le dossier complet depuis le store
 const activeDossier = computed(() => labStore.currentResult);
+
+// Un résultat validé est en lecture seule : on ne le modifie que par la correction avec motif.
+const amending = ref(false);
+const amendReason = ref('');
+const amendError = ref('');
+const amendNotice = ref('');
+const isLocked = computed(() => activeDossier.value?.status === 'completed' && !amending.value);
 
 // Vérifie si aucune valeur n'a été saisie dans le formulaire principal
 const isFormEmpty = computed(() => {
@@ -205,6 +241,10 @@ const openDossier = async (id) => {
 
   activeId.value = id;
   labStore.clearMessages();
+  amending.value = false;
+  amendReason.value = '';
+  amendError.value = '';
+  amendNotice.value = '';
   
   // Reset complet
   formValues.value = {}; 
@@ -240,7 +280,7 @@ const submit = async (isCompleted, shouldPrint) => {
   const targetId = activeId.value || activeDossier.value?.result_id;
   
   if (!targetId) {
-      alert(t('lab.technician.no_file_selected'));
+      notifyText(t('lab.technician.no_file_selected'));
       return;
   }
 
@@ -266,6 +306,7 @@ const submit = async (isCompleted, shouldPrint) => {
   const success = await labStore.saveValues(targetId, fullPayload);
   
   if (success) {
+      toast.push(isCompleted ? t('lab.technician.validated_ok') : t('lab.technician.draft_saved'), 'success');
       if (isCompleted && shouldPrint) {
           // Logique d'impression basique
           await labStore.downloadPDF(targetId, `Resultat_${targetId}.pdf`);
@@ -282,15 +323,48 @@ const submit = async (isCompleted, shouldPrint) => {
   }
 };
 
+// --- CORRECTION D'UN RESULTAT VALIDE ---
+
+const startAmend = () => {
+  amendNotice.value = '';
+  amendError.value = '';
+  amending.value = true;
+};
+
+const cancelAmend = async () => {
+  // Remet les valeurs d'origine dans le formulaire.
+  await openDossier(activeId.value || activeDossier.value?.result_id);
+};
+
+const submitAmend = async () => {
+  const targetId = activeId.value || activeDossier.value?.result_id;
+  if (!targetId) return;
+  const reason = amendReason.value.trim();
+  if (!reason) {
+    amendError.value = t('lab.technician.amend_reason_required');
+    return;
+  }
+  amendError.value = '';
+  const payloadValues = {};
+  for (const detailId in formValues.value) {
+    payloadValues[detailId] = {
+      valeur: formValues.value[detailId],
+      flag: formFlags.value[detailId] || '',
+      interpretation: formInterpretations.value[detailId] || ''
+    };
+  }
+  const ok = await labStore.amendResult(targetId, { reason, values: payloadValues, note: formGlobalNote.value });
+  if (ok) {
+    await openDossier(targetId);
+    amendNotice.value = t('lab.technician.amend_success');
+  }
+};
+
 // --- HELPERS D'AFFICHAGE ---
 
 // Trouve la bonne plage de référence selon le sexe (M/F)
-const getRangeForPatient = (ranges, sexePatient) => {
-    if (!ranges || ranges.length === 0) return '-';
-    // Cherche la range spécifique au sexe, sinon prend la première (défaut)
-    const range = ranges.find(r => r.sexe === sexePatient) || ranges[0];
-    return `${range.min} - ${range.max}`;
-};
+// Plage du sexe du patient (a defaut la plage generique) ; jamais celle de l'autre sexe.
+const getRangeForPatient = (ranges, sexePatient) => rangeLabelForPatient(ranges, sexePatient);
 </script>
 <style scoped>
 input[type=number]::-webkit-inner-spin-button,

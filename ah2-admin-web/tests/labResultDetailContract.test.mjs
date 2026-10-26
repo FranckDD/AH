@@ -30,7 +30,7 @@ check('ResultDetailModal', view, [
     // dates
     "if (!date) return t('lab.result_modal.unknown_date');", "dayjs(date).format('DD/MM/YYYY HH:mm')", 'result.test_date || result.created_at',
     // plage de référence
-    "if (!ranges || ranges.length === 0) return '-';", 'ranges.find(r => r.sexe === sexePatient) || ranges[0]', 'return `${range.min} - ${range.max}`;', 'getRange(detail.ranges, result.patient_info?.sexe)',
+    'rangeLabelForPatient(ranges, sexePatient)', 'getRange(detail.ranges, result.patient_info?.sexe)',
     // anomalies
     "!!(detail.is_abnormal || detail.flagged || ['H', 'L', 'A'].includes(detail.flag))", "if (interp === 'haut') return t('lab.result_modal.flag_high');", "if (interp === 'bas') return t('lab.result_modal.flag_low');",
     "return t('lab.result_modal.abnormal');", 'isAbnormal(detail)', 'flagLabel(detail)',

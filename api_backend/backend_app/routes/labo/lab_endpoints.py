@@ -15,7 +15,11 @@ from .labo_schemas import (
     ExamenOut, 
     BatchResultCreate, 
     LabStatsOut,
-    PaginatedLabHistoryOut
+    PaginatedLabHistoryOut,
+    LabAmendIn,
+    ParametreUpdate,
+    ParametreOrder,
+    RangeIn,
 )
 
 # --- IMPORTS BACKEND ---
@@ -131,11 +135,44 @@ def add_parametre(examen_id: int, payload: Dict[str, Any] = Body(...), ctrl: Lab
         logger.error(f"Erreur ajout paramètre: {e}")
         raise HTTPException(status_code=500, detail="Impossible d'ajouter le paramètre.")
 
+@router.put("/exams/{examen_id}/params/order",
+            dependencies=[Depends(role_required("admin"))])
+def reorder_parametres(examen_id: int, payload: ParametreOrder, ctrl: LabController = Depends(get_lab_controller)):
+    """Fixe l'ordre d'affichage : `ids` doit etre exactement l'ensemble des parametres de l'examen."""
+    if not ctrl.reorder_parametres(examen_id, payload.ids):
+        raise HTTPException(status_code=422, detail="La liste doit contenir exactement les parametres de cet examen, une seule fois chacun.")
+    return ctrl.list_parametres(examen_id)
+
+@router.put("/params/{param_id}",
+            dependencies=[Depends(role_required("laborantin", "admin"))])
+def update_parametre(param_id: int, payload: ParametreUpdate, ctrl: LabController = Depends(get_lab_controller)):
+    out = ctrl.update_parametre(param_id, payload.model_dump(exclude_unset=True))
+    if not out:
+        raise HTTPException(status_code=404, detail="Paramètre introuvable.")
+    return out
+
 @router.delete("/params/{param_id}", status_code=status.HTTP_204_NO_CONTENT, 
                dependencies=[Depends(role_required("admin"))])
 def delete_parametre(param_id: int, ctrl: LabController = Depends(get_lab_controller)):
-    if not ctrl.delete_parametre(param_id):
+    try:
+        ok = ctrl.delete_parametre(param_id)
+    except ValueError as ve:
+        raise HTTPException(status_code=409, detail=str(ve))
+    if not ok:
         raise HTTPException(404, "Paramètre introuvable.")
+
+@router.post("/params/{param_id}/ranges", status_code=status.HTTP_201_CREATED,
+             dependencies=[Depends(role_required("laborantin", "admin"))])
+def add_reference_range(param_id: int, payload: RangeIn, ctrl: LabController = Depends(get_lab_controller)):
+    if not ctrl.repo.get_parametre(param_id):
+        raise HTTPException(status_code=404, detail="Paramètre introuvable.")
+    return ctrl.add_reference_range(param_id, payload.model_dump())
+
+@router.delete("/ranges/{range_id}", status_code=status.HTTP_204_NO_CONTENT,
+               dependencies=[Depends(role_required("laborantin", "admin"))])
+def delete_reference_range(range_id: int, ctrl: LabController = Depends(get_lab_controller)):
+    if not ctrl.delete_reference_range(range_id):
+        raise HTTPException(404, "Plage introuvable.")
 
 # ====================================================================
 # 3. GESTION DES RÉSULTATS
@@ -225,6 +262,13 @@ def update_result_values(result_id: str, payload: Dict[str, Any] = Body(...), ct
     except Exception as e:
         logger.exception(f"Erreur sauvegarde valeurs {result_id}")
         raise HTTPException(status_code=500, detail="Erreur lors de la sauvegarde.")
+
+@router.post("/results/{result_id}/amend",
+             dependencies=[Depends(role_required("laborantin", "admin", "ToxicoManager"))])
+def amend_result(result_id: int, payload: LabAmendIn, ctrl: LabController = Depends(get_lab_controller)):
+    """Correction explicite d'un resultat deja valide : motif obligatoire, valeurs d'avant conservees,
+    resultat marque « corrige », medecin prescripteur notifie. Seule voie pour modifier un resultat valide."""
+    return ctrl.amend_values(result_id, payload.values, payload.note, payload.reason)
 
 @router.delete("/results/{result_id}", status_code=status.HTTP_204_NO_CONTENT, 
                dependencies=[Depends(role_required("admin"))])

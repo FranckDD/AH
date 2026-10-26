@@ -18,6 +18,7 @@
             tone="danger"
             :label="t('lab.patient_table.abnormal_count', { n: res.nb_anormaux }, res.nb_anormaux)"
           />
+          <StatusBadge v-if="res.corrected" tone="info" :label="t('lab.technician.corrected_badge')" />
         </div>
       </template>
 

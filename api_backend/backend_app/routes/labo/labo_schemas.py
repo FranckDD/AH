@@ -54,10 +54,15 @@ class ParametreBase(BaseModel):
 class ParametreCreate(ParametreBase):
     pass
 
+class ParametreOrder(BaseModel):
+    ids: List[int]
+
 class ParametreUpdate(BaseModel):
     nom_parametre: Optional[str] = None
     unite: Optional[str] = None
     type_valeur: Optional[str] = None
+    input_type: Optional[str] = None
+    options_list: Optional[str] = None
     examen_id: Optional[int] = None 
 
 class ParametreOut(ParametreBase):
@@ -79,6 +84,22 @@ class ReferenceRangeBase(BaseModel):
 
 class ReferenceRangeCreate(ReferenceRangeBase):
     pass
+
+class RangeIn(BaseModel):
+    """Plage de reference saisie depuis le catalogue (le parametre vient de l'URL)."""
+    sexe: str = Field(..., pattern="^[MFX]$")
+    age_min: int = Field(0, ge=0)
+    age_max: int = Field(150, ge=0)
+    valeur_min: Decimal
+    valeur_max: Decimal
+
+    @model_validator(mode="after")
+    def _bounds(self):
+        if self.age_min > self.age_max:
+            raise ValueError("age_min doit etre inferieur ou egal a age_max")
+        if self.valeur_min > self.valeur_max:
+            raise ValueError("valeur_min doit etre inferieure ou egale a valeur_max")
+        return self
 
 class ReferenceRangeUpdate(BaseModel):
     parametre_id: Optional[int] = None
@@ -140,6 +161,9 @@ class BatchItem(BaseModel):
     # uuid genere par le client (hors ligne) - permet le rejeu idempotent
     # d'un item deja envoye (meme motif que patients.uuid). Absent en ligne.
     uuid: Optional[UUID] = None
+    # Ligne de facture (examen facture a la caisse) que cet examen execute : une ligne ne se recoit
+    # qu'une fois (409 sinon).
+    origin_caisse_item_id: Optional[int] = None
 
 class BatchResultCreate(BaseModel):
     """
@@ -246,6 +270,7 @@ class PaginatedLabItemOut(BaseModel):
     status: Optional[str] = None
     batch_id: Optional[str] = None
     nb_anormaux: int = 0
+    corrected: bool = False
 
 class PaginatedLabHistoryOut(BaseModel):
     total_items: int
@@ -253,3 +278,17 @@ class PaginatedLabHistoryOut(BaseModel):
     current_page: int
     limit: int
     items: List[PaginatedLabItemOut]
+
+
+class LabAmendIn(BaseModel):
+    """Correction d'un resultat valide : le motif est obligatoire."""
+    reason: str
+    values: Dict[str, Any] = Field(default_factory=dict)
+    note: Optional[str] = None
+
+    @model_validator(mode='after')
+    def check_reason(self):
+        self.reason = (self.reason or "").strip()
+        if not self.reason:
+            raise ValueError("Le motif de la correction est obligatoire.")
+        return self

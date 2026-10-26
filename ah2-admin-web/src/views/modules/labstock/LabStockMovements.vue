@@ -41,6 +41,7 @@
 </template>
 
 <script setup>
+import { formatDateTimeDMY } from '@/utils/localDate';
 import { ref, computed, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { LabStockGateway, describeLabStockError } from '@/services/LabStockGateway';
@@ -81,7 +82,7 @@ const formatDateTime = (v) => {
   const s = String(v);
   // horodatages serveur en UTC naif : on les lit comme UTC
   const d = new Date(/[zZ]|[+-]\d\d:?\d\d$/.test(s) ? s : `${s}Z`);
-  return Number.isNaN(d.getTime()) ? s : d.toLocaleString();
+  return Number.isNaN(d.getTime()) ? s : formatDateTimeDMY(d);
 };
 const refText = (m) => {
   if (m.ref_type === 'receipt' && m.ref_id) return t('labStock.mv_ref_receipt', { id: m.ref_id });

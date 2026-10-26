@@ -60,6 +60,7 @@ const statusMeta = (status) => examStatusMeta(status);
                     <ExclamationTriangleIcon class="h-4 w-4 shrink-0" aria-hidden="true" />
                     {{ t('labScreens.abnormal_count', passage.abnormalCount) }}
                 </span>
+                <StatusBadge v-if="passage.exams.some((e) => e.corrected)" tone="info" :label="t('lab.technician.corrected_badge')" />
             </div>
 
             <div class="flex flex-wrap gap-2 lg:justify-end">
@@ -87,6 +88,7 @@ const statusMeta = (status) => examStatusMeta(status);
                             <ExclamationTriangleIcon class="h-4 w-4 shrink-0" aria-hidden="true" />
                             {{ t('labScreens.abnormal_count', res.nb_anormaux) }}
                         </span>
+                        <StatusBadge v-if="res.corrected" tone="info" :label="t('lab.technician.corrected_badge')" />
                     </p>
                     <p class="text-sm text-ink-muted">#{{ res.result_id }}<span v-if="res.code">, {{ res.code }}</span></p>
                 </div>

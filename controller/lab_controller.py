@@ -14,9 +14,10 @@ from sqlalchemy.exc import IntegrityError
 # Vérifie tes chemins d'import
 from models.lab import Examen, Parametre, LabResult, ReferenceRange
 from models.user import User
-from repositories.lab_repo import LabRepository
+from repositories.lab_repo import LabRepository, LabResultLockedError, LabResultNotValidatedError
 from api_backend.backend_app.utils.pdf_header import get_pdf_header_context
 from api_backend.backend_app.utils.patient_resolution import resolve_patient_id
+from utils.lab_reference import SEX_LABELS_FR, ABNORMAL_FALLBACK, select_range, normalize_sex
 
 class LabController:
     def __init__(self, repo: LabRepository, current_user=None):
@@ -126,28 +127,82 @@ class LabController:
         examens = self.repo.list_all_examens()
         return [self._serialize_examen(ex) for ex in examens]
 
+    def _audit_exam(self, action: str, examen_id: int, old: Dict[str, Any], new: Dict[str, Any]):
+        """Trace les changements du catalogue (surtout les prix). Ne bloque jamais l'operation."""
+        if self.user is None:
+            return
+        try:
+            from repositories.audit_repo import AuditRepository
+            audit = AuditRepository(self.repo.session)
+            old = {k: (float(v) if k == "prix" and v is not None else v) for k, v in old.items()}
+            new = {k: (float(v) if k == "prix" and v is not None else v) for k, v in new.items()}
+            audit.log_user_action(current_user=self.user, resource_type="Examen", action_performed=action,
+                                  resource_id=examen_id, old_values=old or None, new_values=new or None,
+                                  details=audit.summarize_changes(old, new) or None)
+            self.repo.session.commit()
+        except Exception:
+            self.logger.exception("Échec de l'écriture d'audit (Examen)")
+            try:
+                self.repo.session.rollback()
+            except Exception:
+                pass
+
     def create_examen(self, data: Dict[str, Any]) -> Dict:
         """Crée un nouvel examen."""
         ex = self.repo.create_examen(data)
+        self._audit_exam("CREATE", ex.id, {}, {"code": ex.code, "nom": ex.nom, "categorie": ex.categorie, "prix": ex.prix})
         return self._serialize_examen(ex)
 
     def update_examen(self, examen_id: int, data: Dict[str, Any]) -> Optional[Dict]:
         """Met à jour un examen."""
         clean_data = {k: v for k, v in data.items() if v is not None}
+        current = self.repo.get_examen_by_id(examen_id)
+        before = {k: getattr(current, k) for k in clean_data} if current else {}
         ex = self.repo.update_examen(examen_id, clean_data)
+        if ex:
+            after = {k: getattr(ex, k) for k in clean_data}
+            changed = {k for k in clean_data if str(before.get(k)) != str(after.get(k)) and
+                       not (k == "prix" and float(before.get(k) or 0) == float(after.get(k) or 0))}
+            if changed:
+                self._audit_exam("UPDATE", examen_id, {k: before[k] for k in changed}, {k: after[k] for k in changed})
         return self._serialize_examen(ex) if ex else None
 
     def delete_examen(self, examen_id: int) -> bool:
         """Supprime un examen."""
-        return self.repo.delete_examen(examen_id)
+        current = self.repo.get_examen_by_id(examen_id)
+        before = {"code": current.code, "nom": current.nom, "prix": current.prix} if current else {}
+        ok = self.repo.delete_examen(examen_id)
+        if ok:
+            self._audit_exam("DELETE", examen_id, before, {})
+        return ok
 
     # --- Gestion des Paramètres (Leucocytes, Hématies...) ---
 
+    _PARAM_FIELDS = ('nom_parametre', 'unite', 'type_valeur', 'input_type', 'options_list')
+
+    def update_parametre(self, param_id: int, data: Dict[str, Any]) -> Optional[Dict]:
+        """Modifie nom, unite, type ou liste d'options d'un parametre (jamais son examen)."""
+        clean = {k: v for k, v in data.items() if k in self._PARAM_FIELDS and v is not None}
+        p = self.repo.update_parametre(param_id, clean)
+        return {"id": p.id, "nom": p.nom_parametre, "unite": p.unite} if p else None
+
     def add_parametre(self, examen_id: int, data: Dict[str, Any]) -> Dict:
         """Ajoute un paramètre à un examen existant."""
+        data = {k: v for k, v in data.items() if k in self._PARAM_FIELDS}
+        data.setdefault('unite', '')
+        data.setdefault('type_valeur', 'numeric')
         data['examen_id'] = examen_id
         p = self.repo.create_parametre(data)
         return {"id": p.id, "nom": p.nom_parametre, "unite": p.unite}
+
+    @staticmethod
+    def _detail_sort_key(d):
+        """Ordre d'affichage du catalogue (parametres.ordre), jamais l'ordre physique des lignes."""
+        p = d.parametre
+        return ((p.ordre if p is not None else 0) or 0, d.parametre_id or 0, d.detail_id or 0)
+
+    def reorder_parametres(self, examen_id: int, ids: List[int]) -> bool:
+        return self.repo.reorder_parametres(examen_id, ids)
 
     def list_parametres(self, examen_id: int) -> List[Dict]:
         """
@@ -162,6 +217,7 @@ class LabController:
             
             result.append({
                 "id": p.id,
+                "ordre": p.ordre,
                 "nom": p.nom_parametre,
                 "unite": p.unite or "",
                 "type": p.type_valeur,       # Logique métier
@@ -173,6 +229,8 @@ class LabController:
                     {
                         "id": r.id, 
                         "sexe": r.sexe, 
+                        "age_min": r.age_min,
+                        "age_max": r.age_max,
                         "min": float(r.valeur_min) if r.valeur_min else None, 
                         "max": float(r.valeur_max) if r.valeur_max else None
                     } for r in p.reference_ranges
@@ -181,6 +239,10 @@ class LabController:
         return result
 
     def delete_parametre(self, param_id: int) -> bool:
+        """Supprime un parametre et ses plages. ValueError si des resultats l'utilisent deja
+        (l'historique des dossiers doit rester lisible)."""
+        if self.repo.parametre_has_results(param_id):
+            raise ValueError("Ce parametre est deja utilise dans des resultats : il ne peut pas etre supprime.")
         return self.repo.delete_parametre(param_id)
 
     # --- Gestion des Valeurs de Référence (H/F/Enfant) ---
@@ -247,7 +309,8 @@ class LabController:
                 'test_date': r.test_date.isoformat() if r.test_date else "",
                 'status': r.status,
                 'batch_id': str(r.batch_id) if r.batch_id else None,
-                'nb_anormaux': flagged_counts.get(r.result_id, 0)
+                'nb_anormaux': flagged_counts.get(r.result_id, 0),
+                'corrected': bool(r.corrected),
             })
             
         # 3. Calcul du nombre total de pages (arrondi au supérieur)
@@ -281,9 +344,10 @@ class LabController:
         # voir api_backend/backend_app/utils/pdf_header.py pour le detail.
         header_ctx = get_pdf_header_context(config_ctrl)
 
-        # 2. Calcul Âge et Sexe
-        age_patient, sexe_patient = self.repo._get_patient_bio_info(r)
-        
+        # 2. Age et sexe : le code sexe (M/F/X) choisit la plage, le libelle francais est affiche
+        age_connu, sexe_code = self.repo._patient_bio(r)
+        age_patient = age_connu if age_connu is not None else 0
+
         if r.patient:
             patient_name = f"{r.patient.last_name} {r.patient.first_name}"
         else:
@@ -292,33 +356,26 @@ class LabController:
         patient_info = {
             "nom": patient_name,
             "age": age_patient,
-            "sexe": sexe_patient
+            "sexe": SEX_LABELS_FR.get(sexe_code, SEX_LABELS_FR["X"]),
         }
-        
+
         # 3. Traitement des résultats et des normes
         details_format_list = []
-        
-        for d in r.details:
-            if not d.parametre: 
-                continue
-                
-            p = d.parametre
-            norme_trouvee = None
-            
-            # On ne cherche la norme que si c'est un paramètre numérique
-            if p.input_type == 'numeric':
-                for rr in p.reference_ranges:
-                    if rr.sexe in ['X', sexe_patient] and (rr.age_min <= age_patient <= rr.age_max):
-                        norme_trouvee = rr
-                        break
 
-            # Formatage de l'affichage de la Norme
+        for d in sorted(r.details, key=self._detail_sort_key):
+            if not d.parametre:
+                continue
+
+            p = d.parametre
+
+            # Norme du sexe du patient (a defaut la norme generique) ; jamais celle de l'autre sexe.
             norme_affichage = "-"
-            if p.input_type == 'numeric' and norme_trouvee:
-                if norme_trouvee.valeur_min is not None and norme_trouvee.valeur_max is not None:
-                    # Formatage propre pour enlever les zéros inutiles si besoin, ex: 4.50 -> 4.5
-                    min_val = round(norme_trouvee.valeur_min, 2)
-                    max_val = round(norme_trouvee.valeur_max, 2)
+            if p.input_type == 'numeric':
+                norme_trouvee = select_range(p.reference_ranges, sexe_code, age_connu)
+                if norme_trouvee and norme_trouvee.valeur_min is not None and norme_trouvee.valeur_max is not None:
+                    # Sans zeros inutiles : 12.00 -> 12, 15.50 -> 15.5
+                    min_val = format(round(float(norme_trouvee.valeur_min), 2), 'g')
+                    max_val = format(round(float(norme_trouvee.valeur_max), 2), 'g')
                     norme_affichage = f"[{min_val} - {max_val}]"
 
             # Extraction de la valeur du résultat saisie
@@ -328,12 +385,13 @@ class LabController:
                 valeur_resultat = d.valeur_text or ""
 
             details_format_list.append({
-                "parametre_nom": p.nom_parametre,  # Changé de 'parametre' à 'parametre_nom'
+                "parametre_nom": p.nom_parametre,
                 "valeur": valeur_resultat,
                 "unite": p.unite or "",
-                "reference_str": norme_affichage, # Changé de 'norme_affichage' à 'reference_str'
-                "is_abnormal": d.flagged,         # Ajouté pour la couleur rouge (flag-H)
-                "interpretation": d.interpretation or ""
+                "reference_str": norme_affichage,
+                "is_abnormal": d.flagged,
+                # Un resultat anormal porte toujours un mot (Haut / Bas / Anormal), jamais « * * ».
+                "interpretation": d.interpretation or (ABNORMAL_FALLBACK if d.flagged else ""),
             })
 
         # 4. Assemblage final
@@ -447,7 +505,8 @@ class LabController:
             )
 
         details_out = []
-        for d in r.details:
+        # Ordre de definition des parametres (jamais l'ordre physique des lignes, qui change apres une mise a jour).
+        for d in sorted(r.details, key=self._detail_sort_key):
             if not d.parametre: continue 
             p = d.parametre
             details_out.append({
@@ -475,7 +534,17 @@ class LabController:
             "medecin_prescripteur": r.prescribed_by_name or None,
             "patient_info": self._format_patient_info(r),
             "examen_nom": r.examen.nom if r.examen else "Inconnu",
-            "details": details_out
+            "details": details_out,
+            "corrected": bool(r.corrected),
+            "corrected_at": r.corrected_at.isoformat() if r.corrected_at else None,
+            "amendments": [{
+                "amendment_id": a.amendment_id,
+                "amended_at": a.amended_at.isoformat() if a.amended_at else None,
+                "amended_by_name": a.amended_by_name,
+                "reason": a.reason,
+                "previous_note": a.previous_note,
+                "previous_values": a.previous_values or [],
+            } for a in self.repo.list_amendments(r.result_id)],
         }
     
     # ====================================================================
@@ -552,9 +621,39 @@ class LabController:
                 "status": updated.status, 
                 "message": "Résultats sauvegardés."
             }
+        except LabResultLockedError as e:
+            # Resultat valide : lecture seule. 409 = refus definitif (le connecteur hors ligne
+            # met l'operation en quarantaine au lieu de la rejouer).
+            raise HTTPException(status_code=409, detail=str(e))
         except Exception as e:
             self.logger.error(f"Erreur submit values {result_id}: {e}")
             raise e
+
+    def _clean_values(self, values_map: Dict[Any, Any]) -> Dict[Any, Dict[str, Any]]:
+        clean: Dict[Any, Dict[str, Any]] = {}
+        for k, v in (values_map or {}).items():
+            if isinstance(v, dict):
+                val = v.get("valeur")
+                clean[k] = {"valeur": None if val == "" else val, "flag": v.get("flag"), "interpretation": v.get("interpretation")}
+            else:
+                clean[k] = {"valeur": None if v == "" else v, "flag": None, "interpretation": None}
+        return clean
+
+    def amend_values(self, result_id: int, values_map: Dict[Any, Any], global_note: Optional[str], reason: str) -> Dict:
+        """Correction explicite d'un resultat valide (motif obligatoire) - voir LabRepository.amend_result."""
+        if not (reason or "").strip():
+            raise HTTPException(status_code=422, detail="Le motif de la correction est obligatoire.")
+        try:
+            updated = self.repo.amend_result(
+                result_id, self._clean_values(values_map), global_note, reason,
+                user_id=getattr(self.user, "user_id", None),
+                user_name=getattr(self.user, "full_name", None) or getattr(self.user, "username", None))
+        except LabResultNotValidatedError as e:
+            raise HTTPException(status_code=409, detail=str(e))
+        except ValueError as e:
+            raise HTTPException(status_code=404, detail=str(e))
+        return {"id": updated.result_id, "status": updated.status, "corrected": bool(updated.corrected),
+                "message": "Résultat corrigé."}
 
     def delete_result(self, result_id: int) -> bool:
         """Supprime définitivement un résultat (Admin/Erreur)."""
@@ -589,6 +688,8 @@ class LabController:
         server_batch_id = existing_sibling.batch_id if existing_sibling else uuid.uuid4()
         shared_code = existing_sibling.code_lab_patient if existing_sibling else None
 
+        self._refuse_duplicate_lines(results_list, origin_prescription_id=origin_prescription_id)
+
         success_count = 0
         for item in results_list:
             item_uuid = item.get('uuid')
@@ -612,6 +713,7 @@ class LabController:
                 "prescribed_by": prescribed_by_id,
                 "prescribed_by_name": prescribed_by_name,
                 "origin_prescription_id": origin_prescription_id,
+                "origin_caisse_item_id": item.get('origin_caisse_item_id'),
                 "technician_id": current_user.user_id,
                 "technician_name": current_user.full_name,
                 "created_by": current_user.user_id,
@@ -636,6 +738,30 @@ class LabController:
             success_count += 1
 
         return {"success": True, "count": success_count, "shared_code": shared_code, "batch_id": str(server_batch_id)}
+
+    def _refuse_duplicate_lines(self, results_list: List[Dict[str, Any]],
+                                origin_prescription_id: Optional[int]) -> None:
+        """Une ligne d'ordonnance (ordonnance + examen) ou de facture ne se recoit qu'une fois.
+        Verifie TOUT le lot avant de creer quoi que ce soit : un doublon refuse le lot entier (409).
+        Un item deja cree sous le meme uuid (rejeu du connecteur) est ignore ici : idempotent."""
+        seen_items, seen_exams = set(), set()
+        for item in results_list:
+            item_uuid = item.get('uuid')
+            if item_uuid and self.repo.get_lab_result_by_uuid(item_uuid):
+                continue
+            item_id = item.get('origin_caisse_item_id')
+            if item_id:
+                caisse_item = self.repo.get_caisse_item(item_id)
+                if not caisse_item or caisse_item.item_ref_id != item.get('examen_id'):
+                    raise HTTPException(status_code=422, detail="Ligne de facture invalide pour cet examen.")
+                if item_id in seen_items or self.repo.lab_result_exists_for_caisse_item(item_id):
+                    raise HTTPException(status_code=409, detail="Cette ligne de facture a deja ete recue au laboratoire.")
+                seen_items.add(item_id)
+            if origin_prescription_id:
+                key = (origin_prescription_id, item.get('examen_id'))
+                if key in seen_exams or self.repo.lab_result_exists_for_prescription_exam(*key):
+                    raise HTTPException(status_code=409, detail="Cet examen de l'ordonnance a deja ete recu au laboratoire.")
+                seen_exams.add(key)
 
     def search_lab_files(self, query: str) -> List[Dict]:
         """Recherche globale avec regroupement intelligent par Batch ID."""
@@ -687,22 +813,8 @@ class LabController:
         # On ne traite pas si c'est vide
         if not query.strip():
             return []
-
-        # Appel au repo (Jointure SQL)
-        results = self.repo.get_internal_with_active_prescription(query.strip())
-
-        # Formatage pour le frontend (le Store Pinia)
-        return [
-            {
-                "id": p.patient_id,
-                "nom": p.last_name,
-                "patient_code": p.code_patient ,
-                "prescription_id": pr.prescription_id,
-                "exams_prescribed": pr.lab_exams_list,
-                "has_active_prescription": True
-            } for p, pr in results
-        ]
-    
+        # Ordonnances (lignes restantes) + examens factures non recus - voir le repo.
+        return self.repo.get_reception_candidates(query.strip())
 
     def get_results_by_batch_id(self, batch_id_str: str) -> List[Dict]:
         """Méthode appelée quand on clique sur un dossier groupé"""
@@ -739,6 +851,7 @@ class LabController:
             'status': r.status,
             'prescribed_by': r.prescribed_by or "N/A",
             'nb_anormaux': flagged_counts.get(r.result_id, 0),
+            'corrected': bool(r.corrected),
         } for r in results]
 
     def get_dashboard_stats(self, period: str = "month") -> Dict:

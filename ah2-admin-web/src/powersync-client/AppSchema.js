@@ -142,6 +142,9 @@ const lab_results = new Table(
     prescribed_by_name: column.text,
     prescribed_by: column.integer,
     origin_prescription_id: column.integer,
+    // Ligne de facture (examen facture a la caisse) que ce dossier execute : une ligne ne se recoit
+    // qu'une fois (le serveur refuse le doublon en 409). Ecrit a la reception, jamais telecharge.
+    origin_caisse_item_id: column.integer,
     batch_uuid: column.text,
     external_patient_info: column.text,
   },
@@ -206,6 +209,7 @@ const reference_lab_params = new Table({
   type_valeur: column.text,
   input_type: column.text,
   options_list: column.text,
+  ordre: column.integer,
 }, { indexes: { by_examen: ['examen_id'] } });
 
 // Valeurs de reference par age/sexe - affichage INDICATIF uniquement cote

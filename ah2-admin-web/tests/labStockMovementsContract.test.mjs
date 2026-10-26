@@ -25,7 +25,7 @@ check('LabStockMovements', view, [
     'LabStockGateway.listProducts({ includeInactive: true })', 'v-model="productId"', '@change="load"', 'v-for="p in products"', ':value="String(p.id)"',
     'value=""', "t(`labStock.mv_type.${ty}`)", "String(ty || '?')",
     "const signed = (v) => { const n = Number(v ?? 0); return n > 0 ? `+${n}` : String(n); };",
-    "const d = new Date(/[zZ]|[+-]\\d\\d:?\\d\\d$/.test(s) ? s : `${s}Z`);", 'return Number.isNaN(d.getTime()) ? s : d.toLocaleString();',
+    "const d = new Date(/[zZ]|[+-]\\d\\d:?\\d\\d$/.test(s) ? s : `${s}Z`);", 'return Number.isNaN(d.getTime()) ? s : formatDateTimeDMY(d);',
     "if (m.ref_type === 'receipt' && m.ref_id) return t('labStock.mv_ref_receipt', { id: m.ref_id });",
     "if (m.ref_type === 'count' && m.ref_id) return t('labStock.mv_ref_count', { id: m.ref_id });",
     'rows.value = [];', "pageError.value = describeLabStockError(e, t('stockOps.error_load'));", 'v-if="rows.length >= LIMIT"', "t('labStock.mv_limit_note', { n: LIMIT })",

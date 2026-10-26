@@ -36,6 +36,7 @@
 </template>
 
 <script setup>
+import { notifyText } from '@/utils/notify';
 import { reactive, computed, watch } from 'vue';
 import { useConfigStore } from '@/stores/configStore';
 import { useI18n } from 'vue-i18n';
@@ -86,7 +87,7 @@ const handleSave = async () => {
     emit('close');
   } catch (error) {
     // L'erreur est déjà loguée dans le store, mais on peut ajouter une alerte locale ici si nécessaire
-    alert(error.message);
+    notifyText(error.message);
   }
 };
 </script>

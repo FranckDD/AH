@@ -308,7 +308,8 @@ streams:
       - SELECT reference_lab_params.id::text AS id, reference_lab_params.id AS server_id,
           reference_lab_params.examen_id, reference_lab_params.nom_parametre,
           reference_lab_params.unite, reference_lab_params.type_valeur,
-          reference_lab_params.input_type, reference_lab_params.options_list
+          reference_lab_params.input_type, reference_lab_params.options_list,
+          reference_lab_params.ordre
         FROM parametres AS reference_lab_params
 
   reference_lab_ranges:

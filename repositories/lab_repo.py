@@ -11,10 +11,29 @@ import uuid
 # Assure-toi que ces imports correspondent à tes modèles
 from models.lab import (
     Examen, Parametre, ReferenceRange,
-    LabResult, LabResultDetail
+    LabResult, LabResultDetail, LabResultAmendment
 )
+from repositories.notification_repo import NotificationRepository
+from utils.business_time import business_now
+from utils.lab_reference import normalize_sex, select_range, flag_word
 from models.prescription import Prescription
+from models.caisse import Caisse
+from models.caisse_item import CaisseItem
 from models.patient import Patient
+
+class LabResultLockedError(Exception):
+    """Resultat valide : lecture seule, toute modification passe par la correction avec motif."""
+    def __init__(self, result_id):
+        super().__init__(f"Le resultat {result_id} est valide : utilisez la correction avec motif.")
+        self.result_id = result_id
+
+
+class LabResultNotValidatedError(Exception):
+    """On ne corrige qu'un resultat deja valide ; avant cela on le saisit normalement."""
+    def __init__(self, result_id):
+        super().__init__(f"Le resultat {result_id} n'est pas encore valide : saisie normale.")
+        self.result_id = result_id
+
 
 class LabRepository:
     def __init__(self, session: Session):
@@ -62,6 +81,10 @@ class LabRepository:
 
     # --- Paramètres ---
     def create_parametre(self, data: Dict[str, Any]) -> Parametre:
+        if not data.get('ordre'):
+            top = self.session.query(func.max(Parametre.ordre)).filter(
+                Parametre.examen_id == data.get('examen_id')).scalar()
+            data = {**data, 'ordre': (top or 0) + 1}
         param = Parametre(**data)
         self.session.add(param)
         self.session.commit()
@@ -79,8 +102,19 @@ class LabRepository:
         return self.session.query(Parametre)\
             .options(joinedload(Parametre.reference_ranges))\
             .filter(Parametre.examen_id == examen_id)\
-            .order_by(Parametre.id)\
+            .order_by(Parametre.ordre, Parametre.id)\
             .all()
+
+    def reorder_parametres(self, examen_id: int, ids: List[int]) -> bool:
+        """Applique l'ordre donne (1..n). False si la liste n'est pas exactement
+        l'ensemble des parametres de l'examen."""
+        params = {p.id: p for p in self.session.query(Parametre).filter(Parametre.examen_id == examen_id).all()}
+        if len(ids) != len(set(ids)) or set(ids) != set(params):
+            return False
+        for pos, pid in enumerate(ids, start=1):
+            params[pid].ordre = pos
+        self.session.commit()
+        return True
     
     def update_parametre(self, param_id: int, data: Dict[str, Any]) -> Optional[Parametre]:
         p = self.session.get(Parametre, param_id)
@@ -92,9 +126,15 @@ class LabRepository:
             return p
         return None
 
+    def parametre_has_results(self, parametre_id: int) -> bool:
+        return self.session.query(LabResultDetail.detail_id).filter(
+            LabResultDetail.parametre_id == parametre_id).first() is not None
+
     def delete_parametre(self, parametre_id: int) -> bool:
         p = self.session.get(Parametre, parametre_id)
         if p:
+            self.session.query(ReferenceRange).filter(
+                ReferenceRange.parametre_id == parametre_id).delete(synchronize_session=False)
             self.session.delete(p)
             self.session.commit()
             return True
@@ -218,7 +258,11 @@ class LabRepository:
             )
 
         # 2. Filtre par statut (ex: 'completed', 'pending')
-        if status:
+        # 'pending' = tout ce qui n'est pas termine (pending, partial, analyzed) : une demande "en cours"
+        # recue aujourd'hui doit apparaitre dans ce filtre.
+        if status == 'pending':
+            conditions.append(LabResult.status != 'completed')
+        elif status:
             conditions.append(LabResult.status == status)
 
         # 2b. Cas anormaux : au moins un parametre flagge. `period` reprend
@@ -431,27 +475,83 @@ class LabRepository:
     # 4. RECHERCHE & INTERPRÉTATION
     # =========================================================================
 
-    def get_internal_with_active_prescription(self, search_term: str):
-        """
-        JOINTURE SQL UNIQUE : Lie Patient et Prescription.
-        Optimisation : Filtre directement les prescriptions 'active' de type 'lab'.
-        """
+    @staticmethod
+    def _norm_name(value: Any) -> str:
+        return str(value or "").strip().lower()
+
+    def get_reception_candidates(self, search_term: str, limit: int = 20) -> List[Dict[str, Any]]:
+        """Patients internes a recevoir au labo : ordonnances d'examens actives (lignes restantes
+        seulement) et examens factures a la caisse non encore recus. Une ligne deja recue (dossier
+        labo existant, quel que soit son statut) n'est plus jamais proposee.
+
+        Une entree par ordonnance qui garde des lignes ; un patient qui n'a que des lignes de
+        facture a une entree sans ordonnance (prescription_id None). Les lignes de facture sont
+        portees par la premiere entree du patient."""
         term = f"%{search_term.lower()}%"
-        
-        return self.session.query(
-            Patient, 
-            Prescription
-        ).join(
-            Prescription, 
-            Patient.patient_id == Prescription.patient_id
-        ).filter(
-            or_(
-                func.lower(Patient.last_name).like(term),
-                Patient.code_patient .ilike(term)
-            ),
-            Prescription.status == 'active',
-            Prescription.is_lab_order == True
-        ).all()
+        patients = self.session.query(Patient).filter(
+            or_(func.lower(Patient.last_name).like(term), func.lower(Patient.first_name).like(term),
+                Patient.code_patient.ilike(term))
+        ).order_by(Patient.last_name, Patient.first_name).limit(limit).all()
+        if not patients:
+            return []
+        pids = [p.patient_id for p in patients]
+
+        prescriptions = self.session.query(Prescription).filter(
+            Prescription.patient_id.in_(pids), Prescription.status == 'active',
+            Prescription.is_lab_order == True).order_by(Prescription.prescription_id).all()
+
+        # Lignes d'ordonnance deja recues : prescription_id -> noms d'examens normalises
+        received_by_presc: Dict[int, set] = {}
+        if prescriptions:
+            rows = self.session.query(LabResult.origin_prescription_id, Examen.nom).join(
+                Examen, Examen.id == LabResult.examen_id).filter(
+                LabResult.origin_prescription_id.in_([pr.prescription_id for pr in prescriptions])).all()
+            for pid_, nom in rows:
+                received_by_presc.setdefault(pid_, set()).add(self._norm_name(nom))
+
+        invoiced = self.session.query(CaisseItem, Caisse.patient_id, Examen).join(
+            Caisse, Caisse.transaction_id == CaisseItem.transaction_id).join(
+            Examen, Examen.id == CaisseItem.item_ref_id).filter(
+            Caisse.patient_id.in_(pids), Caisse.status == 'active', CaisseItem.status == 'active',
+            CaisseItem.item_type.ilike('%exam%'),
+            ~self.session.query(LabResult.result_id).filter(
+                LabResult.origin_caisse_item_id == CaisseItem.item_id).exists()
+        ).order_by(CaisseItem.item_id).all()
+        invoiced_by_patient: Dict[int, List[Dict[str, Any]]] = {}
+        for item, pid_, ex in invoiced:
+            invoiced_by_patient.setdefault(pid_, []).append({
+                "item_id": item.item_id, "examen_id": ex.id, "nom": ex.nom, "transaction_id": item.transaction_id})
+
+        out: List[Dict[str, Any]] = []
+        for p in patients:
+            entries: List[Dict[str, Any]] = []
+            for pr in [x for x in prescriptions if x.patient_id == p.patient_id]:
+                done = received_by_presc.get(pr.prescription_id, set())
+                remaining = [n for n in (pr.lab_exams_list or []) if self._norm_name(n) not in done]
+                if remaining:
+                    entries.append({"id": p.patient_id, "nom": f"{p.last_name or ''} {p.first_name or ''}".strip(), "patient_code": p.code_patient,
+                                    "prescription_id": pr.prescription_id, "exams_prescribed": remaining,
+                                    "has_active_prescription": True, "invoiced_exams": []})
+            lines = invoiced_by_patient.get(p.patient_id, [])
+            if lines and not entries:
+                entries.append({"id": p.patient_id, "nom": f"{p.last_name or ''} {p.first_name or ''}".strip(), "patient_code": p.code_patient,
+                                "prescription_id": None, "exams_prescribed": [],
+                                "has_active_prescription": False, "invoiced_exams": []})
+            if entries:
+                entries[0]["invoiced_exams"] = lines
+            out.extend(entries)
+        return out
+
+    def lab_result_exists_for_caisse_item(self, caisse_item_id: int) -> bool:
+        return self.session.query(LabResult.result_id).filter(
+            LabResult.origin_caisse_item_id == caisse_item_id).first() is not None
+
+    def lab_result_exists_for_prescription_exam(self, prescription_id: int, examen_id: int) -> bool:
+        return self.session.query(LabResult.result_id).filter(
+            LabResult.origin_prescription_id == prescription_id, LabResult.examen_id == examen_id).first() is not None
+
+    def get_caisse_item(self, item_id: int) -> Optional[CaisseItem]:
+        return self.session.get(CaisseItem, item_id)
 
     def search_results_unified(self, query_str: str) -> List[LabResult]:
         q = f"%{query_str}%"
@@ -484,6 +584,113 @@ class LabRepository:
                 detail.interpretation, detail.flagged = "abnormal", True
 
     
+    # ------------------------------------------------------------------ saisie des valeurs
+
+    def _resolve_detail(self, result_id: int, raw_key) -> Optional[LabResultDetail]:
+        """Ligne de resultat visee par une cle du client : detail_id, ou -parametre_id (ligne creee
+        hors ligne, voir labGateway.js::getResultDetail), ou parametre_id (dossier cree hors ligne)."""
+        try:
+            d_id = int(raw_key)
+        except (TypeError, ValueError):
+            return None
+        if d_id < 0:
+            # Un serial Postgres est toujours positif : aucune ambiguite avec un detail_id.
+            return self.session.query(LabResultDetail).filter(
+                LabResultDetail.parametre_id == -d_id, LabResultDetail.result_id == result_id).first()
+        detail = self.session.query(LabResultDetail).filter(
+            LabResultDetail.detail_id == d_id, LabResultDetail.result_id == result_id).first()
+        if not detail:
+            detail = self.session.query(LabResultDetail).filter(
+                LabResultDetail.parametre_id == d_id, LabResultDetail.result_id == result_id).first()
+        return detail
+
+    def _patient_bio(self, result: LabResult) -> Tuple[Optional[int], str]:
+        """(age ou None si inconnu, code sexe 'M'/'F'/'X') - patient interne (gender) ou externe (JSON)."""
+        if result.patient:
+            age = None
+            dob = result.patient.birth_date
+            if dob:
+                today = date.today()
+                age = today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
+            return age, normalize_sex(getattr(result.patient, 'gender', None))
+        if result.external_patient_info:
+            info = result.external_patient_info
+            try:
+                age = int(info.get('age'))
+            except (ValueError, TypeError):
+                age = None
+            return age, normalize_sex(info.get('sexe') or info.get('gender'))
+        return None, 'X'
+
+    @staticmethod
+    def _value_unchanged(detail: LabResultDetail, data: Dict[str, Any]) -> bool:
+        """Vrai si la valeur (et un eventuel drapeau explicite) renvoyee est celle deja enregistree :
+        le rejeu d'une operation deja appliquee ne doit pas etre pris pour une modification."""
+        val = data.get("valeur")
+        param = detail.parametre
+        if param is not None and param.input_type == 'numeric':
+            try:
+                same = (Decimal(str(val)) == Decimal(str(detail.valeur_num))) if val not in (None, "") else detail.valeur_num is None
+            except InvalidOperation:
+                same = False
+        else:
+            same = (str(val) if val is not None else "") == (detail.valeur_text or "")
+        if not same:
+            return False
+        flag = data.get("flag")
+        if flag:
+            return bool(flag not in ['N', '']) == bool(detail.flagged)
+        return True
+
+    def _apply_values(self, result: LabResult, values_map: Dict[Any, Any]) -> None:
+        """Ecrit les valeurs saisies dans les lignes du dossier et calcule l'interpretation.
+        Ne touche ni au statut ni a la note. Priorite au drapeau manuel (H/L/A/N), sinon jugement
+        automatique avec la plage du sexe du patient."""
+        age, sex = self._patient_bio(result)
+        for raw_key, data in values_map.items():
+            detail = self._resolve_detail(result.result_id, raw_key)
+            if not detail:
+                # Valeur orpheline (parametre retire du catalogue entre-temps) : on ignore plutot
+                # que de faire echouer tout le dossier.
+                continue
+            val = data.get("valeur")
+            manual_flag = data.get("flag")
+            manual_interp = data.get("interpretation")
+
+            param = detail.parametre
+            if param.input_type == 'numeric':
+                try:
+                    detail.valeur_num = Decimal(str(val)) if val is not None else None
+                    detail.valeur_text = str(val) if val is not None else ""
+
+                    if manual_flag or manual_interp:
+                        # Drapeau force par le technicien (H, L, A, N) : sans texte libre, on
+                        # enregistre le mot du drapeau pour que la fiche ne soit jamais muette.
+                        detail.flagged = bool(manual_flag and manual_flag not in ['N', ''])
+                        detail.interpretation = manual_interp or flag_word(manual_flag)
+                    elif detail.valeur_num is not None:
+                        norme = select_range(param.reference_ranges, sex, age)
+                        if norme:
+                            if detail.valeur_num < norme.valeur_min:
+                                detail.interpretation = "Bas"
+                                detail.flagged = True
+                            elif detail.valeur_num > norme.valeur_max:
+                                detail.interpretation = "Haut"
+                                detail.flagged = True
+                            else:
+                                detail.interpretation = "Normal"
+                                detail.flagged = False
+                except Exception:
+                    detail.valeur_num = None
+            else:
+                detail.valeur_text = str(val) if val is not None else ""
+                detail.valeur_num = None
+                if manual_flag or manual_interp:
+                    detail.flagged = bool(manual_flag and manual_flag not in ['N', ''])
+                    detail.interpretation = manual_interp or flag_word(manual_flag)
+                else:
+                    detail.flagged = False
+
     def save_results_values(self, result_id: int, values_map: Dict[int, Any], mark_completed: bool = False, global_note: Optional[str] = None) -> LabResult:
         try:
             result = self.session.query(LabResult)\
@@ -494,142 +701,105 @@ class LabRepository:
             if not result:
                 raise ValueError(f"Dossier {result_id} introuvable.")
 
-            # 🟢 NOUVEAU : Sauvegarde de l'interprétation globale
+            if result.status == "completed":
+                # Resultat valide : lecture seule pour le technicien. Un rejeu strictement identique
+                # (connecteur hors ligne qui renvoie une operation deja appliquee) reste sans effet ;
+                # toute vraie modification passe par la correction avec motif (amend_result).
+                resolved = [(self._resolve_detail(result_id, k), v) for k, v in values_map.items()]
+                unchanged = all(d is None or self._value_unchanged(d, v) for d, v in resolved)
+                note_same = global_note is None or global_note == (result.note or "")
+                if unchanged and note_same:
+                    return result
+                raise LabResultLockedError(result_id)
+
             if global_note is not None:
                 result.note = global_note
 
-            # --- Détermination du sexe du patient (Interne vs Externe) ---
-            patient_sexe = "X" # Valeur par défaut
-            if result.patient:
-                # Patient interne : l'attribut du modèle est 'gender'
-                patient_sexe = getattr(result.patient, 'gender', 'X') or 'X'
-            elif result.external_patient_info:
-                # Patient externe : on fouille dans le JSONB
-                info = result.external_patient_info
-                patient_sexe = info.get('sexe') or info.get('gender') or 'X'
-
-            for raw_key, data in values_map.items():
-                try:
-                    d_id = int(raw_key)
-                except (TypeError, ValueError):
-                    continue
-
-                # 🟢 NOUVEAU : Extraction depuis le dict normalisé par le controller
-                val = data.get("valeur")
-                manual_flag = data.get("flag")
-                manual_interp = data.get("interpretation")
-
-                if d_id < 0:
-                    # Cle negative = "-parametre_id" : convention du client
-                    # hors ligne (labGateway.js::getResultDetail) pour une
-                    # ligne creee hors ligne, sans vrai detail_id connu. Un
-                    # serial Postgres etant toujours positif, aucune
-                    # ambiguite avec un detail_id : resolution directe par
-                    # parametre_id, sans passer par la recherche detail_id.
-                    detail = self.session.query(LabResultDetail).filter(
-                        LabResultDetail.parametre_id == -d_id,
-                        LabResultDetail.result_id == result_id
-                    ).first()
-                    if not detail:
-                        continue
-                else:
-                    detail = self.session.query(LabResultDetail).filter(
-                        LabResultDetail.detail_id == d_id,
-                        LabResultDetail.result_id == result_id
-                    ).first()
-
-                if not detail:
-                    # 🟢 NOUVEAU (chantier 4 sous-projet 5) : dossier cree
-                    # hors ligne - le client ne connait jamais le detail_id
-                    # genere par le serveur a la creation, seulement le
-                    # parametre_id du catalogue (Approche A de la spec).
-                    detail = self.session.query(LabResultDetail).filter(
-                        LabResultDetail.parametre_id == d_id,
-                        LabResultDetail.result_id == result_id
-                    ).first()
-
-                if not detail:
-                    # Valeur orpheline (parametre retire du catalogue
-                    # entre-temps) : on ignore plutot que de faire echouer
-                    # tout le dossier.
-                    continue
-
-                param = detail.parametre
-                if param.input_type == 'numeric':
-                    try:
-                        detail.valeur_num = Decimal(str(val)) if val is not None else None
-                        detail.valeur_text = str(val) if val is not None else ""
-                        
-                        # 🟢 MODIFIÉ : Priorité au manuel, sinon Auto-interprétation
-                        if manual_flag or manual_interp:
-                            # Si le tech a forcé un flag (H, L, A)
-                            detail.flagged = bool(manual_flag and manual_flag not in ['N', '']) 
-                            detail.interpretation = manual_interp or ""
-                        elif detail.valeur_num is not None:
-                            # --- AUTO-INTERPRÉTATION EXISTANTE ---
-                            norme = next((r for r in param.reference_ranges if r.sexe == patient_sexe), None)
-                            if norme:
-                                if detail.valeur_num < norme.valeur_min:
-                                    detail.interpretation = "Bas"
-                                    detail.flagged = True
-                                elif detail.valeur_num > norme.valeur_max:
-                                    detail.interpretation = "Haut"
-                                    detail.flagged = True
-                                else:
-                                    detail.interpretation = "Normal"
-                                    detail.flagged = False
-                    except:
-                        detail.valeur_num = None 
-                else:
-                    detail.valeur_text = str(val) if val is not None else ""
-                    detail.valeur_num = None
-                    # 🟢 NOUVEAU : On permet aussi de flagger manuellement du texte
-                    if manual_flag or manual_interp:
-                        detail.flagged = bool(manual_flag and manual_flag not in ['N', ''])
-                        detail.interpretation = manual_interp or ""
-                    else:
-                        detail.flagged = False
+            self._apply_values(result, values_map)
 
             if mark_completed:
                 result.status = "completed"
-                result.test_date = func.now() 
+                result.test_date = func.now()
             else:
-                result.status = "partial" 
+                result.status = "partial"
 
             self.session.commit()
             self.session.refresh(result)
             return result
 
+        except LabResultLockedError:
+            raise  # rien n'a ete modifie : pas de rollback
         except Exception as e:
             self.session.rollback()
             raise e
 
+    def amend_result(self, result_id: int, values_map: Dict[Any, Any], global_note: Optional[str], reason: str,
+                     user_id: Optional[int], user_name: Optional[str]) -> LabResult:
+        """Correction d'un resultat VALIDE : motif obligatoire, valeurs d'avant conservees
+        (lab_result_amendments), resultat marque 'corrige', medecin prescripteur notifie.
+        Le statut reste 'completed'."""
+        reason = (reason or "").strip()
+        if not reason:
+            raise ValueError("Le motif de la correction est obligatoire.")
+        try:
+            result = self.session.query(LabResult)\
+                .options(joinedload(LabResult.patient), joinedload(LabResult.examen))\
+                .filter(LabResult.result_id == result_id).first()
+            if not result:
+                raise ValueError(f"Dossier {result_id} introuvable.")
+            if result.status != "completed":
+                raise LabResultNotValidatedError(result_id)
+
+            previous = [{
+                "detail_id": d.detail_id, "parametre_id": d.parametre_id,
+                "parametre_nom": d.parametre.nom_parametre if d.parametre else None,
+                "valeur_text": d.valeur_text, "valeur_num": float(d.valeur_num) if d.valeur_num is not None else None,
+                "interpretation": d.interpretation, "flagged": bool(d.flagged),
+            } for d in result.details]
+            previous_note = result.note
+
+            if global_note is not None:
+                result.note = global_note
+            self._apply_values(result, values_map)
+
+            self.session.add(LabResultAmendment(
+                result_id=result_id, amended_by=user_id, amended_by_name=user_name,
+                amended_at=business_now(), reason=reason, previous_values=previous, previous_note=previous_note))
+            result.corrected = True
+            result.corrected_at = business_now()
+            result.last_updated_by = user_id
+            result.last_updated_by_name = user_name
+
+            notify_user_id = result.prescribed_by
+            if notify_user_id and notify_user_id != user_id:
+                patient_name = (f"{result.patient.last_name} {result.patient.first_name}" if result.patient
+                                else (result.external_patient_info or {}).get('nom', ''))
+                NotificationRepository(self.session).create(notify_user_id, "lab_result_corrected", {
+                    "result_id": result.result_id, "code": result.code_lab_patient,
+                    "patient_name": patient_name, "examen_nom": result.examen.nom if result.examen else "",
+                    "reason": reason, "amended_by_name": user_name,
+                })
+
+            self.session.commit()
+            self.session.refresh(result)
+            return result
+        except (LabResultNotValidatedError, ValueError):
+            raise  # rien n'a ete modifie : pas de rollback
+        except Exception:
+            self.session.rollback()
+            raise
+
+    def list_amendments(self, result_id: int) -> List[LabResultAmendment]:
+        return self.session.query(LabResultAmendment)\
+            .filter(LabResultAmendment.result_id == result_id)\
+            .order_by(LabResultAmendment.amended_at.desc(), LabResultAmendment.amendment_id.desc()).all()
+
     def _get_patient_bio_info(self, result: LabResult) -> Tuple[int, str]:
-        """Calcule l'âge réel et récupère le sexe de manière sécurisée."""
-        # 1. Cas Patient Interne (Hôpital)
-        if result.patient:
-            sexe = getattr(result.patient, 'sexe', 'X') or 'X' # Sécurité si None
-            age = 0
-            if result.patient.birth_date:
-                today = date.today()
-                dob = result.patient.birth_date
-                # Calcul précis de l'âge
-                age = today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
-            return age, sexe
+        """(age affiche, code sexe 'M'/'F'/'X'). Age inconnu = 0 (affichage) ; pour choisir une plage
+        de reference utiliser _patient_bio, qui distingue age inconnu (None) d'un nouveau-ne."""
+        age, sex = self._patient_bio(result)
+        return (age if age is not None else 0), sex
 
-        # 2. Cas Patient Externe (JSON)
-        if result.external_patient_info:
-            info = result.external_patient_info
-            # Sécurité : cast en int avec fallback
-            try:
-                age = int(info.get('age', 0))
-            except (ValueError, TypeError):
-                age = 0
-            return age, info.get('sexe', 'X')
-
-        # 3. Fallback
-        return 0, 'X'
-    
     def get_results_by_batch_id(self, batch_id: uuid.UUID) -> List[LabResult]:
         """Récupère tous les examens d'un lot spécifique avec les infos Patient/Examen."""
         return self.session.query(LabResult)\
@@ -716,10 +886,13 @@ class LabRepository:
             .limit(3).all())
 
         def _patient_name(r):
-            if not r.patient:
-                return "Patient Externe"
-            full = f"{r.patient.first_name or ''} {r.patient.last_name or ''}".strip()
-            return full or "Patient Externe"
+            # Meme forme partout : "Nom Prenom" ; un patient externe garde le nom declare a la reception.
+            if r.patient:
+                full = f"{r.patient.last_name or ''} {r.patient.first_name or ''}".strip()
+                return full or "Patient Externe"
+            info = r.external_patient_info or {}
+            declared = info.get('nom_complet') or f"{info.get('nom') or info.get('name') or ''} {info.get('prenom') or info.get('first_name') or ''}"
+            return declared.strip() or "Patient Externe"
 
         # --- 4b. Les 3 derniers PASSAGES encore a traiter : un patient une seule fois, avec tous ses examens ---
         candidates = (self.session.query(LabResult)

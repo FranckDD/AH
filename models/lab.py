@@ -2,6 +2,7 @@
 from typing import Optional, List
 from decimal import Decimal
 from sqlalchemy import String, Integer, Numeric, DateTime, ForeignKey, Text, Boolean, JSON
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID # <--- IMPORT IMPORTANT
 import uuid
@@ -28,6 +29,8 @@ class Parametre(Base):
     nom_parametre: Mapped[str] = mapped_column(Text, nullable=False)
     unite: Mapped[str] = mapped_column(Text, nullable=False)
     type_valeur: Mapped[str] = mapped_column(Text, nullable=False)
+    # Position d'affichage dans l'examen (banc, detail, fiche imprimee, catalogue)
+    ordre: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
 
     examen: Mapped["Examen"] = relationship("Examen", back_populates="parametres")
     reference_ranges: Mapped[List["ReferenceRange"]] = relationship("ReferenceRange", back_populates="parametre")
@@ -92,6 +95,12 @@ class LabResult(Base):
     uuid: Mapped[Optional["uuid.UUID"]] = mapped_column(UUID(as_uuid=True), unique=True, nullable=False, default=uuid.uuid4)
     batch_uuid: Mapped[Optional[str]] = mapped_column(String(36), nullable=True, index=True)
     prescribed_by_name: Mapped[Optional[str]] = mapped_column(String(100))
+    # Ligne de facture (examen facture a la caisse) deja recue : index unique partiel en base
+    # (migration 030), une ligne ne se recoit qu'une fois.
+    origin_caisse_item_id: Mapped[Optional[int]] = mapped_column(ForeignKey("caisse_item.item_id", ondelete="SET NULL"), nullable=True)
+    # Resultat valide puis corrige (voir LabResultAmendment) - jamais modifie en silence.
+    corrected: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="false")
+    corrected_at: Mapped[Optional[DateTime]] = mapped_column(DateTime, nullable=True)
 
     # Relations
     details: Mapped[List["LabResultDetail"]] = relationship(
@@ -117,3 +126,16 @@ class LabResultDetail(Base):
 
     result: Mapped["LabResult"] = relationship("LabResult", back_populates="details")
     parametre: Mapped["Parametre"] = relationship("Parametre", back_populates="result_details")
+
+
+class LabResultAmendment(Base):
+    """Correction d'un resultat deja valide : motif obligatoire + valeurs d'AVANT conservees."""
+    __tablename__ = "lab_result_amendments"
+    amendment_id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    result_id: Mapped[int] = mapped_column(ForeignKey("lab_results.result_id", ondelete="CASCADE"), nullable=False)
+    amended_by: Mapped[Optional[int]] = mapped_column(Integer)
+    amended_by_name: Mapped[Optional[str]] = mapped_column(Text)
+    amended_at: Mapped[Optional[DateTime]] = mapped_column(DateTime, server_default=func.timezone('Africa/Douala', func.now()))
+    reason: Mapped[str] = mapped_column(Text, nullable=False)
+    previous_values: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
+    previous_note: Mapped[Optional[str]] = mapped_column(Text)

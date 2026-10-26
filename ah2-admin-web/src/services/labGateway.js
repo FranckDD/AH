@@ -42,13 +42,41 @@ export const LabGateway = {
         return api.get(`/labo/exams/${examId}/params`);
     },
 
+    async reorderExamParams(examId, ids) {
+        return api.put(`/labo/exams/${examId}/params/order`, { ids });
+    },
+
     async addExamParam(examId, paramData) {
         // paramData = { nom_parametre: "...", unite: "...", type_resultat: "numeric" }
         return api.post(`/labo/exams/${examId}/params`, paramData);
     },
 
+    async updateExamParam(paramId, paramData) {
+        return api.put(`/labo/params/${paramId}`, paramData);
+    },
+
+    async updateExamParam(paramId, paramData) {
+        return api.put(`/labo/params/${paramId}`, paramData);
+    },
+
     async deleteExamParam(paramId) {
         return api.delete(`/labo/params/${paramId}`);
+    },
+
+    async addRange(paramId, rangeData) {
+        return api.post(`/labo/params/${paramId}/ranges`, rangeData);
+    },
+
+    async deleteRange(rangeId) {
+        return api.delete(`/labo/ranges/${rangeId}`);
+    },
+
+    async addRange(paramId, rangeData) {
+        return api.post(`/labo/params/${paramId}/ranges`, rangeData);
+    },
+
+    async deleteRange(rangeId) {
+        return api.delete(`/labo/ranges/${rangeId}`);
     },
 
     // ============================================================
@@ -163,7 +191,8 @@ export const LabGateway = {
                      FROM lab_result_details d
                      JOIN reference_lab_params rp ON rp.server_id = d.parametre_id
                      WHERE d.result_uuid = ?
-                        OR d.result_id = (SELECT server_id FROM lab_results WHERE id = ?)`,
+                        OR d.result_id = (SELECT server_id FROM lab_results WHERE id = ?)
+                     ORDER BY rp.ordre, rp.server_id`,
                     [resultId, resultId]
                 );
                 // Garde-fou : si les deux sortes de lignes coexistaient un
@@ -317,6 +346,13 @@ export const LabGateway = {
             }
             throw err;
         }
+    },
+
+    // Correction d'un resultat deja valide : motif obligatoire, serveur seulement (jamais d'ecriture
+    // locale hors ligne : une correction doit etre tracee et notifiee au medecin).
+    // payload = { reason, values: { detailId: { valeur, flag, interpretation } }, note }
+    async amendResult(resultId, payload) {
+        return api.post(`/labo/results/${resultId}/amend`, payload);
     },
 
     // 🗑️ Supprimer un dossier

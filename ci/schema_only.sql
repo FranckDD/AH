@@ -5477,6 +5477,30 @@ ALTER TABLE public.daily_controls ADD COLUMN notify_open_count integer NOT NULL 
 ALTER TABLE public.daily_controls ADD CONSTRAINT daily_controls_notify_reason_check
     CHECK (notify_reason IN ('nouveau', 'rappel'));
 
+-- 030_lab_amend_invoice_link : correction tracee d'un resultat valide + lien facture -> dossier labo
+ALTER TABLE public.lab_results ADD COLUMN corrected boolean NOT NULL DEFAULT false;
+ALTER TABLE public.lab_results ADD COLUMN corrected_at timestamp;
+ALTER TABLE public.lab_results ADD COLUMN origin_caisse_item_id integer
+    REFERENCES public.caisse_item(item_id) ON DELETE SET NULL;
+CREATE UNIQUE INDEX uq_lab_results_origin_caisse_item
+    ON public.lab_results (origin_caisse_item_id) WHERE origin_caisse_item_id IS NOT NULL;
+
+CREATE TABLE public.lab_result_amendments (
+    amendment_id serial PRIMARY KEY,
+    result_id integer NOT NULL REFERENCES public.lab_results(result_id) ON DELETE CASCADE,
+    amended_by integer,
+    amended_by_name text,
+    amended_at timestamp NOT NULL DEFAULT (now() AT TIME ZONE 'Africa/Douala'),
+    reason text NOT NULL,
+    previous_values jsonb NOT NULL DEFAULT '[]'::jsonb,
+    previous_note text,
+    CONSTRAINT lab_result_amendments_reason_check CHECK (length(btrim(reason)) > 0)
+);
+CREATE INDEX idx_lab_result_amendments_result
+    ON public.lab_result_amendments (result_id);
+
+ALTER TABLE public.parametres ADD COLUMN ordre integer NOT NULL DEFAULT 0;
+
 --
 -- Name: powersync; Type: PUBLICATION; Schema: -; Owner: -
 --

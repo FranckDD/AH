@@ -1,5 +1,7 @@
 // src/stores/labStore.js
+import { describeServerError } from '@/utils/serverError';
 import { defineStore } from 'pinia';
+import { isLoadFailure } from '@/utils/loadFailure';
 import { LabGateway } from '@/services/labGateway';
 
 export const useLabStore = defineStore('lab', {
@@ -23,6 +25,8 @@ export const useLabStore = defineStore('lab', {
         patientHistory: [],       // Historique d'un patient spécifique
         batchSiblings: [],
         stats: null,              // Dashboard KPIs
+        statsFailed: false,       // KPIs non charges (hors ligne, serveur) : afficher "-", jamais 0
+        historyFailed: false,     // historique non charge : etat d'erreur, jamais "aucun resultat"
 
         // --- UI STATE ---
         loading: false,
@@ -67,25 +71,37 @@ export const useLabStore = defineStore('lab', {
             }
         },
 
+        // Les actions du catalogue laissent remonter l'erreur : le panneau affiche le motif du serveur.
+        // Les actions du catalogue laissent remonter l'erreur : le panneau affiche le motif du serveur.
         async addParam(examId, paramData) {
-            try {
-                await LabGateway.addExamParam(examId, paramData);
-                await this.fetchExamParams(examId); // Recharger la liste
-                return true;
-            } catch (err) {
-                this.error = "Impossible d'ajouter le paramètre.";
-                return false;
-            }
+            await LabGateway.addExamParam(examId, paramData);
+            await this.fetchExamParams(examId); // Recharger la liste
+            return true;
+        },
+
+        async reorderParams(examId, ids) {
+            await LabGateway.reorderExamParams(examId, ids);
+            await this.fetchExamParams(examId);
+        },
+
+        async updateParam(paramId, examId, paramData) {
+            await LabGateway.updateExamParam(paramId, paramData);
+            await this.fetchExamParams(examId);
         },
 
         async deleteParam(paramId, examId) {
-            try {
-                await LabGateway.deleteExamParam(paramId);
-                // On retire localement pour éviter un appel réseau si on veut
-                this.currentExamParams = this.currentExamParams.filter(p => p.id !== paramId);
-            } catch (err) {
-                this.error = "Erreur suppression paramètre.";
-            }
+            await LabGateway.deleteExamParam(paramId);
+            this.currentExamParams = this.currentExamParams.filter(p => p.id !== paramId);
+        },
+
+        async addRange(paramId, examId, rangeData) {
+            await LabGateway.addRange(paramId, rangeData);
+            await this.fetchExamParams(examId);
+        },
+
+        async deleteRange(rangeId, examId) {
+            await LabGateway.deleteRange(rangeId);
+            await this.fetchExamParams(examId);
         },
 
         // ============================================================
@@ -150,10 +166,12 @@ export const useLabStore = defineStore('lab', {
                 
                 // On met à jour l'objet complet avec les données et les métadonnées de pagination
                 this.paginatedHistory = response.data;
+                this.historyFailed = false;
                 
             } catch (err) {
                 console.error("Erreur lors du chargement de l'historique paginé:", err);
                 this.error = "Impossible de charger l'historique.";
+                this.historyFailed = isLoadFailure(err);
             } finally {
                 this.loading = false;
             }
@@ -183,7 +201,7 @@ export const useLabStore = defineStore('lab', {
                 this.successMessage = "Dossier créé avec succès.";
                 return response.data; // Retourne l'objet (avec result_id) pour redirection
             } catch (err) {
-                this.error = err.response?.data?.detail || "Erreur création dossier.";
+                this.error = describeServerError(err, "Erreur création dossier.");
                 throw err;
             } finally {
                 this.loading = false;
@@ -213,13 +231,15 @@ export const useLabStore = defineStore('lab', {
                                 `INSERT INTO lab_results (
                                     id, patient_id, patient_uuid, test_type, status,
                                     examen_id, prescribed_by, prescribed_by_name,
-                                    origin_prescription_id, batch_uuid, external_patient_info
-                                 ) VALUES (?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?, ?)`,
+                                    origin_prescription_id, batch_uuid, external_patient_info,
+                                    origin_caisse_item_id
+                                 ) VALUES (?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?)`,
                                 [
                                     resultUuid, payload.patient_id || null, payload.patient_uuid || null,
                                     'Analyse Labo', item.examen_id, payload.prescribed_by_id || null,
                                     payload.prescribed_by_name || null, payload.origin_prescription_id || null,
                                     batchUuid, payload.external_patient_info ? JSON.stringify(payload.external_patient_info) : null,
+                                    item.origin_caisse_item_id || null,
                                 ]
                             );
                             const params = await tx.getAll(
@@ -370,10 +390,30 @@ export const useLabStore = defineStore('lab', {
                     this.successMessage = "Brouillon sauvegardé.";
                     await this.fetchResultDetail(resultId);
                 }
+                // la liste (pastilles d'etat) reflete le nouvel etat sans rechargement de la page
+                await this.fetchPaillasseList();
 
                 return true;
             } catch (err) {
                 this.error = "Erreur lors de la sauvegarde.";
+                return false;
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        // Correction d'un resultat valide (motif obligatoire). Serveur seulement.
+        // payload = { reason, values, note }
+        async amendResult(resultId, payload) {
+            this.loading = true;
+            this.error = null;
+            this.successMessage = null;
+            try {
+                await LabGateway.amendResult(resultId, payload);
+                await this.fetchResultDetail(resultId);
+                return true;
+            } catch (err) {
+                this.error = describeServerError(err, "Erreur lors de la correction.");
                 return false;
             } finally {
                 this.loading = false;
@@ -412,8 +452,10 @@ export const useLabStore = defineStore('lab', {
             try {
                 const res = await LabGateway.getStats(period); // <-- Passe la période
                 this.stats = res.data;
+                this.statsFailed = false;
             } catch (e) { 
                 console.error("Erreur chargement des stats dashboard:", e); 
+                this.statsFailed = isLoadFailure(e);
             }
         },
 

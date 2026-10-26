@@ -35,7 +35,7 @@
                 {{ $t('labScreens.searching') }}
               </p>
               <ul v-else-if="labStore.searchResults && labStore.searchResults.length > 0" class="divide-y divide-tone-neutral-border">
-                <li v-for="p in labStore.searchResults" :key="p.prescription_id">
+                <li v-for="p in labStore.searchResults" :key="p.prescription_id ?? `inv-${p.id}`">
                   <button type="button" @click="selectInternalPatient(p)"
                           class="flex min-h-11 w-full items-center justify-between gap-3 px-4 py-3 text-left hover:bg-brand-50 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand-600">
                     <span class="min-w-0">
@@ -43,7 +43,8 @@
                       <span class="flex items-center gap-1 text-sm text-ink-muted">
                         <BeakerIcon class="h-4 w-4 shrink-0" aria-hidden="true" />
                         <template v-if="p.exams_prescribed && p.exams_prescribed.length">{{ $t('labScreens.exams_prescribed_count', { n: p.exams_prescribed.length }) }}</template>
-                        <template v-else>{{ $t('labScreens.prescription_empty') }}</template>
+                        <template v-if="p.invoiced_exams && p.invoiced_exams.length">{{ (p.exams_prescribed && p.exams_prescribed.length) ? ', ' : '' }}{{ $t('labScreens.invoiced_count', { n: p.invoiced_exams.length }) }}</template>
+                        <template v-if="!(p.exams_prescribed && p.exams_prescribed.length) && !(p.invoiced_exams && p.invoiced_exams.length)">{{ $t('labScreens.prescription_empty') }}</template>
                       </span>
                     </span>
                     <StatusBadge tone="neutral" :label="String(p.patient_code)" />
@@ -65,6 +66,10 @@
                 <p v-if="autoImportedCount > 0" class="mt-1 flex items-center gap-1 text-sm font-medium text-tone-success-text">
                   <CheckCircleIcon class="h-5 w-5 shrink-0" aria-hidden="true" />
                   {{ $t('labScreens.imported_count', { n: autoImportedCount }) }}
+                </p>
+                <p v-if="invoicedImportedCount > 0" class="mt-1 flex items-center gap-1 text-sm font-medium text-tone-success-text">
+                  <CheckCircleIcon class="h-5 w-5 shrink-0" aria-hidden="true" />
+                  {{ $t('labScreens.invoiced_imported', { n: invoicedImportedCount }) }}
                 </p>
               </div>
             </div>
@@ -129,6 +134,7 @@
             <template #cell-exam="{ row: item }">
               <span class="font-medium">{{ item.nom }}</span>
               <span v-if="item.is_prescribed" class="ml-2 inline-block"><StatusBadge tone="info" :label="$t('labScreens.prescribed_badge')" /></span>
+              <span v-if="item.is_invoiced" class="ml-2 inline-block"><StatusBadge tone="success" :label="$t('lab.reception.invoiced_badge')" /></span>
             </template>
             <template #cell-action="{ row: item }">
               <AppButton variant="danger" :icon="TrashIcon" @click="removeFromCart(item.index)">{{ $t('labScreens.remove') }}</AppButton>
@@ -150,6 +156,7 @@
 </template>
 
 <script setup>
+import { notify } from '@/utils/notify';
   import { ref, computed, onMounted, watch } from 'vue';
   import { useLabStore } from '@/stores/labStore';
   import axios from 'axios'; // Assure-toi que c'est configuré ou utilise ton instance API
@@ -190,7 +197,8 @@
   const selectedDoctorId = ref(null);
   const extForm = ref({ full_name: '', age: '', gender: 'M' }); 
   const cart = ref([]); 
-  const autoImportedCount = ref(0); 
+  const autoImportedCount = ref(0);
+  const invoicedImportedCount = ref(0);
   
   // --- INITIALISATION ---
   onMounted(async () => {
@@ -276,6 +284,7 @@
     
     cart.value = [];
     autoImportedCount.value = 0;
+    invoicedImportedCount.value = 0;
 
     // Auto-remplissage du panier via prescription
     if (p.exams_prescribed && Array.isArray(p.exams_prescribed)) {
@@ -289,6 +298,23 @@
                     cart.value.push({ ...fullExam, is_prescribed: true });
                     autoImportedCount.value++;
                 }
+            }
+        });
+    }
+
+    // Examens factures a la caisse et pas encore recus : la ligne de facture identifie l'examen.
+    // Un examen deja dans le panier (prescrit) prend simplement le lien vers sa ligne de facture.
+    if (Array.isArray(p.invoiced_exams)) {
+        p.invoiced_exams.forEach(line => {
+            const inCart = cart.value.find(c => c.id === line.examen_id);
+            if (inCart) {
+                if (!inCart.caisse_item_id) { inCart.caisse_item_id = line.item_id; inCart.is_invoiced = true; invoicedImportedCount.value++; }
+                return;
+            }
+            const fullExam = labStore.exams.find(e => e.id === line.examen_id);
+            if (fullExam) {
+                cart.value.push({ ...fullExam, is_prescribed: false, is_invoiced: true, caisse_item_id: line.item_id });
+                invoicedImportedCount.value++;
             }
         });
     }
@@ -307,6 +333,7 @@
     searchQuery.value = '';
     cart.value = []; 
     autoImportedCount.value = 0;
+    invoicedImportedCount.value = 0;
     showResults.value = false;
   };
   
@@ -347,7 +374,8 @@
       const resultsPayload = cart.value.map(item => ({
         examen_id: item.id,
         valeur: null, 
-        unite: item.unite || ''
+        unite: item.unite || '',
+        origin_caisse_item_id: item.caisse_item_id || null
       }));
 
       const doc = doctors.value.find(d => d.user_id === selectedDoctorId.value);
@@ -377,12 +405,12 @@
 
       await labStore.createBatchRequest(payload);
       
-      alert("Dossier enregistré avec succès !");
+      notify('alerts.lab_saved', {}, 'success');
       resetPatient();
       
     } catch (error) {
       console.error("Erreur lors de l'envoi :", error);
-      alert("Erreur technique lors de l'enregistrement.");
+      notify('alerts.lab_save_failed');
     }
   };
 </script>

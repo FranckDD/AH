@@ -4,7 +4,7 @@
 <template>
   <div class="grid w-full gap-6">
 
-    <PageHeader :title="t('labStock.requests_title')" :subtitle="`${t('labStock.requests_subtitle')} (${t('labStockScreens.requests_count', { n: visible.length })})`" />
+    <PageHeader :title="t('labStock.requests_title')" :subtitle="`${t('labStock.requests_subtitle')} (${t('labStockScreens.requests_count', visible.length)})`" />
 
     <section :aria-label="t('labStockScreens.status_filter')" class="rounded-card border border-tone-neutral-border bg-white p-4 shadow-card">
       <div class="max-w-xs">
@@ -98,7 +98,7 @@ import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '@/stores/auth';
 import { LabStockGateway, describeLabStockError } from '@/services/LabStockGateway';
 import { requestOriginLabel, requestStatusLabel, levelLabel } from '@/utils/labStockLabels';
-import { todayLocalISO } from '@/utils/localDate';
+import { formatDateDMY, todayLocalISO } from '@/utils/localDate';
 import { AppButton, PageHeader, FormField, StatusBadge, ResponsiveTable, FullScreenPanel, ActionBar } from '@/components/ui';
 import { toneClasses } from '@/design/tones';
 
@@ -153,7 +153,7 @@ const num = (v) => Number(v ?? 0);
 const isLow = (r) => num(r.quantity) <= num(r.alert_threshold);
 const isOpen = (r) => r.status === 'a_commander' || r.status === 'commande';
 const labelOf = (l) => (l.key ? t(l.key) : l.raw);
-const formatDate = (v) => (v ? new Date(`${String(v).slice(0, 10)}T00:00:00`).toLocaleDateString() : '');
+const formatDate = (v) => (v ? formatDateDMY(String(v).slice(0, 10)) : '');
 const originText = (r) => {
   const base = labelOf(requestOriginLabel(r.origin));
   const lv = r.level ? labelOf(levelLabel(r.level)) : '';

@@ -66,6 +66,7 @@
 </template>
 
 <script setup>
+import { formatDateDMY } from '@/utils/localDate';
 import { ref, reactive, computed, onMounted, onBeforeUnmount } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { LabStockGateway, describeLabStockError } from '@/services/LabStockGateway';
@@ -96,7 +97,7 @@ const pageError = ref('');
 const pageMessage = ref('');
 
 const num = (v) => Number(v ?? 0);
-const formatDate = (v) => (v ? new Date(v).toLocaleDateString() : '');
+const formatDate = (v) => (v ? formatDateDMY(new Date(v)) : '');
 const blank = (v) => v === undefined || v === null || String(v).trim() === '';
 const invalid = (id) => !blank(entered[id]) && !isValidCount(entered[id]);
 const isConflict = (id) => conflicts.value.some((c) => c.product_id === id);

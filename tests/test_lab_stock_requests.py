@@ -40,6 +40,10 @@ def env(db_session, api_client):
         "admin": create_test_user(db, "t_lsr_admin", "admin"),
     }
     product = _ctrl(db, u["lab"]).create_product({"name": "TEST_LSR_Reactif", "alert_threshold": 4})
+    # la creation sous le seuil ouvre sa demande « seuil » ; ces tests partent d'un produit sans demande
+    db.query(Notification).filter_by(type="lab_stock_low").delete()
+    db.query(LabStockRequest).filter_by(product_id=product["id"]).delete()
+    db.flush()
     client = api_client(lab_stock_endpoints)
     return {"db": db, "client": client, "u": u, "product": product}
 

@@ -38,7 +38,7 @@ check('LabStockAlerts', view, [
     'v-for="e in sortedExpiring"', ':key="e.receipt_line_id"', "e.product_name || '?'", "t('labStock.alerts_lot', { lot: e.lot_number || '?' })", "t('labStock.alerts_expiry_on', { date: formatDate(e.expiry_date) })",
     '[...(data.value?.expiring || [])].sort((a, b) => a.days_left - b.days_left)', 'e.days_left < 0', 'daysText(e.days_left)',
     "const daysText = (d) => (d < 0 ? t('labStock.alerts_expired', { days: -d }) : d === 0 ? t('labStock.alerts_expires_today') : t('labStock.alerts_days_left', { days: d }));",
-    "const [y, m, d] = String(v).slice(0, 10).split('-').map(Number);", 'return new Date(y, m - 1, d).toLocaleDateString();',
+    "const [y, m, d] = String(v).slice(0, 10).split('-').map(Number);", 'return formatDateDMY(new Date(y, m - 1, d));',
     // clés
     "t('labStock.alerts_title')", "t('labStock.alerts_subtitle')", "t('labStock.alerts_count_title')", "t('labStock.alerts_go_count')", "t('labStock.alerts_low_title')", "t('labStock.alerts_low_empty')",
     "t('labStock.alerts_go_requests')", "t('labStock.alerts_expiring_title')", "t('labStock.alerts_expiring_empty')", "t('stockOps.loading')",

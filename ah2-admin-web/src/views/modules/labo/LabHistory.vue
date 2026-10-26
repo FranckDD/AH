@@ -26,6 +26,7 @@
       </section>
 
       <p v-if="store.loading && store.paginatedHistory.items.length === 0" role="status" class="p-10 text-center text-sm text-ink-muted">{{ t('ui.loading') }}</p>
+      <LoadErrorState v-else-if="store.historyFailed && store.paginatedHistory.items.length === 0" @retry="refresh()" />
       <section v-else-if="store.paginatedHistory.items.length === 0" class="rounded-card border border-tone-neutral-border bg-white shadow-card">
         <EmptyState :title="t('lab.history_view.empty')" :message="t('lab.history_view.empty_hint')" />
       </section>
@@ -72,7 +73,7 @@ import ResultDetailModal from '@/components/lab/ResultDetailModal.vue';
 import LabHistoryPassage from '@/components/lab/LabHistoryPassage.vue';
 import debounce from 'lodash/debounce';
 import { ArrowPathIcon, ExclamationTriangleIcon, XMarkIcon } from '@heroicons/vue/24/outline';
-import { AppButton, PageHeader, FormField, EmptyState } from '@/components/ui';
+import { AppButton, PageHeader, FormField, EmptyState, LoadErrorState } from '@/components/ui';
 import { groupHistory, groupPassagesByDay } from '@/utils/labPassages';
 
 // --- INIT ---
