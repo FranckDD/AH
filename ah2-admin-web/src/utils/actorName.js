@@ -2,5 +2,5 @@
 export function actorLabel(name, id) {
     if (name) return name;
     if (id !== null && id !== undefined && id !== '') return `#${id}`;
-    return '—';
+    return '-';
 }

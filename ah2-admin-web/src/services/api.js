@@ -1,6 +1,8 @@
 import axios from 'axios';
 import { useAuthStore } from '@/stores/auth'; 
 import router from '@/router';
+import i18n from '@/i18n';
+import { localizeAxiosError } from '@/utils/serverErrorLocalize';
 
 // URL de base de votre API FastAPI
 export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
@@ -63,6 +65,12 @@ api.interceptors.response.use(
                 router.push('/login');
             }
         }
+
+        // Texte du serveur rendu dans la langue de l'interface (voir utils/serverErrorLocalize.js)
+        try {
+            const { t, te, locale } = i18n.global;
+            localizeAxiosError(error, locale.value, t, te);
+        } catch { /* la traduction ne doit jamais masquer l'erreur d'origine */ }
 
         return Promise.reject(error);
     }

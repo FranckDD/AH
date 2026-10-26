@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { NAV_PALETTES, navPaletteClass } from '../src/design/navPalettes.js';
+import { NAV_PALETTES, navPaletteClass, paletteForRole } from '../src/design/navPalettes.js';
 
 const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
 const css = read('../src/style.css');
@@ -54,8 +54,8 @@ test('AppShell pose la classe de la palette et la propose en prop (défaut night
     assert.match(css, /@import '\.\/design\/navPalettes\.css';/);
 });
 
-test('chaque espace choisit sa palette : médical bleu nuit (défaut), secrétariat forêt', () => {
-    assert.doesNotMatch(read('../src/components/layout/MedicalLayout.vue'), /palette=/);
+test('chaque espace choisit sa palette : médical selon le rôle (médecin bleu nuit, infirmier rose), secrétariat forêt', () => {
+    assert.match(read('../src/components/layout/MedicalLayout.vue'), /:palette="paletteForRole\(authStore\.userRole\)"/);
     assert.match(read('../src/components/layout/SecretaireLayout.vue'), /palette="forest"/);
 });
 
@@ -66,4 +66,22 @@ test('le menu est un dégradé vertical nav-900 vers nav-700, avec le survol (na
         assert.ok(lum(p['nav-900']) < lum(p['nav-800']) && lum(p['nav-800']) < lum(p['nav-700']), `${name} : ordre 900 < 800 < 700`);
         assert.ok(ratio(p['nav-700'], p['nav-800']) >= 1.2, `${name} : survol distinct du bas du dégradé`);
     }
+});
+
+test('chaque rôle a sa propre couleur de menu (le chef infirmier suit l infirmier)', () => {
+    const roles = ['admin', 'promoteur', 'secretaire', 'medecin', 'nurse', 'laborantin', 'psychologist', 'spiritualcounsellor', 'toxicomanager', 'assistant', 'stockcontroller', 'productionmanager'];
+    const seen = new Map();
+    for (const r of roles) {
+        const name = paletteForRole(r);
+        assert.ok(!seen.has(name), `${r} partage la palette ${name} avec ${seen.get(name)}`);
+        seen.set(name, r);
+    }
+    assert.equal(paletteForRole('inconnu'), 'night');
+});
+
+test('le menu porte la signature Glostone-Care by Motadje Franck avec une pierre, visible aussi menu réduit', () => {
+    assert.match(shell, /data-testid="product-signature"/);
+    assert.match(shell, /Glostone-Care/);
+    assert.match(shell, /by Motadje Franck/);
+    assert.match(shell, /<svg[\s\S]*?viewBox="0 0 32 32"/);
 });

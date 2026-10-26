@@ -48,6 +48,7 @@
 </template>
 
 <script setup>
+import { todayLocalISO } from '@/utils/localDate';
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -66,11 +67,11 @@ const activePreset = ref(null);
 const isExporting = ref(false);
 const errorMessage = ref('');
 
-const today = () => new Date().toISOString().slice(0, 10);
+const today = () => todayLocalISO();
 const daysAgo = (n) => {
   const d = new Date();
   d.setDate(d.getDate() - n);
-  return d.toISOString().slice(0, 10);
+  return todayLocalISO(d);
 };
 
 const presets = [

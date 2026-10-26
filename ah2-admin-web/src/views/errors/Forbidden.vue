@@ -9,10 +9,10 @@
       </div>
 
       <h1 class="text-6xl font-black text-gray-900 tracking-tighter">403</h1>
-      <p class="text-2xl font-bold text-gray-800 mt-2">Accès Interdit</p>
+      <p class="text-2xl font-bold text-gray-800 mt-2">{{ t('forbiddenPage.title') }}</p>
       
       <p class="text-gray-500 mt-4 mb-8 leading-relaxed">
-        Désolé, votre rôle actuel (<strong>{{ userRoleDisplay }}</strong>) ne vous permet pas d'accéder à cette ressource.
+        {{ t('forbiddenPage.text', { role: userRoleDisplay }) }}
       </p>
 
       <div class="flex justify-center space-x-4">
@@ -20,7 +20,7 @@
           @click="goSafeHome" 
           class="px-6 py-3 bg-green-600 text-white font-semibold rounded-xl hover:bg-green-700 transition shadow-lg shadow-green-200 transform hover:-translate-y-1"
         >
-          Aller à mon Tableau de bord
+          {{ t('forbiddenPage.back') }}
         </button>
       </div>
       
@@ -31,13 +31,15 @@
 <script setup>
 import { computed } from 'vue';
 import { useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '@/stores/auth';
 
+const { t } = useI18n();
 const router = useRouter();
 const authStore = useAuthStore();
 
 // Affichage propre du rôle pour l'info utilisateur
-const userRoleDisplay = computed(() => authStore.userRole || 'Utilisateur');
+const userRoleDisplay = computed(() => authStore.userRole || t('forbiddenPage.user_fallback'));
 
 // Fonction de redirection intelligente (Logique Glostone)
 const goSafeHome = () => {

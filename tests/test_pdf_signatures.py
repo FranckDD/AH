@@ -104,7 +104,7 @@ def test_partial_mise_en_page_gauche_ligne_courte():
 
 def test_lettre_de_sortie_hospitalisation_medecin_referent_sans_nom():
     stay = {"patient_name": "Patient Lettre", "admitted_at": "01/01/2026", "admitted_by_name": "NurseCreatorX",
-            "admission_reason": "Motif", "discharged_at": "05/01/2026", "duration_days": 4,
+            "admission_reason": "Motif", "discharged_at": "05/01/2026", "duration_label": "4 jour(s) 0 h",
             "disposition_label": "Domicile", "discharged_by_name": "DocDischargeX", "discharge_note": None,
             "status_updates": [{"created_at": "02/01/2026", "status": "stable", "status_label": "Stable",
                                 "created_by_name": "NurseUpdateX", "note": "ok"}]}

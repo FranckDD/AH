@@ -98,9 +98,9 @@ const routes = [
                 path: 'reception',
                 name: 'lab-reception',
                 component: () => import('@/views/modules/labo/LabReception.vue'),
-                meta: { requiresAuth: true, roles: ['admin', 'laborantin', 'ToxicoManager', 'Assistant'] }
+                meta: { requiresAuth: true, roles: ['admin', 'laborantin', 'ToxicoManager'] }
             },
-            
+
             // 2. PAILLASSE
             {
                 path: 'paillasse',
@@ -193,7 +193,7 @@ const routes = [
         component: () => import('@/views/modules/users/UserManagement.vue'), 
         meta: { 
             requiresAuth: true, 
-            roles: [ROLES.ADMIN, ROLES.TOXICO_MANAGER] 
+            roles: [ROLES.ADMIN] 
         }, 
       },
 

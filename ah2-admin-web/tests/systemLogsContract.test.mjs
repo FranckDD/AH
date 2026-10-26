@@ -33,7 +33,7 @@ check('SystemLogs', view, [
     'auditStore.accessLogs', 'formatDate(log.timestamp)', "log.user_name || 'N/A'", 'log.action_type', 'log.ip_address', 'log.details',
     // lignes d'actions
     'auditStore.actionLogs', 'formatDate(act.timestamp)', "act.user_name || act.username || 'N/A'", 'act.resource_type', 'act.action_performed',
-    'act.new_values?.details || act.details',
+    'auditSummary(act)',
     // badges
     "case 'LOGIN':", "case 'LOGOUT':", "case 'LOGIN_FAILED':", "case 'CREATE':", "case 'UPDATE':", "case 'DELETE':", 'getAccessBadge(log.action_type)', 'getActionBadge(act.action_performed)',
     "if (!timestamp) return 'N/A';",

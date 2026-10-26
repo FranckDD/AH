@@ -21,8 +21,11 @@
       </div>
     </section>
 
+    <LoadErrorState v-if="dashboardStore.indisponibles.length >= 3" compact @retry="dashboardStore.fetchDashboardData()" />
+
     <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
       <StatTile
+        v-if="!isPromoteur"
         :title="$t('dashboard.stats.income')"
         :value="valeurAffichee('income', formatCurrency(dashboardStore.stats.income))"
         :note="$t('adminDashboard.income_note')"
@@ -31,6 +34,7 @@
       />
 
       <StatTile
+        v-if="!isPromoteur"
         :title="$t('dashboard.stats.withdrawals')"
         :value="valeurAffichee('expense', formatCurrency(dashboardStore.stats.withdrawals))"
         :note="$t('adminDashboard.expense_note')"
@@ -39,6 +43,7 @@
       />
 
       <StatTile
+        v-if="!isPromoteur"
         :title="$t('finance.balance')"
         :value="soldeAffiche"
         :note="$t('adminDashboard.balance_note')"
@@ -56,6 +61,7 @@
 
     <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
       <StatTile
+        v-if="!isPromoteur"
         :title="$t('dashboard.stats.users_online')"
         :value="valeurAffichee('users', `${dashboardStore.stats.onlineUsers} inscrits`)"
         :icon="SignalIcon"
@@ -82,7 +88,7 @@
 
     <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
 
-      <AppCard class="lg:col-span-2" :title="$t('dashboard.table_title', 'Dernières Activités Financières')">
+      <AppCard v-if="!isPromoteur" class="lg:col-span-2" :title="$t('dashboard.table_title', 'Dernières Activités Financières')">
         <template #actions>
           <AppButton variant="brandOutline" @click="$router.push('/dashboard/finance')">{{ $t('adminDashboard.see_all') }}</AppButton>
         </template>
@@ -92,7 +98,7 @@
           :rows="dashboardStore.recentActivities"
           row-key="id"
           :loading="dashboardStore.isLoading"
-          :empty-title="dashboardStore.indisponibles.includes('activites') ? 'Activités indisponibles (erreur de chargement).' : 'Aucune activité récente.'"
+          :empty-title="dashboardStore.indisponibles.includes('activites') ? $t('loadError.activities_unavailable') : $t('loadError.no_recent_activity')"
           :empty-message="' '"
           striped
         >
@@ -112,13 +118,18 @@
         </ResponsiveTable>
       </AppCard>
 
-      <AppCard :title="$t('adminDashboard.quick_actions')" :subtitle="$t('adminDashboard.quick_actions_help')">
-        <div class="grid gap-3">
+      <AppCard :class="isPromoteur ? 'lg:col-span-3' : ''" :title="$t('adminDashboard.quick_actions')" :subtitle="$t('adminDashboard.quick_actions_help')">
+        <div v-if="isPromoteur" class="grid gap-3">
+          <AppButton variant="brand" :icon="ChartBarIcon" @click="$router.push('/dashboard/reports')">{{ $t('adminDashboard.go_reports') }}</AppButton>
+          <AppButton variant="brandOutline" :icon="BanknotesIcon" @click="$router.push('/dashboard/cash-closures')">{{ $t('adminDashboard.go_cash_closures') }}</AppButton>
+          <AppButton variant="brandOutline" :icon="ReceiptPercentIcon" @click="$router.push('/dashboard/discount-review')">{{ $t('adminDashboard.go_discounts') }}</AppButton>
+        </div>
+        <div v-else class="grid gap-3">
           <AppButton variant="brandOutline" :icon="UserGroupIcon" @click="$router.push('/dashboard/users')">{{ $t('dashboard.actions.manage_staff') }}</AppButton>
           <AppButton variant="brandOutline" :icon="PlusCircleIcon" @click="showAdmissionModal = true">{{ $t('dashboard.actions.new_admission') }}</AppButton>
           <AppButton variant="brand" :icon="BanknotesIcon" @click="showFinanceModal = true">{{ $t('dashboard.actions.payment') }}</AppButton>
         </div>
-        <p class="mt-5 border-t border-tone-neutral-border pt-4 text-center text-base text-ink-muted">Support technique : 674 69 79 08</p>
+        <p class="mt-5 border-t border-tone-neutral-border pt-4 text-center text-base text-ink-muted">{{ $t('screens.misc.support', { phone: '674 69 79 08' }) }}</p>
       </AppCard>
 
     </div>
@@ -139,11 +150,14 @@
 </template>
 
 <script setup>
+import { todayLocalISO } from '@/utils/localDate';
+import { notify } from '@/utils/notify';
 import { computed, ref, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useDashboardStore } from '@/stores/dashboardStore'; 
-import { AppButton, AppCard, PageHeader, FormField, StatTile, StatusBadge, ResponsiveTable } from '@/components/ui';
+import { AppButton, AppCard, PageHeader, FormField, StatTile, StatusBadge, ResponsiveTable, LoadErrorState } from '@/components/ui';
 import { toneClasses } from '@/design/tones';
+import { useAuthStore } from '@/stores/auth';
 
 // 🟢 IMPORTS DES MODALES EXISTANTES
 // Assurez-vous que les chemins correspondent exactement à votre arborescence
@@ -155,7 +169,7 @@ import { useFinancialStore } from '@/stores/financialStore';
 import { 
   BanknotesIcon, UserGroupIcon, HomeModernIcon, 
   ArrowTrendingDownIcon, ArrowTrendingUpIcon, ClockIcon, 
-  SignalIcon, PlusCircleIcon, MagnifyingGlassIcon, ExclamationTriangleIcon, ArrowPathIcon
+  SignalIcon, PlusCircleIcon, ChartBarIcon, ReceiptPercentIcon, MagnifyingGlassIcon, ExclamationTriangleIcon, ArrowPathIcon
 } from '@heroicons/vue/24/outline';
 
 const { t, locale } = useI18n();
@@ -170,6 +184,9 @@ const activityColumns = computed(() => [
 ]);
 const fieldClass = 'block w-full min-h-11 lg:min-h-10 rounded-control border border-tone-neutral-border bg-white px-3 text-base text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand-600';
 const dashboardStore = useDashboardStore();
+const authStore = useAuthStore();
+// Le promoteur lit les rapports, pas la caisse ni les comptes : tuiles et actions adaptees (et aucun appel refuse).
+const isPromoteur = computed(() => authStore.hasRole(['promoteur']) && !authStore.hasRole(['admin']));
 const financialStore = useFinancialStore();
 
 // --- ÉTATS LOCAUX ---
@@ -188,14 +205,14 @@ const applyFilters = () => {
 };
 
 const resetToToday = () => {
-    const today = new Date().toISOString().substring(0, 10);
+    const today = todayLocalISO();
     dashboardStore.setDates(today, today);
 };
 
 // --- CALLBACKS APRÈS ACTIONS ---
 const handleAdmissionSaved = () => {
     showAdmissionModal.value = false;
-    alert("Admission enregistrée !");
+    notify('alerts.admission_saved', {}, 'success');
     // On met à jour le dashboard pour voir la stat "Active Patients" augmenter
     dashboardStore.fetchDashboardData();
 };
@@ -212,11 +229,11 @@ const handleFinanceSaved = async (transactionData) => {
     try {
         await financialStore.addTransaction(transactionData);
     } catch (err) {
-        alert("Échec de l'enregistrement : la transaction n'a pas été enregistrée.");
+        notify('alerts.transaction_failed');
         return;
     }
     showFinanceModal.value = false;
-    alert("Transaction enregistrée !");
+    notify('alerts.transaction_saved', {}, 'success');
     // On met à jour le dashboard pour voir les revenus augmenter
     dashboardStore.fetchDashboardData();
 };
@@ -241,7 +258,7 @@ const formatCurrency = (value) => {
 // Un bloc en echec doit afficher son indisponibilite, jamais 0 : un zero
 // est un chiffre, et un chiffre faux est pire qu'une absence de chiffre.
 const valeurAffichee = (nomBloc, valeur) =>
-    dashboardStore.indisponibles.includes(nomBloc) ? 'Indisponible' : valeur;
+    dashboardStore.indisponibles.includes(nomBloc) ? t('loadError.unavailable') : valeur;
 
 // Le solde derive de income ET withdrawals : si l'un des deux est
 // indisponible, le solde calcule a partir d'un 0 par defaut serait un
@@ -249,7 +266,7 @@ const valeurAffichee = (nomBloc, valeur) =>
 // l'autre a echoue.
 const soldeAffiche = computed(() => {
     if (dashboardStore.indisponibles.includes('income') || dashboardStore.indisponibles.includes('expense')) {
-        return 'Indisponible';
+        return t('loadError.unavailable');
     }
     return formatCurrency(dashboardStore.stats.income - dashboardStore.stats.withdrawals);
 });

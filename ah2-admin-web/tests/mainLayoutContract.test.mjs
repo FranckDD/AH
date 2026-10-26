@@ -10,7 +10,7 @@ import { buildMenu } from '../src/utils/sidebarMenu.js';
 const src = readMainLayout();
 
 const EXPECTED_ITEMS = [
-    {"path":"/dashboard/overview","labelKey":"common.dashboard","roles":["admin"]},
+    {"path":"/dashboard/overview","labelKey":"common.dashboard","roles":["admin","promoteur"]},
     {"path":"/dashboard/toxico-dashboard","labelKey":"toxico.dashboard.title","roles":["Psychologist","SpiritualCounsellor","ToxicoManager","Assistant"]},
     {"path":"/dashboard/toxico","labelKey":"toxico.title","roles":["Psychologist","SpiritualCounsellor","ToxicoManager","Assistant","promoteur"]},
     {"path":"/dashboard/labo","labelKey":"lab.title","roles":["laborantin","ToxicoManager"]},
@@ -20,7 +20,7 @@ const EXPECTED_ITEMS = [
     {"path":"/dashboard/cash-closures","labelKey":"cashClosure.review_title","roles":["admin","promoteur"]},
     {"path":"/dashboard/reductions-personnel","labelKey":"staffDiscount.title","roles":["admin","promoteur"]},
     {"path":"/dashboard/reports","labelKey":"reports.menu","roles":["admin","promoteur"]},
-    {"path":"/dashboard/users","labelKey":"common.users","roles":["ToxicoManager"]},
+    {"path":"/dashboard/users","labelKey":"common.users","roles":["admin"]},
     {"path":"/dashboard/patients","labelKey":"patients.title","roles":["ToxicoManager"]},
     {"path":"/dashboard/stock","labelKey":"stock.title","group":"stock","roles":["ToxicoManager","Assistant"]},
     {"path":"/dashboard/stock-lots","labelKey":"stockOps.menu_lots","group":"stock","adminHidden":true,"roles":["admin","Assistant"]},
@@ -34,8 +34,8 @@ const EXPECTED_ITEMS = [
     {"path":"/dashboard/lab-stock-requests","labelKey":"labStock.menu_requests","group":"labstock","roles":["laborantin","StockController","promoteur","ToxicoManager"]},
     {"path":"/dashboard/lab-stock-receipts","labelKey":"labStock.menu_receipts","group":"labstock","roles":["StockController","promoteur"]},
     {"path":"/dashboard/lab-stock-count","labelKey":"labStock.menu_count","group":"labstock","adminHidden":true,"roles":["laborantin"]},
-    {"path":"/dashboard/lab-stock-alerts","labelKey":"labStock.menu_alerts","group":"labstock","roles":["laborantin","promoteur","ToxicoManager"]},
-    {"path":"/dashboard/lab-stock-movements","labelKey":"labStock.menu_movements","group":"labstock","roles":["StockController","promoteur","ToxicoManager"]},
+    {"path":"/dashboard/lab-stock-alerts","labelKey":"labStock.menu_alerts","group":"labstock","roles":["laborantin","StockController","promoteur","ToxicoManager"]},
+    {"path":"/dashboard/lab-stock-movements","labelKey":"labStock.menu_movements","group":"labstock","roles":["laborantin","StockController","promoteur","ToxicoManager"]},
     {"path":"/dashboard/lab-stock-expenses","labelKey":"labStock.menu_expenses","group":"labstock","roles":["promoteur","ToxicoManager"]},
     {"path":"/dashboard/fabrication-lots","labelKey":"fabrication.menu_lots","group":"fabrication","roles":["ProductionManager","promoteur"]},
     {"path":"/dashboard/fabrication-intrants","labelKey":"fabrication.menu_intrants","group":"fabrication","roles":["ProductionManager","promoteur"]},
@@ -43,7 +43,7 @@ const EXPECTED_ITEMS = [
     {"path":"/dashboard/logs","labelKey":"tech.title","roles":["ToxicoManager"]},
     {"path":"/dashboard/configuration","labelKey":"config.title","separator":true,"roles":["ToxicoManager"]},
 ];
-const EXPECTED_MENU = {"admin":["/dashboard/overview","/dashboard/toxico-dashboard","/dashboard/toxico","/dashboard/labo","/dashboard/finance","/dashboard/discount-review","/dashboard/discount-history","/dashboard/cash-closures","/dashboard/reductions-personnel","/dashboard/reports","/dashboard/users","/dashboard/patients","stock:stock,stock-movements,stock-count,stock-adjustment-requests","labstock:lab-stock-products,lab-stock-requests,lab-stock-receipts,lab-stock-alerts,lab-stock-movements,lab-stock-expenses","fabrication:fabrication-lots,fabrication-intrants,fabrication-suivi","/dashboard/logs","/dashboard/configuration"],"promoteur":["/dashboard/toxico","/dashboard/discount-review","/dashboard/discount-history","/dashboard/cash-closures","/dashboard/reductions-personnel","/dashboard/reports","/dashboard/stock-count","labstock:lab-stock-products,lab-stock-requests,lab-stock-receipts,lab-stock-alerts,lab-stock-movements,lab-stock-expenses","fabrication:fabrication-lots,fabrication-intrants,fabrication-suivi"],"laborantin":["/dashboard/labo","labstock:lab-stock-products,lab-stock-requests,lab-stock-count,lab-stock-alerts"],"ToxicoManager":["/dashboard/toxico-dashboard","/dashboard/toxico","/dashboard/labo","/dashboard/users","/dashboard/patients","/dashboard/stock","labstock:lab-stock-products,lab-stock-requests,lab-stock-alerts,lab-stock-movements,lab-stock-expenses","/dashboard/logs","/dashboard/configuration"],"Psychologist":["/dashboard/toxico-dashboard","/dashboard/toxico"],"SpiritualCounsellor":["/dashboard/toxico-dashboard","/dashboard/toxico"],"Assistant":["/dashboard/toxico-dashboard","/dashboard/toxico","stock:stock,stock-lots,stock-receipts,stock-incidents,stock-movements"],"StockController":["stock:stock-control,stock-movements,stock-count","labstock:lab-stock-products,lab-stock-requests,lab-stock-receipts,lab-stock-movements"],"ProductionManager":["fabrication:fabrication-lots,fabrication-intrants,fabrication-suivi"]};
+const EXPECTED_MENU = {"admin":["/dashboard/overview","/dashboard/toxico-dashboard","/dashboard/toxico","/dashboard/labo","/dashboard/finance","/dashboard/discount-review","/dashboard/discount-history","/dashboard/cash-closures","/dashboard/reductions-personnel","/dashboard/reports","/dashboard/users","/dashboard/patients","stock:stock,stock-movements,stock-count,stock-adjustment-requests","labstock:lab-stock-products,lab-stock-requests,lab-stock-receipts,lab-stock-alerts,lab-stock-movements,lab-stock-expenses","fabrication:fabrication-lots,fabrication-intrants,fabrication-suivi","/dashboard/logs","/dashboard/configuration"],"promoteur":["/dashboard/overview","/dashboard/toxico","/dashboard/discount-review","/dashboard/discount-history","/dashboard/cash-closures","/dashboard/reductions-personnel","/dashboard/reports","/dashboard/stock-count","labstock:lab-stock-products,lab-stock-requests,lab-stock-receipts,lab-stock-alerts,lab-stock-movements,lab-stock-expenses","fabrication:fabrication-lots,fabrication-intrants,fabrication-suivi"],"laborantin":["/dashboard/labo","labstock:lab-stock-products,lab-stock-requests,lab-stock-count,lab-stock-alerts,lab-stock-movements"],"ToxicoManager":["/dashboard/toxico-dashboard","/dashboard/toxico","/dashboard/labo","/dashboard/patients","/dashboard/stock","labstock:lab-stock-products,lab-stock-requests,lab-stock-alerts,lab-stock-movements,lab-stock-expenses","/dashboard/logs","/dashboard/configuration"],"Psychologist":["/dashboard/toxico-dashboard","/dashboard/toxico"],"SpiritualCounsellor":["/dashboard/toxico-dashboard","/dashboard/toxico"],"Assistant":["/dashboard/toxico-dashboard","/dashboard/toxico","stock:stock,stock-lots,stock-receipts,stock-incidents,stock-movements"],"StockController":["stock:stock-control,stock-movements,stock-count","labstock:lab-stock-products,lab-stock-requests,lab-stock-receipts,lab-stock-alerts,lab-stock-movements"],"ProductionManager":["fabrication:fabrication-lots,fabrication-intrants,fabrication-suivi"]};
 
 const GROUPS = { stock: { labelKey: 'stockOps.menu_group' }, labstock: { labelKey: 'labStock.menu_group' }, fabrication: { labelKey: 'fabrication.menu_group' } };
 
@@ -71,8 +71,8 @@ test('filtrage : buildMenu avec isAdmin (authStore.isAdmin ou rôle admin) et ha
 });
 
 test('cloche des notifications réservée aux mêmes rôles', () => {
-    assert.ok(src.includes("authStore.hasRole(['admin', 'promoteur', 'secretaire', 'Assistant', 'StockController', 'laborantin', 'ToxicoManager'])")
-        || src.includes(":bell-roles=\"['admin', 'promoteur', 'secretaire', 'Assistant', 'StockController', 'laborantin', 'ToxicoManager']\""));
+    assert.ok(src.includes("authStore.hasRole(['admin', 'promoteur', 'secretaire', 'Assistant', 'StockController', 'laborantin', 'ToxicoManager', 'ProductionManager'])")
+        || src.includes(":bell-roles=\"['admin', 'promoteur', 'secretaire', 'Assistant', 'StockController', 'laborantin', 'ToxicoManager', 'ProductionManager']\""));
 });
 
 test('au montage : jeton d’impression pour admin et promoteur seulement ; informations de la structure chargées par le cadre', () => {
@@ -101,11 +101,12 @@ test('MainLayout passe par AppShell, avec la palette du rôle et le menu au form
     assert.doesNotMatch(src.slice(0, src.indexOf('<script')), /bg-gray|text-gray/);
 });
 
-test('paletteForRole : une palette par espace, repli sur le bleu nuit', async () => {
+test('paletteForRole : une palette par rôle, repli sur le bleu nuit', async () => {
     const { paletteForRole, NAV_PALETTES } = await import('../src/design/navPalettes.js');
     const expected = {
-        admin: 'slate', promoteur: 'slate', laborantin: 'lagoon', ToxicoManager: 'ember', Psychologist: 'ember',
-        SpiritualCounsellor: 'ember', Assistant: 'ember', StockController: 'violet', ProductionManager: 'forest', medecin: 'night', inconnu: 'night', '': 'night',
+        admin: 'slate', promoteur: 'gold', secretaire: 'forest', medecin: 'night', nurse: 'rose', laborantin: 'lagoon',
+        ToxicoManager: 'ember', Psychologist: 'indigo', SpiritualCounsellor: 'burgundy', Assistant: 'olive',
+        StockController: 'violet', ProductionManager: 'sky', inconnu: 'night', '': 'night',
     };
     for (const [role, palette] of Object.entries(expected)) assert.equal(paletteForRole(role), palette, role);
     assert.equal(paletteForRole(undefined), 'night');

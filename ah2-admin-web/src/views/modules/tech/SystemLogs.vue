@@ -83,7 +83,7 @@
         <template #cell-resource="{ row: act }"><StatusBadge tone="neutral" :label="String(act.resource_type ?? '-')" /></template>
         <template #cell-action="{ row: act }"><StatusBadge :tone="getActionBadge(act.action_performed)" :label="String(act.action_performed ?? '-')" /></template>
         <template #cell-details="{ row: act }">
-          <span class="block max-w-xs truncate" :title="act.new_values?.details || act.details">{{ act.new_values?.details || act.details || '-' }}</span>
+          <span class="block max-w-xs truncate" :title="auditSummary(act)">{{ auditSummary(act) }}</span>
         </template>
       </ResponsiveTable>
 
@@ -102,6 +102,7 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue';
 import { useAuditStore } from '@/stores/auditStore';
+import { auditSummary } from '@/utils/auditDetails';
 import { useI18n } from 'vue-i18n';
 import { ShieldCheckIcon, CommandLineIcon, ChevronLeftIcon, ChevronRightIcon } from '@heroicons/vue/24/outline';
 import { AppButton, PageHeader, FormField, StatusBadge, ResponsiveTable } from '@/components/ui';

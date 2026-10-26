@@ -1,7 +1,7 @@
 <template>
   <AppShell
     :menu-groups="menuGroups"
-    :bell-roles="['admin', 'promoteur', 'secretaire', 'Assistant', 'StockController', 'laborantin', 'ToxicoManager']"
+    :bell-roles="['admin', 'promoteur', 'secretaire', 'Assistant', 'StockController', 'laborantin', 'ToxicoManager', 'ProductionManager']"
     brand-fallback="AH2 Dashboard"
     sidebar-id="dashboard-sidebar"
     :palette="paletteForRole(authStore.userRole)"
@@ -50,7 +50,7 @@ const menuItems = [
     path: '/dashboard/overview',
     labelKey: 'common.dashboard',
     icon: HomeIcon,
-    roles: [ROLES.ADMIN] 
+    roles: [ROLES.ADMIN, ROLES.PROMOTEUR] // le promoteur atterrit ici (postLoginRoute) : il doit pouvoir y revenir par le menu
   },
   {
     path: '/dashboard/toxico-dashboard',
@@ -113,7 +113,8 @@ const menuItems = [
     path: '/dashboard/users',
     labelKey: 'common.users',
     icon: UsersIcon,
-    roles: [ROLES.TOXICO_MANAGER]
+    // l'ecriture (creer, modifier, desactiver) est reservee a l'admin cote serveur : plus d'entree pour le responsable toxico
+    roles: [ROLES.ADMIN]
   },
   {
     path: '/dashboard/patients',
@@ -216,14 +217,14 @@ const menuItems = [
     group: 'labstock',
     labelKey: 'labStock.menu_alerts',
     icon: ExclamationCircleIcon,
-    roles: [ROLES.LABORANTIN, ROLES.PROMOTEUR, ROLES.TOXICO_MANAGER]
+    roles: [ROLES.LABORANTIN, ROLES.STOCK_CONTROLLER, ROLES.PROMOTEUR, ROLES.TOXICO_MANAGER]
   },
   {
     path: '/dashboard/lab-stock-movements',
     group: 'labstock',
     labelKey: 'labStock.menu_movements',
     icon: ArrowsRightLeftIcon,
-    roles: [ROLES.STOCK_CONTROLLER, ROLES.PROMOTEUR, ROLES.TOXICO_MANAGER]
+    roles: [ROLES.LABORANTIN, ROLES.STOCK_CONTROLLER, ROLES.PROMOTEUR, ROLES.TOXICO_MANAGER]
   },
   {
     path: '/dashboard/lab-stock-expenses',

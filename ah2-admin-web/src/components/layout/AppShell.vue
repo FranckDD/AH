@@ -141,6 +141,31 @@
           </ul>
         </div>
       </nav>
+
+      <!-- Signature du produit : pierre + nom + auteur ; menu reduit : la pierre seule -->
+      <div
+        class="shrink-0 border-t border-white/10 px-4 py-3 flex items-center gap-3 overflow-hidden"
+        :title="!isSidebarOpen ? 'Glostone-Care by Motadje Franck' : undefined"
+        data-testid="product-signature"
+      >
+        <svg
+          class="h-8 w-8 shrink-0 text-nav-text"
+          :class="isSidebarOpen ? '' : 'md:mx-auto'"
+          viewBox="0 0 32 32"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.6"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M16 3 L27 11 L23 27 L9 27 L5 11 Z" fill="currentColor" fill-opacity="0.15" />
+          <path d="M5 11 L16 14 L27 11 M16 14 L9 27 M16 14 L23 27 M16 3 L16 14" />
+        </svg>
+        <p :class="['min-w-0 leading-tight', isSidebarOpen ? '' : 'md:sr-only']">
+          <span class="block text-sm font-semibold text-white truncate">Glostone-Care</span>
+          <span class="block text-sm text-nav-text truncate">by Motadje Franck</span>
+        </p>
+      </div>
     </aside>
 
     <div class="flex-1 flex flex-col overflow-hidden w-full min-w-0">

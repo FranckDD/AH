@@ -27,3 +27,11 @@ for (const file of [
 test('sans argument : format AAAA-MM-JJ', () => {
     assert.match(todayLocalISO(), /^\d{4}-\d{2}-\d{2}$/);
 });
+
+test('formatDateTimeDMY : jj/mm/aaaa HH:MM en heure locale, valeur illisible rendue telle quelle', async () => {
+    const { formatDateTimeDMY } = await import('../src/utils/localDate.js');
+    assert.equal(formatDateTimeDMY(new Date(2026, 9, 5, 7, 3)), '05/10/2026 07:03');
+    assert.equal(formatDateTimeDMY(''), '');
+    assert.equal(formatDateTimeDMY(null), '');
+    assert.equal(formatDateTimeDMY('pas une date'), 'pas une date');
+});

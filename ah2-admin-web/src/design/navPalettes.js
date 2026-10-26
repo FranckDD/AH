@@ -7,24 +7,35 @@ export const NAV_PALETTES = {
     lagoon: 'nav-palette-lagoon',
     ember: 'nav-palette-ember',
     violet: 'nav-palette-violet',
+    gold: 'nav-palette-gold',
+    rose: 'nav-palette-rose',
+    indigo: 'nav-palette-indigo',
+    burgundy: 'nav-palette-burgundy',
+    olive: 'nav-palette-olive',
+    sky: 'nav-palette-sky',
 };
 
 export function navPaletteClass(name) {
     return NAV_PALETTES[name] ?? '';
 }
 
-// Palette de l'espace d'apres le role de l'utilisateur (cadre partage MainLayout) : admin et promoteur ardoise,
-// laboratoire lagon, toxicologie braise, stock-control violet ; role inconnu : bleu nuit.
+// Palette du menu d'apres le role de l'utilisateur : une couleur par role (le chef infirmier est un infirmier).
+// admin ardoise, promoteur or, secretaire foret (SecretaireLayout), medecin bleu nuit, infirmier rose,
+// laboratoire lagon, psychologue indigo, conseiller spirituel bordeaux, toxicologie braise, assistant olive,
+// stock-control violet, production ciel ; role inconnu : bleu nuit.
 const PALETTE_BY_ROLE = {
     admin: 'slate',
-    promoteur: 'slate',
+    promoteur: 'gold',
+    secretaire: 'forest',
+    medecin: 'night',
+    nurse: 'rose',
     laborantin: 'lagoon',
+    psychologist: 'indigo',
+    spiritualcounsellor: 'burgundy',
     toxicomanager: 'ember',
-    psychologist: 'ember',
-    spiritualcounsellor: 'ember',
-    assistant: 'ember',
+    assistant: 'olive',
     stockcontroller: 'violet',
-    productionmanager: 'forest',
+    productionmanager: 'sky',
 };
 
 export function paletteForRole(role) {

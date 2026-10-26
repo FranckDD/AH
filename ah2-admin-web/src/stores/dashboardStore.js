@@ -1,11 +1,13 @@
 // Fichier: src/stores/dashboardStore.js
 
+import { todayLocalISO } from '@/utils/localDate';
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { FinanceGateway } from '@/services/FinanceGateway';
 import { ToxicoGateway } from '@/services/ToxicoGateway';
 import { HospitalizationGateway } from '@/services/HospitalizationGateway';
 import api from '@/services/api';
+import { useAuthStore } from '@/stores/auth';
 
 export const useDashboardStore = defineStore('dashboard', () => {
     
@@ -13,8 +15,8 @@ export const useDashboardStore = defineStore('dashboard', () => {
     
     // Dates par défaut
     const filters = ref({
-        startDate: new Date().toISOString().split('T')[0],
-        endDate: new Date().toISOString().split('T')[0]
+        startDate: todayLocalISO(),
+        endDate: todayLocalISO()
     });
 
     const stats = ref({
@@ -43,6 +45,25 @@ export const useDashboardStore = defineStore('dashboard', () => {
     async function fetchDashboardData() {
         isLoading.value = true;
         try {
+            // Le promoteur ne peut lire ni la caisse, ni les retraits, ni la liste des comptes (403) :
+            // on n'appelle que ce qui lui est ouvert, et la page masque les tuiles correspondantes.
+            const authStore = useAuthStore();
+            const restricted = authStore.hasRole(['promoteur']) && !authStore.hasRole(['admin']);
+            if (restricted) {
+                const [toxicoRes, hospitalizedRes] = await Promise.allSettled([
+                    ToxicoGateway.getDashboardStats(),
+                    HospitalizationGateway.fetchKpiCount(),
+                ]);
+                const echecsRestreints = [];
+                if (toxicoRes.status === 'fulfilled') stats.value.toxicoAdmissionsThisMonth = toxicoRes.value.data?.currentMonthAdmissions || 0;
+                else echecsRestreints.push('toxico');
+                if (hospitalizedRes.status === 'fulfilled') stats.value.hospitalizedCount = hospitalizedRes.value.data?.count ?? 0;
+                else echecsRestreints.push('hospitalized');
+                recentActivities.value = [];
+                indisponibles.value = echecsRestreints;
+                return;
+            }
+
             // 🟢 1. Gestion des Dates (Heure de fin pour inclure toute la journée)
             const dateParams = {
                 startDate: filters.value.startDate, 
@@ -164,6 +185,8 @@ export const useDashboardStore = defineStore('dashboard', () => {
 
         } catch (error) {
             console.error("Erreur chargement Dashboard:", error);
+            // Echec global : tout est indisponible, jamais des zeros presentes comme des chiffres.
+            indisponibles.value = ["income", "expense", "debt", "toxico", "users", "hospitalized", "activites"];
         } finally {
             isLoading.value = false;
         }

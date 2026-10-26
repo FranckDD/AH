@@ -2,38 +2,37 @@
   <div class="grid w-full gap-6">
 
     <PageHeader
-      title="Échecs de synchronisation"
-      subtitle="Patients créés hors ligne refusés par le serveur (par exemple un numéro d'identité nationale déjà utilisé). Leurs consultations et prescriptions sont conservées ici, jamais envoyées au mauvais patient."
+      :title="t('screens.sync.title')"
+      :subtitle="t('screens.sync.subtitle')"
     />
 
     <p v-if="isLoading" class="p-10 text-center text-base text-ink-muted" role="status">{{ t('common.loading') }}</p>
 
     <div v-else-if="groups.length === 0 && labOrphans.length === 0 && lockedRejections.length === 0" class="rounded-card border border-tone-neutral-border bg-white shadow-card">
-      <EmptyState title="Aucun échec de synchronisation." message="Tout ce qui a été saisi hors ligne a bien été envoyé au serveur." />
+      <EmptyState :title="t('screens.sync.none_title')" :message="t('screens.sync.none_msg')" />
     </div>
 
     <section v-for="g in groups" :key="g.patientUuid" class="grid gap-3 rounded-card border border-tone-danger-border bg-white p-4 shadow-card md:p-6">
       <div class="flex flex-wrap items-start justify-between gap-2">
         <div>
           <p class="text-lg font-semibold text-ink">{{ g.name }}</p>
-          <p class="text-base text-ink-muted">Né(e) le {{ g.birthDate || '-' }}, N° d'identité : {{ g.nationalId || '-' }}</p>
+          <p class="text-base text-ink-muted">{{ t('screens.sync.born_id', { date: g.birthDate || '-', id: g.nationalId || '-' }) }}</p>
         </div>
-        <StatusBadge tone="danger" label="Échec de synchronisation" />
+        <StatusBadge tone="danger" :label="t('screens.sync.badge')" />
       </div>
-      <p class="text-base font-medium text-tone-danger-text">Motif : {{ g.error }}</p>
+      <p class="text-base font-medium text-tone-danger-text">{{ t('screens.sync.reason', { reason: g.error }) }}</p>
       <p class="text-base text-ink">
-        Données retenues : {{ g.recordCount }} consultation(s), {{ g.prescriptionCount }} prescription(s),
-        {{ g.labResultCount }} dossier(s) labo, {{ g.labResultDetailCount }} valeur(s) de dossier labo.
+        {{ t('screens.sync.kept', { records: g.recordCount, prescriptions: g.prescriptionCount, labs: g.labResultCount, values: g.labResultDetailCount }) }}
       </p>
 
       <div class="grid gap-3 border-t border-tone-neutral-border pt-3 sm:grid-cols-[1fr_auto] sm:items-end">
         <p class="text-base font-semibold text-ink sm:col-span-2">{{ t('syncFailures.attach_title') }}</p>
-        <FormField :id="`code-${g.patientUuid}`" label="Code du patient existant (AH2-...)" v-slot="{ describedBy }">
+        <FormField :id="`code-${g.patientUuid}`" :label="t('screens.sync.code_label')" v-slot="{ describedBy }">
           <input :id="`code-${g.patientUuid}`" v-model="codes[g.patientUuid]" type="text" :aria-describedby="describedBy"
                  class="block w-full min-h-11 rounded-control border border-tone-neutral-border bg-white px-3 text-base text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand-600" />
         </FormField>
         <AppButton @click="handleReattach(g)" :disabled="busy[g.patientUuid]" :loading="busy[g.patientUuid]">
-          {{ busy[g.patientUuid] ? 'Rattachement...' : 'Rattacher à ce patient' }}
+          {{ busy[g.patientUuid] ? t('screens.sync.attaching') : t('screens.sync.attach') }}
         </AppButton>
       </div>
       <!-- Le numero d'identite est faux : on le corrige et on renvoie le patient (meme uuid, sans doublon) -->
@@ -64,13 +63,13 @@
          (ex. examen retire du catalogue), sans patient en quarantaine :
          consultation seule, aucune action de resolution ici. -->
     <section v-if="!isLoading && labOrphans.length" class="grid gap-3 rounded-card border border-tone-danger-border bg-white p-4 shadow-card md:p-6">
-      <p class="text-lg font-semibold text-ink">Laboratoire : éléments refusés par le serveur</p>
+      <p class="text-lg font-semibold text-ink">{{ t('screens.sync.lab_title') }}</p>
       <ul class="divide-y divide-tone-neutral-border">
         <li v-for="l in labOrphans" :key="l.id" class="py-3 text-base">
-          <span class="font-medium text-ink">{{ l.kind === 'lab_result' ? 'Dossier labo' : 'Valeur de dossier labo' }}</span>
-          <span v-if="l.examenId" class="text-ink-muted">, examen n° {{ l.examenId }}</span>
+          <span class="font-medium text-ink">{{ l.kind === 'lab_result' ? t('screens.sync.lab_file') : t('screens.sync.lab_value') }}</span>
+          <span v-if="l.examenId" class="text-ink-muted">{{ t('screens.sync.exam_no', { id: l.examenId }) }}</span>
           <span class="text-ink-muted">, {{ l.createdAt }}</span>
-          <p class="font-medium text-tone-danger-text">Motif : {{ l.error || '-' }}</p>
+          <p class="font-medium text-tone-danger-text">{{ t('screens.sync.reason', { reason: l.error || '-' }) }}</p>
         </li>
       </ul>
     </section>
@@ -208,16 +207,16 @@ async function handleReattach(g) {
     const list = Array.isArray(res.data) ? res.data : (res.data.data || []);
     const match = list.find((p) => p.code_patient === code);
     if (!match) {
-      messages[g.patientUuid] = { ok: false, text: `Aucun patient avec le code ${code}.` };
+      messages[g.patientUuid] = { ok: false, text: t('screens.sync.no_patient_code', { code }) };
       return;
     }
     await reattachToExistingPatient(g.patientUuid, match.patient_id || match.id);
-    messages[g.patientUuid] = { ok: true, text: `Données rattachées à ${match.first_name} ${match.last_name}.` };
+    messages[g.patientUuid] = { ok: true, text: t('screens.sync.attached', { name: `${match.first_name} ${match.last_name}` }) };
     await load();
   } catch (err) {
     messages[g.patientUuid] = {
       ok: false,
-      text: err.response ? 'Erreur serveur, réessayez.' : 'Connexion requise pour rattacher un patient.',
+      text: err.response ? t('screens.sync.err_server') : t('screens.sync.err_offline'),
     };
   } finally {
     busy[g.patientUuid] = false;

@@ -81,7 +81,7 @@ test('expedition : desactivee avec message quand qty_shipped <= 0, dialogue dit 
     assert.match(view, /const allBottlesOut = computed\(\(\) => num\(batch\.value\?\.qty_good\) > 0 && num\(batch\.value\?\.qty_outputs\) > 0 && nothingToShip\.value\);/);
     assert.match(tpl, /<p v-if="allBottlesOut" role="status" class="basis-full[^>]*>\{\{ t\('fabrication\.outputs\.nothing_to_ship'\) \}\}/);
     assert.doesNotMatch(tpl, /v-if="nothingToShip"/);
-    assert.match(tpl, /t\('fabrication\.ship_help', \{ good: batch\.qty_shipped \}\)/);
+    assert.match(tpl, /t\('fabrication\.ship_help', \{ good: batch\.qty_shipped \}, Number\(batch\.qty_shipped\) \|\| 0\)/);
     assert.equal(msgs.fr.fabrication.outputs.nothing_to_ship, 'Toutes les bouteilles sont sorties : rien à expédier.');
 });
 

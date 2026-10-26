@@ -29,8 +29,12 @@ const keyOf = (row, i) => row?.[props.rowKey] ?? i;
         />
 
         <template v-else>
-            <!-- PC (lg et plus) : vrai tableau, en-tête collant -->
-            <div class="hidden max-h-[70vh] overflow-auto lg:block">
+            <!-- PC (lg et plus) : vrai tableau, en-tête collant. "relative" : les libellés
+                 sr-only (position absolue) des boutons d'action restent contenus par ce
+                 cadre défilant ; sans lui ils débordaient la page entière (défaut 4).
+                 Ce cadre coupe tout ce qui en sort : pas de menu déroulant en position
+                 absolue dans une cellule, utiliser <Teleport to="body">. -->
+            <div class="relative hidden max-h-[70vh] overflow-auto lg:block">
                 <table class="w-full border-collapse text-base">
                     <thead>
                         <tr>

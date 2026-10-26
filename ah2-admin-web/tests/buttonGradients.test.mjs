@@ -52,8 +52,8 @@ test('connexion et tableau de bord admin/promoteur gardent le vert sarcelle en d
     const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
     assert.match(read('../src/views/LoginView.vue'), /<AppButton type="submit" variant="brand" size="lg"/);
     const dash = read('../src/views/dashboards/DashboardOverview.vue');
-    assert.equal((dash.match(/variant="brand"/g) || []).length, 2, 'Filtrer et Encaisser un paiement');
-    assert.equal((dash.match(/variant="brandOutline"/g) || []).length, 4, 'les quatre boutons de contour');
+    assert.equal((dash.match(/variant="brand"/g) || []).length, 3, 'Filtrer, Encaisser un paiement et Ouvrir les rapports (promoteur)');
+    assert.equal((dash.match(/variant="brandOutline"/g) || []).length, 6, 'les quatre boutons de contour + deux actions du promoteur');
     assert.doesNotMatch(dash, /variant="secondary"/);
     assert.match(buttonClasses('brand', 'md'), /bg-linear-to-br from-brand-600/);
     assert.match(buttonClasses('brandOutline', 'md'), /border-brand-600/);

@@ -1,3 +1,4 @@
+import { todayLocalISO } from '@/utils/localDate';
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import api from '@/services/api';
@@ -8,7 +9,7 @@ export const useSecretariatHomeStore = defineStore('secretariatHome', () => {
 
     const isLoading = ref(false);
 
-    const today = new Date().toISOString().split('T')[0];
+    const today = todayLocalISO();
 
     const filters = ref({
         startDate: today,

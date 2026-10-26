@@ -10,6 +10,6 @@ test('sans nom : #id', () => {
     assert.equal(actorLabel(undefined, 0), '#0');
 });
 test('sans nom ni id : tiret', () => {
-    assert.equal(actorLabel(null, null), '—');
-    assert.equal(actorLabel(undefined, undefined), '—');
+    assert.equal(actorLabel(null, null), '-');
+    assert.equal(actorLabel(undefined, undefined), '-');
 });

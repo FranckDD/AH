@@ -67,8 +67,9 @@ import { stockDecidedLabel, adjustmentKindLabel } from '@/utils/stockNotificatio
 import { labNotificationLabel } from '@/utils/labStockLabels';
 import { gapWords } from '@/utils/cashClosure';
 import { modeLabel } from '@/utils/paymentModes';
+import { formatDateDMY } from '@/utils/localDate';
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
 
 const notificationStore = useNotificationStore();
 const authStore = useAuthStore();
@@ -135,22 +136,28 @@ const toastText = computed(() => {
 
 const labelFor = (n) => {
   if (n.type === 'discount_request') {
-    return `${n.payload?.requested_by_name || '?'} demande une réduction (${n.payload?.amount ?? '?'} FCFA)`;
+    return t('notifications.discount_request', { name: n.payload?.requested_by_name || '?', amount: n.payload?.amount ?? '?' });
   }
   if (n.type === 'discount_decided') {
-    if (n.payload?.status === 'refused') return 'Demande de réduction refusée';
+    if (n.payload?.status === 'refused') return t('notifications.discount_refused');
     const pct = n.payload?.decision_percent;
     const deadline = n.payload?.decision_echelonne_deadline;
     const parts = [];
-    if (pct) parts.push(`${pct}% accordé`);
-    if (deadline) parts.push(`échéance ${new Date(deadline).toLocaleDateString('fr-FR')}`);
-    return parts.length ? `Demande de réduction approuvée — ${parts.join(', ')}` : 'Demande de réduction approuvée';
+    if (pct) parts.push(t('notifications.discount_percent_granted', { pct }));
+    if (deadline) parts.push(t('notifications.discount_deadline', { date: formatDateDMY(deadline) }));
+    return parts.length
+      ? t('notifications.discount_approved_detail', { parts: parts.join(', ') })
+      : t('notifications.discount_approved');
   }
   if (n.type === 'hospitalization_aggravation') {
-    return `⚠ Aggravation signalée — ${n.payload?.patient_name || 'patient'} (par ${n.payload?.reported_by_name || '?'})`;
+    return t('notifications.aggravation', {
+      patient: n.payload?.patient_name || t('notifications.patient_fallback'), by: n.payload?.reported_by_name || '?',
+    });
   }
   if (n.type === 'patient_pending_review') {
-    return `🩺 Patient en attente — ${n.payload?.patient_name || 'patient'} (${n.payload?.created_by_name || '?'})`;
+    return t('notifications.patient_pending', {
+      patient: n.payload?.patient_name || t('notifications.patient_fallback'), by: n.payload?.created_by_name || '?',
+    });
   }
   if (n.type === 'stock_to_check') {
     const p = n.payload || {};
@@ -191,12 +198,21 @@ const labelFor = (n) => {
   if (n.type === 'cash_closure') {
     // payload : business_date, expected_cash, counted_cash, difference (chaines), auto, anomaly
     const p = n.payload || {};
-    const params = { date: p.business_date || '?', expected: p.expected_cash ?? '?', counted: p.counted_cash ?? '?' };
+    const params = { date: p.business_date ? formatDateDMY(p.business_date) : '?', expected: p.expected_cash ?? '?', counted: p.counted_cash ?? '?' };
     const gap = gapWords(p.difference ?? null);
     const label = p.auto
       ? t('notifications.cash_closure_auto', params)
       : t('notifications.cash_closure', { ...params, difference: t(gap.key, { amount: gap.amount ?? '' }) });
     return p.anomaly ? t('notifications.cash_closure_anomaly', { label }) : label;
+  }
+  if (n.type === 'cash_correction_requested') {
+    const p = n.payload || {};
+    return t('notifications.cash_correction_requested', { date: p.business_date ? formatDateDMY(p.business_date) : '?', mode: p.mode_code || '?', amount: p.amount_delta ?? '?' });
+  }
+  if (n.type === 'cash_correction_decided') {
+    const p = n.payload || {};
+    const key = p.status === 'approved' ? 'notifications.cash_correction_approved' : 'notifications.cash_correction_rejected';
+    return t(key, { mode: p.mode_code || '?', amount: p.amount_delta ?? '?' });
   }
   if (n.type === 'price_mismatch') {
     // payload : transaction_id, item_type, sent_price, catalog_price (null/0 = non defini), author_name
@@ -207,12 +223,22 @@ const labelFor = (n) => {
       ? t('notifications.price_mismatch', params)
       : t('notifications.price_mismatch_undefined', params);
   }
+  if (n.type === 'lab_result_corrected') {
+    // payload : result_id, code, patient_name, examen_nom, reason, amended_by_name
+    const p = n.payload || {};
+    return t('notifications.lab_result_corrected', { exam: p.examen_nom || '?', patient: p.patient_name || '?', reason: p.reason || '?' });
+  }
+  if (n.type === 'fab_intrant_low') {
+    // payload : intrant_id, intrant_name, unit, stock, alert_threshold
+    const p = n.payload || {};
+    return t('notifications.fab_intrant_low', { name: p.intrant_name || '?', stock: p.stock ?? '?', unit: p.unit || '', threshold: p.alert_threshold ?? '?' });
+  }
   if (n.type === 'daily_control') {
     // payload : business_date, new_count, open_count (tous les points du jour), reason ('nouveau' | 'rappel')
     const p = n.payload || {};
     const total = Number(p.open_count) || 0;
     const fresh = Number(p.new_count) || 0;
-    const params = { date: p.business_date || '?', new: fresh, open: Math.max(0, total - fresh) };
+    const params = { date: p.business_date ? formatDateDMY(p.business_date) : '?', new: fresh, open: Math.max(0, total - fresh) };
     return p.reason === 'rappel'
       ? t('notifications.daily_control_reminder', { ...params, open: total })
       : t('notifications.daily_control', params);
@@ -228,7 +254,7 @@ const pushIfRoute = (path) => {
   if (matched.length > 0 && !matched.some((m) => m.path.includes(':pathMatch'))) router.push(path);
 };
 
-const formatDate = (iso) => iso ? new Date(iso).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '';
+const formatDate = (iso) => iso ? new Date(iso).toLocaleTimeString(locale.value === 'en' ? 'en-GB' : 'fr-FR', { hour: '2-digit', minute: '2-digit' }) : '';
 
 const handleClick = async (n) => {
   await notificationStore.markRead(n.id);
@@ -259,6 +285,12 @@ const handleClick = async (n) => {
     // Ecran de revue des clotures (promoteur/admin) ; les autres roles ne recoivent pas ce type.
     if (authStore.hasRole(['promoteur', 'admin'])) pushIfRoute('/dashboard/cash-closures');
   }
+  if (n.type === 'cash_correction_requested') {
+    if (authStore.hasRole(['promoteur', 'admin'])) pushIfRoute('/dashboard/cash-closures');
+  }
+  if (n.type === 'cash_correction_decided') {
+    if (authStore.hasRole(['secretaire'])) pushIfRoute('/secretariat/cloture');
+  }
   if (n.type === 'price_mismatch') {
     // Journal financier unifie (ventes caisse comprises) : admin seulement ; le
     // promoteur n'a pas de liste des ventes, il ne navigue pas.
@@ -268,11 +300,18 @@ const handleClick = async (n) => {
     // Page Rapports (promoteur/admin) ; les autres roles ne recoivent pas ce type.
     if (authStore.hasRole(['promoteur', 'admin'])) pushIfRoute('/dashboard/reports');
   }
+  if (n.type === 'fab_intrant_low') {
+    if (authStore.hasRole(['ProductionManager', 'promoteur', 'admin'])) pushIfRoute('/dashboard/fabrication-intrants');
+  }
   if (n.type === 'stock_decided') {
     const kind = n.payload?.kind;
     if (kind === 'receipt') pushIfRoute('/dashboard/stock-receipts');
     else if (kind === 'incident') pushIfRoute('/dashboard/stock-incidents');
-    else if (kind === 'adjustment') pushIfRoute('/secretariat/stock');
+    else if (kind === 'adjustment') {
+      // le controleur de stock suit ses demandes dans l'historique du comptage ; la secretaire dans son stock
+      if (authStore.hasRole(['StockController', 'admin', 'promoteur'])) pushIfRoute('/dashboard/stock-count');
+      else pushIfRoute('/secretariat/stock');
+    }
   }
 };
 
