@@ -4,7 +4,11 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile
 from typing import List, Any, Dict, Optional, Literal
 from sqlalchemy.orm import Session
 from datetime import date, datetime
-from fastapi.responses import Response
+from fastapi.responses import Response, FileResponse, RedirectResponse
+import logging
+import os
+from api_backend.backend_app.utils.file_storage import CONSENT_MAX_BYTES, consent_path, detect_consent_extension
+from models.toxico import ToxicoDossier
 
 from api_backend.backend_app.utils.pdf_generator import render_pdf_from_template
 from api_backend.backend_app.utils.pdf_header import get_pdf_header_context
@@ -138,7 +142,7 @@ def _discharged_filters_summary(search, reason, discharged_from, discharged_to) 
         parts.append(f"Sortie à partir du {_fmt_date(discharged_from)}")
     if discharged_to:
         parts.append(f"Sortie jusqu'au {_fmt_date(discharged_to)}")
-    return " — ".join(parts) if parts else "Aucun filtre"
+    return " - ".join(parts) if parts else "Aucun filtre"
 
 
 def _header_ctx(db: Session) -> dict:
@@ -291,6 +295,52 @@ def get_patient_detail(
     # ToxicoController.serialize_dossier_details (partage avec le dossier consolide).
     return ctrl.serialize_dossier_details(dossier)
 
+logger = logging.getLogger(__name__)
+CONSENT_MEDIA_TYPES = {".pdf": "application/pdf", ".jpg": "image/jpeg", ".png": "image/png"}
+
+
+async def _validate_consent_upload(upload: Optional[UploadFile]) -> None:
+    """5 Mo max, et type reel (PDF/JPEG/PNG) d'apres le contenu, avant toute creation de patient ou de fichier."""
+    if upload is None or not upload.filename:
+        return
+    data = await upload.read(CONSENT_MAX_BYTES + 1)
+    await upload.seek(0)
+    if len(data) > CONSENT_MAX_BYTES:
+        raise HTTPException(status_code=413, detail="Le fichier de consentement dépasse 5 Mo.")
+    if not detect_consent_extension(data[:16]):
+        raise HTTPException(status_code=422, detail="Le consentement doit être un PDF, un JPEG ou un PNG.")
+
+
+@router.get("/dossiers/{dossier_id}/consent",
+            # Memes roles que la lecture du detail dossier hors promoteur (TOXICO_STAFF_ROLES).
+            dependencies=[Depends(role_required(*TOXICO_STAFF_ROLES))])
+def get_consent_file(dossier_id: int,
+                     request: Request,
+                     db: Session = Depends(get_db),
+                     current_user: Any = Depends(get_current_user)):
+    """Consentement signe : jamais servi par /static ; lecture authentifiee et journalisee."""
+    dossier = db.get(ToxicoDossier, dossier_id)
+    stored = dossier.consent_file if dossier else None
+    if not stored:
+        raise HTTPException(status_code=404, detail="Aucun consentement pour ce dossier.")
+    if str(stored).startswith("http"):
+        target = None  # stockage distant (bucket) : l'URL est deja celle du fichier
+    else:
+        target = consent_path(stored)
+        if not target or not os.path.isfile(target):
+            raise HTTPException(status_code=404, detail="Fichier de consentement introuvable.")
+    AuditRepository(session=db).log_user_action(
+        current_user, "ToxicoConsent", "READ", resource_id=dossier_id,
+        ip_address=request.client.host if request.client else None)
+    db.commit()
+    logger.info("Consentement toxico lu : dossier=%s user=%s", dossier_id, getattr(current_user, "user_id", None))
+    if target is None:
+        return RedirectResponse(str(stored))
+    ext = os.path.splitext(target)[1]
+    return FileResponse(target, media_type=CONSENT_MEDIA_TYPES.get(ext, "application/octet-stream"),
+                        headers={"Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff"})
+
+
 @router.post("/admission", status_code=status.HTTP_201_CREATED,
              # Psychologist n'est PAS ici, c'est correct (il ne peut pas admettre)
              dependencies=[Depends(role_required("ToxicoManager", "admin", "Assistant"))])
@@ -301,6 +351,7 @@ async def admission_patient(
     lastName: Optional[str] = Form(None),
     dob: Optional[date] = Form(None),
     mothersName: Optional[str] = Form(None),
+    gender: Optional[str] = Form(None),
     address: Optional[str] = Form(None),
     contact: Optional[str] = Form(None),
     admissionDate: date = Form(...),
@@ -312,10 +363,11 @@ async def admission_patient(
     consentFile: Optional[UploadFile] = File(None),
     ctrl: ToxicoController = Depends(get_toxico_controller)
 ):
+    await _validate_consent_upload(consentFile)
     try:
         data = {
             "patient_id": patientId,
-            "firstName": firstName, "lastName": lastName, "dob": dob, "mothersName": mothersName,
+            "firstName": firstName, "lastName": lastName, "dob": dob, "mothersName": mothersName, "gender": gender,
             "address": address, "contact": contact, "admissionDate": admissionDate,
             "substance": substance, "psychologist_id": psychologist,
             "guardianName": guardianName, "guardianContact": guardianContact, "notes": notes
@@ -359,6 +411,28 @@ def submit_evaluation(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+def _open_hosp_payload(hosp):
+    if hosp is None:
+        return None
+    return {"hospitalization_id": hosp.id,
+            "admitted_at": hosp.admitted_at.isoformat() if hosp.admitted_at else None}
+
+
+@router.get("/dossiers/{dossier_id}/open-hospitalization",
+            dependencies=[Depends(role_required("ToxicoManager", "admin", "promoteur"))])
+def get_open_hospitalization(dossier_id: int, ctrl: ToxicoController = Depends(get_toxico_controller)):
+    """Indicateur minimal (aucune donnee medicale) : le patient du dossier a-t-il
+    un sejour hospitalier ouvert ? Le ToxicoManager n'a pas acces a /hospitalizations."""
+    try:
+        hosp = ctrl.get_open_hospitalization(dossier_id)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    payload = _open_hosp_payload(hosp)
+    return {"open": hosp is not None,
+            "hospitalization_id": payload["hospitalization_id"] if payload else None,
+            "admitted_at": payload["admitted_at"] if payload else None}
+
+
 @router.post("/discharge/{dossier_id}", status_code=status.HTTP_200_OK,
              # 2026-10-22 : le promoteur peut valider une sortie (responsable administratif).
              dependencies=[Depends(role_required("ToxicoManager", "admin", "promoteur"))])
@@ -368,8 +442,9 @@ def discharge_patient(
     ctrl: ToxicoController = Depends(get_toxico_controller)
 ):
     try:
-        ctrl.discharge_patient(dossier_id, body.reason, body.note)
-        return {"message": "Dossier clôturé avec succès."}
+        open_hosp = ctrl.discharge_patient(dossier_id, body.reason, body.note, body.discharge_date)
+        return {"message": "Dossier clôturé avec succès.",
+                "open_hospitalization": _open_hosp_payload(open_hosp)}
     except ToxicoValidationError as e:
         raise HTTPException(status_code=422, detail=str(e))
     except ToxicoConflictError as e:
@@ -382,5 +457,4 @@ def get_dashboard_stats(ctrl: ToxicoController = Depends(get_toxico_controller))
     # Compteur agrege (aucune donnee nominative) : ouvert aussi au promoteur,
     # la page liste toxico l'appelle au chargement.
     # Hérite des permissions globales du router (donc Psychologist OK)
-    admissions = ctrl.get_current_month_admissions_count()
-    return {"currentMonthAdmissions": admissions}
+    return ctrl.get_dashboard_stats()

@@ -1,7 +1,7 @@
 <template>
   <div class="grid w-full gap-6">
 
-    <PageHeader :title="t('toxico.title')" :subtitle="t('toxicoScreens.followed_count', { n: toxicoStore.totalActive })">
+    <PageHeader :title="t('toxico.title')" :subtitle="t('toxicoScreens.followed_count', toxicoStore.listTotal)">
       <template #actions>
         <div v-if="activeTab === 'active'" class="md:w-72">
           <FormField id="toxico-search" :label="t('toxicoScreens.search_label')" v-slot="{ describedBy }">
@@ -15,15 +15,15 @@
 
     <!-- Memes quatre reperes colores que le tableau de bord : bleu, vert, rouge, orange -->
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-      <StatTile :title="t('toxicoScreens.active_patients_title')" :value="toxicoStore.totalActive" :note="t('toxicoScreens.week_note', { n: newPatientsThisWeek })" :icon="UserGroupIcon" tone="info" />
-      <StatTile :title="t('toxicoScreens.admissions_month')" :value="toxicoStore.currentMonthAdmissions" :note="t('toxicoScreens.admissions_month_note')" :icon="CalendarIcon" tone="success" />
-      <StatTile :title="t('toxicoScreens.relapse_title')" :value="`${toxicoStore.relapseRate}%`" :icon="ExclamationCircleIcon" tone="danger">
+      <StatTile :title="t('toxicoScreens.active_patients_title')" :value="toxicoStore.statsLoadFailed ? '-' : toxicoStore.activeTotal" :note="t('toxicoScreens.week_note', { n: newPatientsThisWeek })" :icon="UserGroupIcon" tone="info" />
+      <StatTile :title="t('toxicoScreens.admissions_month')" :value="toxicoStore.statsLoadFailed ? '-' : toxicoStore.currentMonthAdmissions" :note="t('toxicoScreens.admissions_month_note')" :icon="CalendarIcon" tone="success" />
+      <StatTile :title="t('toxicoScreens.relapse_title')" :value="toxicoStore.statsLoadFailed ? '-' : `${toxicoStore.relapseRate}%`" :icon="ExclamationCircleIcon" tone="danger">
         <div class="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-tone-neutral-bg" role="progressbar" :aria-valuenow="toxicoStore.relapseRate" aria-valuemin="0" aria-valuemax="100"
              :aria-label="t('toxicoScreens.relapse_title')">
           <div class="h-1.5 rounded-full bg-tone-danger-solid transition-all duration-700" :style="{ width: toxicoStore.relapseRate + '%' }"></div>
         </div>
       </StatTile>
-      <StatTile :title="t('toxicoScreens.withdrawal_title')" :value="toxicoStore.statsByPhase[1] || 0" :note="t('toxicoScreens.withdrawal_note')" :icon="FireIcon" tone="warning" />
+      <StatTile :title="t('toxicoScreens.withdrawal_title')" :value="toxicoStore.statsLoadFailed ? '-' : toxicoStore.statsByPhase[1] || 0" :note="t('toxicoScreens.withdrawal_note')" :icon="FireIcon" tone="warning" />
     </div>
 
     <div role="tablist" :aria-label="t('toxico.discharged.tabs_label')" class="inline-flex gap-1 justify-self-start rounded-card bg-tone-neutral-bg p-1">
@@ -39,7 +39,9 @@
         @view="openDossier" @readmit="openReadmission" />
 
     <template v-if="activeTab === 'active'">
+      <LoadErrorState v-if="toxicoStore.listLoadFailed" @retry="toxicoStore.fetchToxicoPatients()" />
       <ResponsiveTable
+        v-else
         :columns="columns"
         :rows="toxicoStore.patients"
         row-key="patient_id"
@@ -81,7 +83,7 @@
         </template>
       </ResponsiveTable>
 
-      <nav v-if="toxicoStore.totalActive > 20" :aria-label="t('toxicoScreens.pagination_label')" class="flex justify-end gap-2">
+      <nav v-if="toxicoStore.listTotal > 20" :aria-label="t('toxicoScreens.pagination_label')" class="flex justify-end gap-2">
         <AppButton variant="secondary" :disabled="toxicoStore.filters.page === 1" @click="toxicoStore.setPage(toxicoStore.filters.page - 1)">{{ t('toxicoScreens.prev') }}</AppButton>
         <AppButton variant="secondary" @click="toxicoStore.setPage(toxicoStore.filters.page + 1)">{{ t('toxicoScreens.next') }}</AppButton>
       </nav>
@@ -119,6 +121,7 @@
         v-if="showDischargeConfirm && patientToDischarge"
         :dossierId="Number(patientToDischarge.dossier_id || patientToDischarge.id)"
         :patientName="patientToDischarge.patientName || ''"
+        :minDate="String(patientToDischarge.admissionDate || '').slice(0, 10)"
         @close="closeDischarge"
         @discharged="onDischarged"
     />
@@ -127,6 +130,7 @@
 </template>
 
 <script setup>
+import { notify } from '@/utils/notify';
 import { ref, onMounted, computed } from 'vue';
 import { useToxicoStore } from '@/stores/toxicoStore';
 import { useAuthStore } from '@/stores/auth'; // 🟢 IMPORT DU STORE AUTH
@@ -138,9 +142,10 @@ import ToxicoPatientDetailsModal from '@/components/toxico/ToxicoPatientDetailsM
 import ToxicoDischargeModal from '@/components/toxico/ToxicoDischargeModal.vue';
 import ToxicoDischargedPanel from '@/components/toxico/ToxicoDischargedPanel.vue';
 import { toPreselectedPatient } from '@/utils/toxicoDischarged';
-import { AppButton, PageHeader, FormField, StatTile, StatusBadge, ResponsiveTable } from '@/components/ui';
+import { AppButton, PageHeader, FormField, StatTile, StatusBadge, ResponsiveTable, LoadErrorState } from '@/components/ui';
 import { toneClasses } from '@/design/tones';
-import { phaseMeta, newThisWeek } from '@/utils/toxicoUi';
+import { phaseMeta } from '@/utils/toxicoUi';
+import { useToastStore } from '@/stores/toastStore';
 import { TOXICO_DISCHARGE_ROLES } from '@/utils/toxicoExport';
 import {
     PlusCircleIcon,
@@ -159,6 +164,7 @@ import {
 const { t } = useI18n();
 const toxicoStore = useToxicoStore();
 const authStore = useAuthStore(); // 🟢 INITIALISATION
+const toast = useToastStore();
 
 // --- ONGLETS Actifs | Sortis ---
 const listTabs = [
@@ -205,7 +211,7 @@ const canDischargePatient = computed(() => {
 
 
 // --- CALCUL DYNAMIQUE : +X cette semaine (meme calcul reel que le tableau de bord) ---
-const newPatientsThisWeek = computed(() => newThisWeek(toxicoStore.patients));
+const newPatientsThisWeek = computed(() => toxicoStore.newThisWeekCount);
 
 // Colonnes du tableau (cartes empilees sous lg) et style commun des champs.
 const columns = computed(() => [
@@ -219,7 +225,7 @@ const fieldClass = 'block w-full min-h-11 lg:min-h-10 rounded-control border bor
 // --- LIFECYCLE ---
 onMounted(() => {
     toxicoStore.fetchToxicoPatients();
-    toxicoStore.fetchDashboardStats(); 
+    toxicoStore.fetchDashboardStats().catch(() => {});
     toxicoStore.fetchPsychologists();
 });
 
@@ -246,7 +252,7 @@ const openEvaluation = (patient) => {
     if (!canEvaluatePatient.value) return;
     if (!patient.dossier_id && !patient.id) {
         console.error("❌ Patient n'a pas de dossier_id:", patient);
-        alert("Erreur: Impossible de trouver l'identifiant du dossier. Veuillez rafraîchir la page.");
+        notify('alerts.dossier_id_missing');
         return;
     }
     
@@ -272,31 +278,25 @@ const handleAdmission = async (result) => {
     try {
         await toxicoStore.fetchToxicoPatients();
         await toxicoStore.fetchDashboardStats();
-        alert(result?.isReadmission
+        toast.push(result?.isReadmission
             ? t('toxico.stays.readmission_success', { n: result.stayNumber })
-            : "Admission validée avec succès !");
+            : t('toxico.admission.success'), 'success');
     } catch (error) {
         console.error("Erreur lors du rafraîchissement:", error);
-        alert("Admission enregistrée, mais erreur lors du rafraîchissement");
+        notify('alerts.admission_refresh_failed');
     }
 };
 
-const handleSaveEvaluation = async (evalData) => {
-    if (!evalData) {
-        console.error("❌ evalData est undefined!");
-        return;
-    }
-    try {
-        await toxicoStore.submitEvaluation(evalData);
-        closeEvalModal();
-    } catch (e) {
-        console.error("❌ Erreur handleSaveEvaluation:", e);
-    }
+// L'envoi est fait UNE seule fois, par ToxicoEvaluationModal (qui affiche ses
+// propres erreurs). Ici on ne fait que fermer la modale : renvoyer l'evaluation
+// creait un doublon dans l'historique (defaut releve 2026-10-26).
+const handleSaveEvaluation = () => {
+    closeEvalModal();
 };
 
 const confirmDischarge = (patient) => {
     if (!patient.dossier_id && !patient.id) {
-        alert("Erreur: Impossible de trouver l'identifiant du dossier.");
+        notify('alerts.dossier_id_missing');
         return;
     }
     patientToDischarge.value = patient;
@@ -310,7 +310,7 @@ const closeDischarge = () => {
 };
 const onDischarged = () => {
     closeDischarge();
-    alert(t('toxico.stays.discharge_success'));
+    toast.push(t('toxico.stays.discharge_success'), 'success');
 };
 // Le store a deja rafraichi liste + stats lors de la sortie : rien a refaire ici.
 const onDischargedFromDossier = () => {};
@@ -321,7 +321,7 @@ const openPatientDetails = async (patient) => {
         showPatientDetailsModal.value = true;
         const patientId = patient.patient_id || patient.id;
         if (!patientId) {
-            alert("Erreur: ID patient introuvable.");
+            notify('alerts.patient_id_missing');
             showPatientDetailsModal.value = false;
             return;
         }
@@ -329,7 +329,7 @@ const openPatientDetails = async (patient) => {
         selectedPatientForDetails.value = detailedPatient;
     } catch (error) {
         console.error("❌ Erreur chargement détails:", error);
-        alert("Impossible de charger les détails.");
+        notify('alerts.details_load_failed');
         showPatientDetailsModal.value = false;
     }
 };

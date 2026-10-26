@@ -93,7 +93,7 @@ test('ToxicoAdmissionModal : résultats de recherche en vrais boutons, bannière
 test('ToxicoAdmissionModal : la date de naissance a bien son minimum de 10 ans (maxDateFormatted, plus un objet Date)', () => {
     assert.match(templateOf(view), /:max="maxDateFormatted"/);
     assert.doesNotMatch(templateOf(view), /:max="maxDate"/);
-    assert.match(scriptOf(view), /const maxDateFormatted = maxDate\.toISOString\(\)\.split\('T'\)\[0\];/);
+    assert.match(scriptOf(view), /const maxDateFormatted = todayLocalISO\(maxDate\);/);
 });
 
 test('ToxicoAdmissionModal : plus aucun texte français en dur dans le gabarit (tout passe par vue-i18n)', () => {

@@ -3,21 +3,23 @@
 
     <PageHeader :title="t('toxico.dashboard.title')" :subtitle="t('toxico.dashboard.subtitle')" />
 
+    <LoadErrorState v-if="toxicoStore.statsLoadFailed" compact @retry="toxicoStore.fetchDashboardStats().catch(() => {})" />
+
     <!-- Quatre repères : bleu (actifs), rouge (rechute), orange (sevrage), vert (nouveaux du mois) -->
     <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-      <StatTile :title="t('toxico.dashboard.active_patients')" :value="toxicoStore.totalActive" :note="t('toxicoScreens.week_note', { n: newPatientsThisWeek })"
+      <StatTile :title="t('toxico.dashboard.active_patients')" :value="toxicoStore.statsLoadFailed ? '-' : toxicoStore.totalActive" :note="t('toxicoScreens.week_note', { n: newPatientsThisWeek })"
                 :icon="UserGroupIcon" tone="info" />
 
-      <StatTile :title="t('toxico.dashboard.relapse_rate')" :value="`${toxicoStore.relapseRate}%`" :icon="ExclamationTriangleIcon" tone="danger">
+      <StatTile :title="t('toxico.dashboard.relapse_rate')" :value="toxicoStore.statsLoadFailed ? '-' : `${toxicoStore.relapseRate}%`" :icon="ExclamationTriangleIcon" tone="danger">
         <div class="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-tone-neutral-bg" role="progressbar" :aria-valuenow="toxicoStore.relapseRate" aria-valuemin="0" aria-valuemax="100"
              :aria-label="t('toxico.dashboard.relapse_rate')">
           <div class="h-1.5 rounded-full bg-tone-danger-solid" :style="{ width: toxicoStore.relapseRate + '%' }"></div>
         </div>
       </StatTile>
 
-      <StatTile :title="t('toxicoScreens.withdrawal_title')" :value="toxicoStore.statsByPhase[1] || 0" :note="t('toxicoScreens.withdrawal_note')" :icon="FireIcon" tone="warning" />
+      <StatTile :title="t('toxicoScreens.withdrawal_title')" :value="toxicoStore.statsLoadFailed ? '-' : toxicoStore.statsByPhase[1] || 0" :note="t('toxicoScreens.withdrawal_note')" :icon="FireIcon" tone="warning" />
 
-      <StatTile :title="t('toxico.dashboard.new_this_month')" :value="toxicoStore.currentMonthAdmissions" :icon="CalendarIcon" tone="success" />
+      <StatTile :title="t('toxico.dashboard.new_this_month')" :value="toxicoStore.statsLoadFailed ? '-' : toxicoStore.currentMonthAdmissions" :icon="CalendarIcon" tone="success" />
     </div>
 
     <div class="grid grid-cols-1 items-start gap-6 lg:grid-cols-3">
@@ -83,9 +85,9 @@
 import { onMounted, computed } from 'vue';
 import { useToxicoStore } from '@/stores/toxicoStore';
 import { useI18n } from 'vue-i18n';
-import { AppCard, PageHeader, StatTile, ResponsiveTable } from '@/components/ui';
+import { AppCard, PageHeader, StatTile, ResponsiveTable, LoadErrorState } from '@/components/ui';
 import { toneClasses } from '@/design/tones';
-import { phaseMeta, percentOf, newThisWeek } from '@/utils/toxicoUi';
+import { phaseMeta, percentOf } from '@/utils/toxicoUi';
 import {
     UserGroupIcon,
     ExclamationTriangleIcon,
@@ -100,10 +102,12 @@ const toxicoStore = useToxicoStore();
 
 onMounted(() => {
     toxicoStore.fetchToxicoPatients();
+    // tuiles globales (dont Admissions du mois) : sans cet appel elles restaient a 0
+    toxicoStore.fetchDashboardStats().catch(() => {});
 });
 
 // Nouveaux patients des 7 derniers jours : calcul reel sur la liste chargee (meme calcul que la liste des patients).
-const newPatientsThisWeek = computed(() => newThisWeek(toxicoStore.patients));
+const newPatientsThisWeek = computed(() => toxicoStore.newThisWeekCount);
 
 // Colonnes de la charge des psychologues (cartes empilees sous lg).
 const columns = computed(() => [

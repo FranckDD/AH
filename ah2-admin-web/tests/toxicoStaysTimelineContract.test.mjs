@@ -24,7 +24,7 @@ check('ToxicoStaysTimeline', view, [
     'stays: { type: Array, default: () => [] }', 'phaseHistory: { type: Array, default: () => [] }', 'evaluations: { type: Array, default: () => [] }',
     // regroupement par séjour
     "...props.phaseHistory.map((p) => ({ ...p, kind: 'phase', date: p.start_date })),", "...props.evaluations.map((e) => ({ ...e, kind: 'eval', date: e.created_at })),",
-    'return groupByStay(sortNewestFirst(items), props.stays);', "return isNaN(x.getTime()) ? d : x.toLocaleDateString();",
+    'return groupByStay(sortNewestFirst(items), props.stays);', 'const formatDate = formatDateDMY;',
     // séjours
     '!groups.length', 'v-for="g in groups"', ":key=\"g.legacy ? 'legacy' : g.stay.stay_number\"", 'g.stay?.is_open', 'v-if="!g.legacy"', 'g.stay.stay_number', 'g.stay.is_open',
     'g.stay.discharge_reason', 'g.stay.admission_date', 'g.stay.discharge_date', 'g.stay.psychologist_name', 'g.stay.substance', 'g.stay.discharge_note', 'g.stay.discharged_by_name',

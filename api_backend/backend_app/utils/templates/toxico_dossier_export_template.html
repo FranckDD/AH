@@ -47,7 +47,7 @@
             <thead><tr><th>Date</th><th>Décision</th><th>Phase</th><th>Observation</th><th>Recommandation</th><th>Auteur</th></tr></thead>
             <tbody>
             {% for e in evaluations %}
-            <tr><td>{{ e.date }}</td><td>{{ e.decision }}</td><td>{{ e.phase_before }} → {{ e.phase_after }}</td><td class="note">{{ e.observation }}</td><td class="note">{{ e.recommendation }}</td><td>{{ e.author }}</td></tr>
+            <tr><td>{{ e.date }}</td><td>{{ e.decision }}</td><td>{{ e.phase_before }} vers {{ e.phase_after }}</td><td class="note">{{ e.observation }}</td><td class="note">{{ e.recommendation }}</td><td>{{ e.author }}</td></tr>
             {% endfor %}
             </tbody>
         </table>
@@ -65,7 +65,7 @@
         <tr><td class="k">Phase courante</td><td>{{ current_phase if current_phase is not none else '-' }}</td></tr>
         <tr><td class="k">Psychologue référent</td><td>{{ psychologist }}</td></tr>
         {% if guardian_name or guardian_contact %}
-        <tr><td class="k">Tuteur / garant</td><td>{{ guardian_name or '-' }}{% if guardian_contact %} — {{ guardian_contact }}{% endif %}</td></tr>
+        <tr><td class="k">Tuteur / garant</td><td>{{ guardian_name or '-' }}{% if guardian_contact %} - {{ guardian_contact }}{% endif %}</td></tr>
         {% endif %}
     </table>
 
@@ -73,12 +73,12 @@
     {% if not stays %}<p class="muted">Aucun séjour enregistré.</p>{% endif %}
     {% for s in stays %}
     <div class="stay">
-        <h3>Séjour {{ s.number }} — du {{ s.admission }} au {{ s.discharge }}</h3>
+        <h3>Séjour {{ s.number }} - du {{ s.admission }} au {{ s.discharge }}</h3>
         <table class="grid">
             <tr><td class="k">Substance</td><td>{{ s.substance }}</td></tr>
             <tr><td class="k">Psychologue</td><td>{{ s.psychologist }}</td></tr>
             {% if s.discharge != 'En cours' %}
-            <tr><td class="k">Motif de sortie</td><td>{{ s.reason }}{% if s.note %} — <span class="note">{{ s.note }}</span>{% endif %}</td></tr>
+            <tr><td class="k">Motif de sortie</td><td>{{ s.reason }}{% if s.note %} - <span class="note">{{ s.note }}</span>{% endif %}</td></tr>
             {% if s.discharged_by %}<tr><td class="k">Sortie validée par</td><td>{{ s.discharged_by }}</td></tr>{% endif %}
             {% endif %}
         </table>

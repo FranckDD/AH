@@ -24,8 +24,8 @@
     {# Pas d'autoescape global dans render_pdf_from_template : on l'active ici
        pour toutes les donnees saisies (noms, filtres de recherche...). #}
     {% autoescape true %}
-    <div class="export-title">Toxicologie — Patients sortis</div>
-    <div class="export-meta">Généré le {{ date_impression }} — {{ total }} patient(s)</div>
+    <div class="export-title">Toxicologie - Patients sortis</div>
+    <div class="export-meta">Généré le {{ date_impression }} - {{ total }} patient(s)</div>
     <div class="export-meta">Filtres : {{ filters_label }}</div>
     {% if truncated %}
     <div class="truncated">Export tronqué : seules les {{ cap }} premières lignes sur {{ total }} sont affichées. Affinez les filtres.</div>

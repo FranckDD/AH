@@ -75,6 +75,13 @@
           <FormField id="tox-adm-dob" :label="t('toxico.admission.dob')" required v-slot="{ describedBy }">
             <input id="tox-adm-dob" v-model="form.dob" type="date" required :max="maxDateFormatted" :aria-describedby="describedBy" :class="fieldClass" />
           </FormField>
+          <FormField id="tox-adm-sex" :label="t('toxico.admission.sex')" required v-slot="{ describedBy }">
+            <select id="tox-adm-sex" v-model="form.gender" required :aria-describedby="describedBy" :class="fieldClass">
+              <option value="" disabled>{{ t('toxicoScreens.select_placeholder') }}</option>
+              <option value="M">{{ t('toxico.admission.sex_male') }}</option>
+              <option value="F">{{ t('toxico.admission.sex_female') }}</option>
+            </select>
+          </FormField>
           <FormField id="tox-adm-mother" :label="t('toxico.admission.mothers_name')" required v-slot="{ describedBy }">
             <input id="tox-adm-mother" v-model="form.mothersName" type="text" required :placeholder="t('toxicoScreens.mothers_name_placeholder')" :aria-describedby="describedBy" :class="fieldClass" />
           </FormField>
@@ -137,7 +144,8 @@ import { reactive, ref, onMounted, computed, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useToxicoStore } from '@/stores/toxicoStore';
 import { ToxicoGateway } from '@/services/ToxicoGateway';
-import { apiErrorMessage } from '@/utils/toxicoStays';
+import { apiErrorMessage, readmissionPrefill } from '@/utils/toxicoStays';
+import { formatDateDMY, todayLocalISO } from '@/utils/localDate';
 import { displayName } from '@/utils/toxicoDischarged';
 import { AppButton, FormField, FormSection, ActionBar, FullScreenPanel } from '@/components/ui';
 import { toneClasses } from '@/design/tones';
@@ -157,10 +165,10 @@ const props = defineProps({
 });
 const toxicoStore = useToxicoStore();
 
-const today = new Date().toISOString().split('T')[0];
+const today = todayLocalISO();
 const maxDate = new Date();
 maxDate.setFullYear(maxDate.getFullYear() - 10); // Minimum 10 ans
-const maxDateFormatted = maxDate.toISOString().split('T')[0];
+const maxDateFormatted = todayLocalISO(maxDate);
 
 // Style commun des champs (zone tactile >= 44 px, focus visible).
 const fieldClass = 'block w-full min-h-11 lg:min-h-10 rounded-control border border-tone-neutral-border bg-white px-3 text-base text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand-600';
@@ -180,6 +188,7 @@ const form = reactive({
     lastName: '',
     dob: '',
     mothersName: '',
+    gender: '',
     address: '',
     contact: '',
     admissionDate: today,
@@ -236,8 +245,7 @@ const minAdmissionDate = computed(() =>
         ? String(lastClosedStay.value.discharge_date).slice(0, 10) : '');
 const lastDischargeDate = computed(() => {
     if (!minAdmissionDate.value) return '';
-    const d = new Date(minAdmissionDate.value);
-    return isNaN(d.getTime()) ? minAdmissionDate.value : d.toLocaleDateString();
+    return formatDateDMY(minAdmissionDate.value);
 });
 
 const checkToxicoDossier = async (patientId) => {
@@ -248,6 +256,13 @@ const checkToxicoDossier = async (patientId) => {
         if (selectedExistingPatient.value?.patient_id !== patientId) return;
         existingDossier.value = res.data;
         dossierCheck.value = res.data?.isActive ? 'active' : 'readmission';
+        if (dossierCheck.value === 'readmission') {
+            // reprise du sejour precedent : substance et tuteur (modifiables), plutot qu'un formulaire remis a zero
+            const prefill = readmissionPrefill(res.data);
+            if (prefill.substance) form.substance = prefill.substance;
+            if (prefill.guardianName && !form.guardianName) form.guardianName = prefill.guardianName;
+            if (prefill.guardianContact && !form.guardianContact) form.guardianContact = prefill.guardianContact;
+        }
         if (minAdmissionDate.value && form.admissionDate < minAdmissionDate.value) {
             form.admissionDate = minAdmissionDate.value > today ? today : minAdmissionDate.value;
         }
@@ -282,7 +297,7 @@ const startNewPatient = () => {
 // Validation du formulaire
 const isFormValid = computed(() => {
     const patientOk = selectedExistingPatient.value || (
-        form.firstName.trim() && form.lastName.trim() && form.dob && form.mothersName.trim()
+        form.firstName.trim() && form.lastName.trim() && form.dob && form.mothersName.trim() && form.gender
     );
     const dossierOk = !selectedExistingPatient.value || ['none', 'readmission'].includes(dossierCheck.value);
     return patientOk && dossierOk &&
@@ -373,6 +388,7 @@ const handleSubmit = async () => {
         payload.lastName = form.lastName.trim();
         payload.dob = form.dob;
         payload.mothersName = form.mothersName.trim();
+        payload.gender = form.gender;
         payload.address = form.address?.trim() || "";
         payload.contact = form.contact?.trim() || "";
     }

@@ -32,7 +32,7 @@
             <template v-if="item.kind === 'phase'">
               <p class="flex flex-wrap items-center gap-2 text-base font-semibold text-ink">
                 {{ t(`toxico.phases.${item.phase}`) }}
-                <StatusBadge v-if="item.status" :tone="isFinishedStatus(item.status) ? 'success' : 'info'" :label="item.status" />
+                <StatusBadge v-if="item.status" :tone="isFinishedStatus(item.status) ? 'success' : 'info'" :label="phaseStatusKey(item.status) ? t(phaseStatusKey(item.status)) : item.status" />
               </p>
               <p v-if="item.end_date" class="text-sm text-ink-muted">{{ t('toxico.stays.until', { date: formatDate(item.end_date) }) }}</p>
               <p v-if="item.comments" class="break-words text-base text-ink">{{ item.comments }}</p>
@@ -57,7 +57,8 @@
 <script setup>
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { groupByStay, dischargeReasonLabelKey, sortNewestFirst, isFinishedStatus } from '@/utils/toxicoStays';
+import { groupByStay, dischargeReasonLabelKey, sortNewestFirst, isFinishedStatus, phaseStatusKey } from '@/utils/toxicoStays';
+import { formatDateDMY } from '@/utils/localDate';
 import { StatusBadge } from '@/components/ui';
 
 const props = defineProps({
@@ -76,9 +77,5 @@ const groups = computed(() => {
   return groupByStay(sortNewestFirst(items), props.stays);
 });
 
-const formatDate = (d) => {
-  if (!d) return '';
-  const x = new Date(d);
-  return isNaN(x.getTime()) ? d : x.toLocaleDateString();
-};
+const formatDate = formatDateDMY;
 </script>

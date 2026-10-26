@@ -33,7 +33,7 @@ check('ToxicoDischargedPanel', view, [
     'v-if="dateError"', 'store.dischargedLoading', 'store.dischargedError', 'role="alert"', '@click="store.fetchDischarged()"', ':rows="store.discharged"',
     // lignes
     'store.discharged', 'row-key="dossier_id"', 'row.patientName', 'row.code', 'row.last_stay?.discharge_reason', 'row.last_stay?.psychologist_name', 'row.stays_count',
-    "const x = new Date(String(d).slice(0, 10));", "t('toxico.discharged.stay_dates', { n: row.last_stay.stay_number, from: fmt(row.last_stay.admission_date), to: fmt(row.last_stay.discharge_date) })",
+    "const fmt = (d) => (d ? formatDateDMY(d) : '-');", "t('toxico.discharged.stay_dates', { n: row.last_stay.stay_number, from: fmt(row.last_stay.admission_date), to: fmt(row.last_stay.discharge_date) })",
     // motifs de sortie : guérison, abandon, exclusion, autre
     'guerison:', 'abandon:', 'exclusion:', 'autre:',
     // actions et exports
@@ -43,7 +43,7 @@ check('ToxicoDischargedPanel', view, [
     'downloadPdfBlob(res.data, dossierExportFilename(row.patient_id));', 'exportError.value = exportErrorKey(e);', 'v-if="exportError"', 't(exportError)',
     // pagination
     '!dateError && !store.dischargedLoading && !store.dischargedError && store.dischargedTotal > 0', ':disabled="page <= 1"', 'store.setDischargedPage(page - 1)', ':disabled="page >= Math.max(store.dischargedTotalPages, 1)"',
-    'store.setDischargedPage(page + 1)', "t('toxico.discharged.page_of', { page, pages: Math.max(store.dischargedTotalPages, 1), total: store.dischargedTotal })",
+    'store.setDischargedPage(page + 1)', "t('toxico.discharged.page_of', { page, pages: Math.max(store.dischargedTotalPages, 1), total: store.dischargedTotal }, store.dischargedTotal)",
     // clés
     "t('toxico.discharged.filters.search')", "t('toxico.discharged.filters.search_placeholder')", "t('toxico.discharged.filters.reason')", "t('toxico.discharged.filters.all_reasons')",
     "t('toxico.discharged.filters.from')", "t('toxico.discharged.filters.to')", "t('toxico.export.exporting')", "t('toxico.export.list_pdf')", "t('toxico.export.row_pdf')", "t('toxico.export.dossier_pdf')",

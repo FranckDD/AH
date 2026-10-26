@@ -30,13 +30,13 @@ check('ToxicoList', view, [
     "{ id: 'active', label: 'toxico.discharged.tab_active' }", "{ id: 'discharged', label: 'toxico.discharged.tab_discharged' }", 'role="tablist"', 'role="tab"', ':aria-selected="activeTab === tab.id"', '@click="activeTab = tab.id"',
     "v-if=\"activeTab === 'discharged'\"", ':canReadmit="canAdmitPatient"', '@view="openDossier"', '@readmit="openReadmission"',
     // KPI
-    'toxicoStore.totalActive', 'toxicoStore.currentMonthAdmissions', 'toxicoStore.relapseRate', 'toxicoStore.statsByPhase[1] || 0', 'newPatientsThisWeek',
+    'toxicoStore.activeTotal', 'toxicoStore.currentMonthAdmissions', 'toxicoStore.relapseRate', 'toxicoStore.statsByPhase[1] || 0', 'newPatientsThisWeek',
     // lignes
     'toxicoStore.patients', 'row-key="patient_id"', 'p.patientName', 'p.code', 'p.substance', 'p.currentPhase', 'p.relapseCount > 0', 'p.psychologist',
     // actions
     '@click="openPatientDetails(p)"', '@click="openDossier(p)"', '@click="openEvaluation(p)"', '@click="confirmDischarge(p)"', '@click="openNewAdmission"',
     // pagination
-    'v-if="toxicoStore.totalActive > 20"', ':disabled="toxicoStore.filters.page === 1"', '@click="toxicoStore.setPage(toxicoStore.filters.page - 1)"', '@click="toxicoStore.setPage(toxicoStore.filters.page + 1)"',
+    'v-if="toxicoStore.listTotal > 20"', ':disabled="toxicoStore.filters.page === 1"', '@click="toxicoStore.setPage(toxicoStore.filters.page - 1)"', '@click="toxicoStore.setPage(toxicoStore.filters.page + 1)"',
     // fenêtres
     '<ToxicoDossierModal', 'v-if="showDossierModal"', ':patientId="selectedPatientId"', '@close="closeDossierModal"', '@discharged="onDischargedFromDossier"',
     '<ToxicoEvaluationModal', 'v-if="showEvalModal"', ':patient="selectedPatientForEval"', '@close="closeEvalModal"', '@save="handleSaveEvaluation"',
@@ -46,8 +46,8 @@ check('ToxicoList', view, [
     ":patientName=\"patientToDischarge.patientName || ''\"", '@close="closeDischarge"', '@discharged="onDischarged"',
     // logique de la page
     'if (!canEvaluatePatient.value) return;', 'patient.dossier_id = patient.id;', "activeTab.value = 'active';", 'toxicoStore.setDischargedPage(1);',
-    'await toxicoStore.submitEvaluation(evalData);', 'const detailedPatient = await toxicoStore.getPatientDetails(patientId);', 'readmitPatient.value = toPreselectedPatient(row);',
-    "alert(t('toxico.stays.discharge_success'));", 'alert("Impossible de charger les détails.");',
+    'const detailedPatient = await toxicoStore.getPatientDetails(patientId);', 'readmitPatient.value = toPreselectedPatient(row);',
+    "toast.push(t('toxico.stays.discharge_success'), 'success');", "notify('alerts.details_load_failed');",
     // clés
     "t('toxico.title')", "t('toxico.new_admission')", "t('toxico.table.patient')", "t('toxico.table.phase')", "t('toxico.table.psy')",
     "t(`toxico.phases.${p.currentPhase}`)", "t('toxico.actions.evaluate')", "t('toxico.stays.discharge_action')", "t(tab.label)", "t('toxico.discharged.tabs_label')",
@@ -97,8 +97,9 @@ test('ToxicoList : « Évaluer » en indigo (primaire), « Dossier » bleu ciel,
 });
 
 test('ToxicoList : le calcul « cette semaine » vient de l utilitaire partagé', () => {
-    assert.match(view, /newThisWeek\(toxicoStore\.patients\)/);
-    assert.match(view, /import \{[^}]*newThisWeek[^}]*\} from '@\/utils\/toxicoUi'/);
+    // le calcul vit dans le store (chiffre global du serveur, repli sur newThisWeek de l'utilitaire partage)
+    assert.match(view, /toxicoStore\.newThisWeekCount/);
+    assert.match(readFileSync(new URL('../src/stores/toxicoStore.js', import.meta.url), 'utf8'), /newThisWeek\(patients\.value\)/);
 });
 
 test('ToxicoList : recherche étiquetée, pagination nommée, états de chargement et vide annoncés', () => {

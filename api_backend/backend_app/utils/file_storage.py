@@ -1,8 +1,9 @@
 # api_backend/backend_app/utils/file_storage.py
 
 import os
+import re
 import shutil
-from datetime import datetime
+import uuid
 from typing import Optional, Union, Dict
 from fastapi import UploadFile
 
@@ -35,33 +36,59 @@ if HAS_SUPABASE and SUPABASE_URL and SUPABASE_KEY:
     except Exception as e:
         print(f"⚠️ [STORAGE] Erreur init Supabase: {e}")
 
-# 2. Configuration Local (Développement)
-# Dossier où seront stockés les fichiers si Supabase n'est pas activé
-LOCAL_UPLOAD_DIR = "static/uploads/toxico_consents"
-os.makedirs(LOCAL_UPLOAD_DIR, exist_ok=True)
+# 2. Configuration Local
+# Les consentements sont des donnees medicales : ils vivent HORS du montage /static (public, sans login)
+# et ne sont servis que par GET /toxico/dossiers/{id}/consent. Dossier configurable (futur volume Docker).
+DEFAULT_CONSENT_STORAGE_DIR = os.path.join("storage", "toxico_consents")
+CONSENT_MAX_BYTES = 5 * 1024 * 1024
+LEGACY_CONSENT_DIR = "static/uploads/toxico_consents"
+LEGACY_CONSENT_URL_PREFIX = "/static/uploads/toxico_consents/"
+# Identifiant stocke en base : 32 hex aleatoires + extension. Rien d'autre n'est jamais servi localement.
+CONSENT_ID_RE = re.compile(r"^[0-9a-f]{32}\.(pdf|jpg|png)$")
 
 
-async def save_consent_file(file: UploadFile, patient_code: str) -> str:
+def consent_storage_dir() -> str:
+    return os.getenv("CONSENT_STORAGE_DIR") or DEFAULT_CONSENT_STORAGE_DIR
+
+
+def consent_path(file_id: str) -> Optional[str]:
+    """Chemin disque d'un identifiant de consentement, ou None si l'identifiant n'est pas conforme."""
+    if not file_id or not CONSENT_ID_RE.match(str(file_id)):
+        return None
+    return os.path.join(consent_storage_dir(), str(file_id))
+
+
+def detect_consent_extension(head: bytes) -> Optional[str]:
+    """Type reel d'apres les premiers octets (le nom envoye par le client n'est pas fiable)."""
+    if head.startswith(b"%PDF-"):
+        return ".pdf"
+    if head.startswith(b"\xff\xd8\xff"):
+        return ".jpg"
+    if head.startswith(b"\x89PNG\r\n\x1a\n"):
+        return ".png"
+    return None
+
+
+def new_consent_id(extension: str) -> str:
+    return f"{uuid.uuid4().hex}{extension}"
+
+
+async def save_consent_file(file: UploadFile, patient_code: str = '') -> str:
     """
     Sauvegarde le fichier de consentement.
     - Si Supabase est configuré -> Upload Cloud et retourne l'URL publique (https://...)
-    - Sinon -> Sauvegarde locale et retourne le chemin relatif (/static/...)
+    - Sinon -> Sauvegarde locale hors /static et retourne l'identifiant (uuid.ext)
     """
     if not file or not file.filename:
         return ""
 
-    # Nettoyage du nom de fichier
-    # On garde l'extension (.pdf, .jpg)
-    filename_str = str(file.filename) # Force string pour splitext
-    extension = os.path.splitext(filename_str)[1].lower()
-    
-    if extension not in ['.pdf', '.jpg', '.jpeg', '.png']:
-        # Fallback de sécurité si pas d'extension
-        extension = ".pdf"
-
-    # Création d'un nom unique : CODE_TIMESTAMP.ext
-    timestamp = int(datetime.now().timestamp())
-    safe_filename = f"{patient_code}_{timestamp}{extension}"
+    # Type reel d'apres le contenu (l'extension du nom client n'est pas fiable)
+    head = await file.read(16)
+    await file.seek(0)
+    extension = detect_consent_extension(head)
+    if not extension:
+        raise ValueError("Type de fichier non autorise (PDF, JPEG ou PNG attendu)")
+    safe_filename = new_consent_id(extension)
 
     # --- STRATÉGIE A : SUPABASE (CLOUD) ---
     if supabase:
@@ -105,22 +132,13 @@ async def save_consent_file(file: UploadFile, patient_code: str) -> str:
             # On doit remettre le curseur de lecture du fichier à 0 car on l'a lu ci-dessus
             await file.seek(0)
 
-    # --- STRATÉGIE B : LOCAL (DISQUE) ---
+    # --- STRATÉGIE B : LOCAL (DISQUE, hors /static) ---
     try:
-        print(f"💾 [STORAGE] Sauvegarde locale : {safe_filename}")
-        
-        file_path = os.path.join(LOCAL_UPLOAD_DIR, safe_filename)
-        
-        with open(file_path, "wb") as buffer:
+        target_dir = consent_storage_dir()
+        os.makedirs(target_dir, exist_ok=True)
+        with open(os.path.join(target_dir, safe_filename), "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
-            
-        # On retourne le chemin relatif pour l'API
-        # Ex: /static/uploads/toxico_consents/PAT123_17888.pdf
-        # On utilise des forward slashs pour être compatible web
-        return f"/static/uploads/toxico_consents/{safe_filename}"
-        
+        # On stocke seulement l'identifiant ; l'API construit l'URL authentifiee a la lecture.
+        return safe_filename
     except Exception as e:
-        print(f"❌ [STORAGE] Erreur fatale sauvegarde locale: {str(e)}")
-        # En dev, on lève l'erreur pour comprendre
-        # En prod, on pourrait retourner "" pour ne pas bloquer l'admission
         raise ValueError(f"Impossible de sauvegarder le fichier: {str(e)}")

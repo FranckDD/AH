@@ -136,6 +136,7 @@ class ToxicoDischargeRequest(BaseModel):
 
     reason: Literal['guerison', 'abandon', 'exclusion', 'autre']
     note: Optional[str] = Field(None, max_length=2000)
+    discharge_date: Optional[date] = None  # defaut : aujourd'hui ; jamais futur (verifie par le depot)
 
     @model_validator(mode="after")
     def _note_required_for_autre(self):

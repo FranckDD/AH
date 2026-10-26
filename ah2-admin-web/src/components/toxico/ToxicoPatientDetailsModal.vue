@@ -68,13 +68,14 @@
           <div class="sm:col-span-2">
             <dt :class="DT">{{ t('toxicoScreens.f_consent') }}</dt>
             <dd class="mt-1">
-              <a v-if="patient.consentFile || patient.consent_file" :href="getFileUrl(patient.consentFile || patient.consent_file)" target="_blank" rel="noopener noreferrer" download
-                 class="inline-flex min-h-11 items-center gap-2 text-base font-medium text-tone-info-text underline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand-600">
+              <button v-if="patient.consentFile || patient.consent_file" type="button" :disabled="consentLoading" @click="openConsent"
+                 class="inline-flex min-h-11 items-center gap-2 text-base font-medium text-tone-info-text underline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand-600 disabled:opacity-60">
                 <PaperClipIcon class="h-5 w-5 shrink-0" aria-hidden="true" />
                 {{ t('toxicoScreens.file_download') }}
                 <ArrowDownTrayIcon class="h-4 w-4 shrink-0" aria-hidden="true" />
-              </a>
-              <span v-else class="text-base italic text-ink-muted">{{ t('toxicoScreens.file_none') }}</span>
+              </button>
+              <span v-if="!(patient.consentFile || patient.consent_file)" class="text-base italic text-ink-muted">{{ t('toxicoScreens.file_none') }}</span>
+              <p v-if="consentError" role="alert" class="mt-1 text-sm text-tone-danger-text">{{ consentError }}</p>
             </dd>
           </div>
         </dl>
@@ -108,8 +109,9 @@
 </template>
 
 <script setup>
+import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { API_URL as API_BASE_URL } from '@/services/api';
+import api from '@/services/api';
 import { AppButton, StatusBadge, ActionBar, FullScreenPanel } from '@/components/ui';
 import { toneClasses } from '@/design/tones';
 import { phaseMeta } from '@/utils/toxicoUi';
@@ -181,23 +183,25 @@ const calculateAge = (dob) => {
     return '?';
   }
 };
-// Fonction intelligente pour générer l'URL
-const getFileUrl = (path) => {
-  if (!path) return '#';
-  // Si c'est déjà une URL complète (Supabase), on la retourne telle quelle
-
-  if (path.startsWith('http')) {
-    return path;
+// Le consentement n'est plus public (/static) : on le charge avec le jeton, puis on l'ouvre depuis un blob local.
+const consentLoading = ref(false);
+const consentError = ref('');
+const openConsent = async () => {
+  const dossierId = props.patient?.dossier_id || props.patient?.dossierId;
+  const stored = props.patient?.consentFile || props.patient?.consent_file;
+  if (!dossierId || !stored) return;
+  consentLoading.value = true;
+  consentError.value = '';
+  try {
+    const res = await api.get(`/toxico/dossiers/${dossierId}/consent`, { responseType: 'blob' });
+    const url = URL.createObjectURL(res.data);
+    window.open(url, '_blank', 'noopener,noreferrer');
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+  } catch (e) {
+    consentError.value = t('toxicoScreens.file_error');
+  } finally {
+    consentLoading.value = false;
   }
-
-
-  // Sinon, c'est un ancien chemin local (static/uploads/...), on construit l'URL API
-  // Assure-toi que ton backend sert bien les fichiers statiques
-  // return `${API_BASE_URL}/${path}`; 
-  // Ou si le path commence déjà par 'static/', juste concaténer
-
-  return path.startsWith('/') ? `${API_BASE_URL}${path}` : `${API_BASE_URL}/${path}`;
-
 };
 
 // Ouvrir le dossier complet

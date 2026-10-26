@@ -8,13 +8,10 @@ from typing import List, Dict, Any, Optional
 from fastapi import UploadFile
 from celery import Task # Pour le typage
 
-# 📂 Configuration du dossier d'upload pour Toxico
-UPLOAD_DIR = "static/uploads/toxico_consents"
-os.makedirs(UPLOAD_DIR, exist_ok=True)
 
-from repositories.toxico_repo import ToxicoRepository
+from repositories.toxico_repo import ToxicoRepository, ToxicoValidationError
 from repositories.patient_repo import PatientRepository
-from api_backend.backend_app.utils.file_storage import save_consent_file # Assurez-vous que ce chemin est correct selon votre structure
+from api_backend.backend_app.utils.file_storage import save_consent_file, consent_path # Assurez-vous que ce chemin est correct selon votre structure
 
 from controller.patient_controller import PatientController 
 from repositories.audit_repo import AuditRepository
@@ -29,14 +26,11 @@ REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 redis_client = redis.Redis.from_url(REDIS_URL, decode_responses=True)
 
 
-CONSENT_URL_PREFIX = "/static/uploads/toxico_consents/"
-
-
-def _discard_consent_file(path_or_url):
+def _discard_consent_file(file_id):
     """Supprime un fichier de consentement local sauvegardé pour une admission refusée."""
-    if not path_or_url or not str(path_or_url).startswith(CONSENT_URL_PREFIX):
-        return  # rien ou stockage distant : rien à supprimer localement
-    local = os.path.join(UPLOAD_DIR, os.path.basename(str(path_or_url)))
+    local = consent_path(file_id)
+    if not local:
+        return  # rien ou stockage distant (URL) : rien à supprimer localement
     try:
         if os.path.isfile(local):
             os.remove(local)
@@ -271,12 +265,14 @@ class ToxicoController:
             patient_id = patient_existant['patient_id']
             patient_code = patient_existant['code_patient']
         else:
-            champs_requis = ('firstName', 'lastName', 'dob', 'mothersName')
+            champs_requis = ('firstName', 'lastName', 'dob', 'mothersName', 'gender')
             manquants = [c for c in champs_requis if not data.get(c)]
             if manquants:
-                raise ValueError(
+                raise ToxicoValidationError(
                     f"Champs patient requis manquants pour une nouvelle admission: {', '.join(manquants)}"
                 )
+            if data.get('gender') not in ('M', 'F'):
+                raise ToxicoValidationError("Le sexe du patient doit être M ou F.")
             try:
                 patient_data_for_creation = {
                     "first_name": data['firstName'],
@@ -288,7 +284,7 @@ class ToxicoController:
                     "is_toxicology": True,
                     "is_clinical": False,
                     "is_spiritual": False,
-                    "gender": "M",
+                    "gender": data["gender"],
                     "assurance": None,
                     "residence": data.get('address'),
                     "national_id": None,
@@ -362,10 +358,31 @@ class ToxicoController:
         user_id = self.user.get('user_id') if isinstance(self.user, dict) else self.user.user_id
         return self.repo.process_evaluation(dossier_id=data['dossier_id'], data=data, user_id=user_id) # type: ignore
     
-    def discharge_patient(self, dossier_id: int, reason: str, note: Optional[str] = None):
+    def discharge_patient(self, dossier_id: int, reason: str, note: Optional[str] = None, discharge_date=None):
         user_id = self.user.get('user_id') if isinstance(self.user, dict) else getattr(self.user, 'user_id', None)
-        return self.repo.discharge(dossier_id, reason, note, user_id)
+        # Hospitalisation ouverte relevee AVANT la sortie : la sortie toxico ne
+        # cloture jamais un sejour hospitalier (decision medicale), elle le signale.
+        open_hosp = self.repo.get_open_hospitalization(dossier_id)
+        self.repo.discharge(dossier_id, reason, note, user_id, discharge_date)
+        return open_hosp
+
+    def get_open_hospitalization(self, dossier_id: int):
+        return self.repo.get_open_hospitalization(dossier_id)
     
+    def get_dashboard_stats(self) -> Dict[str, Any]:
+        """Chiffres globaux du suivi toxicologique (independants de la page et de la recherche de la liste)."""
+        s = self.repo.active_stats()
+        total = s["total_active"]
+        return {
+            "currentMonthAdmissions": self.get_current_month_admissions_count(),
+            "activeTotal": total,
+            "byPhase": {str(k): v for k, v in s["by_phase"].items()},
+            "relapseRate": round(s["relapse_patients"] * 100 / total) if total else 0,
+            "bySubstance": s["by_substance"],
+            "byPsychologist": [{"name": n, "count": c} for n, c in sorted(s["by_psychologist"].items())],
+            "newThisWeek": s["new_this_week"],
+        }
+
     def get_current_month_admissions_count(self):
         """Calcule le nombre de dossiers créés ce mois-ci (avec Cache Redis)."""
         

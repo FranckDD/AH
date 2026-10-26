@@ -115,7 +115,7 @@ def test_cycle_complet_admission_sortie_readmission(env):
     assert len(hist) == 4
     new_phase = [h for h in hist if h.stay_id == s2.id]
     assert len(new_phase) == 1 and new_phase[0].phase == 1 and new_phase[0].end_date is None
-    assert new_phase[0].comments == "Réadmission — séjour 2"
+    assert new_phase[0].comments == "Réadmission, séjour 2"
     assert all(h.stay_id == s1.id for h in hist if h is not new_phase[0])
 
     # évaluation du séjour 2 rattachée au séjour 2
@@ -262,7 +262,9 @@ def test_toxicomanager_accepte_comme_responsable_admission_et_readmission(env):
 def test_liste_et_validation_partagent_les_roles(env):
     from repositories.toxico_repo import RESPONSIBLE_ROLES
     ids = {u.user_id for u in env["repo"].get_psychologists()}
-    assert env["users"]["ToxicoManager"].user_id in ids and env["users"]["medecin"].user_id in ids
+    # la liste deroulante ne propose que les psychologues ; la validation accepte encore les autres roles
+    assert env["users"]["Psychologist"].user_id in ids and env["users"]["psy2"].user_id in ids
+    assert env["users"]["ToxicoManager"].user_id not in ids and env["users"]["medecin"].user_id not in ids
     assert env["users"]["secretaire"].user_id not in ids and env["users"]["psy_off"].user_id not in ids
     assert set(RESPONSIBLE_ROLES) == {"Psychologist", "ToxicoManager", "medecin"}
 
@@ -385,7 +387,9 @@ def test_http_evaluation_sur_dossier_sorti_409(env, http):
 
 def test_admission_refusee_ne_laisse_pas_de_fichier_orphelin(env, http):
     import os
-    from controller.toxico_controller import UPLOAD_DIR
+    from api_backend.backend_app.utils.file_storage import consent_storage_dir
+    UPLOAD_DIR = consent_storage_dir()
+    os.makedirs(UPLOAD_DIR, exist_ok=True)
     pid, d = _new_dossier(env)  # dossier actif -> réadmission refusée (409)
     before = set(os.listdir(UPLOAD_DIR))
     _as(env["users"]["Assistant"], "Assistant")

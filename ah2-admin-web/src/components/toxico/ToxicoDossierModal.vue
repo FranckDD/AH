@@ -25,6 +25,12 @@
         </button>
       </div>
 
+      <p v-if="discharge" role="status" class="rounded-card border p-3 text-base" :class="toneClasses('neutral')">
+        {{ t('toxico.stays.discharged_on', { date: formatDateDMY(discharge.date), reason: discharge.reason ? t(dischargeReasonLabelKey(discharge.reason)) : '-' }) }}
+        <span v-if="discharge.by"> ({{ t('toxico.stays.discharged_by', { name: discharge.by }) }})</span>
+        <span v-if="discharge.note" class="block italic">« {{ discharge.note }} »</span>
+      </p>
+
       <p v-if="dischargeSuccess" role="status" class="rounded-card border p-3 text-base" :class="toneClasses('success')">{{ t('toxico.stays.discharge_success') }}</p>
 
       <section v-if="currentTab === 'history'" role="tabpanel" id="tox-panel-history" aria-labelledby="tox-tab-history" class="grid gap-4">
@@ -101,6 +107,7 @@
 
   <ToxicoDischargeModal v-if="showDischarge && patient" :dossierId="patient.dossier_id"
       :patientName="`${patient.firstName || ''} ${patient.lastName || ''}`.trim()"
+      :minDate="String((patient.stays || []).find((s) => s.is_open)?.admission_date || patient.admissionDate || '').slice(0, 10)"
       @close="showDischarge = false" @discharged="onDischarged" />
 </template>
 
@@ -117,6 +124,8 @@ import ToxicoDischargeModal from '@/components/toxico/ToxicoDischargeModal.vue';
 import { AppButton, AppCard, StatusBadge, ActionBar, FullScreenPanel } from '@/components/ui';
 import { toneClasses } from '@/design/tones';
 import { phaseMeta } from '@/utils/toxicoUi';
+import { dischargeSummary, dischargeReasonLabelKey } from '@/utils/toxicoStays';
+import { formatDateDMY } from '@/utils/localDate';
 import { TOXICO_DOSSIER_EXPORT_ROLES, TOXICO_DISCHARGE_ROLES, downloadPdfBlob, dossierExportFilename, exportErrorKey } from '@/utils/toxicoExport';
 
 const { t } = useI18n();
@@ -168,6 +177,7 @@ const exportPdf = async () => {
     }
 };
 const dischargeSuccess = ref(false);
+const discharge = computed(() => dischargeSummary(patient.value));
 const loadDossier = async () => {
     const data = await toxicoStore.getPatientDetails(props.patientId);
     patient.value = data;
@@ -217,11 +227,7 @@ const openFullHistory = (tab) => {
 
 const formatDate = (dateStr) => {
     if (!dateStr) return '';
-    try {
-        return new Date(dateStr).toLocaleDateString();
-    } catch (e) {
-        return dateStr;
-    }
+    return formatDateDMY(dateStr);
 };
 
 onMounted(async () => {

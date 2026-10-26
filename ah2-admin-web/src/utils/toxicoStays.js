@@ -8,13 +8,45 @@ export function dischargeReasonLabelKey(reason) {
     return DISCHARGE_REASONS.includes(reason) ? `toxico.stays.reason.${reason}` : 'toxico.stays.reason.unknown';
 }
 
-// Retourne une liste de cles i18n d'erreur (vide si valide).
-export function validateDischarge({ reason, note } = {}) {
+// Retourne une liste de cles i18n d'erreur (vide si valide). date / minDate / today : AAAA-MM-JJ locaux ;
+// la date de sortie n'est ni dans le futur ni avant l'admission du sejour.
+export function validateDischarge({ reason, note, date, minDate, today } = {}) {
     if (!DISCHARGE_REASONS.includes(reason)) return ['toxico.stays.errors.reason_required'];
     const trimmed = (note || '').trim();
     if (reason === 'autre' && !trimmed) return ['toxico.stays.errors.note_required'];
     if (trimmed.length > NOTE_MAX_LENGTH) return ['toxico.stays.errors.note_too_long'];
+    if (date && today && date > today) return ['toxico.stays.errors.date_future'];
+    if (date && minDate && date < minDate) return ['toxico.stays.errors.date_before_admission'];
     return [];
+}
+
+// Readmission : valeurs reprises du dossier existant (substance du dernier sejour, tuteur du dossier).
+export function readmissionPrefill(dossier) {
+    if (!dossier) return {};
+    const closed = [...(dossier.stays || [])].filter((s) => !s.is_open).sort((a, b) => b.stay_number - a.stay_number)[0];
+    return {
+        substance: (closed && closed.substance) || dossier.substance || '',
+        guardianName: dossier.guardianName || '',
+        guardianContact: dossier.guardianContact || '',
+    };
+}
+
+// Sortie du dernier sejour d'un dossier inactif ; null si le dossier est actif ou sans sejour clos.
+export function dischargeSummary(patient) {
+    if (!patient || patient.isActive !== false) return null;
+    const last = [...(patient.stays || [])].filter((s) => !s.is_open && s.discharge_date)
+        .sort((a, b) => b.stay_number - a.stay_number)[0];
+    if (!last) return null;
+    return { date: last.discharge_date, reason: last.discharge_reason || null, note: last.discharge_note || null, by: last.discharged_by_name || null };
+}
+
+// Statut d'une phase (texte enregistre en francais par le serveur) -> cle i18n ; null si inconnu.
+export function phaseStatusKey(status) {
+    const s = String(status || '').trim().toLowerCase();
+    if (/^en cours/.test(s)) return 'toxico.stays.phase_status.in_progress';
+    if (/^termin/.test(s)) return 'toxico.stays.phase_status.finished';
+    if (/^interrompu/.test(s)) return 'toxico.stays.phase_status.interrupted';
+    return null;
 }
 
 // Regroupe evaluations/phases par sejour, sejours par ordre chronologique

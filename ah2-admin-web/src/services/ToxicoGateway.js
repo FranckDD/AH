@@ -86,6 +86,7 @@ export const ToxicoGateway = {
             formData.append('lastName', data.lastName || '');
             formData.append('dob', dob);
             formData.append('mothersName', data.mothersName || '');
+            formData.append('gender', data.gender || '');
             formData.append('address', data.address || '');
             formData.append('contact', data.contact || '');
         }
@@ -145,11 +146,18 @@ export const ToxicoGateway = {
         return api.post('/toxico/evaluation', payload);
     },
 
-    // Corps strict exige par le backend : { reason, note? } (sinon 422).
-    async dischargePatient(dossierId, { reason, note } = {}) {
+    // Indicateur minimal : le patient du dossier a-t-il un sejour hospitalier ouvert ?
+    async getOpenHospitalization(dossierId) {
+        const res = await api.get(`/toxico/dossiers/${dossierId}/open-hospitalization`);
+        return res.data;
+    },
+
+    // Corps strict exige par le backend : { reason, note?, discharge_date? } (sinon 422).
+    async dischargePatient(dossierId, { reason, note, date } = {}) {
         const trimmed = (note || '').trim();
         const body = { reason };
         if (trimmed) body.note = trimmed;
+        if (date) body.discharge_date = date; // AAAA-MM-JJ ; absent = aujourd'hui
         return api.post(`/toxico/discharge/${dossierId}`, body);
     }
 

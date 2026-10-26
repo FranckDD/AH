@@ -60,7 +60,7 @@
          class="flex items-center justify-between gap-2 rounded-card border border-tone-neutral-border bg-white p-3 shadow-card" :aria-label="t('toxico.discharged.pagination')">
       <AppButton variant="secondary" :disabled="page <= 1" @click="store.setDischargedPage(page - 1)">{{ t('toxico.discharged.prev') }}</AppButton>
       <span class="text-base text-ink">
-        {{ t('toxico.discharged.page_of', { page, pages: Math.max(store.dischargedTotalPages, 1), total: store.dischargedTotal }) }}
+        {{ t('toxico.discharged.page_of', { page, pages: Math.max(store.dischargedTotalPages, 1), total: store.dischargedTotal }, store.dischargedTotal) }}
       </span>
       <AppButton variant="secondary" :disabled="page >= Math.max(store.dischargedTotalPages, 1)" @click="store.setDischargedPage(page + 1)">{{ t('toxico.discharged.next') }}</AppButton>
     </nav>
@@ -73,6 +73,7 @@ import { useI18n } from 'vue-i18n';
 import { useToxicoStore } from '@/stores/toxicoStore';
 import { DISCHARGE_REASONS, dischargeReasonLabelKey } from '@/utils/toxicoStays';
 import { dischargedDateRangeError } from '@/utils/toxicoDischarged';
+import { formatDateDMY } from '@/utils/localDate';
 import { useAuthStore } from '@/stores/auth';
 import { AppButton, FormField, StatusBadge, ResponsiveTable } from '@/components/ui';
 import { ToxicoGateway } from '@/services/ToxicoGateway';
@@ -164,11 +165,7 @@ const onSearch = (e) => {
     }, 400);
 };
 
-const fmt = (d) => {
-    if (!d) return '-';
-    const x = new Date(String(d).slice(0, 10));
-    return isNaN(x.getTime()) ? d : x.toLocaleDateString();
-};
+const fmt = (d) => (d ? formatDateDMY(d) : '-');
 const stayDates = (row) => row.last_stay
     ? t('toxico.discharged.stay_dates', { n: row.last_stay.stay_number, from: fmt(row.last_stay.admission_date), to: fmt(row.last_stay.discharge_date) })
     : t('toxico.discharged.no_stay');

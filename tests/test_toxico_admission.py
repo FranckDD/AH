@@ -83,6 +83,7 @@ def test_admission_toxico_creation_sans_patient_id_inchangee(db_session, api_cli
             "lastName": "Patient",
             "dob": "1990-01-01",
             "mothersName": "Mere Test",
+            "gender": "M",
             "admissionDate": date.today().isoformat(),
             "substance": "Cannabis",
             "psychologist": str(psy.user_id),

@@ -1,8 +1,10 @@
 // Fichier: stores/toxicoStore.js
 
+import { isLoadFailure } from '@/utils/loadFailure';
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { ToxicoGateway } from '@/services/ToxicoGateway'; // Assurez-vous que le chemin est correct
+import { newThisWeek } from '@/utils/toxicoUi';
 import { buildDischargedQuery, clampDischargedPage, DISCHARGED_PER_PAGE } from '@/utils/toxicoDischarged';
 
 export const useToxicoStore = defineStore('toxico', () => {
@@ -10,10 +12,16 @@ export const useToxicoStore = defineStore('toxico', () => {
     const patients = ref([]);
     const totalItems = ref(0);
     const isLoading = ref(false);
+    // Echec de chargement (hors ligne, serveur) : l'ecran affiche un etat d'erreur, jamais une liste vide ni des 0.
+    const listLoadFailed = ref(false);
+    const statsLoadFailed = ref(false);
     const psychologists = ref([]); // Liste des psys pour les selects
     
     // ✅ NOUVEL ÉTAT : Pour stocker le compte des admissions du mois venant du backend
     const monthlyAdmissionsCount = ref(0); 
+
+    // Chiffres GLOBAUX du suivi (serveur) : independants de la page et de la recherche de la liste.
+    const globalStats = ref(null);
     
     // Pagination et Filtres actuels
     const filters = ref({
@@ -39,11 +47,13 @@ export const useToxicoStore = defineStore('toxico', () => {
             const response = await ToxicoGateway.listPatients(params);
             
             // Le backend renvoie { data: [...], total: ... }
+            listLoadFailed.value = false;
             patients.value = response.data.data || [];
             totalItems.value = response.data.total || 0;
             
         } catch (error) {
             console.error("Erreur chargement patients toxico:", error);
+            listLoadFailed.value = isLoadFailure(error);
         } finally {
             isLoading.value = false;
         }
@@ -112,10 +122,15 @@ export const useToxicoStore = defineStore('toxico', () => {
         }
     }
     
+    // Sejour hospitalier ouvert du patient (avertissement avant sortie toxico)
+    async function fetchOpenHospitalization(dossierId) {
+        return ToxicoGateway.getOpenHospitalization(dossierId);
+    }
+
     // 5. Clôture / Sortie
-    async function dischargePatient(dossierId, { reason, note } = {}) {
+    async function dischargePatient(dossierId, { reason, note, date } = {}) {
         try {
-            await ToxicoGateway.dischargePatient(dossierId, { reason, note });
+            await ToxicoGateway.dischargePatient(dossierId, { reason, note, date });
             await fetchToxicoPatients();
             await fetchDashboardStats(); // ✅ Mise à jour des stats si le décompte change
         } catch (error) {
@@ -142,15 +157,18 @@ export const useToxicoStore = defineStore('toxico', () => {
     async function fetchDashboardStats() {
         try {
             const response = await ToxicoGateway.getDashboardStats(); 
+            statsLoadFailed.value = false;
             
             if (response && response.data && response.data.currentMonthAdmissions !== undefined) {
-                monthlyAdmissionsCount.value = response.data.currentMonthAdmissions;
+                monthlyAdmissionsCount.value = response.data.currentMonthAdmissions ?? 0;
+                globalStats.value = response.data.activeTotal !== undefined ? response.data : null;
             } else {
                 console.warn("Réponse des stats inattendue ou manquante.");
                 monthlyAdmissionsCount.value = 0;
             }
         } catch (error) {
             console.error("Erreur chargement stats tableau de bord:", error);
+            statsLoadFailed.value = isLoadFailure(error);
             monthlyAdmissionsCount.value = 0; // Réinitialiser en cas d'échec
             throw error;
         }
@@ -224,10 +242,19 @@ export const useToxicoStore = defineStore('toxico', () => {
 
     // --- COMPUTED STATS ---
     
-    const totalActive = computed(() => totalItems.value); // Le vrai total venant du backend
+    // Total de la LISTE (suit la recherche) : sert a la pagination et au compteur de resultats.
+    const listTotal = computed(() => totalItems.value);
+    // Patients actifs, chiffre global du serveur (repli : total de la liste tant que les stats ne sont pas chargees).
+    const activeTotal = computed(() => (globalStats.value ? globalStats.value.activeTotal : totalItems.value));
+    const totalActive = activeTotal;
+    const newThisWeekCount = computed(() => (globalStats.value ? globalStats.value.newThisWeek : newThisWeek(patients.value)));
 
     const statsByPhase = computed(() => {
         const counts = { 1: 0, 2: 0, 3: 0, 4: 0 };
+        if (globalStats.value) {
+            for (const k of Object.keys(counts)) counts[k] = Number(globalStats.value.byPhase?.[k]) || 0;
+            return counts;
+        }
         patients.value.forEach(p => {
             if (counts[p.currentPhase] !== undefined) counts[p.currentPhase]++;
         });
@@ -236,6 +263,7 @@ export const useToxicoStore = defineStore('toxico', () => {
 
     const statsBySubstance = computed(() => {
         const counts = {};
+        if (globalStats.value) return { ...(globalStats.value.bySubstance || {}) };
         patients.value.forEach(p => {
             const sub = p.substance || 'Autre';
             counts[sub] = (counts[sub] || 0) + 1;
@@ -244,6 +272,7 @@ export const useToxicoStore = defineStore('toxico', () => {
     });
 
     const relapseRate = computed(() => {
+        if (globalStats.value) return Number(globalStats.value.relapseRate) || 0;
         if (patients.value.length === 0) return 0;
         const patientsWithRelapse = patients.value.filter(p => p.relapseCount > 0).length;
         // Ce calcul n'est précis que sur la page courante, à noter.
@@ -252,6 +281,7 @@ export const useToxicoStore = defineStore('toxico', () => {
 
     const statsByPsy = computed(() => {
         const counts = {};
+        if (globalStats.value) return [...(globalStats.value.byPsychologist || [])];
         patients.value.forEach(p => {
             const psy = p.psychologist || 'Non assigné';
             counts[psy] = (counts[psy] || 0) + 1;
@@ -308,6 +338,8 @@ export const useToxicoStore = defineStore('toxico', () => {
         // STATES
         patients, 
         isLoading, 
+        listLoadFailed,
+        statsLoadFailed,
         psychologists,
         filters,
         
@@ -319,6 +351,7 @@ export const useToxicoStore = defineStore('toxico', () => {
         addPatient,
         submitEvaluation,
         dischargePatient,
+        fetchOpenHospitalization,
         getPatientDetails,
         setPage,
         setSearch,
@@ -326,7 +359,7 @@ export const useToxicoStore = defineStore('toxico', () => {
         dischargedFilters, fetchDischarged, setDischargedFilters, setDischargedPage, clearDischarged,
         
         // COMPUTED STATS
-        totalActive,
+        totalActive, activeTotal, listTotal, newThisWeekCount, globalStats,
         statsByPhase,
         statsBySubstance,
         relapseRate,

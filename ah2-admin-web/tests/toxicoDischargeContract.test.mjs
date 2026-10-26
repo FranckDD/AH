@@ -27,8 +27,8 @@ check('ToxicoDischargeModal', view, [
     // note : obligatoire pour « autre »
     "reason === 'autre'", 'v-model="note"', ':maxlength="NOTE_MAX_LENGTH"', "t('toxico.stays.note_label')", "t('toxico.stays.optional')", "t('toxico.stays.note_placeholder')",
     // validation et envoi
-    'const errors = validateDischarge({ reason: reason.value, note: note.value });', 'if (errors.length) { errorKey.value = errors[0]; return; }', 'if (isSubmitting.value) return;',
-    'await toxicoStore.dischargePatient(props.dossierId, { reason: reason.value, note: note.value });', 'watch([reason, note], () => { errorKey.value = \'\'; serverError.value = \'\'; });',
+    'const errors = validateDischarge({ reason: reason.value, note: note.value, date: dischargeDate.value, minDate: props.minDate, today });', 'if (errors.length) { errorKey.value = errors[0]; return; }', 'if (isSubmitting.value) return;',
+    'await toxicoStore.dischargePatient(props.dossierId, { reason: reason.value, note: note.value, date: dischargeDate.value });', 'watch([reason, note, dischargeDate], () => { errorKey.value = \'\'; serverError.value = \'\'; });',
     "const errorText = computed(() => serverError.value || (errorKey.value ? t(errorKey.value) : ''));",
     // fermeture : jamais pendant l'envoi
     'if (!isSubmitting.value) emit(\'close\');', ':disabled="isSubmitting"', '@submit.prevent="submit"',

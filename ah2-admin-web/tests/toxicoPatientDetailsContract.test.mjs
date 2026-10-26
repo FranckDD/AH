@@ -25,7 +25,8 @@ check('ToxicoPatientDetailsModal', view, [
     "if (props.patient?.patient_id) {", "emit('open-dossier', props.patient.patient_id);", "emit('close');", '@click="openDossier"', "@click=\"$emit('close')\"", 'v-if="patient"',
     // formats
     "date.toLocaleDateString('fr-FR', {", 'if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {', 'age--;',
-    "if (path.startsWith('http')) {", 'return path.startsWith(\'/\') ? `${API_BASE_URL}${path}` : `${API_BASE_URL}/${path}`;', "if (!path) return '#';",
+    // consentement : chargement authentifie (plus de lien /static public)
+    "api.get(`/toxico/dossiers/${dossierId}/consent`, { responseType: 'blob' })", 'URL.createObjectURL', 'URL.revokeObjectURL',
     // identité
     'patient.firstName || patient.first_name', 'patient.lastName || patient.last_name', 'formatDate(patient.dob)', 'calculateAge(patient.dob)', 'patient.mothersName || patient.mothers_name', 'patient.code',
     // contact
@@ -34,7 +35,7 @@ check('ToxicoPatientDetailsModal', view, [
     'formatDate(patient.admissionDate || patient.admission_date)', 'patient.psychologist', 'patient.currentPhase || 1', 'patient.relapseCount > 0',
     // tuteur et consentement
     'patient.guardianName || patient.guardian_name', 'patient.guardianContact || patient.guardian_contact', 'patient.consentFile || patient.consent_file',
-    ':href="getFileUrl(patient.consentFile || patient.consent_file)"', 'target="_blank"', 'download',
+    '@click="openConsent"',
     // notes et pied de page
     'v-if="patient.notes"', 'patient.notes', 'patient?.createdAt || new Date().toISOString()',
 ]);
@@ -66,9 +67,10 @@ test('ToxicoPatientDetailsModal : phase et rechutes dites par un mot, une icône
     assert.doesNotMatch(t, /[⚠]|\p{Extended_Pictographic}/u);
 });
 
-test('ToxicoPatientDetailsModal : lien du consentement sûr (nouvel onglet sans fuite) et téléchargement', () => {
+test('ToxicoPatientDetailsModal : consentement ouvert via fetch authentifie, jamais par un lien /static', () => {
     const t = templateOf(view);
-    assert.match(t, /rel="noopener/);
+    assert.doesNotMatch(view, /\/static\/|API_BASE_URL/);
+    assert.match(view, /noopener/);
     assert.match(t, /min-h-11/);
 });
 
@@ -90,7 +92,7 @@ test('ToxicoPatientDetailsModal : jetons du thème, texte >= 13 px, aucun emoji 
 test('clés toxicoScreens (détails du patient) en FR et EN', () => {
     const keys = ['details_modal_title', 'details_modal_subtitle', 'section_identity', 'section_contact', 'section_admission', 'section_guardian', 'section_notes', 'f_firstname', 'f_lastname', 'f_dob', 'f_age',
         'f_mother', 'f_code', 'f_address', 'f_phone', 'f_substance', 'f_admission_date', 'f_psychologist', 'f_status', 'f_guardian_name', 'f_guardian_contact', 'f_consent', 'not_provided', 'not_provided_f',
-        'not_assigned', 'not_specified_f', 'file_download', 'file_none', 'no_patient', 'created_on', 'open_full_dossier', 'years', 'close'];
+        'not_assigned', 'not_specified_f', 'file_download', 'file_none', 'file_error', 'no_patient', 'created_on', 'open_full_dossier', 'years', 'close'];
     for (const locale of ['fr', 'en']) {
         for (const k of keys) {
             const v = msgs[locale].toxicoScreens?.[k];

@@ -62,7 +62,7 @@ test('ToxicoDashboard : composants ui/, quatre tuiles colorées, cartes, tableau
 });
 
 test('ToxicoDashboard : le « +N cette semaine » est le calcul réel, plus de valeur ni de statut inventés', () => {
-    assert.match(view, /newThisWeek\(toxicoStore\.patients\)/);
+    assert.match(view, /toxicoStore\.newThisWeekCount/); // chiffre global du serveur, repli sur la liste chargee
     assert.doesNotMatch(view, /\+2 cette semaine/);
     assert.doesNotMatch(view, /Service Op[ée]rationnel/);
     assert.doesNotMatch(templateOf(view), /animate-pulse/);

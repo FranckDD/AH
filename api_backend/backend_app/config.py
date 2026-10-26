@@ -6,7 +6,7 @@ dotenv_path = find_dotenv()
 if dotenv_path:
     load_dotenv(dotenv_path)
 else:
-    print("Aucun .env – Fallbacks pour client.")
+    print("Aucun .env, fallbacks pour client.")
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 JWT_SECRET = os.getenv("JWT_SECRET")
