@@ -32,3 +32,10 @@ printer_bridge/config.json
 
 # Maquettes de reference (a compresser avant de decider de versionner les images retenues)
 Image_propos_test_ui/
+
+# Fichiers medicaux (consentements toxico) hors /static - futur volume Docker
+storage/
+
+# Guides utilisateur : les PDF et les captures (environ 120 Mo) se regenerent depuis les sources et les scripts de capture ; ils ne sont pas versionnes
+docs/user-guides/en/
+docs/user-guides/src/*/figures/
