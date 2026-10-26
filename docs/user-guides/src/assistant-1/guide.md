@@ -2,7 +2,7 @@
 title: Production lots and receipts
 role: Assistant
 subtitle: Receiving the finished lots from the production unit, entering supplier deliveries, declaring damaged goods on the shelf, reading the stock and its history, and knowing what the screens do without a connection.
-version: 26 October 2026
+version: 27 October 2026
 output: assistant-1-production-lots-receipts
 ---
 
@@ -16,7 +16,7 @@ The screenshots come from a demonstration installation. The products, suppliers 
 
 The application opens on the **Toxicology Dashboard**. Your menu has three groups. **Toxicology Dashboard** and **Toxicology Monitoring** belong to the toxicology programme: you can read the list of patients, open their files and admit a patient, but you cannot discharge one. The toxicology manager's guides describe those screens, and nothing about them is repeated here. The third group, **Stock management**, unfolds five screens: **Stock Management**, **Production**, **Receipts**, **Damages** and **Movements**. This guide covers the last four. **Stock Management** is the list of pharmacy and natural products, with their quantity and price.
 
-You cannot validate or reject a receipt or a damage report, and you cannot change a quantity by hand. The stock controller does the check. The screens of the fabrication unit, the laboratory stock, the physical count, the patients and the dashboards of the administration are closed to you: if you type the address of one of them, the application shows a page that says 403 and "Accès Interdit" (access denied), with a button back to your dashboard.
+You cannot validate or reject a receipt or a damage report, and you cannot change a quantity by hand. The stock controller does the check. The screens of the fabrication unit, the laboratory stock, the physical count, the patients and the dashboards of the administration are closed to you: if you type the address of one of them, the application shows a page that says 403 and "Access denied", with a button "Go to my dashboard".
 
 > Note: You see every production lot, but only the receipts and damage reports that you entered yourself. A colleague's entries do not appear in your lists.
 
@@ -37,7 +37,7 @@ After several failed attempts in a short time, the server refuses new tries for 
 
 ### Interface language
 
-Select **EN** in the language switch at the top right, next to the bell, to work in English. The choice is kept on that computer. A few server messages stay in French; this guide quotes them as they appear.
+Select **EN** in the language switch at the top right, next to the bell, to work in English. The choice is kept on that computer. A few server messages about lots stay in French; this guide quotes them as they appear.
 
 ## From the finished lot to the stock
 
@@ -65,11 +65,11 @@ A delivery from a supplier skips the first two steps: you open a receipt directl
 
 ## Production lots
 
-Select **Production** to see every lot, the most recent first. The title counts the lots, including the cancelled ones.
+Select **Production** to see every lot, the most recent first. The title counts the lots that are not cancelled and, in brackets, the cancelled ones, for example "3 batches (1 cancelled)".
 
 ![The list of production lots](figures/lots.png)
 
-[[New lot]] {1} creates a lot by hand. The filter **Status** {2} narrows the list to one status. The column **Status** {3} shows where each lot stands. On a lot that was only produced, [[Mark delivered]] {4} and [[Cancel]] {5} are offered. A lot that is delivered offers [[Cancel]] only, and a lot that is received or cancelled offers nothing.
+[[New lot]] {1} creates a lot by hand. The filter **Status** {2} narrows the list to one status. The column **Status** {3} shows where each lot stands. On a lot that was only produced, [[Mark delivered]] {4} is offered, and [[Cancel]] {5} too when the lot is yours. A lot that is delivered offers [[Cancel]] only, and a lot that is received or cancelled offers nothing.
 
 The lot number, such as LOT-20261026-001, is given by the application: the date and a running number for the day. The columns **Delivery date** and **Expiry** carry what the production manager typed when the batch was shipped.
 
@@ -98,10 +98,10 @@ If the product is missing, the window shows "Choose a product." and nothing is s
 
 Select [[Cancel]] on the line and confirm the question "Confirm cancellation?". The page answers "Cancelled." and the status becomes **Cancelled**. Two rules apply.
 
-- Only the person who created the lot, or the administrator, can cancel it. A lot shipped by the production manager can therefore not be cancelled by you. The application still shows the button, and the refusal comes after you confirm.
+- Only the person who created the lot, or the administrator, can cancel it. The button [[Cancel]] is therefore shown only on the lots you created. A lot shipped by the production manager has no Cancel button on your screen.
 - A lot that has a receipt open or validated cannot be cancelled. Cancel the receipt first, if it is still waiting for its check.
 
-The first message is written in French: "Seul le créateur du lot ou un administrateur peut l'annuler." (only the creator of the lot or an administrator can cancel it). The other refusal reads "Une réception est liée à ce lot : annulation impossible." (a receipt is linked to this lot). In both cases the lot is left as it was.
+When the server refuses, the message is written in French: "Une réception est liée à ce lot : annulation impossible." (a receipt is linked to this lot). The lot is left as it was.
 
 ## Receipts
 
@@ -180,9 +180,9 @@ The controller validates or rejects the report. On validation, the quantity is t
 
 ### The stock list
 
-**Stock Management** lists the pharmacy and natural products with their category, quantity and unit price, and tiles that total the stock value and count the low and expired products. The search box and the category filter narrow the list. A line that is at or under its alert threshold shows a red **BAS** label, and an expired date shows in red.
+**Stock Management** lists the pharmacy and natural products with their category, quantity and unit price, and tiles that total the stock value and count the low and expired products. The search box and the category filter narrow the list. A line that is at or under its alert threshold shows a red **LOW** label, and an expired date shows in red.
 
-[[Edit]] opens a product. You can change the name, the category, the selling price, the alert threshold and the expiry date. The quantity is shown but cannot be typed: the window says "Quantity only changes through a checked receipt, a damage report or an adjustment request." Several labels of this screen are in French, such as the button [[Mettre à jour]] and the field **Seuil Alerte**.
+[[Edit]] opens a product. You can change the name, the category, the selling price, the alert threshold ("Alert Threshold (Min)") and the expiry date, and confirm with [[Update]]. The quantity is shown but cannot be typed: the window says "Quantity only changes through a checked receipt, a damage report or an adjustment request." When the stock list cannot be loaded, the tiles show a dash and a message with a **Retry** button, instead of zeros.
 
 ### The history of movements
 
@@ -190,7 +190,7 @@ The controller validates or rejects the report. On validation, the quantity is t
 
 ![The movements of one product](figures/movements.png)
 
-The search box {1} and the list **Product** {2} find a product. **Movement type** {3} limits the list to sales, receipts, damages, corrections and so on, and **From** and **To** limit it by date. [[Filter]] applies the choices and [[Reset]] clears them. Each line gives the date, the product, the type {4}, the signed quantity, a note and the author {5}. Red quantities lower the stock and green ones raise it. The page shows 50 lines and a page selector when there are more.
+The search box {1} and the list **Product** {2} find a product. **Movement type** {3} limits the list to sales, receipts, damages, corrections and so on, and **From** and **To** limit it by date. [[Filter]] applies the choices and [[Reset]] clears them. Each line gives the date (day, month, year and time), the product, the type {4}, the signed quantity, a note and the author {5}, shown with his or her full name. Red quantities lower the stock and green ones raise it. The page shows 50 lines and a page selector when there are more.
 
 In the demonstration, the validated receipt of 48 Efferalgan and the validated damage report of 3 appear at the top of the list with the name of the controller. The notes are written by the server in French, for example "Réception REC-20261026-003 (avaries : endommagé 2)". Read them as "Receipt REC-20261026-003 (damages: damaged 2)".
 
@@ -204,7 +204,7 @@ The bell {1} lists the decisions on your entries {2}: "Receipt REC-20261026-001 
 
 ## Working without a connection
 
-The screens of this guide read and write on the server. They keep no copy on the computer. The yellow indicator at the top reads "Offline (your entries are saved)" for your role even when the connection is good, so do not use it to judge the network. It is true for other roles whose work is saved on the computer, and not for yours.
+The screens of this guide read and write on the server. They keep no copy on the computer. The indicator at the top reads **Connected** while the server answers and **Offline** when the network is lost. For your role it checks the server about every 15 seconds. When it reads **Offline** it adds "(your entries are saved)" on a wide screen. That sentence is true for other roles and not for yours: nothing you type is kept on the computer.
 
 ![Production lots without a connection](figures/offline-lots.png)
 
@@ -238,10 +238,9 @@ The user name and the role cannot be changed here. To change your password, open
 
 | What you see | What it means | What to do |
 |---|---|---|
-| A page that says 403 and "Accès Interdit" | The screen is closed to your role | Select the button back to your dashboard. |
+| A page that says 403 and "Access denied" | The screen is closed to your role | Select the button back to your dashboard. |
 | "Unable to load data." and "No lots." | The computer cannot reach the server | Wait for the network, then reload the page. |
 | "Operation failed." after Save | The connection dropped as you sent | Keep the window open and select Save again later. |
-| "Seul le créateur du lot ou un administrateur peut l'annuler." | The lot was created by someone else | Ask the production manager or the administrator. |
 | "Une réception est liée à ce lot : annulation impossible." | A receipt exists for the lot | Cancel the receipt if it is still To check. |
 | "The line total exceeds the expected quantity." | Good, damaged, lost and defective add up to more than expected | Recount and correct the boxes. |
 | "No delivered lot awaiting reception." | No lot is marked Delivered, or each already has a receipt | Mark the lot as delivered in Production. |

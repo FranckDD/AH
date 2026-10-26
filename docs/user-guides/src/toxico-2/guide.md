@@ -2,7 +2,7 @@
 title: Discharge, readmission and exports
 role: Toxicology manager
 subtitle: Ending a stay in the toxicology programme, finding discharged patients, readmitting a patient who comes back, and printing the files and the lists.
-version: 26 October 2026
+version: 27 October 2026
 output: toxico-2-discharge-readmission-exports
 ---
 
@@ -18,9 +18,9 @@ Discharge, readmission and the exports are all done from one screen, **Toxicolog
 
 ### Dates and language
 
-The date fields of the filters and of the admission form follow your computer and read day, month, year ("26/10/2026"). The dates written in the tables and in the file windows read month, day, year ("10/26/2026"). Check which one you are reading before you decide anything from a date. The PDF files are written in French whatever the language of the screen, with dates in day, month, year.
+The dates written in the tables and in the file windows read day, month, year ("26/10/2026"), like the dates of the PDF files. The date fields of the filters and of the forms follow the format of your computer. The patient details window is the one exception: it spells the month in French ("26 octobre 2026"). The PDF files are written in French whatever the language of the screen.
 
-> Note: In the file window, the status words of the phases ("En cours", "Terminé", "Interrompu") and the comments written by the application ("Admission initiale", "Réadmission") are in French in English mode.
+> Note: In the file window, the status words of the phases read "In progress", "Finished" and "Interrupted" in English mode. The comments that the application writes in the history ("Admission initiale", "Réadmission, séjour 2") stay in French.
 
 ## Discharging a patient
 
@@ -30,14 +30,16 @@ A discharge closes the current stay of a patient. It is the only way to end a st
 
 1. In **Toxicology Monitoring**, on the **Active** tab, find the patient and select [[Discharge]] on the row. You can also open the file of the patient and select [[Discharge]] at the foot of the window.
 2. Choose the reason {1}: **Recovery**, **Dropout**, **Exclusion** or **Other**.
-3. Write the note {2}. The note is optional for the first three reasons and required for **Other**. It takes up to 2000 characters. Write what a colleague will need in a year: what happened, who was informed, what follow-up is planned.
-4. Select [[Confirm discharge]] {4}.
+3. Check the discharge date in [[Discharge date]]. It opens on today. You can choose an earlier day when the patient really left before you recorded it. The date cannot be in the future and cannot be before the admission of the current stay.
+4. Write the note {2}. The note is optional for the first three reasons and required for **Other**. It takes up to 2000 characters. Write what a colleague will need in a year: what happened, who was informed, what follow-up is planned.
+5. If the window warns about a hospital stay, tick the box (see "A patient who is in hospital" below).
+6. Select [[Confirm discharge]] {4}.
 
 If you choose **Other** and leave the note empty, the window stays open and shows the red message {3} "A note is required for the "Other" reason." Nothing is saved until you write the note or choose another reason. [[Cancel]] closes the window without any change.
 
-When the discharge succeeds, your browser shows a small message box saying "Discharge recorded." Select **OK**. The patient leaves the **Active** list at once and the tiles move: in the demonstration the active patients went from 15 to 14 after the first discharge, then to 13 and 12 after two more.
+When the discharge succeeds, a green message "Discharge recorded." appears for a few seconds. The patient leaves the **Active** list at once and the tiles move: in the demonstration the active patients went from 15 to 14 after the first discharge, then to 13 and 12 after two more.
 
-The discharge date is always today. You cannot enter another date, so a patient who really left last week is recorded as discharged today: put the true date in the note. The application also records your name as the person who validated the discharge, and prints it later in the file.
+The application records the date you chose and your name as the person who validated the discharge, and prints both later in the file. A wrong date is refused with "The discharge date cannot be in the future." or "The discharge date cannot be before the admission."
 
 > Caution: A discharge cannot be undone from any screen. If you chose the wrong reason or discharged the wrong patient, the only way back is to readmit the patient (chapter 3), which starts a new stay and leaves the first one closed with the wrong reason. Check the name in the title of the window before you confirm.
 
@@ -61,7 +63,7 @@ The same file is available for a patient who has been discharged: select [[View 
 
 ![The record of a discharged patient](figures/view-discharged.png "small")
 
-The window shows the label "Discharged from programme" {1}, then the progress bar and the history, with the reason {2} and the note of the discharge at the head of each closed stay. It is read-only: there is no Discharge button, and the progress bar stays on the last phase reached. [[Export record (PDF)]] {3} prints the file (chapter 5).
+The window shows the label "Discharged from programme" {1}, then a line such as "Discharged from the programme on 26/10/2026 (reason: Dropout)." with the name of the person who validated the discharge and the note, then the progress bar and the history, with the reason {2} and the note of the discharge at the head of each closed stay. It is read-only: there is no Discharge button, and the progress bar stays on the last phase reached. [[Export record (PDF)]] {3} prints the file (chapter 5).
 
 ## Readmitting a patient
 
@@ -70,17 +72,17 @@ A patient who left can come back. The application then opens a new stay in the s
 ![The readmission form](figures/readmit-form.png "small")
 
 1. Select the **Discharged** tab and find the patient.
-2. Select [[Readmit]] on the row. The **Admission Form** opens with the patient already chosen. The yellow band {1} reads "Patient already followed" and tells you the number of the new stay, here stay 2, that the phase restarts at 1, and the earliest date allowed, which is the date of the last discharge.
+2. Select [[Readmit]] on the row. The **Admission Form** opens with the patient already chosen. The yellow band {1} reads "Patient already followed: readmission, stay 2." and tells you that the phase restarts at 1 and the earliest date allowed, which is the date of the last discharge.
 3. Check the admission date {2}. It opens on today. A date before the last discharge is refused by the field itself ("Value must be 26/10/2026.").
 4. Choose the referring psychologist {3}. The field opens empty and is required, even if the patient comes back to the same person.
-5. Type the guardian name {4} and the guardian contact. They also open empty and are required: ask whether they are still correct.
+5. Check the primary substance, then the guardian name {4} and the guardian contact. The substance of the last stay and the guardian recorded in the file are filled in for you. Ask whether they are still correct and change them if not. Both guardian fields are required.
 6. Add a new signed consent if the patient signed one. Without a new file, the previous consent stays attached to the file.
 7. Write the reason for the return in [[Admission Note]]. A new note replaces the previous admission note in the Details window, so copy anything you still need from the old one.
 8. Select [[Validate Admission]] {5}.
 
-The window closes and the patient is back in the **Active** list, in phase 1. In the demonstration, the same patient also appears when you start from [[New Toxico Admission]] and search the name: the form shows the same yellow band, so both paths lead to the same readmission.
+The window closes, a green message "Readmission recorded, stay 2" appears and the patient is back in the **Active** list, in phase 1. The same patient also appears when you start from [[New Toxico Admission]] and search the name: the form shows the same yellow band, so both paths lead to the same readmission.
 
-> Caution: The substance opens on the first choice, Alcohol, whatever the patient used before. In the demonstration, a patient followed for cannabis came back with the form showing Alcohol. Check the substance on every readmission: a wrong value is copied to the new stay and to the printed file.
+> Caution: The substance and the guardian are copied from the last stay, not asked again. A wrong value that you do not change is copied to the new stay and to the printed file.
 
 ### What is kept and what restarts
 
@@ -101,7 +103,7 @@ The file of a patient is the place to follow the progress. Open it with [[File]]
 
 ![A file with two stays](figures/file-stays.png "small")
 
-The file groups the history by stay, the oldest first. Each stay opens with a header: the number, the reason of the discharge or the label **Ongoing** {3}, the dates, the psychologist and the substance. Inside, the evaluations and the phases follow with the most recent first. The phase lines {1} show when each phase started, when it ended, and why. A phase left behind by an evaluation or closed by a discharge reads "Interrompu", and a phase that ended normally reads "Terminé". The stay {2} that begins at a readmission carries its own first line "Réadmission, séjour 2".
+The file groups the history by stay, the oldest first. Each stay opens with a header: the number, the reason of the discharge or the label **Ongoing** {3}, the dates, the psychologist and the substance. Inside, the evaluations and the phases follow with the most recent first. The phase lines {1} show when each phase started, when it ended, and why. A phase left behind by an evaluation or closed by a discharge reads "Interrupted", and a phase that ended normally reads "Finished". The stay {2} that begins at a readmission carries its own first line "Réadmission, séjour 2".
 
 ### Counting relapses
 
@@ -135,7 +137,7 @@ Select [[PDF]] {2} on a row of the Discharged tab, or [[Export record (PDF)]] in
 
 The file gives the identity, the status ("Sorti (dossier inactif)" or "Actif (en séjour)"), the guardian, then each stay with its substance, psychologist, reason of discharge, note, and "Sortie validée par" followed by your name. Under each stay come the table of phases and the table of evaluations. At the foot, two signature zones: the psychologist of the last stay, and the administrative manager. For a discharged patient, the name of the person who validated the discharge is already written under the second zone. For an active patient the second zone is blank. A patient with two stays, such as the readmitted patient of the demonstration, prints on two pages.
 
-The printed file repeats each evaluation twice when the history does, a known duplicate described in the first guide. Do not sign a file before you have read it.
+Do not sign a file before you have read it.
 
 ### The clinical file
 
@@ -145,7 +147,7 @@ The **Patients** entry of the menu opens the clinical file, with **Export PDF** 
 
 Nothing is deleted. The patient stays in the Discharged tab, the file stays readable, the evaluations stay attached to their stay, and the consent document stays available.
 
-In the clinical file of the **Patients** menu, the patient keeps the label TOXICOLOGIE next to the clinic label after the discharge.
+In the clinical file of the **Patients** menu, the patient keeps the label TOXICOLOGY next to the clinic label after the discharge.
 
 ![The Toxicology Follow-up tab of a discharged patient](figures/full-tox-discharged.png "small")
 
@@ -155,7 +157,7 @@ The **Toxicology Follow-up** tab {1} of that clinical file gives only the substa
 
 ### A patient who is in hospital
 
-The clinic can hospitalise a patient who is also in the programme. The application does not connect the two stays. In the demonstration, a patient admitted to hospital by the doctor was discharged from the toxicology programme as a dropout without any warning, and the hospital stay stayed open. You cannot see the hospitalisations: the menu of your role has no entry for them. Before you discharge a patient who has been unwell, ask the doctor or the nurse whether he or she is in a ward, and write the answer in the note.
+The clinic can hospitalise a patient who is also in the programme. The two stays stay separate, but the discharge window checks for you. When the patient has a hospital stay still open, a red block appears: "This patient has a hospital stay open since" followed by the date and time, "Toxicology discharge does not close it: the medical team will have to close it." You must tick "I understand, keep the hospital stay open" before [[Confirm discharge]] works. Without the tick the window answers "Confirm that the hospital stay stays open to continue." You cannot see the hospitalisations yourself: the menu of your role has no entry for them. Tell the doctor or the nurse that the patient left the programme, so that the hospital stay is handled, and write it in the note.
 
 ### A patient who relapses after a discharge
 
@@ -175,7 +177,7 @@ The toxicology lists read from the server and keep no copy on the computer.
 
 ![The Discharged tab while the computer is offline](figures/offline-discharged.png "small")
 
-The yellow badge {1} reads "Offline (your entries are saved)" for your role even when the network is good, so it is not a signal. What tells you the network is down is the content: the Active list shows "0 patients followed" and the tiles fall to zero, and the Discharged tab {2} shows the red message "Unable to load discharged patients." with a [[Retry]] button. With an empty Active list there is no row to discharge, and with no discharged list there is nothing to readmit. Keep the decision on paper, reload the page when the connection is back, and record the discharge then. Do not treat an empty list as "no patient".
+The yellow badge {1} reads "Offline" when the computer cannot reach the server, and goes back to "Connected" by itself within 15 seconds of the return of the link. The Active list then shows "Cannot load the data while offline. Figures shown would not be reliable." with a [[Retry]] button, and the tiles read a dash. The Discharged tab {2} shows the red message "Unable to load discharged patients." with a [[Retry]] button. With no Active list there is no row to discharge, and with no discharged list there is nothing to readmit. Keep the decision on paper, select Retry when the connection is back, and record the discharge then. Do not treat a failed load as "no patient".
 
 ## Your profile and password
 
@@ -189,9 +191,9 @@ The account icon at the top right opens **My Account**, where you correct your n
 
 **Trusting the title of the Discharged tab.** The count at the top and the tiles are those of the active patients.
 
-**Accepting the substance of the readmission form.** It opens on Alcohol.
+**Accepting the readmission form without reading it.** The substance and the guardian are copied from the last stay. Check them with the patient.
 
-**Forgetting the guardian on a readmission.** The two fields open empty and are required.
+**Ignoring the hospital warning.** The toxicology discharge does not close a hospital stay. Tell the medical team.
 
 **Reading the Toxicology Follow-up tab of the clinical file as the status of the patient.** It does not show the discharge.
 
@@ -205,17 +207,18 @@ The account icon at the top right opens **My Account**, where you correct your n
 | "This patient already has an active toxicology file" | The patient is already back in the Active list | Open the file. Do not readmit again. |
 | "Value must be" on the admission date | The date is before the last discharge | Use the date of the discharge or a later one. |
 | Validate Admission stays pale on a readmission | The psychologist or a guardian field is empty | Fill the fields marked with a star. |
+| "The discharge date cannot be in the future." or "...before the admission." | The date chosen is outside the stay | Choose a date between the admission and today. |
+| "Confirm that the hospital stay stays open to continue." | The patient has an open hospital stay and the box is not ticked | Read the warning, tick the box, then confirm. |
 | "Fix the date range to show results." | The end date is before the start date | Correct one of the dates. |
 | "No discharged patient matches these criteria." | The filters leave nobody | Clear a filter. |
 | "Unable to load discharged patients." | The server cannot be reached | Check the network, then select Retry. |
-| "PDF export failed. Please try again later." | The browser did not receive the file | Try again once. If it persists, tell the administrator. |
-| The same evaluation twice in a history or a printed file | A known duplicate of the demonstration version | Read the two lines as one. Tell the administrator. |
+| "PDF export failed. Please try again later." | The PDF could not be produced | Try again once. If it persists, tell the administrator. |
 | A discharged patient still shows a phase in the clinical file | The Toxicology Follow-up tab does not show the discharge | Check the Discharged tab. |
 
 ## Glossary {.unnumbered}
 
 Discharge
-: The closing of the current stay, with a reason and a note. Always dated today.
+: The closing of the current stay, with a reason, a date and a note. The date is today unless you choose an earlier day.
 
 Discharge reason
 : Recovery, Dropout, Exclusion or Other. A note is required for Other.

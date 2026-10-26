@@ -1,3 +1,4 @@
+import i18n from '../i18n.js';
 import api from '@/services/api';
 
 
@@ -129,7 +130,7 @@ export const ToxicoGateway = {
         }
         
         if (!payload.observation || payload.observation.length < 50) {
-            throw new Error("Observation requise (min 50 caractères)");
+            throw new Error(i18n.global.t('toxicoScreens.observation_required'));
         }
         
         if (payload.targetPhase < 1 || payload.targetPhase > 4) {

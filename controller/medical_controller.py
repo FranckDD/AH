@@ -116,7 +116,7 @@ class MedicalRecordController:
             "last_weight": float(last_record.weight) if last_record and last_record.weight else None,
             "last_temp": float(last_record.temperature) if last_record and last_record.temperature else None,
             "last_diagnosis": last_record.diagnosis if last_record else None,
-            "allergies": last_record.allergies if last_record else "Aucune signalée (Dossier vide)"
+            "allergies": last_record.allergies if last_record else None
         }
         return summary
 

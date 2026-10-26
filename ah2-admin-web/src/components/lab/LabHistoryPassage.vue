@@ -4,15 +4,17 @@
 import { computed, ref, useId } from 'vue';
 import { useI18n } from 'vue-i18n';
 import dayjs from 'dayjs';
-import { ChevronDownIcon, ExclamationTriangleIcon, EyeIcon, PrinterIcon } from '@heroicons/vue/24/outline';
+import { ChevronDownIcon, ExclamationTriangleIcon, EyeIcon, PencilSquareIcon, PrinterIcon } from '@heroicons/vue/24/outline';
 import { AppButton, StatusBadge } from '@/components/ui';
 import { toneClasses } from '@/design/tones';
 import { hasPrintable, examStatusMeta } from '@/utils/labPassages';
 
 const props = defineProps({
     passage: { type: Object, required: true },
+    // Correction d'un resultat valide : bouton propose seulement aux roles autorises (laborantin, admin, ToxicoManager).
+    canAmend: { type: Boolean, default: false },
 });
-defineEmits(['view', 'pdf', 'pdf-batch']);
+defineEmits(['view', 'pdf', 'pdf-batch', 'amend']);
 
 const { t } = useI18n();
 const open = ref(false);
@@ -74,6 +76,7 @@ const statusMeta = (status) => examStatusMeta(status);
                 <template v-else>
                     <AppButton variant="secondary" size="sm" :icon="EyeIcon" @click="$emit('view', passage.exams[0])">{{ t('lab.history_view.view_details') }}</AppButton>
                     <AppButton v-if="passage.exams[0].status !== 'pending'" variant="secondary" size="sm" :icon="PrinterIcon" @click="$emit('pdf', passage.exams[0])">{{ t('lab.history_view.download_pdf') }}</AppButton>
+                    <AppButton v-if="canAmend && passage.exams[0].status === 'completed'" variant="lab" size="sm" :icon="PencilSquareIcon" @click="$emit('amend', passage.exams[0])">{{ t('lab.technician.amend_btn') }}</AppButton>
                 </template>
             </div>
         </div>
@@ -95,6 +98,7 @@ const statusMeta = (status) => examStatusMeta(status);
                 <div class="flex flex-wrap gap-2">
                     <AppButton variant="secondary" size="sm" :icon="EyeIcon" @click="$emit('view', res)">{{ t('lab.history_view.view_details') }}</AppButton>
                     <AppButton v-if="res.status !== 'pending'" variant="secondary" size="sm" :icon="PrinterIcon" @click="$emit('pdf', res)">{{ t('lab.history_view.download_pdf') }}</AppButton>
+                    <AppButton v-if="canAmend && res.status === 'completed'" variant="lab" size="sm" :icon="PencilSquareIcon" @click="$emit('amend', res)">{{ t('lab.technician.amend_btn') }}</AppButton>
                 </div>
             </li>
         </ul>

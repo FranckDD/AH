@@ -2,7 +2,7 @@
 title: Consultations and prescriptions
 role: Doctor
 subtitle: Taking a waiting patient in charge, writing the consultation, prescribing, ordering laboratory exams and reading their results, and handling your appointments.
-version: 26 October 2026
+version: 27 October 2026
 output: doctor-1-consultations-prescriptions
 ---
 
@@ -22,7 +22,7 @@ You work on clinical patients and clinical data. You write consultations and pre
 
 The application starts in French on a new computer. The language switch sits at the top right of every screen, next to the bell: select **EN** to work in English. The choice is kept on that computer.
 
-> Note: Some labels are still in French in English mode. In the patient file you will meet "Voir Dossier" (open the file), "Modifier" (edit), "Prescrire" (prescribe), "Pris en charge" (taken in charge), "Fermer" (close) and the headings "Tension", "Poids" and "Traitement prescrit". The laboratory exams keep their French names, for example "Numération Formule Sanguine". This guide quotes each label as it appears and gives the English meaning the first time.
+> Note: A few texts stay in French in English mode because they come from the reference lists of the centre. The reasons of a consultation (consultation, gratuite, hospitalisation, rendez-vous, suivi_prénatal, urgence) and the laboratory exams, for example "Numération Formule Sanguine", keep their French names, and the interpretation column of a result says "Haut" or "Bas". This guide quotes each label as it appears.
 
 ## Signing in and the dashboard
 
@@ -53,11 +53,11 @@ Your list in **Patients awaiting review** therefore holds the patients named for
 
 1. On the Dashboard, find the patient in **Patients awaiting review**.
 2. Select [[Take in charge]]. The button reserves the patient for you.
-3. The patient file opens on the **Medical Record** tab. The nurse's consultation now carries the green label "Pris en charge".
+3. The patient file opens on the **Medical Record** tab, and the nurse's consultation opens by itself in the edit form, with the measurements and notes already filled in. Behind the form, the consultation now carries the green label "Taken over".
 
-The file now shows the nurse's measurements and notes. The two buttons under the consultation are [[Modifier]] (edit) and [[Prescrire]] (prescribe), as in the figure of chapter 3. Use [[Modifier]] to add your own findings to this same consultation (chapter 4).
+Add your own findings to this same consultation and save it (chapter 4). If you close the form without saving, the two buttons under the consultation are [[Edit]] and [[Prescribe]], as in the figure of chapter 3.
 
-If two doctors select the same patient at almost the same moment, the server accepts the first and answers the second with "Ce dossier a déjà été pris en charge." The dashboard shows that message in red above the list and removes the line. Nothing is lost: the patient is with the first doctor.
+If two doctors select the same patient at almost the same moment, the server accepts the first and answers the second with "This record has already been taken over." The dashboard shows that message in red above the list and removes the line. Nothing is lost: the patient is with the first doctor.
 
 > Caution: Take the patient in charge from the dashboard, then edit the consultation the nurse started. Do not open a new consultation instead. A new consultation closes the nurse's one (see "A consultation can be closed" in chapter 4), and the nurse's measurements stay behind in a read-only record.
 
@@ -65,21 +65,21 @@ A patient who was not sent by a nurse can still be seen: find the patient in **P
 
 ## The patient file
 
-Open a file from **Patients** with [[Voir Dossier]], from the dashboard line, or from [[View record]] in an appointment.
+Open a file from **Patients** with [[View record]], from the dashboard line, or from [[View record]] in an appointment.
 
-The list opens with the newest patients first. Type part of a name or of the patient code in the search box. The tabs above the table count the patients: **All Patients** and **Clinical Care**. You see no toxicology or spiritual tab, because those services belong to other teams. The **Type** column shows NEW for a patient with no follow-up yet, CLINIQUE for a clinical patient, and TOXICO or SPIRITUEL for a patient of another service. Select [[Voir Dossier]] on a line to open the file.
+The list opens with the newest patients first. Type part of a name or of the patient code in the search box. The tabs above the table count the patients: **All Patients** and **Clinical Care**. You see no toxicology or spiritual tab, because those services belong to other teams. The **Type** column shows NEW for a patient who has no consultation yet, CLINIQUE as soon as a consultation exists, and TOXICO or SPIRITUEL for a patient of another service. Select [[View record]] on a line to open the file.
 
-> Note: The list also offers [[Ajouter un patient]] (add a patient), [[Modifier]] and [[Supprimer]] (delete). Registering patients is the work of the reception desk. Never delete a file that has consultations: ask an administrator.
+> Note: The list also offers [[Add a patient]], [[Edit]] and [[Delete]]. Registering patients is the work of the reception desk. Never delete a file that has consultations: ask an administrator.
 
 The file itself has a fixed top part and four tabs.
 
 ![The patient file](figures/dossier.png)
 
-The header {1} gives the name, the patient code, the age and a badge for each service that follows the patient. [[Export PDF]] {2} and [[Export Excel]] save the whole file. The four cards show the last blood pressure {3}, weight and temperature, and the known allergies {4}, in red so that nobody misses them. The allergies are the ones written in the most recent consultation, so keep that field up to date.
+The header {1} gives the name, the patient code, the age, the sex and a badge for each service that follows the patient (CLINICAL, TOXICOLOGY, SPIRITUAL). [[Export PDF]] {2} and [[Export Excel]] save the whole file. The four cards show the last blood pressure {3}, weight and temperature, and the known allergies {4}, in red so that nobody misses them. The allergies are the ones written in the most recent consultation, so keep that field up to date.
 
-The tabs are **Medical Record**, **Exams** {5}, **Treatments** and **Hospitalization**. The **Medical Record** tab lists the consultations, the newest first, with the vitals of each one, the notes, the allergies and the history, and the treatment written for it. [[New consultation]] {6} opens an empty consultation form. [[Modifier]] {7} and [[Prescrire]] {8} appear under a consultation you are allowed to change. The **Exams** tab is described in chapter 6, and the **Hospitalization** tab belongs to the second guide.
+The tabs are **Medical Record**, **Exams** {5}, **Treatments** and **Hospitalization**. The **Medical Record** tab lists the consultations, the newest first, with the vitals of each one, the notes, the allergies and the history, and the treatment written for it. [[New consultation]] {6} opens an empty consultation form. [[Edit]] {7} and [[Prescribe]] {8} appear under a consultation you are allowed to change. The **Exams** tab is described in chapter 6, and the **Hospitalization** tab belongs to the second guide.
 
-> Note: The **Treatments** tab is a short summary of the prescriptions. In the version of the application used for this guide, the label after each line reads "undefined" and a laboratory order appears as "DEMANDE D'EXAMEN". Read the prescriptions on the **Prescriptions** screen instead (chapter 5).
+The **Treatments** tab is a short summary of the prescriptions. Each line gives the medicine with its dosage, frequency and duration, then a status label: Active, Completed or Cancelled. A laboratory order appears as "Lab test request" followed by the list of exams. The full list, with the prescriber and the dates, is on the **Prescriptions** screen (chapter 5).
 
 ### Patients of other services
 
@@ -87,13 +87,13 @@ A patient can be followed by the clinic and by another service at once. In that 
 
 ![A patient also followed in toxicology: the tab is closed to the doctor](figures/dossier-restricted.png)
 
-The badge {1} and the tab {2} tell you that the patient is followed elsewhere. The tab answers "Ce domaine relève d'un autre service, non affiché ici" {3} (this area belongs to another service and is not shown here). Your own consultations and prescriptions for that patient work as usual.
+The badge {1} and the tab {2} tell you that the patient is followed elsewhere. The tab answers "This area belongs to another department and is not shown here." {3} Your own consultations and prescriptions for that patient work as usual.
 
 ## Writing a consultation
 
 A consultation records one visit: the reason, the vitals, the history and allergies, the symptoms, the diagnosis, the treatment and your notes. There are three ways to reach the form.
 
-- From a patient taken in charge: [[Modifier]] under the nurse's consultation.
+- From a patient taken in charge: the nurse's consultation opens by itself, or [[Edit]] under it.
 - From a patient file: [[New consultation]] on the **Medical Record** tab.
 - From the **Consultations** screen: [[New consultation]] at the top right, where you type the patient code yourself.
 
@@ -137,7 +137,7 @@ For you, the practical consequence is simple. Finish the writing of a visit befo
 
 ### Starting a consultation from an appointment
 
-The appointment screens have a [[Start consultation]] button (chapter 7). It opens the file of the patient. Select [[New consultation]] there, fill in the form as above and save. The appointment itself stays "Pending" until you mark it done; see chapter 7.
+The appointment screens have a [[Start consultation]] button (chapter 7). It opens the file of the patient with an empty consultation form already open. Choose the reason, fill in the form as above and save. The appointment is then marked "Completed" by the application, so you do not have to select [[Complete]] afterwards. The reason is not copied from the appointment: choose it yourself.
 
 ## Prescriptions
 
@@ -145,7 +145,7 @@ A prescription is either a medicine or a laboratory order. Both are written on t
 
 ### Prescribing a medicine
 
-Open the form with [[Prescrire]] under a consultation in the file, with [[Yes, prescribe]] after saving a consultation, or with [[New Prescription]] on the Prescriptions screen. From a consultation, the prescription is linked to that consultation.
+Open the form with [[Prescribe]] under a consultation in the file, with [[Yes, prescribe]] after saving a consultation, or with [[New Prescription]] on the Prescriptions screen. From a consultation, the prescription is linked to that consultation.
 
 ![The prescription form for a medicine](figures/presc-form.png)
 
@@ -207,7 +207,9 @@ The results also appear in the patient file, on the **Exams** tab.
 
 On that tab, each exam has a status label, and a red label such as "2 abnormal" tells you how many values are outside the range. [[View Results]] opens the same detail sheet.
 
-> Note: The reference values come from the laboratory configuration. When the table shows a dash, the parameter has no reference range for this patient, and the value has no automatic flag. Read it against your own references.
+> Note: The reference values come from the laboratory configuration, and the range shown is the one of the patient's sex. When the table shows a dash, the parameter has no reference range for this patient, and the value has no automatic flag. Read it against your own references.
+
+A validated result is locked in the laboratory: the technician can no longer overwrite it. If a value must change, the technician records a correction with a reason. The result then carries the label "Corrected" on the **Exams** tab, and its detail adds a block "Result corrected after validation" with the name of the author, the date, the reason and the value before correction. The doctor who prescribed the exam receives a bell notification, "Result corrected by the laboratory", with the exam, the patient and the reason. Read the corrected value before you rely on the first one.
 
 ## Appointments
 
@@ -216,8 +218,6 @@ The **Appointments** screen shows the appointments of the doctors. Nurses and do
 ![The appointments list](figures/appointments-list.png)
 
 The list shows the patient, the telephone number, the doctor, the date and time, the reason and the status. Use the search box {1} to find a patient, and the filters on the right to narrow by status (Pending, Cancelled, Completed) and by date (Today, or a chosen day). [[Calendar view]] {2} switches to a month calendar, and [[Book Appointment]] {3} opens the booking form.
-
-> Note: In the calendar view of the version used for this guide, the weekday header shows the raw text "appointments.calendar.weekdays_short" spread over the top row. The days and the appointments below it are correct.
 
 ### Booking an appointment
 
@@ -234,15 +234,15 @@ In the list view, each line carries five buttons. In the calendar view, select a
 
 ![The day panel of the calendar](figures/appt-day-panel.png)
 
-- [[Start consultation]] {1} opens the patient file. Select [[New consultation]] there and write the visit.
-- [[Complete]] {2} marks the appointment as done.
+- [[Start consultation]] {1} opens the patient file with the consultation form open. Write the visit and save: the appointment becomes "Completed".
+- [[Complete]] {2} marks the appointment as done without writing a consultation.
 - [[View record]] {3} opens the patient file without starting anything.
 - [[Edit]] {4} changes the date, the time, the doctor or the reason.
-- [[Reject]] {5} cancels the appointment. The application does not ask for a confirmation, and the line then shows "Cancelled" with only [[Edit]] left.
+- [[Reject]] {5} cancels the appointment. The application first asks "Reject this appointment? This cannot be undone." Once you confirm, the line shows "Cancelled" with only [[Edit]] left.
 
 A day without appointments opens the booking form with that date already filled in.
 
-The appointment does not close by itself when you save the consultation. After the visit, select [[Complete]]. The status turns to "Completed" and the line keeps only [[Edit]].
+When you write the consultation through [[Start consultation]], the appointment closes by itself when you save. For a visit that has no consultation form, select [[Complete]] after the visit. In both cases the status turns to "Completed" and the line keeps only [[Edit]].
 
 > Caution: Select [[Complete]] only for a visit that took place. Once an appointment is Completed or Cancelled, the line keeps only [[Edit]]. If you rejected one by mistake, book a new one.
 
@@ -252,14 +252,14 @@ The application keeps working when the internet connection drops. The consultati
 
 ![A consultation saved while the connection was down](figures/offline-saved.png)
 
-When the network is lost, the indicator {1} turns yellow and reads "Offline (your entries are saved)". The patient file, the Consultations list, the Prescriptions list and the Appointments list still open from the copy on the computer, and a new consultation or prescription is accepted. The new entry {2} appears in the file at once. After a new consultation saved offline, the author may show as "Inconnu" (unknown) until the file is reloaded.
+When the network is lost, the indicator {1} turns yellow and reads "Offline (your entries are saved)". The patient file, the Consultations list, the Prescriptions list and the Appointments list still open from the copy on the computer, and a new consultation or prescription is accepted. The new entry {2} appears in the file at once. After a new consultation saved offline, the author may show as "Unknown" and the vitals cards as a dash until the entry has reached the server. The file then reloads those two values by itself within a few seconds of the synchronisation.
 
 Some things need the server and do not work offline.
 
-- The **Dashboard** cannot read the statistics. It shows "Unable to load the statistics" and the waiting list looks empty ("No patient waiting"). The list is not empty, it is simply not readable. Taking a patient in charge needs the server.
+- The **Dashboard** cannot read the statistics. It shows "Unable to load the statistics." with a [[Try again]] button, and the waiting list shows "Cannot load the data while offline. Figures shown would not be reliable." with a [[Retry]] button instead of "No patient waiting". The list is not empty, it is simply not readable. Taking a patient in charge needs the server.
 - In the patient file, the blood pressure, weight and temperature cards show a dash.
-- In the patient list, the totals and the counters of the tabs show 0.
-- **Exam Results** reads "No completed exam found", which is also the message for a list with no results. Reading a result needs the server.
+- In the patient list, the counters of the tabs show a dash.
+- **Exam Results** shows the same message, "Cannot load the data while offline", with a [[Retry]] button. Reading a result needs the server.
 
 When the connection returns, the indicator goes back to green "Connected" within a few seconds and your entries are sent. Check that the entry you made offline is still in the file, then carry on.
 
@@ -283,33 +283,33 @@ The user name and the role cannot be changed here. To change your password, open
 2. Type the new password and type it again in the confirmation field.
 3. Select [[Save]].
 
-If the current password is wrong, the form answers "L'ancien mot de passe est incorrect", in French. When the change succeeds, the application signs you out of every session, including the one in use, and you sign in again with the new password. Choose a password of at least 8 characters.
+If the current password is wrong, the form answers "The password you entered is incorrect." When the change succeeds, the application signs you out of every session, including the one in use, and you sign in again with the new password. Choose a password of at least 8 characters.
 
 ## Common mistakes
 
-**Opening a new consultation instead of editing the nurse's one.** The nurse's record closes and keeps the first measurements as a separate, read-only line. Use [[Modifier]] after [[Take in charge]].
+**Opening a new consultation instead of editing the nurse's one.** The nurse's record closes and keeps the first measurements as a separate, read-only line. Use [[Edit]] after [[Take in charge]].
 
 **Looking for a result that is not there yet.** Exam Results shows completed exams only. An empty list can mean the laboratory has not finished, not that the order was lost.
 
-**Reading the dashboard offline.** An empty waiting list while the indicator reads "Offline" says nothing about the patients. Wait for "Connected".
+**Reading the dashboard offline.** A waiting list that cannot load while the indicator reads "Offline" says nothing about the patients. Wait for "Connected", then select [[Retry]].
 
-**Forgetting to select Complete on an appointment.** Saving the consultation does not close the appointment. The line stays Pending in the calendar.
+**Forgetting to select Complete on an appointment without a consultation.** A visit that you did not write through [[Start consultation]] stays Pending in the calendar until you select [[Complete]].
 
 **Writing allergies in the notes only.** The red allergy card of the file reads the Allergies field of the latest consultation. Write them there.
 
 **Leaving the end date empty on a long treatment.** The prescription then never appears as expiring on the Prescriptions screen.
 
-**Rejecting an appointment by accident.** [[Reject]] acts at once, without a question. Check the line before you select it.
+**Rejecting an appointment by accident.** The confirmation question is the last chance: read the patient and the time before you answer. A rejected appointment cannot be restored.
 
 ## When something goes wrong {.unnumbered}
 
 | What you see | What it means | What to do |
 |---|---|---|
 | Yellow "Offline" indicator | The computer cannot reach the server | Your entries are kept. Wait for "Connected"; tell the administrator if it lasts. |
-| "Ce dossier a déjà été pris en charge." | Another doctor took the patient first | Nothing to do. Choose the next patient. |
-| "Unable to load the statistics. Try again" | The dashboard could not reach the server | Select Try again, or check the connection. |
+| "This record has already been taken over." | Another doctor took the patient first | Nothing to do. Choose the next patient. |
+| "Unable to load the statistics." or "Cannot load the data while offline" | The dashboard could not reach the server | Select Try again or Retry, or check the connection. |
 | "Consultation closed: a more recent consultation exists" | A newer consultation exists for this patient | Work in the newest consultation. Ask an administrator for a correction in an older one. |
-| "No completed exam found" | No result is complete, or the computer is offline | Select Refresh when the connection is green, or ask the laboratory. |
+| "No completed exam found" | No result is complete yet | Select Refresh later, or ask the laboratory. |
 | A red message when saving a consultation | A required field is missing or a vital is out of range | Check the reason, the temperature (30 to 45), the weight and the height. |
 | An entry listed under Sync failures | The server refused something entered offline | Open Sync failures, read the reason, enter the text again in the latest consultation. |
 | Sign-in refused several times | Wrong password, or too many attempts | Wait a minute, then try again. Ask an administrator to reset the password. |

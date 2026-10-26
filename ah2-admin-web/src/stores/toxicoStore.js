@@ -3,6 +3,7 @@
 import { isLoadFailure } from '@/utils/loadFailure';
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
+import i18n from '../i18n.js';
 import { ToxicoGateway } from '@/services/ToxicoGateway'; // Assurez-vous que le chemin est correct
 import { newThisWeek } from '@/utils/toxicoUi';
 import { buildDischargedQuery, clampDischargedPage, DISCHARGED_PER_PAGE } from '@/utils/toxicoDischarged';
@@ -299,15 +300,15 @@ export const useToxicoStore = defineStore('toxico', () => {
         const now = new Date();
 
         patients.value.forEach(p => {
-            const pName = p.patientName || 'Patient Inconnu';
+            const pName = p.patientName || i18n.global.t('toxicoScreens.unknown_patient');
             
             // A. ALERTE CRITIQUE : Si rechute détectée (> 0)
             if (p.relapseCount && p.relapseCount > 0) {
                 alerts.push({
                     id: `relapse-${p.patient_id}`,
                     type: 'critical', // rouge
-                    title: `Rechute critique - ${pName}`,
-                    message: `Le patient a ${p.relapseCount} incident(s) signalé(s).`
+                    title: i18n.global.t('toxicoScreens.alert_relapse_title', { name: pName }),
+                    message: i18n.global.t('toxicoScreens.alert_relapse_message', { n: p.relapseCount })
                 });
             }
 
@@ -322,8 +323,8 @@ export const useToxicoStore = defineStore('toxico', () => {
                     alerts.push({
                         id: `delay-${p.patient_id}`,
                         type: 'warning', // jaune
-                        title: `Évaluation en retard - ${pName}`,
-                        message: `En Phase 1 depuis ${diffDays} jours (Max standard: 15j).`
+                        title: i18n.global.t('toxicoScreens.alert_late_title', { name: pName }),
+                        message: i18n.global.t('toxicoScreens.alert_late_message', { days: diffDays })
                     });
                 }
             }

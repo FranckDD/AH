@@ -174,6 +174,20 @@ const messages = {
       no_recent_activity: "Aucune activité récente.",
     },
     serverErrors: {
+      exam_in_use: "Cet examen est utilisé par des résultats : il ne peut pas être supprimé.",
+      username_exists: "Ce nom d'utilisateur existe déjà.",
+      email_exists: "Cette adresse e-mail est déjà utilisée.",
+      duplicate_value: "Cette valeur existe déjà.",
+      integrity_conflict: "Conflit de données : l'opération n'a pas pu être enregistrée.",
+      insufficient_stock: "Stock insuffisant pour cette opération.",
+      reception_linked_to_lot: "Une réception est liée à ce lot : annulation impossible.",
+      reception_duplicate: "Une réception valide existe déjà pour ce fournisseur et ce numéro de facture.",
+      active_product_exists: "Un produit actif portant ce nom existe déjà.",
+      count_already_open: "Vous avez déjà un comptage en cours.",
+      count_not_open: "Ce comptage n'est plus en cours.",
+      count_total_exceeds: "Le total trouvé dépasse le total attendu.",
+      file_too_large: "Le fichier dépasse la taille maximale autorisée (5 Mo).",
+      file_bad_type: "Le fichier doit être un PDF, un JPEG ou un PNG.",
       record_already_taken: "Ce dossier a déjà été pris en charge.",
       only_doctor_takes_record: "Seul un médecin peut prendre en charge un dossier en attente.",
       password_wrong: "Le mot de passe saisi est incorrect.",
@@ -344,6 +358,7 @@ const messages = {
       }
     },
     patients: {
+      code_pending: "Code en attente",
       title: "Patients",
       search_placeholder: "Rechercher par nom ou code...",
       tabs: {
@@ -433,6 +448,11 @@ const messages = {
       }
     },
     hospitalization: {
+      err_admit: "Erreur lors de l'admission du patient.",
+      err_status: "Erreur lors de la mise à jour du statut.",
+      err_discharge: "Erreur lors de la sortie du patient.",
+      err_history: "Impossible de charger l'historique d'hospitalisation.",
+      err_letter: "Impossible de télécharger la lettre de sortie.",
       title: "Patients hospitalisés",
       subtitle: "Séjours en cours",
       card_title: "Hospitalisation",
@@ -1254,6 +1274,7 @@ const messages = {
       }
     },
     medical: {
+      none_reported_empty: "Aucune signalée (dossier vide)",
       vitals: {
         bp: "Tension",
         weight: "Poids",
@@ -1450,6 +1471,7 @@ const messages = {
         "detail_unavailable": "Détail indisponible (hors ligne ou erreur de chargement)."
       },
       history_view: {
+        amend_offline: "Vous êtes hors ligne : la correction d'un résultat demande une connexion.",
         "search_ph": "Rechercher un patient ou un code...",
         "refresh": "Actualiser",
         "all_statuses": "Tous les statuts",
@@ -3012,6 +3034,12 @@ const messages = {
       day_unknown: "Date inconnue"
     },
     toxicoScreens: {
+      unknown_patient: "Patient inconnu",
+      alert_relapse_title: "Rechute critique - {name}",
+      alert_relapse_message: "Le patient a {n} incident(s) signalé(s).",
+      alert_late_title: "Évaluation en retard - {name}",
+      alert_late_message: "En phase 1 depuis {days} jours (maximum standard : 15 j).",
+      observation_required: "Observation requise (min 50 caractères)",
       week_note: "+{n} cette semaine",
       withdrawal_title: "En sevrage (phase 1)",
       withdrawal_note: "Nécessitent une surveillance accrue",
@@ -3514,6 +3542,20 @@ const messages = {
       no_recent_activity: "No recent activity.",
     },
     serverErrors: {
+      exam_in_use: "This exam is used by results and cannot be deleted.",
+      username_exists: "This user name already exists.",
+      email_exists: "This e-mail address is already in use.",
+      duplicate_value: "This value already exists.",
+      integrity_conflict: "Data conflict: the operation could not be saved.",
+      insufficient_stock: "Not enough stock for this operation.",
+      reception_linked_to_lot: "A reception is linked to this lot: it cannot be cancelled.",
+      reception_duplicate: "A valid reception already exists for this supplier and invoice number.",
+      active_product_exists: "An active product with this name already exists.",
+      count_already_open: "You already have a count in progress.",
+      count_not_open: "This count is no longer in progress.",
+      count_total_exceeds: "The total found exceeds the expected total.",
+      file_too_large: "The file exceeds the maximum allowed size (5 MB).",
+      file_bad_type: "The file must be a PDF, JPEG or PNG.",
       record_already_taken: "This record has already been taken over.",
       only_doctor_takes_record: "Only a doctor can take over a pending record.",
       password_wrong: "The password you entered is incorrect.",
@@ -3684,6 +3726,7 @@ const messages = {
       }
     },
     patients: {
+      code_pending: "Code pending",
       title: "Patients",
       search_placeholder: "Search by name or code...",
       tabs: {
@@ -3773,6 +3816,11 @@ const messages = {
       }
     },
     hospitalization: {
+      err_admit: "Error while admitting the patient.",
+      err_status: "Error while updating the status.",
+      err_discharge: "Error while discharging the patient.",
+      err_history: "Unable to load the hospitalization history.",
+      err_letter: "Unable to download the discharge letter.",
       title: "Hospitalized Patients",
       subtitle: "Current stays",
       card_title: "Hospitalization",
@@ -4594,6 +4642,7 @@ const messages = {
       }
     },
     medical: {
+      none_reported_empty: "None reported (empty record)",
       vitals: {
         bp: "Blood Pressure",
         weight: "Weight",
@@ -4790,6 +4839,7 @@ const messages = {
         "detail_unavailable": "Details unavailable (offline or loading error)."
       },
       history_view: {
+        amend_offline: "You are offline: correcting a result needs a connection.",
         "search_ph": "Search for a patient or a code...",
         "refresh": "Refresh",
         "all_statuses": "All statuses",
@@ -6352,6 +6402,12 @@ const messages = {
       day_unknown: "Unknown date"
     },
     toxicoScreens: {
+      unknown_patient: "Unknown patient",
+      alert_relapse_title: "Critical relapse - {name}",
+      alert_relapse_message: "The patient has {n} reported incident(s).",
+      alert_late_title: "Late evaluation - {name}",
+      alert_late_message: "In phase 1 for {days} days (standard maximum: 15 d).",
+      observation_required: "Observation required (min 50 characters)",
       week_note: "+{n} this week",
       withdrawal_title: "In withdrawal (phase 1)",
       withdrawal_note: "Need closer monitoring",

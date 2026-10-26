@@ -2,7 +2,7 @@
 title: Approvals and follow-up
 role: Promoter
 subtitle: Deciding discount requests and cash adjustments, setting the staff discount rules, reading the notifications, and following the laboratory stock, the production and the toxicology programme.
-version: 26 October 2026
+version: 27 October 2026
 output: promoter-2-approvals-follow-up
 ---
 
@@ -20,7 +20,7 @@ After you sign in, the application opens on the Overview page and the menu lists
 
 Two entries are decisions: [[Pending discount requests]] {1} and [[Cash closings]] {2}. [[Staff discounts]] {3} holds a setting. The others are follow-up screens: [[Stock count]] {4}, [[Lab stock]] {5} and [[Production]] {6}. [[Discount history]], [[Reports]] and Toxicology Monitoring complete the menu. The bell {7} holds your notifications and the account icon {8} opens your profile and password.
 
-The Overview page itself is built for the administrator. Its money tiles read "Indisponible" for you and the quick actions lead to screens you may not open. Only the Bed Occupancy tile, which counts the hospitalised patients, gives you a figure there. The guide on reports explains why, and it also explains the connection indicator that reads "Offline (your entries are saved)" even while the server answers.
+The Overview page is adapted to the promoter. It shows the toxicology, alerts and bed occupancy tiles, and three quick actions: **Open the reports**, **Review cash closings** and **Decide on discounts**. The money tiles and the staff accounts belong to the administrator and do not appear. The connection indicator at the top reads **Connected** while the server answers and **Offline** when the network is lost. The words "(your entries are saved)" that follow do not apply to your role: nothing is kept on the computer.
 
 ### What you can do differently from the administrator
 
@@ -37,7 +37,7 @@ You and the administrator share the discount decisions and the staff discount ru
 | Lab stock | Reads, handles orders, enters receipts | Same, and also cancels a receipt |
 | Toxicology | Reads the list and can discharge a patient | Same, and also exports the dossier as a PDF |
 
-A page that your role may not open sends you to a "Forbidden" screen. It is not a fault of the application.
+A page that your role may not open sends you to an "Access denied" screen. It is not a fault of the application.
 
 ## Discount requests
 
@@ -55,20 +55,17 @@ Select [[Pending discount requests]] in the menu. Each request is a card with th
 4. Type your own password in [[Confirm with your password]] {3}. The password proves that the decision is yours.
 5. Select [[Approve]] {4}, or [[Refuse]] {5}.
 
-The card disappears and the secretary is notified. Four decisions were taken on invoices of 25 000 FCFA, and the discount history recorded them as follows.
+The card disappears and the secretary is notified. Three decisions were taken on invoices of 25 000 FCFA, and the discount history recorded them as follows.
 
 | Decision | Result in the history |
 |---|---|
 | Approved at 50% | Reduced amount of 12 500 FCFA |
 | Approved with a deadline of 20 November 2026 and no percentage | Approved, with no reduced amount |
 | Refused | Refused, with no reduced amount |
-| Refused with 10% selected by mistake | Refused, and the percentage is ignored |
 
-Two checks protect you. A wrong password answers "Mot de passe incorrect." in red under the fields, as the figure shows, and nothing is decided. An approval with no percentage and no deadline answers "Une décision d'approbation doit accorder un pourcentage et/ou une échéance." in French. In both cases the card stays and you can try again.
+Three checks protect you. A wrong password answers "The password you entered is incorrect." in red under the fields, and nothing is decided. An approval with no percentage and no deadline answers "An approval must grant a percentage and/or a due date." A refusal cannot carry a percentage or a deadline: as soon as you have selected one of them, the [[Refuse]] button is greyed and the card says "To refuse, first clear the percentage and deadline you picked." with a button **Clear my choice**. In every case the card stays and you can try again.
 
 > Caution: A refusal does not cancel the invoice. It releases the invoice at its full price, and the secretary then collects the money or cancels the invoice. A percentage always applies to the full price. Approving 100% makes the invoice free, so read the amount before you select a button.
-
-> Note: The labels of the answers and the notifications of this chapter are still partly in French, for example "Mot de passe incorrect." and the secretary's entry "Demande de réduction refusée". This guide quotes them as they appear.
 
 ### Requests addressed to the administrator
 
@@ -125,15 +122,13 @@ The card [[Pending corrections]] {1} lists one entry per request. Each entry giv
 
 Both buttons act at once. There is no confirmation and no field for a reason. The page answers "Correction approved." or "Correction rejected.", and the entry leaves the list.
 
-An approved correction does not change the saved closing. It is counted in the next period as an entry (plus) or an exit (minus), and the next closing lists it under Adjustments applied to this period. A rejected one changes nothing. The page does not tell the secretary what you decided, so tell the secretary.
+An approved correction does not change the saved closing. It is counted in the next period as an entry (plus) or an exit (minus), and the next closing lists it under Adjustments applied to this period. A rejected one changes nothing. The secretary receives a notification with your decision ("Your cash adjustment (...) was approved." or "Your cash adjustment (...) was refused.").
 
-> Caution: You are not notified when a secretary sends an adjustment request. Two requests were sent while this guide was prepared and the bell stayed silent. Open Cash closings every day. The daily check of the reports does not list cash requests either.
-
-> Note: The subtitle of this screen says "Read only." That sentence is wrong for the pending corrections, which you decide. It is right for the list of closings.
+> Note: You and the administrators receive a notification as soon as a secretary sends an adjustment request: "Cash adjustment requested for the closing of ...: To decide." Selecting it opens Cash closings. A request still undecided after the waiting time of the daily check also appears there as a pending cash adjustment. The subtitle of the screen reads "Closings validated by the secretary or closed automatically at 11 pm. You decide the pending corrections."
 
 ### Reading the closings
 
-Under the corrections, the card Closings lists the closings of the last 30 days. You can filter by dates, by closing type (declared by the secretary, or not declared, which means closed automatically at 11 pm) and by the box that keeps only the closings with a difference. Each row shows the day, the type and the cash difference in words, such as "Difference of 1 000 FCFA short". Several closings can belong to the same day and the list shows the day only, not the time.
+Under the corrections, the card Closings lists the closings of the last 30 days. You can filter by dates, by closing type (declared by the secretary, or not declared, which means closed automatically at 11 pm) and by the box that keeps only the closings with a difference. Each row shows the day, the type and the cash difference in words, such as "Difference of 1 000 FCFA short". Several closings can belong to the same day, so the date column also shows the time at which each closing was saved.
 
 Select [[View detail]] on a row to see, for each payment mode, the opening, the entries, the exits, the amount expected, the amount counted and the difference, with the comment of the secretary. A closing without a counted amount is an automatic closing: nobody counted. Treat a day closed automatically as a day that was not checked.
 
@@ -143,18 +138,20 @@ The bell at the top right of every screen counts what is new for you.
 
 ![The bell and the list of notifications](figures/bell.png "small")
 
-Select the bell {1} and read the entries from the top, most recent first. Selecting an entry marks it as read and opens the screen that deals with it. A short message also appears at the top right when new entries arrive, and closes by itself. The entries below were seen during the preparation of this guide, and each was selected once to check where it leads.
+Select the bell {1} and read the entries from the top, most recent first. Selecting an entry marks it as read and opens the screen that deals with it. A short message also appears at the top right when new entries arrive, and closes by itself. The entries below are the ones you meet most, and each leads to the screen that deals with it.
 
 | Entry | What it means | What happens when you select it | What you do |
 |---|---|---|---|
-| "Grace Mbarga demande une réduction (25000 FCFA)" {3} | A secretary asked you for a discount | Opens Pending discount requests | Decide the request |
+| "Grace Mbarga requests a discount (25000 FCFA)" {3} | A secretary asked you for a discount | Opens Pending discount requests | Decide the request |
+| "Cash adjustment requested for the closing of ...: Cash, -500 FCFA. To decide." | A secretary asked for an adjustment after a closing | Opens Cash closings | Approve or reject the correction |
+| "Input ... is below its alert threshold: ... (threshold ...)." | A production input fell under its threshold | Opens the production inputs | Tell the production manager if no purchase is planned |
 | "Cash closing of 2026-10-26: cash expected ..., counted ..., No difference" | A closing was saved and matches | Opens Cash closings | Nothing, unless you want to read it |
 | "Anomaly: Cash closing of 2026-10-26: ..., Difference of 1000.00 short" | A closing was saved with a difference | Opens Cash closings | Open the detail and read the comment |
 | "Daily check of 2026-10-25: 2 new point(s), 0 still open" | The nightly check found points to look at | Opens Reports | Read the daily check |
 | "Lab: produis test almost out" {2} | The technician reported a low product | Opens To order | Order the product |
 | "Lab: produis test (lot 1) expires in 5 day(s)" | A lot is close to its expiry date | Opens Lab alerts | Check the lot and use it first |
 
-When the technician reports a product as out, the entry reads "out" instead of "almost out". The application also has entries for the weekly count reminder of the laboratory and for a product that was received. They did not appear during the preparation of this guide.
+When the technician reports a product as out, the entry reads "out" instead of "almost out". The application also has entries for the weekly count reminder of the laboratory and for a product that was received.
 
 Some entries are meant for the administrator or for the stock controller, for example stock adjustment requests and price differences. If one reaches you, selecting it does not lead anywhere, because you cannot open those screens.
 
@@ -207,7 +204,7 @@ You cannot cancel a receipt. Only the administrator can, so check the lines befo
 
 ## Following the production
 
-[[Production]] unfolds three screens: Production batches, Inputs and purchases, and Tracking and anomalies. The production manager enters everything. For you, all three are read-only: there is no New batch button, no New purchase button, and a batch has no action buttons when you open it.
+[[Production]] unfolds three screens: Production batches, Inputs and purchases, and Tracking and anomalies. The production manager enters everything. For you, all three are read-only: there is no New batch button, no New purchase button, and a batch has no action buttons when you open it. When an input falls under its alert threshold, you receive a notification once, as soon as the stock crosses the threshold.
 
 ![Production tracking](figures/production-tracking.png "small")
 
@@ -225,7 +222,7 @@ The promoter is an observer of the toxicology programme with one action: dischar
 
 ![The list of followed patients](figures/toxico-list.png)
 
-The tiles at the top give the active patients, the admissions of the month, the relapse rate and the patients in the first phase. The tabs Active and Discharged switch the list. For each patient the row shows the current phase, the relapses and the psychologist. The buttons are [[Details]] {1}, [[File]] {2} and [[Discharge]] {3}.
+The tiles at the top give the active patients, the admissions of the month, the relapse rate and the patients in the first phase. They describe the whole programme and do not change when you type in the search box. The tabs Active and Discharged switch the list. For each patient the row shows the current phase, the relapses and the psychologist. The buttons are [[Details]] {1}, [[File]] {2} and [[Discharge]] {3}.
 
 Details and File open the dossier of the patient: the toxicology history, with the buttons Discharge and Close the file. Unlike the administrator, you have no button to export the dossier as a PDF. The clinical notes of the doctors are not part of this screen.
 
@@ -235,9 +232,11 @@ Discharge closes the stay of the patient in the programme.
 
 1. Select [[Discharge]] {3} on the row of the patient.
 2. Choose the reason: Recovery, Dropout, Exclusion or Other.
-3. Write a note if you wish. It is optional.
-4. Read the yellow sentence: "The ongoing stay will be closed. The patient can be readmitted later (new stay)."
-5. Select [[Confirm discharge]].
+3. Check the **Discharge date**. It is today by default; you can choose an earlier day, but not a future day and not a day before the admission.
+4. Write a note if you wish. It is optional, except for the reason Other.
+5. Read the yellow sentence: "The ongoing stay will be closed. The patient can be readmitted later (new stay)."
+6. If the patient is also hospitalised, a red warning reads "This patient has a hospital stay open since ... Toxicology discharge does not close it: the medical team will have to close it." Tick "I understand, keep the hospital stay open" to continue, and tell the medical team.
+7. Select [[Confirm discharge]]. The message "Discharge recorded." confirms it.
 
 The form was opened and read during the preparation of this guide, but no patient was discharged, because every patient in the demonstration data is a test record that other guides use. The steps above come from the form itself.
 
@@ -256,7 +255,7 @@ The tab Profile {1} holds the full name, the e-mail address and the phone number
 1. Type the current password {1}, then the new one twice {2}{3}.
 2. Select [[Save]] {4}.
 
-Three checks were seen. A wrong current password answers "L'ancien mot de passe est incorrect", in French. Two new passwords that differ answer "The new passwords do not match." A new password shorter than 8 characters is stopped by the browser with a message that asks for 8 characters or more.
+Three checks were seen. A wrong current password answers "The password you entered is incorrect." Two new passwords that differ answer "The new passwords do not match." A new password shorter than 8 characters is stopped by the browser with a message that asks for 8 characters or more.
 
 When the change succeeds, the application signs you out of every session and shows the sign-in page again. Sign in with the new password. The first guide for the administrator describes the same form for the administrator.
 
@@ -266,7 +265,7 @@ When the change succeeds, the application signs you out of every session and sho
 
 **Approving a discount without reading the amount.** The card shows the full price and the percentage applies to it. A 100% approval makes the invoice free.
 
-**Waiting for a notification of a cash adjustment.** There is none. Open Cash closings each day.
+**Ignoring the notification of a cash adjustment.** The secretary waits for your answer, and the correction only enters the next period once it is approved.
 
 **Rejecting or approving a cash adjustment by habit.** Both buttons act at once and cannot be undone from the screen.
 
@@ -286,16 +285,16 @@ When the change succeeds, the application signs you out of every session and sho
 
 | What you see | What it means | What to do |
 |---|---|---|
-| "Mot de passe incorrect." on a discount card | The password typed is not yours | Retype it. Several failures in a row lock the card for a short while. |
-| "Une décision d'approbation doit accorder un pourcentage et/ou une échéance." | You approved without a percentage or a deadline | Choose a percentage or a date. |
+| "The password you entered is incorrect." on a discount card | The password typed is not yours | Retype it. Several failures in a row lock the card for a short while. |
+| "An approval must grant a percentage and/or a due date." | You approved without a percentage or a deadline | Choose a percentage or a date. |
 | A discount request is missing from your list | It was sent to the administrator | Ask the administrator, or read it in Discount history. |
-| "Forbidden" page | Your role may not open that screen | Use the screens of your menu. |
+| "Access denied" page | Your role may not open that screen | Use the screens of your menu. |
 | "No pending correction." | No cash adjustment is waiting | Nothing to do. |
 | "The rate must be an integer between 1 and 100." | The rate of a staff rule is outside the range | Type a whole number from 1 to 100. |
 | "Value must be 26/10/2026 or later" on an order | The expected date is in the past | Choose today or a later date. |
 | The Confirm receipt button stays grey | A line of the receipt is incomplete | Read the red sentence under the table and fill the missing field. |
-| The Overview tiles read "Indisponible" | The tiles are built for the administrator | Use Reports for the figures. |
-| "L'ancien mot de passe est incorrect" | The current password typed in the form is wrong | Retype it. |
+| The Refuse button of a discount card is grey | A percentage or a deadline is selected | Select Clear my choice, then refuse. |
+| "The password you entered is incorrect." in the profile form | The current password typed in the form is wrong | Retype it. |
 | The page asks you to sign in again after a password change | The change was successful | Sign in with the new password. |
 
 ## Glossary {.unnumbered}

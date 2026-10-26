@@ -24,7 +24,7 @@ check('ToxicoPatientDetailsModal', view, [
     'const props = defineProps({', 'default: () => ({})', "defineEmits(['close', 'open-dossier'])",
     "if (props.patient?.patient_id) {", "emit('open-dossier', props.patient.patient_id);", "emit('close');", '@click="openDossier"', "@click=\"$emit('close')\"", 'v-if="patient"',
     // formats
-    "date.toLocaleDateString('fr-FR', {", 'if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {', 'age--;',
+    "return formatDateDMY(dateString);", "import { formatDateDMY } from '@/utils/localDate';", 'if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {', 'age--;',
     // consentement : chargement authentifie (plus de lien /static public)
     "api.get(`/toxico/dossiers/${dossierId}/consent`, { responseType: 'blob' })", 'URL.createObjectURL', 'URL.revokeObjectURL',
     // identité

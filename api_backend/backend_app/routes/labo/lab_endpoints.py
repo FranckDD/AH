@@ -97,7 +97,11 @@ def update_examen(examen_id: int, payload: ExamenUpdate, ctrl: LabController = D
                dependencies=[Depends(role_required("admin"))])
 def delete_examen(examen_id: int, ctrl: LabController = Depends(get_lab_controller)):
     """Supprime un examen (Admin uniquement)."""
-    if not ctrl.delete_examen(examen_id):
+    try:
+        ok = ctrl.delete_examen(examen_id)
+    except ValueError as ve:
+        raise HTTPException(status_code=409, detail={"code": "exam_in_use", "message": str(ve)})
+    if not ok:
         raise HTTPException(404, "Examen introuvable.")
 
 # ====================================================================

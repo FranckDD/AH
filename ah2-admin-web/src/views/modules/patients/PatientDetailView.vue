@@ -30,7 +30,7 @@
                         {{ t('medical.alerts.allergies_title') }}
                     </h4>
                     <p class="mt-1 text-base font-medium leading-tight">
-                        {{ dossierStore.patientSummary?.allergies || t('common.none') }}
+                        {{ dossierStore.patientSummary?.allergies || t('medical.none_reported_empty') }}
                     </p>
                 </div>
             </div>

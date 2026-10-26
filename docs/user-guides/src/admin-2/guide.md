@@ -2,7 +2,7 @@
 title: Oversight, approvals, cash register and settings
 role: Administrator
 subtitle: Deciding discount and stock requests, supervising the cash closings, reading the reports and logs, and keeping the centre's settings right.
-version: 26 October 2026
+version: 27 October 2026
 output: admin-2-oversight-approvals-settings
 ---
 
@@ -38,11 +38,9 @@ The bell at the top right of every screen counts what is new for you. Select it 
 
 ![The notification list](figures/bell.png "small")
 
-Select the bell {1} and read the entries from the top {2}. The entries seen during the preparation of this guide were: a request for a stock adjustment, a request for a discount, and the result of a cash closing that has a difference (the entry starts with the word Anomaly). Selecting an entry marks it as read and opens the screen that deals with it, when there is one. A short message also appears at the top right when new entries arrive, and closes by itself.
+Select the bell {1} and read the entries from the top {2}. The entries you receive include: a request for a stock adjustment, a request for a discount, a cash adjustment request from a secretary ("Cash adjustment requested for the closing of ...: To decide."), the result of a cash closing that has a difference, a point of the daily check (the entry starts with the word Anomaly), and, for the production inputs, "Input ... is below its alert threshold". Selecting an entry marks it as read and opens the screen that deals with it, when there is one. A short message also appears at the top right when new entries arrive, and closes by itself.
 
-> Note: Some labels are not translated yet and stay in French in the English interface. Examples are the discount request in the bell, the reason of a count correction, and some lines of the daily check. This guide quotes the label as it appears on screen.
-
-> Note: On the administrator screens the connection indicator at the top reads "Offline (your entries are saved)" even while the server answers. The screens of this guide all need the server, so judge the connection by whether the screen loads and saves, not by this indicator.
+The connection indicator at the top shows **Connected** while the server answers. If the network drops it reads **Offline**. On a wide screen it adds "(your entries are saved)", which does not apply to your role: nothing is kept on the computer. The screens of this guide, which all need the server, show a message ("Cannot load the data while offline. Figures shown would not be reliable.", or "Cannot load the data. Try again." when the server does not answer) with a **Retry** button instead of empty tables or zeros. Select **Retry** once the connection is back.
 
 ## Discount requests
 
@@ -70,7 +68,9 @@ The card disappears and the secretary is notified. Three outcomes were checked o
 | Approved with a deadline only | The invoice stays at 25 000 FCFA, to be paid by instalments before the date |
 | Refused | The invoice is released at its full price of 25 000 FCFA |
 
-An approval must grant a percentage or a deadline, and a refusal must carry neither. If you select nothing, the card answers in French that an approval must grant a percentage and/or a deadline. A wrong password gives "Mot de passe incorrect." in red under the fields. After five wrong passwords within a minute the card refuses further tries for a minute.
+An approval must grant a percentage or a deadline, and a refusal must carry neither. If you select nothing, the card answers "An approval must grant a percentage and/or a due date." A wrong password gives "The password you entered is incorrect." in red under the fields. After five wrong passwords within a minute the card refuses further tries for a minute.
+
+A refusal must carry neither a percentage nor a deadline. When you have selected one of them, the [[Refuse]] button is greyed and the card says "To refuse, first clear the percentage and deadline you picked." with a button **Clear my choice**. Select it, then refuse.
 
 > Caution: A refusal does not cancel the invoice. It releases the invoice at the full price, and the secretary then collects the money or cancels the invoice. The percentage always applies to the full price, not to a price already reduced by a staff discount, and an approved percentage replaces any automatic staff discount on that invoice.
 
@@ -152,6 +152,8 @@ The stock controller counts the shelves. You do not count, but you decide the rh
 
 The field {1} holds the number of days allowed between two counts, from 1 to 365, and [[Save the frequency]] {2} stores it. The tiles count the products never counted, overdue or up to date. The box {3} limits the table to the products that need attention. A value outside the range is refused in red and the button stays grey. The History tab lists the validated counts with their gaps.
 
+The History tab also shows a card **My adjustment requests**: the correction requests that counts produced, with their number, product, outcome (Pending, Approved, Refused, Replaced by a more recent count or Cancelled) and, for a refusal, your reason. In the detail of a validated count, each gap also shows the outcome of its request.
+
 The Reports screen reports the products never counted and the ones overdue (see the chapter on the daily check).
 
 ## The cash register
@@ -181,13 +183,13 @@ A saved closing cannot be edited. When the secretary finds an error afterwards, 
 
 Each request names the closing, the payment mode, the amount (for example 1 000 FCFA less), the reason and the time. Read the reason, then select [[Approve]] {2} or [[Reject]] {3}. Both act at once: there is no confirmation and no field for a reason, so the answer "Correction approved." or "Correction rejected." is your only proof on screen.
 
-An approved adjustment does not change the saved closing. It is counted in the next period as an entry (plus) or an exit (minus), and the next closing lists it under Adjustments applied to this period. The secretary is not told about your decision by a message in the application, so tell the secretary.
+An approved adjustment does not change the saved closing. It is counted in the next period as an entry (plus) or an exit (minus), and the next closing lists it under Adjustments applied to this period. The secretary receives a notification with your decision ("Your cash adjustment (...) was approved." or "Your cash adjustment (...) was refused.").
 
-> Note: You are not notified when a secretary sends an adjustment request. Look at this screen every day. The Reports daily check does not list cash requests either.
+> Note: You and the promoter receive a notification when a secretary sends an adjustment request. A request still undecided after the waiting time set in the daily check settings (see the chapter on reports) also appears in the daily check as a pending cash adjustment.
 
 ### Reading the closings
 
-The Closings card lists the closings of the last 30 days. The filters are From and To, the Closing type {4} (all, declared by the secretary, or not declared, which means closed automatically at 11 pm) and the box {5} that keeps only the closings with a difference. Each row shows the day, the type and the cash difference in words, such as "Difference of 1 000 FCFA short". Several closings can belong to the same day and the list shows only the day, not the time. Open them one by one with [[View detail]] {6} to tell them apart: the detail gives the period with its start and end times.
+The Closings card lists the closings of the last 30 days. The filters are From and To, the Closing type {4} (all, declared by the secretary, or not declared, which means closed automatically at 11 pm) and the box {5} that keeps only the closings with a difference. Each row shows the day, the type and the cash difference in words, such as "Difference of 1 000 FCFA short". Several closings can belong to the same day, so the date column also shows the time at which each closing was saved. [[View detail]] {6} gives the period with its start and end times.
 
 ![The detail of one closing](figures/closure-detail.png)
 
@@ -227,8 +229,10 @@ The framed box {4} at the top is the list of points to look at, with the badge T
 | Batch out of tolerance, Batch too long, Shipped versus received gap | Production anomalies |
 | Never counted, Count overdue | Pharmacy products that were not counted in time |
 | Pending adjustment | A stock request waiting too long for your decision |
+| Pending cash adjustment | A cash adjustment request from a secretary waiting too long for a decision |
+| Input below threshold | A production input whose stock fell under its alert threshold |
 
-The label of some points arrives in French from the server, for example "Demande d'ajustement n. 321 en attente depuis 4 jours". The meaning is the one of the type badge next to it. A note under the list says how many days were recomputed when the server had to rebuild days without a nightly record.
+The label of each point is written in the language of the interface, for example "Adjustment request no. 321 pending for 4 days". A note under the list says how many days were recomputed when the server had to rebuild days without a nightly record.
 
 ### The cards
 
@@ -243,7 +247,7 @@ Under the daily check the cards are grouped in four blocks. Every card states it
 
 The stock cards and the production status describe the current state, not the chosen period, and say so. The table at the end, Total sold per product, has a search box and filters, and shows amounts before discounts, so it can differ from the collected figures of the Money block.
 
-> Note: When you select Export as PDF, the server prepares the file. In the demonstration installation the button answered "Could not generate the PDF. Please try again." even though the server returned a valid file when asked directly. If the message appears, try once more, then tell the technical support.
+> Note: [[Export as PDF]] downloads a file named rapports_ followed by the first and the last day of the period, for example rapports_2026-10-01_2026-10-26.pdf. It holds the daily check and the cards of the period, under the header of the centre.
 
 ### The two thresholds
 
@@ -251,7 +255,7 @@ At the bottom of the page, only you see the card Daily check settings.
 
 ![The two thresholds of the daily check](figures/reports-settings.png)
 
-[[Threshold of cancelled sales in a day]] {1} is a whole number from 1 to 1000: a point is reported when a day has more cancelled sales than this number. In the demonstration installation it is 3. [[Waiting time of adjustment requests (days)]] {2} is a whole number from 1 to 365: a stock request pending for longer than this is reported. It is also 3. Select [[Save the settings]] {3}; the page answers "Settings saved." A value outside the range is refused with a red message and nothing is saved. The new values were still there after the page was reloaded.
+[[Threshold of cancelled sales in a day]] {1} is a whole number from 1 to 1000: a point is reported when a day has more cancelled sales than this number. In the demonstration installation it is 3. [[Waiting time of adjustment requests (days)]] {2} is a whole number from 1 to 365: a stock request or a cash adjustment request pending for longer than this is reported. It is also 3. Select [[Save the settings]] {3}; the page answers "Settings saved." A value outside the range is refused with a red message and nothing is saved. The new values were still there after the page was reloaded.
 
 ## Other settings that only you can change
 
@@ -265,19 +269,17 @@ In the menu group Production, [[Production tracking]] shows the status of the ba
 
 [[System Configuration]] has four sections, each folded or unfolded by selecting its title.
 
-The first, Organisation identity and document header, holds the logos, the name and the contact lines that are printed on invoices, prescriptions and reports, and the legal numbers (NIU and RCCM). Edit the fields and select [[Save the organisation settings]]. A pop-up in French confirms "Configuration de la structure enregistrée avec succès !". The legal name is required.
+The first, Organisation identity and document header, holds the logos, the name and the contact lines that are printed on invoices, prescriptions and reports, and the legal numbers (NIU and RCCM). Edit the fields and select [[Save the organisation settings]]. A message confirms "Structure settings saved successfully." The legal name is required.
 
 Inside the same section the Ticket print token is the secret that the receipt printer bridge uses. Do not regenerate it without reason. A regeneration is possible only after ticking the confirmation box, and the printers stop until the new token is copied into the configuration file of the bridge on every workstation. A new token is meant to be generated only at installation.
 
-The second section is Exam Pricing, described in the first guide. The third, Prayer Book Types, is a read-only list of codes and labels. The fourth, General Settings & Maintenance, holds two controls that do nothing yet:
-
-> Important: The button Launch Backup waits three seconds and then shows "Database Backup terminée." No backup is made. The Maintenance Mode switch changes the label to ACTIVE on your screen only: nothing is stored, no user is blocked, and the switch is back to inactive when the page is reloaded. Do not rely on either. The backups of the database belong to the technical team.
+The second section is Exam Pricing, described in the first guide. The third, Prayer Book Types, is a read-only list of codes and labels. The fourth, General Settings & Maintenance, holds one card, Database Backup. It only states that "Backups are handled by the server (see operations manual)." The backups of the database belong to the technical team; nothing on this screen starts or changes a backup.
 
 ## Financial Management
 
 [[Financial Management]] is the ledger of money in and out: payments received at the cash desk and withdrawals, both listed with their status. It is the screen to answer "what came in and what went out between two dates".
 
-The three tiles at the top give the income, the expenses and the cash balance of the entries found by the filters. The search box, the category list, the two date fields and the buttons All, Income and Expenses narrow the table. The category list mixes the codes used by the application with older French labels, so a category may appear in two spellings. A payment of 0 FCFA, such as an invoice released by a discount decision before any payment, appears as an income of 0 FCFA.
+The three tiles at the top give the income, the expenses and the cash balance of the entries found by the filters. The search box, the category list, the two date fields and the buttons All, Income and Expenses narrow the table. The category list mixes the codes used by the application with older French labels, so a category may appear in two spellings. An invoice released by a discount decision before any payment moved no money and is not listed.
 
 ### Recording an entry yourself
 
@@ -291,6 +293,8 @@ The three tiles at the top give the income, the expenses and the cash balance of
 4. Describe the entry in [[Description / Reason]] {6}.
 5. Select [[Save Transaction]] {7}.
 
+The form opens with a yellow warning: "Attention. This creates a real payment or withdrawal. It counts in the cash closing, like any till operation."
+
 > Caution: An expense recorded here is a real cash withdrawal. It appeared in the secretary's list of withdrawals, and it counts in the next cash closing, where the secretary has not recorded it. An income recorded here is a real payment. Use this form only when the secretary cannot, and tell the secretary at once. A wrong entry is cancelled by a secretary with a written reason, as for any withdrawal.
 
 ## Audit and security
@@ -303,7 +307,7 @@ Action Audit {3} lists the actions of the staff: the user, the type of record, a
 
 The Start date field {1} shows only the entries from that day on. It applies to the tab you are on, so set it again after you change tabs. Connection History {2} lists the sign-ins and sign-outs.
 
-Two limits are worth knowing. The Details column shows a dash for most actions, so the log tells you who did what but not the old and new values. And the Connection History of the demonstration installation holds no entry after 3 December 2025, even though many sign-ins took place since. Until the technical team confirms that sign-ins are recorded again, do not use it as proof that someone was or was not connected.
+Two limits are worth knowing. The Details column summarises what changed, for example the field with its old and new value; passwords and tokens are never shown. Connection History records the sign-ins, the sign-outs and the failed sign-ins, with the reason of a failure (unknown user name, inactive account or wrong password), which the sign-in screen itself does not give. Creating, changing and deleting a staff account are logged in the Action Audit too.
 
 ## Common mistakes
 
@@ -313,11 +317,9 @@ Two limits are worth knowing. The Details column shows a dash for most actions, 
 
 **Correcting the stock to a count nobody rechecked.** An approval changes the stock immediately and cannot be undone from the screen.
 
-**Not looking at the cash adjustments.** You are not notified of them. A closing then stays wrong for the next period.
+**Leaving the cash adjustments undecided.** The secretary waits for your answer, and the next period then starts without the correction.
 
 **Starting the register with an estimate.** The starting float can never be changed.
-
-**Expecting the backup button or the maintenance switch to work.** Neither does anything yet.
 
 **Recording an income or an expense in Financial Management for a sale the secretary should record.** The entry counts in the cash closing, and the secretary then sees a difference.
 
@@ -327,16 +329,16 @@ Two limits are worth knowing. The Details column shows a dash for most actions, 
 
 | What you see | What it means | What to do |
 |---|---|---|
-| "Mot de passe incorrect." on a discount card | The password typed is not yours | Retype it. After five failures wait one minute. |
-| "Une décision d'approbation doit accorder un pourcentage et/ou une échéance." | You approved without a percentage or a deadline | Choose a percentage or a date. |
-| "Cette demande ne vous est pas adressée." | The request was sent to the promoter | Ask the promoter to decide. |
+| "The password you entered is incorrect." on a discount card | The password typed is not yours | Retype it. After five failures wait one minute. |
+| "An approval must grant a percentage and/or a due date." | You approved without a percentage or a deadline | Choose a percentage or a date. |
+| "This request is not addressed to you." | The request was sent to the promoter | Ask the promoter to decide. |
 | "Approve this request? Stock will change immediately." | Confirmation of a stock decision | Confirm only after reading the three figures of the row. |
 | The refusal form will not send | The decision reason is empty | Write a reason. |
 | The Approve button of a stock request answers with an error under the row | The stock changed since the request, or the request was already decided | Reload the list and read the current stock. |
 | The Cash closings card shows no start card | The register is already started | Nothing to do. |
 | "Enter a whole number from 1 to 1000." under a threshold | The value is outside the range | Type a whole number in the range. |
-| "Could not generate the PDF. Please try again." | The export of the report failed | Retry once, then tell the technical support. |
-| The Connection History is empty for today | Sign-ins are not recorded | Use the Action Audit instead. |
+| The Refuse button of a discount card is grey | A percentage or a deadline is selected | Select Clear my choice, then refuse. |
+| "Cannot load the data" with a Retry button | The server could not be reached | Select Retry when the connection is back. |
 | The secretary no longer sees a payment mode in the closing | The mode was made inactive | Tick Active again on the Cash closings screen. |
 
 ## Glossary {.unnumbered}

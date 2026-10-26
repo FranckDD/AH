@@ -55,3 +55,32 @@ def test_range_rejects_inverted_bounds(db_session, api_client):
 def test_update_unknown_param_is_404(db_session, api_client):
     client, headers, _ = _setup(db_session, api_client)
     assert client.put("/labo/params/99999999", json={"nom_parametre": "Z"}, headers=headers).status_code == 404
+
+
+def test_delete_exam_with_params_and_ranges_cascades(db_session, api_client):
+    client, headers, exam_id = _setup(db_session, api_client)
+    pid = client.post(f"/labo/exams/{exam_id}/params", json={"nom_parametre": "Hb", "unite": "g", "type_valeur": "numeric"}, headers=headers).json()["id"]
+    client.post(f"/labo/params/{pid}/ranges", json={"sexe": "M", "age_min": 0, "age_max": 120, "valeur_min": 13, "valeur_max": 17}, headers=headers)
+    assert client.delete(f"/labo/exams/{exam_id}", headers=headers).status_code == 204
+    from models.lab import Parametre, ReferenceRange
+    assert db_session.query(Parametre).filter(Parametre.id == pid).count() == 0
+    assert db_session.query(ReferenceRange).filter(ReferenceRange.parametre_id == pid).count() == 0
+
+
+def test_delete_exam_used_by_results_is_409_with_code(db_session, api_client):
+    client, headers, exam_id = _setup(db_session, api_client)
+    pid = client.post(f"/labo/exams/{exam_id}/params", json={"nom_parametre": "Hb", "unite": "g", "type_valeur": "numeric"}, headers=headers).json()["id"]
+    from models.lab import LabResult, LabResultDetail
+    from tests.conftest import create_test_patient
+    from models.user import User
+    adm = db_session.query(User).filter(User.username == "lp_admin").first()
+    patient_id, _ = create_test_patient(db_session, adm, first_name="DelEx", gender="F")
+    r = LabResult(patient_id=patient_id, test_type="Test", status="completed", examen_id=exam_id, code_lab_patient="LAB-DELEX-1")
+    db_session.add(r)
+    db_session.flush()
+    db_session.add(LabResultDetail(result_id=r.result_id, parametre_id=pid, valeur_text="1"))
+    db_session.flush()
+    resp = client.delete(f"/labo/exams/{exam_id}", headers=headers)
+    assert resp.status_code == 409, resp.text
+    assert resp.json()["detail"]["code"] == "exam_in_use"
+    assert resp.json()["detail"]["message"]

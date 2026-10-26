@@ -221,7 +221,11 @@ onMounted(async () => {
   // Arrivee depuis le dashboard ("Saisir") : ouvrir directement le dossier
   // cible au lieu de laisser le technicien le rechercher dans la liste.
   const target = Number(route.query.open);
-  if (target) openDossier(target);
+  if (target) {
+    await openDossier(target);
+    // Arrivee depuis l'historique ("Corriger ce resultat") : directement en mode correction.
+    if (route.query.amend && activeDossier.value?.status === 'completed') startAmend();
+  }
 });
 
 const refreshList = () => labStore.fetchPaillasseList();

@@ -2,7 +2,7 @@
 title: Batches, declared outputs and shipping
 role: Production manager
 subtitle: Preparing a production batch, starting it, entering the results, declaring samples and other outputs, shipping the good bottles to the centre, and following the anomalies.
-version: 26 October 2026
+version: 27 October 2026
 output: production-2-batches-outputs-shipping
 ---
 
@@ -63,7 +63,7 @@ The card **Consumptions** {1} lists what the batch takes, and the cost of each l
 ![A draft with two lines](figures/draft.png)
 
 1. Select [[Add a line]] {5}.
-2. Choose the purchase in [[Purchase]] {2}. Each choice names the input, the supplier, the date and the quantity that remains, for example "Guide demo honey jars | Demo Farm Supplies | 26/10/2026 | Remaining 50". Only active purchases with something left are offered.
+2. Choose the purchase in [[Purchase]] {2}. Each choice names the input, the supplier, the delivery reference when there is one, the date and the quantity that remains, for example "Guide demo honey jars | Demo Farm Supplies | Delivery ref. BL-0412 | 26/10/2026 | Remaining 50". Only active purchases with something left are offered.
 3. Type the quantity taken in [[Quantity]] {3}, in the unit of the input.
 4. Repeat for every input. Select **Remove** {4} to delete a line.
 5. Select [[Save]] {7}. The message "Draft saved." appears and the table of consumptions above shows the lines and the cost of the consumptions.
@@ -72,14 +72,12 @@ The rules of the lines are these.
 
 - The batch needs exactly one line that takes a container, that is an input marked **Container** in the first guide, such as the glass bottles. The number of bottles on that line is the number of bottles you expect from the batch. A batch with no container line, or with two, cannot start.
 - The container quantity must be a whole number. A quantity such as 20.5 is accepted when you save the draft, but the start is refused.
-- The other inputs accept up to three decimals, with a point or a comma: 2,5 is read as 2.5. Four decimals, zero and letters are refused with the message "The quantity must be greater than zero."
-- A purchase can appear on one line only. A second line on the same purchase is refused with "Un achat ne peut figurer qu'une fois dans un lot."
-- You cannot take more than what remains of the purchase. The message is "Quantite consommee superieure au restant de l'achat." and it comes when you start the batch.
+- The other inputs accept up to three decimals, with a point or a comma: 2,5 is read as 2.5. Zero is refused with the message "The quantity must be greater than zero." Letters, four decimals and a negative number are refused with "The quantity is not a valid number (3 decimals at most)."
+- A purchase can appear on one line only. A second line on the same purchase is refused with "A purchase can appear only once in a batch."
+- You cannot take more than what remains of the purchase. The message is "The quantity consumed exceeds what is left of the purchase." and it comes when you start the batch.
 - Every line needs a purchase. A line left without one is refused with "Choose a purchase on every line."
 
-Some of these messages are written in French in the English interface. They are quoted here as the screen shows them.
-
-> Tip: Two purchases of the same input from the same supplier on the same day look alike in the list. Only the remaining quantity tells them apart. Check it against the purchase list of the first guide, where the delivery reference is shown.
+> Tip: Two purchases of the same input from the same supplier on the same day look alike in the list. The delivery reference and the remaining quantity tell them apart. Check them against the purchase list of the first guide.
 
 A draft can stay as long as you like. It reserves nothing, so another batch may take the same purchase before you start yours.
 
@@ -104,7 +102,7 @@ When the bottles are filled and counted, open the batch and select [[Finish and 
 3. Type the liquid that was lost in [[Liquid lost]] {4}. It is information only and does not enter the balance. It accepts up to three decimals, with a point or a comma.
 4. Select [[Finish batch]] {5}.
 
-The three bottle counts must be whole numbers, zero or more, otherwise the form says "Bottle counts must be whole numbers, zero or more." Their total cannot be higher than the number of bottles expected. If it is, the message "Le total trouve depasse l'attendu." appears and nothing is saved.
+The three bottle counts must be whole numbers, zero or more, otherwise the form says "Bottle counts must be whole numbers, zero or more." Their total cannot be higher than the number of bottles expected. If it is, the message "Le total trouve depasse l'attendu." appears and nothing is saved. This message stays in French in the English interface.
 
 The message "Batch finished." appears and the status becomes **Finished**. The page now shows the results, the balance and the cost price.
 
@@ -114,11 +112,11 @@ The **Balance** compares what you expected with what you found. **Expected** is 
 
 The **Tolerance** is the share of the expected number that the centre accepts to lose without explanation. It was 2 % in the demonstration. The batch is **Out of tolerance** {1} only when the shortfall is higher than the tolerance. A shortfall equal to the tolerance is accepted: with 50 bottles expected and 49 found, the shortfall is 1 bottle, exactly 2 %, and the batch shows **Within tolerance**. Before shipping, the card says "Current tolerance". After shipping it says "Frozen at shipping" {2}, which means that the value in force on the day of shipping stays on the batch, even if the administrator changes the setting later.
 
-The **Cost price** card shows the **Total input cost**, which is the sum of each quantity multiplied by the unit cost of its purchase, and the **Cost per good bottle** {4}. That second figure divides the total by all the good bottles, including those you later declare as samples. In the example, 3 200 FCFA divided by 17 bottles gives 188.24, and the screen shows it rounded to 188 FCFA. The liquid lost is displayed with a comma, as in "0,5", even if you typed a point.
+The **Cost price** card shows the **Total input cost**, which is the sum of each quantity multiplied by the unit cost of its purchase, and the **Cost per good bottle** {4}. That second figure divides the total by all the good bottles, including those you later declare as samples. In the example, 3 200 FCFA divided by 17 bottles gives 188.24, and the screen shows 188,24 FCFA, with two decimals. The liquid lost is displayed with a comma, as in "0,5", even if you typed a point.
 
 ### Correcting the results
 
-If the count is wrong, select [[Reopen]] on the finished batch. The status goes back to **In production**, the inputs stay reserved, and you can enter the results again. Reopening is refused while the batch has active declared outputs: the message "Annulez d'abord les sorties declarees." asks you to cancel them first.
+If the count is wrong, select [[Reopen]] on the finished batch. The status goes back to **In production**, the inputs stay reserved, and you can enter the results again. The earlier counts, the balance, the cost and the **Out of tolerance** tag are cleared: they are calculated again when you finish the batch. Reopening is refused while the batch has active declared outputs: the message "Cancel the declared outputs first." asks you to cancel them first.
 
 ## Declared outputs
 
@@ -173,7 +171,7 @@ A batch can be cancelled while it is a draft, in production or finished. A shipp
 
 For a batch in production or finished, the form warns that "Reserved quantities will be given back to the purchase stock.", and it does. In the demonstration, a batch that had taken 10 bottles and 2 jars brought the stock from 90 to 80 bottles and from 205 to 203 jars when it started, and back to 90 and 205 when it was cancelled. The message is then "Batch cancelled, quantities given back to stock." For a draft, which reserved nothing, the message is "Batch cancelled." The reason stays on the batch.
 
-A finished batch that still has active declared outputs cannot be cancelled. The message "Annulez d'abord les sorties declarees." asks you to cancel them first, as for the reopening.
+A finished batch that still has active declared outputs cannot be cancelled. The message "Cancel the declared outputs first." asks you to cancel them first, as for the reopening.
 
 ## Tracking and anomalies
 
@@ -190,7 +188,7 @@ The card **Anomalies** lists what needs a look, with an **Open** button that goe
 | Kind | When it appears |
 |---|---|
 | Shortfall out of tolerance {1} | A batch has a shortfall above the tolerance. The line gives the bottles lost, the share in per cent and the tolerance. |
-| Input below its alert threshold | An input stock fell under its threshold. This is the alert described in the first guide. |
+| Input below its alert threshold | An input stock fell under its threshold. This is the alert described in the first guide, which also sends a notice to your bell when the stock crosses the threshold. |
 | Batch in production for too long | A batch has been in production or finished, without being shipped, for more than the set number of days, which is 7 at the moment. |
 | Gap between shipped and received {2} | A shipped batch was received at the centre with a different number of good bottles. The line gives the bottles shipped, the bottles received good, and the gap. |
 
@@ -206,7 +204,7 @@ The filters **From** {1}, **To** and **Reason** {2} narrow it. An output declare
 
 ## Working without a connection
 
-The batch screens read and write on the server. They keep no copy on the computer, so they need the network. The yellow indicator at the top reads "Offline (your entries are saved)" for your role even when the connection is good, as the first guide explains. Do not use it to judge the network.
+The batch screens read and write on the server. They keep no copy on the computer, so they need the network. The indicator at the top reads "Connected" while the server answers and "Offline" when it does not. Even then, the sentence "(your entries are saved)" does not apply to these screens.
 
 Without a connection, the list of batches shows the red band "Could not load. Try again." and "No batches.", and the form of a new batch cannot load the products: it says "The product catalogue could not be loaded." A batch opened from a link shows the same red band and no content. None of this means the batches are gone.
 
@@ -234,15 +232,16 @@ Keep the form open, wait for the network, and select the button again. Then chec
 | "Could not save. Try again." | The connection dropped as you sent | Keep the form open and send again when the network is back. |
 | "The start date must be before the end date." | The dates of a filter are in the wrong order | Correct one of them or select Clear dates. |
 | "Choose a purchase on every line." | A line of the draft has no purchase | Choose one or remove the line. |
-| "Un achat ne peut figurer qu'une fois dans un lot." | The same purchase is on two lines | Keep one line for that purchase. |
-| "Le lot doit avoir exactement une consommation de contenant." | No container line, or two | Keep one container line. |
-| "Quantite consommee superieure au restant de l'achat." | The purchase has less left than you typed | Lower the quantity or choose another purchase. |
+| "The quantity is not a valid number (3 decimals at most)." | A quantity holds letters, a negative number or four decimals | Retype it with at most three decimals. |
+| "A purchase can appear only once in a batch." | The same purchase is on two lines | Keep one line for that purchase. |
+| "The batch must have exactly one container consumption." | No container line, or two | Keep one container line. |
+| "The quantity consumed exceeds what is left of the purchase." | The purchase has less left than you typed | Lower the quantity or choose another purchase. |
 | "Le total trouve depasse l'attendu." | Good, broken and rejected bottles add up to more than expected | Recount, then correct the numbers. |
-| "Annulez d'abord les sorties declarees." | The batch has active declared outputs | Cancel the outputs, then reopen or cancel the batch. |
+| "Cancel the declared outputs first." | The batch has active declared outputs | Cancel the outputs, then reopen or cancel the batch. |
 | "All bottles have gone out: nothing to ship." | Every good bottle is declared as an output | Cancel an output, or cancel the batch. |
 | The button Declare the output stays grey | The reason is Other and the note is empty, or a field is empty | Fill in the reason, the quantity and the note. |
 | The button Validate and ship stays grey | The delivery date is empty, or the justification is missing | Fill them in. |
-| A page "Acces Interdit" | The screen is closed to your role | Select the button back to your dashboard. |
+| A page "Access denied" with the code 403 | The screen is closed to your role | Select the button back to your dashboard. |
 
 ## Glossary {.unnumbered}
 

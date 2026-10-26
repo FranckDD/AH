@@ -90,6 +90,7 @@
         <template #secondary>
           <AppButton variant="ghost" @click="$emit('close')">{{ t('lab.result_modal.close') }}</AppButton>
         </template>
+        <AppButton v-if="canAmend && result.status === 'completed'" variant="lab" :icon="PencilSquareIcon" @click="$emit('amend', result)">{{ t('lab.technician.amend_btn') }}</AppButton>
         <AppButton v-if="result.status !== 'pending'" variant="info" :icon="PrinterIcon" @click="printPdf">{{ t('lab.result_modal.print') }}</AppButton>
       </ActionBar>
     </template>
@@ -99,17 +100,19 @@
 <script setup>
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { PrinterIcon, ArrowUpIcon, ArrowDownIcon, ExclamationTriangleIcon } from '@heroicons/vue/24/outline';
+import { PencilSquareIcon, PrinterIcon, ArrowUpIcon, ArrowDownIcon, ExclamationTriangleIcon } from '@heroicons/vue/24/outline';
 import { AppButton, StatusBadge, ResponsiveTable, FullScreenPanel, ActionBar } from '@/components/ui';
 import { toneClasses } from '@/design/tones';
 import { rangeLabelForPatient } from '@/utils/labRanges';
 import dayjs from 'dayjs';
 
 const props = defineProps({
-  result: { type: Object, required: true }
+  result: { type: Object, required: true },
+  // Bouton « Corriger ce resultat » (historique du labo, roles autorises seulement).
+  canAmend: { type: Boolean, default: false },
 });
 
-const emit = defineEmits(['close', 'print']);
+const emit = defineEmits(['close', 'print', 'amend']);
 const { t } = useI18n();
 
 // --- COMPUTED ---

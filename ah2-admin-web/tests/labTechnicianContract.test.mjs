@@ -21,7 +21,7 @@ function check(name, src, needles) {
 // --- Contrat : paillasse (liste des dossiers, saisie des valeurs, drapeaux, validation, impression) ---
 check('LabTechnician', view, [
     // chargement et ouverture directe depuis le tableau de bord
-    'const refreshList = () => labStore.fetchPaillasseList();', 'await refreshList();', 'const target = Number(route.query.open);', 'if (target) openDossier(target);',
+    'const refreshList = () => labStore.fetchPaillasseList();', 'await refreshList();', 'const target = Number(route.query.open);', 'await openDossier(target);',
     'const activeDossier = computed(() => labStore.currentResult);',
     // liste
     // liste : un patient une seule fois (LabPassageCard), l'ouverture d'un examen reste openDossier(result_id)

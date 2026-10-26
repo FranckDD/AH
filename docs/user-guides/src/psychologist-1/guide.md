@@ -2,7 +2,7 @@
 title: Patients and sessions
 role: Psychologist
 subtitle: Reading the toxicology follow-up, opening a patient file, recording the evaluation that moves a patient between phases, finding discharged patients and printing the file.
-version: 26 October 2026
+version: 27 October 2026
 output: psychologist-1-patients-sessions
 ---
 
@@ -14,7 +14,7 @@ The screenshots come from a demonstration installation. The patients in the figu
 
 ### What the psychologist can see and do
 
-Your menu has two entries: **Toxicology Dashboard** and **Toxicology Monitoring**. Nothing else is open to your role. If you type the address of another screen, such as the patient list of the clinic or the user list, the application shows an "Accès Interdit" page (access denied) with a link back to your dashboard.
+Your menu has two entries: **Toxicology Dashboard** and **Toxicology Monitoring**. Nothing else is open to your role. If you type the address of another screen, such as the patient list of the clinic or the user list, the application shows an "Access denied" page with a link, [[Go to my dashboard]], back to your dashboard.
 
 You can read every patient followed in toxicology, not only the patients whose referring psychologist is you. You can open the file of each of them, including their last medical records and prescriptions, and you can record an evaluation on any of them. You cannot admit a patient, discharge a patient or readmit one: those actions belong to the toxicology manager and the administrator. You do not see invoices, the cash register, laboratory results or appointments, and the application shows no notification bell to your role.
 
@@ -22,7 +22,7 @@ You can read every patient followed in toxicology, not only the patients whose r
 
 The application starts in French on a new computer. The language switch sits at the top right of every screen: select **EN** to work in English. The choice is kept on that computer.
 
-> Note: Some texts stay in French in English mode. The clinical alerts on the dashboard ("Rechute critique", "Évaluation en retard"), the dates in the patient details window ("14 mars 1991"), the address "Non renseignée", the access denied page and the printed PDF are in French. The substances are stored as typed, for example "Alcool" and "Cocaïne".
+> Note: Some texts stay in French in English mode. The clinical alerts on the dashboard ("Rechute critique", "Évaluation en retard"), the dates in the patient details window ("14 mars 1991"), the comments that the application writes in the history ("Admission initiale", "Réadmission, séjour 2") and the printed PDF are in French. The substances are stored as typed, for example "Alcool" and "Cocaïne". The dates in the lists and in the file read day, month, year ("26/10/2026").
 
 ### Confidentiality
 
@@ -47,7 +47,7 @@ The application opens on the **Toxicology Dashboard**.
 
 The dashboard {1} summarises the whole toxicology service. The four tiles {2} give the active patients, the relapse rate, the patients still in withdrawal (phase 1) and the admissions of the month. **Distribution by Phase** {3} counts the patients in each of the four phases, and **Distribution by Substance** sits beside it. **Psychologist Workload** {4} shows how many patients each psychologist follows. **Clinical Alerts** {5} lists the patients who need attention: a relapse has been recorded, or a patient has stayed in phase 1 for longer than the standard period (15 days).
 
-> Caution: In the demonstration, the tile **Admissions (Month)** read 0 on this dashboard while the same tile on the Toxicology Monitoring screen read 2. The monitoring screen is the one to trust for that figure. The other tiles agree on both screens.
+The tiles count the whole service. They do not change when you type in the search box of the monitoring list, and the **Admissions (Month)** tile reads the same here and on the Toxicology Monitoring screen. When the server cannot be reached, the dashboard shows "Cannot load the data" with a [[Retry]] button and the tiles read a dash instead of 0.
 
 ## Reading the patient list
 
@@ -67,7 +67,7 @@ A patient moves through four phases: Phase 1 Withdrawal, Phase 2 Detox, Phase 3 
 
 Select [[Details]] to see the identity of the patient, the contact and the address, the substance, the admission date, the referring psychologist, the legal guardian (name and phone number), the consent document and the notes written at admission.
 
-The legal guardian is the person to call in an emergency. [[Open the full file]], at the foot of the window, closes it and opens the file described in the next chapter.
+The legal guardian is the person to call in an emergency. When a consent was uploaded, [[Download the document]] opens it in a new browser tab. The document is protected: it opens only while you are signed in, and each reading is recorded in the audit log. If it cannot be opened, the window says "Could not open the file. Try again or contact the administrator." [[Open the full file]], at the foot of the window, closes it and opens the file described in the next chapter.
 
 ## The patient file
 
@@ -87,8 +87,6 @@ Each evaluation appears in the history with its date, the decision, the phases b
 
 The stay groups everything that happened between the admission and the discharge. A patient who comes back after a discharge starts a second stay, which appears under the first.
 
-> Caution: In the demonstration, each evaluation was recorded twice in the history, the second copy showing the phase after the change as its starting phase (for example "PROGRESS phase 2 to phase 2"). Submit an evaluation once only, and tell the administrator if you see copies. Do not try to correct it by submitting again.
-
 ## Recording an evaluation
 
 The evaluation is the written result of an interview. It records one decision about the phase, your clinical observation and, if you wish, your recommendation. Do it after the interview, while your notes are fresh.
@@ -104,7 +102,7 @@ The evaluation is the written result of an interview. It records one decision ab
 6. Read the blue **Summary** line, which says in words what will happen, for example "The patient will move from phase 1 to phase 2".
 7. Select [[Submit Evaluation]] {6}.
 
-The button stays pale and does not work while the observation is empty. After a successful submission the window closes by itself and the list refreshes with the new phase. The application shows no confirmation message, so check the row or the file history.
+The button stays pale and does not work while the observation is empty. After a successful submission the window closes by itself and the list refreshes with the new phase. The application shows no confirmation message, so check the row or the file history. Each submission produces one line in the history.
 
 When you choose Progression, the card and the button turn green and the summary confirms the move. Write the observation so that a colleague who did not attend the interview understands why the patient advances.
 
@@ -138,8 +136,6 @@ Three buttons produce a PDF: **Export record (PDF)** in a patient file, **PDF** 
 
 The printed file carries the header of the centre, the identity of the patient, the guardian, each stay with its phases, and the table of evaluations with their date, decision, phases, observation, recommendation and author. At the foot are two signature zones: one for the psychologist, with your name, and one for the administrative manager. The document is written in French whatever the language of the screen.
 
-> Note: If a computer has a download manager installed in the browser, that program can intercept the PDF and the file may fail to arrive. Ask the administrator to exclude the application address from the download manager.
-
 A printed file contains the clinical text of your evaluations. Keep it in the patient folder and do not leave copies on shared printers.
 
 ## Working without a connection
@@ -148,9 +144,9 @@ The toxicology screens read their data from the server. They have no copy on the
 
 ![The list while the computer is offline](figures/offline.png)
 
-Your screen shows a yellow badge {1} reading "Offline (your entries are saved)". This badge stays yellow for your role even when the connection is good, so it does not tell you the state of the network. What does tell you is the content of the screen. When the computer cannot reach the server, the list shows "0 patients followed" {2} and "No patient found." {3}, and the tiles fall to zero. That is not the real situation: the patients are simply not readable.
+When the computer cannot reach the server, the badge {1} turns yellow and reads "Offline". The application checks the server every 15 seconds, so the badge goes back to "Connected" by itself when the link returns. The list then shows the message "Cannot load the data while offline. Figures shown would not be reliable." {2} with a [[Retry]] button {3} in place of the table, and the tiles read a dash. That is not the real situation: the patients are simply not readable.
 
-When you see an empty list, check the network cable or the Wi-Fi, reload the page and wait for the patients to come back. You cannot open the evaluation window without the list, so keep your interview notes on paper and enter the evaluation as soon as the patients are back.
+When you see this message, check the network cable or the Wi-Fi, then select [[Retry]]. You cannot open the evaluation window without the list, so keep your interview notes on paper and enter the evaluation as soon as the patients are back.
 
 ## Your profile and password
 
@@ -170,7 +166,7 @@ The user name and the role cannot be changed here. To change your password, open
 
 **Choosing Regression for a patient who did not relapse.** The relapse is counted in the statistics of the whole service.
 
-**Assuming the empty list is real.** After a network cut, reload the page before drawing any conclusion.
+**Reading a failed load as an empty service.** After a network cut, the list shows an error message and a dash in the tiles. Select Retry before you draw any conclusion.
 
 **Evaluating a patient of a colleague by accident.** Your list contains every patient of the service. Check the name on the evaluation window before you write.
 
@@ -182,12 +178,11 @@ The user name and the role cannot be changed here. To change your password, open
 
 | What you see | What it means | What to do |
 |---|---|---|
-| "Accès Interdit" page | Your role cannot open that screen | Select the link to your dashboard. |
-| "0 patients followed" and "No patient found." | The server cannot be reached | Check the network, reload the page. |
+| "Access denied" page | Your role cannot open that screen | Select the link to your dashboard. |
+| "Cannot load the data while offline" | The server cannot be reached | Check the network, then select Retry. |
 | Submit Evaluation stays pale | The observation is empty, or too short for a regression | Write the observation. |
 | A red message in the evaluation window | The server refused the evaluation | Read the message, correct, submit once. If it persists, tell the administrator. |
-| The same evaluation twice in a history | A known duplicate of the demonstration version | Do not submit again. Tell the administrator. |
-| "PDF export failed. Please try again later." | The browser did not receive the PDF | Try again once. If a download manager is installed, exclude the application from it. |
+| "PDF export failed. Please try again later." | The PDF could not be produced | Try again once. If it persists, tell the administrator. |
 | Sign-in refused several times | Wrong password, or too many attempts | Wait a minute, then try again. Ask an administrator to reset the password. |
 
 ## Glossary {.unnumbered}

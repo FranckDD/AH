@@ -186,6 +186,7 @@ const {
   setFromExisting,
 } = usePatientLookup(() => t('medicalRecords.modal.patient_not_found'));
 
+const APPOINTMENT_MOTIF_CODE = 'rendez-vous';
 const today = todayLocalISO();
 
 const form = reactive({
@@ -224,7 +225,13 @@ const severityOptions = [
 
 onMounted(async () => {
   if (!medicalRecordStore.motifs.length) {
-    medicalRecordStore.fetchMotifs();
+    await medicalRecordStore.fetchMotifs();
+  }
+  // Consultation ouverte depuis un rendez-vous : le motif est celui du rendez-vous (le motif est obligatoire,
+  // le laisser vide bloquait le premier Enregistrer). Reste modifiable.
+  if (!props.record && props.appointmentId && !form.motifCode
+      && medicalRecordStore.motifs.some((m) => m.code === APPOINTMENT_MOTIF_CODE)) {
+    form.motifCode = APPOINTMENT_MOTIF_CODE;
   }
 
   if (props.record) {

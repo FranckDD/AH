@@ -2,7 +2,7 @@
 title: Inputs and purchases
 role: Production manager
 subtitle: Recording the raw materials and containers bought for production, keeping the input stock right, correcting a mistaken purchase, and watching the alert thresholds.
-version: 26 October 2026
+version: 27 October 2026
 output: production-1-inputs-purchases
 ---
 
@@ -20,7 +20,7 @@ The application opens on **Production batches**. Your menu has one group, **Prod
 
 **Production batches** {2} lists the batches and belongs to the second guide. **Inputs and purchases** {3} is the subject of this guide. **Tracking and anomalies** {4} shows the count of batches by status and the list of anomalies, among them the inputs that run low.
 
-You are the only role that can record a purchase, cancel one, create an input, edit one or deactivate one. The administrator and the promoter can read the same screens. The administrator alone sets the alert threshold of an input, and the settings of the tracking screen (the tolerance and the number of days after which a batch is reported as too long) are shown to the administrator only. The patient screens, the pharmacy stock, the cash register, the laboratory and the logs are closed to you. If you type the address of one of them, the application shows a page "Acces Interdit", written in French, with a button back to your dashboard.
+You are the only role that can record a purchase, edit one, cancel one, create an input, edit one or deactivate one. The administrator and the promoter can read the same screens. The administrator alone sets the alert threshold of an input, and the settings of the tracking screen (the tolerance and the number of days after which a batch is reported as too long) are shown to the administrator only. The patient screens, the pharmacy stock, the cash register, the laboratory and the logs are closed to you. If you type the address of one of them, the application shows a page "Access denied" with the code 403 and a button back to your dashboard.
 
 > Note: The prices of purchases are visible on your screens and on those of the administrator and the promoter. They are not shown to other staff.
 
@@ -37,7 +37,7 @@ After several failed attempts in a short time, the server refuses new tries for 
 
 ### The top bar
 
-The top bar shows a yellow indicator that reads "Offline (your entries are saved)". Do not read it as the state of your network, the chapter on working without a connection explains why. Next to it come the language switch, the account icon and **Logout**, which are the same for every role. There is no bell for your role: nothing is sent to you as a notice.
+The top bar shows an indicator that reads "Connected" while the server answers and "Offline" when it does not. Next to it come the bell, the language switch, the account icon and **Logout**. The bell holds your notices. For your role, the only notice is the one that tells you an input fell under its alert threshold; the chapter on the alert threshold describes it.
 
 ## The inputs and purchases screen
 
@@ -89,11 +89,21 @@ The new input appears in the stock card at once, with the quantity bought. Choos
 
 An input has no price of its own. The price lives on each purchase, and two purchases of the same input can have two prices. When you prepare a batch, you choose which purchases it takes and in what quantity. The cost of the batch is the sum, for each line, of the quantity taken multiplied by the unit cost of that purchase. The list you choose from names the input, the supplier, the date and the quantity that remains of each active purchase. A cancelled purchase is not offered.
 
-This has two consequences for the work of recording. A wrong unit cost distorts the cost price of every batch that takes that purchase, and nothing on the screen lets you change the cost of a purchase afterwards. Check the price against the delivery note before you select **Save**. And type the unit cost, not the total of the invoice: 400 stoppers invoiced 8 000 FCFA are recorded as a quantity of 400 and a unit cost of 20.
+This has two consequences for the work of recording. A wrong unit cost distorts the cost price of every batch that takes that purchase. You can still correct the cost of a purchase that no batch has taken, as the next chapter explains. Check the price against the delivery note before you select **Save**. And type the unit cost, not the total of the invoice: 400 stoppers invoiced 8 000 FCFA are recorded as a quantity of 400 and a unit cost of 20.
 
 ## Correcting a mistaken purchase
 
-A recorded purchase cannot be edited. To correct it, cancel it with a reason and record it again.
+Two corrections exist. A purchase that no batch has taken can be edited: the supplier, the delivery reference and the unit cost change, the quantity does not. For any other mistake, cancel the purchase with a reason and record it again.
+
+### Editing a purchase
+
+1. In the list of purchases, select [[Edit purchase]] on the line. The button appears only on an active purchase that no batch has taken.
+2. Change the supplier, the delivery reference or the unit cost in the form **Edit a purchase**. The unit cost is required.
+3. Select [[Save]].
+
+The message "Purchase updated." appears. If a batch took part of the purchase in the meantime, the server refuses the change and shows its message in the form.
+
+### Cancelling a purchase
 
 1. In the list of purchases, select [[Cancel purchase]] on the wrong line.
 2. Type the reason in [[Reason for cancelling]] {1}. It is required.
@@ -101,13 +111,13 @@ A recorded purchase cannot be edited. To correct it, cancel it with a reason and
 
 ![The cancellation form](figures/cancel-form.png "small")
 
-The message "Purchase cancelled." appears, the line shows the status **Cancelled** and has no button left, and the stock of the input falls by what that purchase held. An input that then has no active purchase shows the button **Edit** again. A cancelled line still shows its quantity in the **Remaining** column, so read the stock card to know what is really in store.
+The message "Purchase cancelled." appears, the line shows the status **Cancelled** and has no button left, and the stock of the input falls by what that purchase held. An input that then has no active purchase shows the button **Edit** again. A cancelled line keeps its original quantity and shows 0 in the **Remaining** column.
 
 When a batch has already taken part of a purchase, the cancellation is refused with a red message {2} in the form.
 
 ![A refused cancellation](figures/cancel-refused.png "small")
 
-The message is "Cet achat a deja ete consomme par un lot." It is written in French in the English interface. It means that the purchase has been used, and that its price is already part of a batch. Close the form. The purchase stays as it is.
+The message is "This purchase has already been consumed by a batch." It means that the purchase has been used, and that its price is already part of a batch. Close the form. The purchase stays as it is.
 
 > Caution: Cancel only to correct a recording mistake. If goods were bought and a part of them was later damaged or lost, the purchase stays as it is. The loss belongs to the batch that used the goods.
 
@@ -139,7 +149,11 @@ The same alert appears on **Tracking and anomalies**. The tile **Anomalies** {1}
 
 ![The alert on the tracking screen](figures/suivi-alert.png)
 
-The alert disappears by itself once a purchase brings the stock back above the threshold. No notice is sent to anyone when an input falls under its threshold, so open the screen from time to time, and at least before you prepare a batch.
+The alert disappears by itself once a purchase brings the stock back above the threshold.
+
+### The notice in the bell
+
+When the stock of an active input falls under its threshold, you receive a notice in the bell: "Input [name] is below its alert threshold: [stock] [unit] (threshold [threshold])." The administrator and the promoter receive it too. The notice is sent once each time the stock crosses the threshold: starting a batch that takes the stock under the line, cancelling or editing a purchase, or a new threshold set above the stock. It is not repeated while the stock stays under the threshold. Selecting the notice opens **Inputs and purchases**. The daily check that the promoter reads also lists an input that stands under its threshold.
 
 ## Finding a purchase again
 
@@ -149,7 +163,7 @@ If the first date is after the second, the message "The start date must be befor
 
 ## Working without a connection
 
-The screens of this guide read and write on the server. They keep no copy on the computer. The yellow indicator at the top reads "Offline (your entries are saved)" for your role even when the connection is good, so do not use it to judge the network. It is true for other roles, whose work is saved on the computer, and not for yours.
+The screens of this guide read and write on the server. They keep no copy on the computer, whatever the top indicator says: for your role, the sentence "Offline (your entries are saved)" does not apply to these screens.
 
 When the computer cannot reach the server, the screen shows the red band "Could not load. Try again.", the stock card says "No input recorded." and the list says "No purchase recorded." This does not mean that nothing is in store. If you fill in a purchase and select **Save** without a connection, the form answers "Could not save. Try again." {1} and keeps what you typed.
 
@@ -173,16 +187,17 @@ The account icon at the top right opens **My Account**. On the **Profile** tab, 
 
 **Cancelling to hide a loss.** A cancellation is meant for a recording mistake. It asks for a reason, and it is refused once a batch has used the goods.
 
-**Waiting for a warning.** Nothing warns you when stock runs low. Read the state column before you start a batch.
+**Ignoring the bell.** The notice of an input under its threshold comes once. Read the state column before you start a batch.
 
 ## When something goes wrong {.unnumbered}
 
 | What you see | What it means | What to do |
 |---|---|---|
-| A page "Acces Interdit", written in French | The screen is closed to your role | Select the button back to your dashboard. |
+| A page "Access denied" with the code 403 | The screen is closed to your role | Select the button back to your dashboard. |
 | "Could not load. Try again." and empty lists | The computer cannot reach the server | Wait for the network, then reload the page. |
 | "Could not save. Try again." | The connection dropped as you sent | Keep the form open and select Save again when the network is back. |
-| "Cet achat a deja ete consomme par un lot." | A batch used that purchase | Leave the purchase as it is. Tell the administrator if the price was wrong. |
+| "This purchase has already been consumed by a batch." | A batch used that purchase | Leave the purchase as it is. Tell the administrator if the price was wrong. |
+| No Edit purchase button on a line | The purchase is cancelled, or a batch took part of it | The cost can no longer change. Tell the administrator if the price was wrong. |
 | "The reason is required." | The cancellation was sent without a reason | Type the reason, then confirm. |
 | "The start date must be before the end date." | The two dates of the filter are in the wrong order | Correct one of them, or select Clear dates. |
 | The input is missing from the purchase list | The input is deactivated | Select Show deactivated, then Reactivate. |

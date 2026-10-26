@@ -2,7 +2,7 @@
 title: Reports and daily control
 role: Promoter
 subtitle: Reading the Reports page, the daily check of anomalies and its notification, the figures of money, products, production and growth, and the PDF export.
-version: 26 October 2026
+version: 27 October 2026
 output: promoter-1-reports-daily-control
 ---
 
@@ -26,13 +26,13 @@ After you sign in, the application opens on the Overview page, then your menu li
 
 [[Reports]] {1} is the screen of this guide. The bell {2} holds the notifications, among them the nightly daily check. [[Pending discount requests]] {4} is the subject of the second guide.
 
-> Caution: The Overview page that opens first shows the label "Indisponible" in the money tiles {3} and offers quick actions such as Manage Staff and Receive Payment. Those tiles are built for the administrator and the server refuses them to the promoter. They do not describe a fault of the centre. Use Reports for every figure.
+The Overview page that opens first is adapted to the promoter. It shows the toxicology, alerts and bed occupancy tiles {3} and three quick actions: **Open the reports**, **Review cash closings** and **Decide on discounts**. The money tiles and the staff accounts belong to the administrator and do not appear on your page. Use Reports for every figure of money.
 
-> Note: The connection indicator at the top reads "Offline (your entries are saved)" even while the server answers. Reports needs the server and does not use the indicator. Judge the connection by whether the page loads.
+The connection indicator at the top reads **Connected** while the server answers. Reports needs the server: when the connection is lost, the indicator reads **Offline** (with "(your entries are saved)", which does not apply to your role) and the page shows a message with a **Retry** button instead of empty cards.
 
 ### Interface language
 
-The language switch sits at the top right, next to the bell. Select **EN** to work in English. Some labels come from the server and stay in French, for example the sentence of an anomaly ("Demande d'ajustement n. 321 en attente depuis 4 jours") and the name of the source at the foot of each card. This guide quotes them as they appear.
+The language switch sits at the top right, next to the bell. Select **EN** to work in English. The sentence of each anomaly, for example "Adjustment request no. 321 pending for 4 days", and the name of the source at the foot of each card are written in the language you chose. Only the texts typed by people, such as the reason of a cancelled sale, appear as they were typed.
 
 ## Choosing the period
 
@@ -84,16 +84,18 @@ The types you can meet are the following.
 | Batch out of tolerance, Batch too long, Shipped versus received gap | Anomalies of the production batches |
 | Never counted, Count overdue | Pharmacy products that were not counted, or not counted in time |
 | Pending adjustment | A stock request that has waited longer than the limit for the administrator |
+| Pending cash adjustment | A cash adjustment request from a secretary that has waited longer than the same limit for a decision, yours or the administrator's |
+| Input below threshold | A production input whose stock fell under its alert threshold |
 
-Some sentences arrive in French from the server. The type badge next to the sentence is always in English, so read the badge for the meaning.
+The type badge next to the sentence gives the meaning at a glance.
 
 ### The "Open the screen" button
 
-When the point has a screen that deals with it, the button [[Open the screen]] {6} appears at the end of the row. In the demonstration installation the button of a cash gap opened Cash closings, and the button of the products never counted opened Stock count.
+When the point has a screen that deals with it, the button [[Open the screen]] {6} appears at the end of the row. In the demonstration installation the button of a cash gap opened Cash closings, the button of the products never counted opened Stock count, and the button of a pending cash adjustment opens Cash closings, where you can decide it. The button of an input below its threshold opens the production inputs.
 
-The button appears only when your account may open the screen. The pending stock request of the figure has no button: Adjustment requests belong to the administrator, and a direct visit to that address opens a page titled "Accès Interdit" (access forbidden), in French. When a point has no button, tell the administrator about it.
+The button appears only when your account may open the screen. The pending stock request of the figure has no button: Adjustment requests belong to the administrator, and a direct visit to that address opens a page titled "Access denied". When a point has no button, tell the administrator about it.
 
-> Note: A point with the type Pending adjustment is a question for the administrator, and a point with the type Cash gap is one you can follow yourself in Cash closings, where the closing detail and the comment of the secretary are written.
+> Note: A point with the type Pending adjustment is a question for the administrator, while a point with the type Cash gap or Pending cash adjustment is one you can follow yourself in Cash closings, where the closing detail and the comment of the secretary are written.
 
 ### Days without an evening record
 
@@ -119,7 +121,7 @@ The message appears in the bell, for example "Daily check of 2026-10-25: 2 new p
 
 The notification does not list the points. Open Reports and read the daily check, where the first column of marks tells you which points are new.
 
-> Important: The bell shows many other notifications, such as cash closing anomalies and lab alerts. The nightly check is a summary of the day and does not replace them.
+> Important: The bell shows many other notifications, such as cash closing anomalies, the cash adjustment requests of the secretaries ("To decide") and the production inputs under their threshold. The nightly check is a summary of the day and does not replace them.
 
 ### How a point stays or leaves the list
 
@@ -199,10 +201,6 @@ Only active sales count. A cancelled or refunded sale and a sale that waits for 
 2. Select [[Export as PDF]]. The button shows a waiting label while the server prepares the file.
 3. Open the file that the browser downloads. Its name is "rapports_" followed by the two dates, for example rapports_2026-10-20_2026-10-26.pdf.
 
-If the server cannot prepare the file, the page writes a red sentence next to the button: "Could not generate the PDF. Please try again."
-
-> Caution: During the preparation of this guide, the sentence above appeared every time in the test browser, although the server answered normally and returned a valid PDF when it was asked directly. The cause was on the computer and not in the centre's server: a download manager installed on that computer intercepted the download request and answered it itself, with an empty reply, before the page could receive the file. If you see the sentence, pause or close the download manager of your computer, or add the address of the application to its exclusions, then try again. If the sentence stays, tell the technical team.
-
 ## What you cannot do here
 
 Reports is a reading page. The following actions exist in the application but not on your side:
@@ -216,11 +214,11 @@ Reports is a reading page. The following actions exist in the application but no
 | Record an income or an expense in the ledger | The administrator |
 | Read the action log | The administrator |
 
-When you type the address of one of these screens directly, the application opens the page "Accès Interdit". Nothing is changed.
+When you type the address of one of these screens directly, the application opens the page "Access denied". Nothing is changed.
 
 ## Common mistakes
 
-**Reading the Overview page as the figures of the centre.** The money tiles of that page are blank for the promoter and show "Indisponible". Use Reports.
+**Reading the Overview page as the figures of the centre.** The Overview page of the promoter has no money tiles. Use Reports.
 
 **Comparing the table of sold products with the Money block.** The table is before discounts and counts invoice lines, the Money block counts payments received. A difference is normal.
 
@@ -238,12 +236,10 @@ When you type the address of one of these screens directly, the application open
 
 | What you see | What it means | What to do |
 |---|---|---|
-| "Could not generate the PDF. Please try again." | The export failed on the way to your computer | Pause the download manager of the computer, then try again. If it stays, tell the technical team. |
 | "The end date is before the start date." | The custom range is the wrong way round | Swap the two dates and select Apply. |
 | A red message with a Retry button in the daily check or in the table | The server did not answer | Select the button. If it fails again, check the connection and tell the administrator. |
-| "Indisponible" in the money tiles of the Overview page | The tiles are for the administrator | Open Reports. |
 | A point of the daily check has no Open the screen button | The screen belongs to another role | Tell the administrator about the point. |
-| The page "Accès Interdit" opens after you typed an address | The screen is not part of your role | Use the menu on the left. |
+| The page "Access denied" opens after you typed an address | The screen is not part of your role | Use the menu on the left. |
 | A card shows a figure with no period or source | This should not happen | Note the card and tell the technical team. |
 | No notification arrived this morning | Nothing new was found, or the night run did not run | Open Reports and read the daily check. If the day before the last is missing, tell the technical team. |
 

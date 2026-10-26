@@ -2,7 +2,7 @@
 title: Hospitalisation and follow-up
 role: Doctor
 subtitle: Admitting a patient, recording the progress of the stay, raising an aggravation, discharging with the discharge letter, readmitting, and following a patient over time.
-version: 26 October 2026
+version: 27 October 2026
 output: doctor-2-hospitalisation-follow-up
 ---
 
@@ -28,7 +28,7 @@ Three places show the stays, and each answers a different question.
 
 ![The list of current stays](figures/hosp-list.png)
 
-**Hospitalized Patients** {1} in the menu lists every patient who is in the centre now, whoever admitted them. The columns give the admission date and time, the number of days, the current status {2}, and the person who admitted the patient. A small red triangle before a name means the latest entry is a worsening: look at those lines first. The patient name and [[View record]] {3} both open the patient file.
+**Hospitalized Patients** {1} in the menu lists every patient who is in the centre now, whoever admitted them. The columns give the admission date and time, the length of the stay, the current status {2}, the admission reason and the person who admitted the patient. The length reads in minutes under one hour ("45 min"), in hours and minutes under one day ("5 h 20 min"), then in days and hours ("2 day(s) 4 h"). A small red triangle before a name means the latest entry is a worsening: look at those lines first. The patient name and [[View record]] {3} both open the patient file.
 
 The list shows open stays only. A patient who has been discharged leaves the list at once and stays visible in the history of the file (chapter 6).
 
@@ -38,9 +38,7 @@ The **Dashboard** counts the stays in a tile.
 
 ![The Dashboard with the Current stays count](figures/dashboard.png)
 
-The block **Current stays** {1} in Quick access and the tile **Current stays (establishment)** show the number of open stays in the whole centre, not only yours. A click on the block opens the list. The Dashboard keeps its figures for about five minutes, so after an admission or a discharge the count can lag behind the list. The list is always current.
-
-> Note: Trust the list, not the Dashboard count, when you need the exact number of patients in the centre at this moment.
+The block **Current stays** {1} in Quick access and the tile **Current stays (establishment)** show the number of open stays in the whole centre, not only yours. A click on the block opens the list. The count is refreshed at each admission and each discharge, so it agrees with the list.
 
 ## Admitting a patient
 
@@ -50,16 +48,14 @@ An admission opens a stay. It records who admitted the patient, when, and why. A
 
 1. Open the patient file and select the **Hospitalization** tab. A patient without an open stay shows "This patient is not currently hospitalized."
 2. Select [[Admit]] {1}. A grey form opens under the title.
-3. Type the reason in [[Admission reason]] {2}. The field is optional, but write it: it is the only place where the reason is recorded, and it is printed on the discharge letter.
+3. Type the reason in [[Admission reason]] {2}. The field is optional, but write it: it is shown on the card, in the list of the patients in the centre and in the history, and it is printed on the discharge letter.
 4. Select [[Confirm]] {3}.
 
-The card now shows "Hospitalized since", the date and time, the number of days and your name under "Admitted by". The patient appears in the Hospitalized Patients list at once.
+The card now shows "Hospitalized since", the date and time with the length of the stay, your name under "Admitted by" and the admission reason. The patient appears in the Hospitalized Patients list at once.
 
 [[Cancel]] closes the form without saving anything.
 
-If the patient already has an open stay, the server answers "Ce patient est déjà hospitalisé (séjour en cours)." in French. The [[Admit]] button is hidden for an inpatient, so this happens only when two people admit the same patient at nearly the same time. Nothing is duplicated.
-
-> Caution: The admission reason is not shown again on the screen after you confirm. Check the text before you select [[Confirm]]. You will find it again only on the discharge letter.
+If the patient already has an open stay, the server refuses the admission. The [[Admit]] button is hidden for an inpatient, so this happens only when two people admit the same patient at nearly the same time. Nothing is duplicated.
 
 ## Recording progress during the stay
 
@@ -90,7 +86,7 @@ Entries cannot be changed or deleted. If an entry is wrong, add a new one that c
 
 ## The aggravation alert
 
-A worsening is the one status that must not wait until someone opens the file. When you save an entry with the status **Worsening**, the patient is marked in two places on screen.
+A worsening is the one status that must not wait until someone opens the file. When you save an entry with the status **Worsening**, the patient is marked in two places on screen and the team is notified.
 
 ![An entry with the status Worsening](figures/aggravation-form.png)
 
@@ -101,7 +97,9 @@ A worsening is the one status that must not wait until someone opens the file. W
 
 On the card, the status turns red, and the patient gets a red triangle in the Hospitalized Patients list (see the first figure of chapter 1). The mark stays until the next entry changes the status.
 
-> Caution: The application is meant to send a notification to every other doctor and nurse when you save a Worsening entry, but in the demonstration installation no notification arrived on the bell of the nurse accounts. Do not rely on the bell to warn the team. Tell the nurse on duty yourself, and keep the entry as the written record.
+The application also sends a notification to every other active doctor and nurse, whoever is on duty. It appears on their bell as "Worsening reported: " followed by the patient name and your name, and selecting it opens the patient file. You do not receive your own alert.
+
+> Note: The notification does not replace a call for an urgent case. Tell the nurse on duty, and keep the entry as the written record.
 
 ## Discharging a patient and the discharge letter
 
@@ -129,7 +127,7 @@ After the confirmation, the card shows "This patient is not currently hospitaliz
 
 ![The discharge letter](figures/letter.png "small")
 
-The letter is a PDF of the stay: the centre header, the patient, the admission date and the person who admitted the patient, the discharge date, the length of the stay, the reason of admission, a table of every progress entry, then the type of discharge, the name of the doctor who pronounced it and the discharge note. A second page carries a signature line for the referring doctor. The letter is written in French.
+The letter is a PDF of the stay: the centre header, the patient, the admission date and the person who admitted the patient, the discharge date, the length of the stay (for example "5 h 20 min"), the reason of admission, a table of every progress entry, then the type of discharge, the name of the doctor who pronounced it and the discharge note. A signature line for the referring doctor closes the letter. A short stay fits on one page, and a long one runs onto a second page. The letter is written in French.
 
 1. Open the file of the discharged patient and select the **Hospitalization** tab.
 2. In **History**, find the stay.
@@ -137,7 +135,7 @@ The letter is a PDF of the stay: the centre header, the patient, the admission d
 
 The button exists only for a stay that has been discharged, and it can be used again at any time, for example when the patient asks for a second copy. The letter always shows the data as it is now.
 
-> Note: Print the letter, read it, and sign the second page before it goes to the patient. The signature line is on paper only.
+> Note: Print the letter, read it, and sign it before it goes to the patient. The signature line is on paper only.
 
 ## Readmission and the history of a patient
 
@@ -148,7 +146,7 @@ A discharged patient who comes back is admitted again with the same button. Noth
 1. Open the file and select the **Hospitalization** tab. After a discharge the card shows [[Admit]] again.
 2. Select [[Admit]], write the new reason, and select [[Confirm]]. Write what is new, for example "Return of fever and cough five days after discharge."
 
-The card now shows the new stay at the top, with its own date, its own status and its own entries. The **History** {1} lists every stay of the patient, the newest first. An open stay shows its start date and no end date. A closed stay shows its two dates, the type of discharge, the name of the doctor who recorded the discharge, its progress entries and the button [[Download discharge letter]] {2}.
+The card now shows the new stay at the top, with its own date, its own status and its own entries. The **History** {1} lists every stay of the patient, the newest first. An open stay shows its start date and no end date. A closed stay shows its two dates, the admission reason, the type of discharge, the discharge note, the name of the doctor who recorded the discharge, its progress entries and the button [[Download discharge letter]] {2}. The two dates are on the same clock, so a discharge never appears before its admission.
 
 The history is the answer to "has this patient been admitted before, and how did it end?" Read it before you admit a patient again: the earlier notes often explain the second stay.
 
@@ -158,7 +156,7 @@ A stay is one event. The follow-up of a patient also runs through the consultati
 
 ![The consultation history in the patient file](figures/followup-tab.png)
 
-The tab **Medical Record** {1} of the file lists the consultations of the patient, the newest first. Each one shows the diagnosis, the date, the author, the vitals, the notes, the allergies and the written treatment. [[New consultation]] {2} starts a new visit, and [[Modifier]] {3} edits the latest one. An older consultation shows the label "Consultation closed: a more recent consultation exists" and can no longer be changed. The first guide explains that rule.
+The tab **Medical Record** {1} of the file lists the consultations of the patient, the newest first. Each one shows the diagnosis, the date, the author, the vitals, the notes, the allergies and the written treatment. [[New consultation]] {2} starts a new visit, and [[Edit]] {3} edits the latest one. An older consultation shows the label "Consultation closed: a more recent consultation exists" and can no longer be changed. The first guide explains that rule.
 
 The cards at the top of the file show the last blood pressure, weight and temperature, and the known allergies, taken from the latest consultation. After a stay, write a consultation that records the vitals at discharge, so that the cards are current.
 
@@ -172,9 +170,9 @@ The **Consultations** screen of the menu lists every consultation of the centre.
 
 The header of every patient file has two buttons, [[Export PDF]] and [[Export Excel]]. They save the whole file of the patient: a PDF named dossier_ followed by the patient number, or an Excel workbook of the same name.
 
-The PDF has the centre header, the patient identity, then the medical history (date, reason, diagnosis), the prescriptions, the laboratory results, and, for a patient followed by another service, the toxicology and spiritual sections. The Excel workbook holds one sheet per section: Patient, Historique medical, Prescriptions and Labo. The section titles are in French, like the rest of the export. A signature line for the referring doctor closes the PDF.
+The PDF has the centre header, the patient identity, then the medical history (date, reason, diagnosis), the prescriptions, the laboratory results, the hospitalisations, and, for a patient followed by another service, the toxicology and spiritual sections. The Hospitalisations section lists each stay with its admission, discharge, length, admission reason, type of discharge and discharge note. The Excel workbook holds one sheet per section: Patient, Historique medical, Prescriptions, Labo and Hospitalisations. The section titles are in French, like the rest of the export. A signature line for the referring doctor closes the PDF.
 
-> Caution: The export does not contain the hospitalization stays, their progress entries or the discharge notes. For the record of a stay, download the discharge letter (chapter 5). Do not hand the file export to a patient as proof of a hospitalization.
+> Note: The export gives the stays but not their progress entries. For the entries of a stay, download the discharge letter (chapter 5).
 
 The patient list also has an export of the list itself, which is a list of patients and not a medical file. It is not used for follow-up.
 
@@ -194,11 +192,11 @@ Do not admit, update or discharge while the indicator reads "Offline". An admiss
 
 **Putting the admission reason in the first progress entry only.** The reason field of the admission is the one the letter prints. A short reason there saves a long note later.
 
-**Entering Worsening and counting on the bell.** The alert on the screen is reliable. The notification to the team has not been seen to arrive. Call the nurse.
+**Entering Worsening and leaving it there.** The red mark and the bell notification warn the team, but they do not replace a call when the patient needs someone now. Call the nurse.
 
 **Choosing the discharge type in a hurry.** The type cannot be changed after the confirmation, and it is printed on the letter. Check it, above all for Transferred and Deceased.
 
-**Looking for the stays in the file export.** They are not there. Use the discharge letter.
+**Looking for the progress entries in the file export.** The export lists the stays only. Use the discharge letter for the entries.
 
 **Admitting a second time instead of reading the history.** A patient who is already inpatient has no [[Admit]] button. If you cannot find the button, the stay is open: look for the patient in the list.
 
@@ -211,9 +209,7 @@ Do not admit, update or discharge while the indicator reads "Offline". An admiss
 | "Ce patient est déjà hospitalisé (séjour en cours)." | An open stay exists for this patient | Open the stay from the Hospitalized Patients list. |
 | "Erreur lors de la mise à jour du statut." | The entry was not saved | Check the connection and that the stay is still open, then enter it again. |
 | "Erreur lors de la sortie du patient." | The discharge was not saved | Check the connection. Look at the History: if the stay is closed, nothing is left to do. |
-| The Download discharge letter button has no effect | The letter could not be created or reached | Check the connection and try again. If it repeats, tell the administrator. |
-| The Dashboard count differs from the list | The Dashboard keeps its figures for about five minutes | Use the list. |
-| No bell notification after a Worsening entry | The notification is not delivered at present | Tell the team yourself. |
+| The Dashboard count differs from the list | The Dashboard has not been refreshed since the last change | Reload the page, or use the list. |
 
 ## Glossary {.unnumbered}
 
@@ -224,7 +220,7 @@ Discharge
 : The closing of a stay, with a type and an optional note. The type is final.
 
 Discharge letter
-: The French PDF of a closed stay, with the progress entries, the type of discharge and the discharge note.
+: The French PDF of a closed stay, with the progress entries, the type of discharge, the discharge note and a signature line.
 
 Progress entry
 : One line of the stay: a status (Improving, Stable or Worsening), a note, the author and the time.

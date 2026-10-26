@@ -1,5 +1,6 @@
 // src/stores/patientStore.js
 import { defineStore } from 'pinia';
+import i18n from '../i18n.js';
 import { ref, computed } from 'vue';
 import api from '@/services/api';
 import { db } from '@/powersync-client/client';
@@ -44,7 +45,7 @@ export const usePatientStore = defineStore('patient', () => {
     function mapPendingPatient(p) {
         return {
             id: p.id,
-            code: 'Code en attente',
+            code: i18n.global.t('patients.code_pending'),
             firstName: p.first_name,
             lastName: p.last_name,
             admissionDate: p.birth_date,

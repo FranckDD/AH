@@ -2,7 +2,7 @@
 title: Getting started, accounts, catalogue and prices
 role: Administrator
 subtitle: Signing in, creating and managing staff accounts, and keeping the exam and product catalogue and its prices correct.
-version: 26 October 2026
+version: 27 October 2026
 output: admin-1-getting-started-accounts-catalogue
 ---
 
@@ -22,7 +22,7 @@ This guide uses three of them: **Users**, **System Configuration** and **Stock m
 
 The application starts in French on a new computer. Select **EN** at the top right of any screen to work in English. The choice is kept on that computer.
 
-> Note: Some labels are not translated yet and stay in French in the English interface, for example the role names in the account form ("Médecin", "Infirmier(e)"), the stock filter "Toutes Catégories" and the product button "Mettre à jour". This guide quotes the label exactly as it appears on screen and gives its meaning the first time.
+> Note: A few labels stay in French in the English interface, for example the role names in the account form ("Médecin", "Infirmier(e)"). This guide quotes the label exactly as it appears on screen and gives its meaning the first time.
 
 ### Connection
 
@@ -57,7 +57,7 @@ Every member of staff needs an account before they can sign in, and the role of 
 
 Select [[Users]] in the menu. The list shows one row per account. The search box {1} looks in names, e-mail addresses and roles. [[New Account]] {2} opens the creation form. The **Role** column {3} shows a coloured label, and the **Status** column {4} shows **Active** or **Inactive**. The pencil button {5} edits an account and the red button {6} deletes it.
 
-> Caution: The **Role** column does not show the role you chose. It shows the security group of the account, for example "app_medical" for both a doctor and a nurse, and it shows "N/A" for some older accounts. The specialty and the head nurse flag are not shown either. To see the real role of an account, open it with the pencil button.
+The **Role** column shows the role of the account under its stored name, for example "medecin" or "nurse". Under it the row shows the specialty of a doctor, or the security group for the other roles, and the words "Head nurse" for a head nurse. A few older accounts may still show "N/A": open them with the pencil button to see and set the role.
 
 ### Creating an account
 
@@ -72,7 +72,7 @@ Select [[Users]] in the menu. The list shows one row per account. The search box
 
 ![The new account form for a secretary](figures/user-form.png "small")
 
-The new account appears in the list. Give the user name and the first password to the person yourself, and ask them to change the password at their first sign-in.
+The new account appears in the list. If the user name is already taken, the form stays open and a red message explains that the server refused the save; choose another user name and save again. Give the user name and the first password to the person yourself, and ask them to change the password at their first sign-in.
 
 | Security Group | Roles offered |
 |---|---|
@@ -103,7 +103,7 @@ Select the pencil button of the row. The same form opens with the current values
 2. To give the person a new password, type it in the password field next to the eye icon {2}. The label reads "New password (optional)". Leave it empty to keep the current one.
 3. Select [[Update]] {6}.
 
-The user name {1} looks editable but is not: the server ignores a new value, and the account keeps its original user name after you save. If a user name is wrong, create a new account and deactivate the old one.
+The user name {1} is read-only in this form: it is greyed out and cannot be typed over. If a user name is wrong, create a new account and deactivate the old one.
 
 ### Resetting a forgotten password
 
@@ -115,7 +115,7 @@ Untick [[Active account (allowed to log in)]] {5} in the edit form and select [[
 
 The person can no longer sign in, and their name, invoices and records stay in the system. Tick the box again to bring the account back.
 
-The sign-in screen does not tell the person that the account is switched off. It shows the same message as for a wrong password.
+The sign-in screen does not tell the person that the account is switched off. It shows the same message as for a wrong password, on purpose, so that nobody can find out which user names exist. The real reason is written in the sign-in log, which you can read in the Audit and Security screen (see the second guide).
 
 ![The message shown for an inactive account and for a wrong password](figures/login-refused.png "small")
 
@@ -123,7 +123,7 @@ If someone reports "Incorrect username or password" when you know the password i
 
 ### Deleting an account
 
-The red button asks for confirmation in French ("Voulez-vous vraiment supprimer ...?") and then removes the account for good. Use it only for an account created by mistake and never used. For a person who has left, switch the account off instead: a deleted account cannot be recovered, and the server may refuse to delete an account that already appears in invoices or records.
+The red button asks "Do you really want to delete" followed by the person's name, and then removes the account for good. Use it only for an account created by mistake and never used. For a person who has left, switch the account off instead: a deleted account cannot be recovered, and the server may refuse to delete an account that already appears in invoices or records. When it refuses, a red message reads "Deletion failed." Creating, changing and deleting an account are all written in the audit log.
 
 ### Your own profile and password
 
@@ -141,7 +141,7 @@ The user name and the role cannot be changed here.
 2. Type the current password {1}, then the new one twice {2}{3}. The new password must have at least 8 characters, and both entries must match.
 3. Select [[Save]] {4}.
 
-If the current password is wrong, the form answers "L'ancien mot de passe est incorrect" {5}, in French. When the change succeeds, the application signs the person out of every session, including the one in use, and asks for a new sign-in with the new password.
+If the current password is wrong, the form answers "The password you entered is incorrect." {5}. When the change succeeds, the application signs the person out of every session, including the one in use, and asks for a new sign-in with the new password.
 
 > Tip: After you reset someone's password, ask them to sign in at once and change it. Only they should know the final password.
 
@@ -201,7 +201,7 @@ To change a price, select [[Edit]] on the row, the first of the two buttons.
 
 The edit form is the same as the creation form, but the code is greyed out, with the note "The code cannot be changed after creation." Type the new price and select [[Save]]. The new price applies to every invoice line created from then on. A secretary who already has an invoice form open must close and reopen it to see the new price. Invoices already saved keep the price they were saved with.
 
-The red [[Delete]] button {5} on the list removes an exam after a confirmation. The confirmation window of this screen shows a technical text, "config.delete_confirmation", instead of a sentence. Delete only an exam created by mistake: a deleted exam disappears from the cash desk and from the laboratory, and requests that already used it can no longer refer to it.
+The red [[Delete]] button {5} on the list removes an exam after a confirmation. The confirmation window asks "Delete this item?". Delete only an exam created by mistake: a deleted exam disappears from the cash desk and from the laboratory, and requests that already used it can no longer refer to it.
 
 ### The laboratory catalogue
 
@@ -209,13 +209,24 @@ The **Laboratory** screen has its own list of exams, on the **Config** tab.
 
 ![The exam catalogue in the Laboratory screen](figures/lab-catalog.png)
 
-Select [[Laboratory]] in the menu, then **Config** {1}. The list shows the code, the name and the category of each exam, without a price. [[New Exam]] {2} opens the same form as in System Configuration, and the red button {4} deletes the exam. There is no edit button here: to change a name, a category or a price, use the list in System Configuration.
+Select [[Laboratory]] in the menu, then **Config** {1}. The page is titled **Exam Catalog** and lists the code, the name, the category and the price of each exam. [[New Exam]] {2} opens the same form as in System Configuration. Each row has three buttons: **Edit exam**, which opens the same form with the code greyed out, **Parameters** (see the next section) and the red **Delete** {4}, which asks "Delete the exam ... ? This cannot be undone." before it removes the exam.
 
 ### Exam parameters
 
-An exam is made of parameters, the lines the laboratory technician fills in when entering a result: a name, a unit, the type of value (number or text), and the normal ranges. The existing exams already carry their parameters. The technician sees them on the **Bench** tab when a request for the exam is open, and a result is only complete once the values are entered.
+An exam is made of parameters, the lines the laboratory technician fills in when entering a result: a name, a unit, the type of value (number or text), and the normal ranges. The technician sees them on the **Bench** tab when a request for the exam is open, and a result is only complete once the values are entered.
 
-The web application has no screen to add, change or remove parameters. A new exam therefore starts with none: on the bench, the technician sees "No parameter configured or recorded for this exam." until the parameters are defined by the technical team. Before you announce a new exam to the laboratory, ask the technical support (the number is shown on the Overview page) to define its parameters.
+You manage the parameters yourself. In the **Exam Catalog**, select **Parameters** on the row of the exam. A panel titled "Parameters of exam" followed by the exam name opens. If the exam has none yet, it reads "No parameter for this exam."
+
+1. To add a parameter, fill the block at the bottom of the panel: **Parameter name**, **Unit** and **Result type** (**Number** or **Text**), then select [[Save]].
+2. To change a parameter, select **Edit** on its card. The block at the bottom is filled with its values; change them and select [[Save]].
+3. To add a normal range to a parameter, use the line under **Reference ranges** on its card. Choose **Any**, **Male** or **Female**, type **Min age** and **Max age**, then **Min value** and **Max value**, and select **Add range**. A range can be removed with its small red bin. The laboratory judges a value against the range of the patient's sex, so give separate ranges for men and women when they differ.
+4. To delete a parameter, select the red **Delete** button of its card and confirm "Delete this parameter?".
+
+The up and down arrows on each card set the order in which the parameters appear on the bench, in the result and on the printed sheet. Select the arrow to move a parameter one place. The order is kept for everyone.
+
+> Caution: Deleting an exam that already has parameters can be refused by the server with an error message. If that happens, delete its parameters first, one by one.
+
+Define the parameters of a new exam before you announce it to the laboratory: until then, the bench shows "No parameter configured or recorded for this exam."
 
 ### Pharmacy products
 
@@ -230,14 +241,14 @@ To add a product:
 ![The new product form](figures/product-form.png "small")
 
 1. Select [[New Product]].
-2. Type the name {1} and choose the category {2}: **Pharmaceutical**, **Natural / Traditional** or **Medical Equipment**.
+2. Type the name {1} and choose the category {2}: **Pharmaceutical**, **Natural / Traditional**, **Medical Equipment** or **Other**.
 3. Type the selling price in FCFA {3}.
-4. For a pharmaceutical product, choose the form (Tablet, Syrup, Injection and so on). You can also type a dosage, but see the note below.
-5. In the stock section, type the starting quantity {4} and the alert threshold {5}, the quantity under which the product is flagged as low (the field is labelled "Seuil Alerte").
-6. Type the expiry date {6}.
+4. For a pharmaceutical product, choose the form (Tablet, Syrup, Injection and so on). You can also type a dosage, a number such as 500 (the label reads "Dosage (mg/ml)").
+5. In the stock section, type the starting quantity {4} and the alert threshold {5}, the quantity under which the product is flagged as low (the field is labelled "Alert Threshold (Min)").
+6. Type the expiry date {6}. For medical equipment that does not expire, the form says "Optional for non-perishable equipment." and you can leave it empty.
 7. Select [[Save]].
 
-> Caution: Fill in the expiry date, even for supplies that do not expire. The form says the date is optional for equipment, but with an empty date the server refuses the product, and the application only shows a pop-up window reading "Erreur lors de la sauvegarde : [object Object]". Enter a distant date for non-perishable items. Also note that the dosage typed in the form is not kept: it is empty when you reopen the product.
+> Note: The dosage you type is kept and shown again when you reopen the product. If the server refuses a save, a message explains why instead of a technical text.
 
 The quantity can be typed here only because you are an administrator. Other roles cannot set a quantity: stock enters through a reception checked by the stock controller, and later quantities change through sales and counts. Use the quantity field for the opening stock of a new product, and prefer a reception afterwards, so that the movement is traced.
 
@@ -245,9 +256,9 @@ To change a price, select [[Edit]] on the row.
 
 ![Editing a product](figures/product-edit.png "small")
 
-Type the new price {1} and select the confirmation button {3}, which reads "Mettre à jour" (Update). The quantity {2} shows the current stock and stays editable for you. After the save, the list shows the new price, and the cash desk uses it for the next invoice.
+Type the new price {1} and select the confirmation button {3}, which reads "Update". The quantity {2} shows the current stock and stays editable for you. After the save, the list shows the new price, and the cash desk uses it for the next invoice.
 
-The red [[Delete]] button removes a product after a confirmation in French ("Supprimer ce produit ?"). For a product that is no longer sold, a price of 0 stops sales, because the cash desk then refuses it as "Price not defined", while the history stays intact.
+The red [[Delete]] button removes a product after a confirmation. For a product that is no longer sold, a price of 0 stops sales, because the cash desk then refuses it as "Price not defined", while the history stays intact.
 
 > Tip: A product or an exam with a price of 0 is the standard way to take an item out of sale without losing its history.
 
@@ -263,17 +274,15 @@ When the promoter agrees a new tariff, update the list in one session, exam by e
 
 **Deleting an account instead of switching it off.** A deleted account cannot be recovered and may break the history of invoices. Untick the active box.
 
-**Trusting the Role column.** The list shows the security group, not the role. Open the account to check the role, the specialty or the head nurse box.
+**Trusting the Role column for old accounts.** A few older accounts show "N/A". Open the account to check the role, the specialty or the head nurse box.
 
-**Forgetting that the user name cannot change.** Typing a new one in the edit form has no effect.
+**Forgetting that the user name cannot change.** The field is read-only in the edit form.
 
 **Typing an exam price that is not a multiple of 100.** The form refuses it. Round it.
 
 **Leaving a price at 0.** The item cannot be sold. Check the whole catalogue before opening to patients.
 
-**Leaving the expiry date empty on a product.** The save fails with an unreadable message. Enter a date.
-
-**Creating an exam without telling the laboratory.** A new exam has no parameters until the technical team adds them, so the technician cannot enter a result.
+**Creating an exam without its parameters.** A new exam has no parameters until you add them in the Parameters panel, so the technician cannot enter a result.
 
 **Reusing a category with a different spelling.** Categories are free text, so "Biochimie" and "biochimie" are two categories.
 
@@ -282,16 +291,15 @@ When the promoter agrees a new tariff, update the list in one session, exam by e
 | What you see | What it means | What to do |
 |---|---|---|
 | "Incorrect username or password" for a person who types the right password | The account may be inactive, or the password was reset | Check the Status column, then reset the password. |
-| A new account does not appear and the form stays open | The user name is probably already used, and the form shows no message | Search the list for the name, then choose another user name. |
+| A new account does not appear, the form stays open and a red message appears | The server refused the save, most often because the user name is already used | Search the list for the name, then choose another user name. |
 | The role list is empty or does not offer the role | The security group does not match | Change the group first. |
-| "Erreur lors de la sauvegarde : [object Object]" on a product | The expiry date is empty | Enter an expiry date. |
 | A pop-up "Le code ... existe déjà." | The exam code is already used | Choose another code. |
 | "Please enter a valid value. The two nearest valid values are ..." on an exam price | The price is not a multiple of 100 | Round the price. |
 | "Price not defined, contact the administrator." at the cash desk | The catalogue price is 0 or empty | Set the price in System Configuration or Stock management. |
 | "Catalog price. For another price, request a discount." | The price is locked for the secretary | Use the discount request, or change the catalogue price. |
-| "L'ancien mot de passe est incorrect" | The current password typed in the profile form is wrong | Retype it, or reset the password from the account form. |
+| "The password you entered is incorrect." | The current password typed in the profile form is wrong | Retype it, or reset the password from the account form. |
 | Signed out right after changing a password | This is normal after a password change | Sign in again with the new password. |
-| The technician sees "No parameter configured or recorded for this exam." | The exam has no parameters | Contact the technical support. |
+| The technician sees "No parameter configured or recorded for this exam." | The exam has no parameters | Add them with the Parameters button of the Exam Catalog. |
 
 ## Glossary {.unnumbered}
 

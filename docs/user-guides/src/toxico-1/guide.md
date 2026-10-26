@@ -2,7 +2,7 @@
 title: Admission, phases and evaluations
 role: Toxicology manager
 subtitle: Admitting a patient to the toxicology programme, following the phases, reading the evaluations written by the psychologist, and opening the patient file.
-version: 26 October 2026
+version: 27 October 2026
 output: toxico-1-admission-phases-evaluations
 ---
 
@@ -14,7 +14,7 @@ The screenshots come from a demonstration installation. The patients in the figu
 
 ### What the manager can see and do
 
-Your menu has nine entries. **Toxicology Dashboard** and **Toxicology Monitoring** are your daily screens. **Laboratory**, **Lab stock**, **Stock Management**, **Users**, **Patients**, **Audit & Security** and **System Configuration** are shared with other roles and are not described here, except **Patients**, which holds the full clinical file (chapter 5). Finance is closed to you, and so are the other screens of the administration: if you type the address of such a screen, the application shows an "Accès Interdit" page (access denied) with a link back to your dashboard.
+Your menu has eight entries. **Toxicology Dashboard** and **Toxicology Monitoring** are your daily screens. **Laboratory**, **Lab stock**, **Stock Management**, **Patients**, **Audit & Security** and **System Configuration** are shared with other roles and are not described here, except **Patients**, which holds the full clinical file (chapter 5). The user accounts belong to the administrator alone: the Users screen is not in your menu. Finance is closed to you, and so are the other screens of the administration: if you type the address of such a screen, the application shows an "Access denied" page with a link, [[Go to my dashboard]], back to your dashboard.
 
 You can admit patients, read every file, print the toxicology file of a patient, and discharge. You cannot record an evaluation: that act belongs to the psychologist alone (chapter 4).
 
@@ -24,7 +24,7 @@ A bell at the top right shows notifications. In the demonstration they were labo
 
 The application starts in French on a new computer. The language switch sits at the top right of every screen: select **EN** to work in English. The choice is kept on that computer.
 
-> Note: Some texts stay in French in English mode. The clinical alerts on the dashboard ("Rechute critique", "Évaluation en retard"), the dates in the patient details window ("26 octobre 2026"), the address "Non renseignée", the access denied page, the error message about a consent file that is too large, and every printed PDF are in French. The substances are stored as typed, for example "Alcool" and "Cocaïne".
+> Note: Some texts stay in French in English mode. The clinical alerts on the dashboard ("Rechute critique", "Évaluation en retard"), the dates in the patient details window ("26 octobre 2026"), the error message about a consent file that is too large, the comments that the application writes in the history and every printed PDF are in French. The substances are stored as typed, for example "Alcool" and "Cocaïne". The dates in the lists and in the file read day, month, year ("26/10/2026").
 
 ### Confidentiality
 
@@ -51,7 +51,7 @@ The dashboard {1} summarises the whole programme. The four tiles {2} give the ac
 
 The figures change as soon as you admit a patient. In the demonstration, two admissions moved the active patients from 13 to 15 and the cannabis and cocaine counts from 1 to 2.
 
-> Caution: In the demonstration, the tile **Admissions (Month)** read 0 on this dashboard, even after four files had been created that month, while the same tile on the Toxicology Monitoring screen read 4. The monitoring screen is the one to trust for that figure. The other tiles agree on both screens.
+The four tiles count the whole programme and agree with the tiles of the Toxicology Monitoring screen. When the server cannot be reached, the dashboard says "Cannot load the data" with a [[Retry]] button and the tiles read a dash instead of 0.
 
 ## The monitoring list and the phases
 
@@ -61,7 +61,7 @@ Select **Toxicology Monitoring** in the menu. This screen is your daily work tab
 
 The title {1} gives the number of active patients. The tiles repeat the main figures. Each row shows the patient with the code and the substance, the current phase with a coloured bar, the number of relapses, and the referring psychologist. Three buttons end the row: **Details** {5}, **File** {6} and **Discharge** {7}. The tabs {4} switch between **Active** and **Discharged** patients. [[New Toxico Admission]] {3} opens the admission form (chapter 3).
 
-To find a patient, type a name or a patient code in the search box {2}. The list filters itself after a short pause. A search that matches nothing shows "No patient found." Clear the box to see everybody again. The tiles follow the filtered list, so clear the search before you read them.
+To find a patient, type a name or a patient code in the search box {2}. The list filters itself after a short pause. A search that matches nothing shows "No patient found." Clear the box to see everybody again. The tiles count the whole programme and do not change with the search.
 
 There is no **Evaluate** button on your rows. The psychologist sees one, you do not.
 
@@ -91,15 +91,13 @@ After you select the patient, his or her name and code appear in a blue band wit
 
 5. Check the admission date {2}. It opens on today and cannot be in the future.
 6. Choose the substance in [[Primary Substance]] {3}: Alcohol, Cannabis, Opioids / Tramadol, Cocaine, Polysubstance Abuse or Other.
-7. Choose the psychologist in [[Referral Psychologist]] {4}. This person will follow the patient and will appear on every row and printed file.
+7. Choose the psychologist in [[Referral Psychologist]] {4}. The list offers the accounts with the Psychologist role only. This person will follow the patient and will appear on every row and printed file.
 8. Type the name and the telephone number of the guardian in [[Guardian Name]] {5} and [[Guardian Contact]]. The guardian is the person to call in an emergency, and both fields are required.
 9. Select the signed consent in the upload area {6}: a PDF, PNG or JPG of at most 5 MB. The area then shows the file name. The consent is optional for the application, but the patient file shows "No file attached" without it, so scan the signed form before the interview ends.
 10. Write what the team should know in [[Admission Note]]: who referred the patient, the circumstances, the date the consent was signed.
 11. Select [[Validate Admission]] {7}.
 
-The button stays pale until the patient, the date, the substance, the psychologist and the two guardian fields are filled. When the admission succeeds, the window closes by itself and the new patient appears at the top of the list in phase 1. The application shows no confirmation message, so look for the row. The tiles move too: in the demonstration, the active patients went from 13 to 14 and **Admissions (month)** from 2 to 3.
-
-> Caution: The list of psychologists in the form is not limited to psychologists. In the demonstration it also offered the toxicology manager and two doctors. Choose a person whose job is psychology, because that name decides who is expected to evaluate the patient.
+The button stays pale until the patient, the date, the substance, the psychologist and the two guardian fields are filled. When the admission succeeds, the window closes by itself, a green message "Admission recorded." appears and the new patient appears at the top of the list in phase 1. The tiles move too: in the demonstration, the active patients went from 13 to 14 and **Admissions (month)** from 2 to 3.
 
 ### A patient who is new to the centre
 
@@ -109,12 +107,13 @@ Select [[New patient]] and the form adds the identity fields. They open under th
 
 1. Type the first name {1} and the last name.
 2. Choose the date of birth {2}. The latest date offered is ten years before today.
-3. Type the mother's name {3}. This field is required.
-4. The place of residence and the telephone number {4} are optional.
-5. Fill the admission date, substance, psychologist, guardian and consent as for an existing patient.
-6. Select [[Validate Admission]] {5}.
+3. Choose the sex in [[Sex]], Male or Female. This field is required and opens on "Select".
+4. Type the mother's name {3}. This field is required.
+5. The place of residence and the telephone number {4} are optional.
+6. Fill the admission date, substance, psychologist, guardian and consent as for an existing patient.
+7. Select [[Validate Admission]] {5}.
 
-The application creates the patient and the toxicology file together and gives the patient a code. The file of this patient carries the single label TOXICOLOGIE. The form has no field for sex and the application records a new patient as male. If that is wrong, tell the secretariat.
+The application creates the patient and the toxicology file together and gives the patient a code. The file of this patient carries the single label TOXICOLOGY, and its header shows the sex that you chose.
 
 ### When the admission is refused
 
@@ -133,15 +132,13 @@ An evaluation is the written result of an interview between the psychologist and
 | Admit a patient | No | Yes | No |
 | Discharge a patient | No | Yes | No |
 
-The application enforces this. In the demonstration, a request to record an evaluation sent with the manager account was answered with "Accès refusé : rôle utilisateur insuffisant", and the Evaluate button is not offered to you. The administrator cannot evaluate either.
+The application enforces this. In the demonstration, a request to record an evaluation sent with the manager account was refused by the server, and the Evaluate button is not offered to you. The administrator cannot evaluate either.
 
 ### Reading the evaluations
 
 Open the file of a patient (chapter 5). In the first tab, **Toxico History**, each stay lists its events, the most recent first. An evaluation line shows the date, the decision, the phases before and after, the name of the psychologist, the observation and the recommendation. A regression carries a red **Relapse** label. The oldest line of a stay is the admission itself, written "Phase 1: Withdrawal, Admission initiale".
 
 Read the observation and the recommendation before you decide anything about the patient: a request for a family meeting, for example, may need you to call the guardian. To write the evaluation itself, see the psychologist guide, which describes the window, the 500 characters of the observation and the warning on a relapse.
-
-> Caution: In the demonstration, each evaluation was recorded twice in the history, the second copy showing the phase after the change as its starting phase (for example "PROGRESS phase 2 to phase 2"). The printed file shows the same duplicate. Read the copies as one evaluation, and tell the administrator if you see this on a real patient. Do not ask the psychologist to submit again to correct it.
 
 An evaluation cannot be edited or deleted from any screen. If a psychologist chose the wrong decision, the correction is a new evaluation that explains the first one.
 
@@ -153,7 +150,7 @@ Three windows show a patient, from the lightest to the fullest.
 
 Select [[Details]] on a row. The window shows the identity of the patient, the contact and the address, the substance, the admission date, the psychologist and the current phase.
 
-The window opens on **Identity** and goes on with the contact, the admission and the **Legal guardian**: the name, the contact, the signed consent and the notes written at admission. When a consent was uploaded, the line "Signed consent" offers a link, [[Download the document]], that downloads the file. [[Open the full file]], at the foot of the window, closes the window and opens the file of the next section.
+The window opens on **Identity** and goes on with the contact, the admission and the **Legal guardian**: the name, the contact, the signed consent and the notes written at admission. When a consent was uploaded, the line "Signed consent" offers a link, [[Download the document]], that opens the document in a new browser tab. The document is stored outside the public folders of the server and opens only while you are signed in. Each reading is recorded in the audit log. If it cannot be opened, the window says "Could not open the file. Try again or contact the administrator." [[Open the full file]], at the foot of the window, closes the window and opens the file of the next section.
 
 ### File
 
@@ -173,9 +170,9 @@ At the foot of the window, [[Export record (PDF)]] {4} prints the file (chapter 
 
 ![The full clinical file](figures/full-file.png)
 
-The header shows the code, the age and the sex, and two labels that say whether the patient is followed by the clinic, in toxicology, or both. The tabs are **Medical Record** {1} with the whole consultation history, **Exams** {2}, **Treatments** {3} and **Toxicology Follow-up** {4}. The last one repeats the substance, the current phase, the psychologist and the admission date. [[Export PDF]] {5} and [[Export Excel]] print or export the clinical file, which is a different document from the toxicology file of chapter 6.
+The header shows the code, the age and the sex, and two labels (CLINICAL, TOXICOLOGY) that say whether the patient is followed by the clinic, in toxicology, or both. The tabs are **Medical Record** {1} with the whole consultation history, **Exams** {2}, **Treatments** {3} and **Toxicology Follow-up** {4}. The last one repeats the substance, the current phase, the psychologist and the admission date. [[Export PDF]] {5} and [[Export Excel]] print or export the clinical file, which is a different document from the toxicology file of chapter 6.
 
-Some texts of this screen are in French in English mode ("Consultation Générale", "À transmettre", "Fermer"). In the demonstration, the Treatments tab also showed the word "undefined" in a small label beside a prescription. The prescription itself, with its dosage, was correct.
+The Treatments tab gives each prescription with its dosage, frequency and duration and a status label (Active, Completed or Cancelled). A laboratory order reads "Lab test request".
 
 ## Printing the toxicology file
 
@@ -193,7 +190,7 @@ The toxicology screens read their data from the server. They keep no copy on the
 
 ![The list while the computer is offline](figures/offline-list.png "small")
 
-Your screen shows a yellow badge {1} reading "Offline (your entries are saved)". This badge stays yellow for your role even when the connection is good, so it does not tell you the state of the network. What does tell you is the content of the screen. When the computer cannot reach the server, the list shows "0 patients followed" {2} and "No patient found." {3}, and the tiles fall to zero. That is not the real situation: the patients are simply not readable.
+When the computer cannot reach the server, the badge {1} turns yellow and reads "Offline". The application checks the server every 15 seconds, so the badge goes back to "Connected" by itself when the link returns. The list then shows the message "Cannot load the data while offline. Figures shown would not be reliable." {2} with a [[Retry]] button {3} in place of the table, and the tiles read a dash. That is not the real situation: the patients are simply not readable.
 
 The button [[New Toxico Admission]] {4} still opens the form, but the search finds nobody and the list of psychologists is empty, so the form cannot be completed. Keep the information on paper, then reload the page and admit the patient as soon as the connection is back. Before closing the form, check that the patient does not already appear in the list.
 
@@ -213,13 +210,13 @@ The user name and the role cannot be changed here. To change your password, open
 
 **Creating a new patient who already exists.** Search by name and by code first. A second record splits the history of the person in two.
 
-**Choosing the wrong psychologist.** The list also offers doctors and other staff. The name you choose is the person who will be expected to evaluate.
+**Choosing the wrong psychologist.** The name you choose is the person who will be expected to evaluate, and it is printed on the file. Check it before you validate.
 
 **Looking for the Evaluate button.** It is not offered to your role. Ask the referring psychologist.
 
-**Reading an empty list as "no patient".** After a network cut, reload the page before drawing any conclusion.
+**Reading a failed load as "no patient".** After a network cut, the list shows an error message and the tiles read a dash. Select Retry before you draw any conclusion.
 
-**Reading an evaluation twice.** A duplicated line in the history is a known fault of the demonstration, not a second interview.
+**Guessing the sex of a new patient.** The field is required and the file keeps what you chose. Ask the patient or the guardian.
 
 **Forgetting the consent.** The admission goes through without it, and the file then shows "No file attached". Add the scan on the day.
 
@@ -227,14 +224,13 @@ The user name and the role cannot be changed here. To change your password, open
 
 | What you see | What it means | What to do |
 |---|---|---|
-| "Accès Interdit" page | Your role cannot open that screen | Select the link to your dashboard. |
-| "0 patients followed" and "No patient found." | The server cannot be reached | Check the network, reload the page. |
-| Validate Admission stays pale | A required field is empty, or the patient already has an active file | Read the red message, fill the fields marked with a star. |
+| "Access denied" page | Your role cannot open that screen | Select the link to your dashboard. |
+| "Cannot load the data while offline" | The server cannot be reached | Check the network, then select Retry. |
+| Validate Admission stays pale | A required field is empty (for a new patient, the sex counts), or the patient already has an active file | Read the red message, fill the fields marked with a star. |
 | "This patient already has an active toxicology file" | The patient is already followed | Do not admit again. Open the existing file. |
 | "Le fichier est trop volumineux (max 5MB)" | The consent scan is too large | Reduce the scan and select it again. |
-| The psychologist list is empty | The server did not answer | Reload the page and open the form again. |
-| The same evaluation twice in a history | A known duplicate of the demonstration version | Do not ask for a new evaluation. Tell the administrator. |
-| "PDF export failed. Please try again later." | The browser did not receive the PDF | Try again once. If it persists, tell the administrator. |
+| The psychologist list is empty | The server did not answer, or no account has the Psychologist role | Reload the page and open the form again. If it stays empty, tell the administrator. |
+| "PDF export failed. Please try again later." | The PDF could not be produced | Try again once. If it persists, tell the administrator. |
 | Sign-in refused several times | Wrong password, or too many attempts | Wait a minute, then try again. Ask an administrator to reset the password. |
 
 ## Glossary {.unnumbered}

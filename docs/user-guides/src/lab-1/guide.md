@@ -2,7 +2,7 @@
 title: Requests and results
 role: Laboratory technician
 subtitle: Receiving a laboratory request, entering the results parameter by parameter, flagging abnormal values, validating the file, printing the result sheet, finding past results and working when the connection drops.
-version: 26 October 2026
+version: 27 October 2026
 output: lab-1-requests-results
 ---
 
@@ -22,7 +22,7 @@ You register laboratory requests, type and validate results, and download result
 
 The application starts in French on a new computer. The language switch at the top right, next to the bell, has two buttons: select **EN** to work in English. The choice is kept on that computer.
 
-> Note: Some things stay in French in English mode. The exam names are French (for example "Numération Formule Sanguine" and "Glycémie à jeun"). The **Sync failures** screen, the message that follows a new request and the printed result sheet are in French. This guide quotes each label as it appears and translates it the first time.
+> Note: Some things stay in French in English mode. The exam names are French (for example "Numération Formule Sanguine" and "Glycémie à jeun"), and so are the green line that follows a new request and the printed result sheet. This guide quotes each label as it appears and translates it the first time.
 
 ## Signing in and the dashboard
 
@@ -41,19 +41,19 @@ The application opens on the laboratory **Dashboard**.
 
 ![The laboratory dashboard](figures/dashboard.png)
 
-The menu entry {1} brings you back here from any tab. The connection indicator {2} reads "Connected" when the computer is in contact with the server. The tabs {3} lead to the work screens. The buttons {4} choose the period used by the counters: **Today**, **This month** (the default) or **This year**.
+The menu entry {1} brings you back here from any tab. The connection indicator {2} reads "Connected" when the computer is in contact with the server. Right after you sign in it can read "Offline" for a few seconds, while the copy kept on the computer is prepared; it turns to "Connected" by itself. The tabs {3} lead to the work screens. The buttons {4} choose the period used by the counters: **Today**, **This month** (the default) or **This year**.
 
 The four counters read as follows. **Pending (Bench)** {5} counts the examinations waiting to be entered; it does not depend on the period, and selecting it opens the bench. **Completed (Period)** counts the cases finished in the period. **Pathological** {6} counts the cases with at least one abnormal value; selecting it opens the History, already filtered on abnormal cases of the same period. **Total Activity** counts the cases created in the period.
 
 **Latest entries (Bench)** lists the most recent patients, with their examinations and a state for each one. [[Enter]] {7} opens that case directly on the bench. **Top Analyses** ranks the most requested exams of the period. The page refreshes by itself every five minutes.
 
-> Note: The dashboard shows an external patient as "Patient Externe", without the name. Open the bench to see the name.
+The dashboard shows each patient as "Surname First name". An external patient appears under the name given at Reception.
 
 ## Receiving a request
 
 A request is one patient and one or more exams. You create it at **Reception**, and it then appears on the bench. Reception always asks who prescribed the exams, so have the doctor's name before you start.
 
-Two situations exist. The patient has a file in the centre and a doctor wrote a lab order (the first case below), or the patient has no file or no order (the second case below).
+Three situations exist. The patient has a file in the centre and a doctor wrote a lab order (the first case below), the patient has a file and paid for an exam at the cash desk (the second case), or the patient has no file or nothing to receive (the third case).
 
 ### A patient with a doctor's lab order
 
@@ -73,13 +73,17 @@ The patient card {1} confirms the choice and says how many exams were imported f
 3. Remove an exam that must not be done with [[Remove]] {5}.
 4. Check the counter on [[Create request]] {6}, which shows the number of exams, then select it.
 
-A browser message "Dossier enregistré avec succès !" (file saved successfully) appears. Select [[OK]]. A green line under the title adds that the exams are "enregistrés localement, en attente de synchronisation", which only means that the exams were saved on the computer and are being sent to the server. The form is cleared for the next patient. The patient now appears on the bench.
+A message "Record saved successfully." appears for a few seconds. A green line under the title adds, in French, that the exams are "enregistrés localement, en attente de synchronisation", which only means that the exams were saved on the computer and are being sent to the server. The form is cleared for the next patient. The patient now appears on the bench.
 
-[[Change]] {2} returns to the search. The prescription of a patient who already had results can still be found at Reception: in the demonstration, a patient whose two exams were finished the same morning was still offered with "2 exams prescribed". Check the date of the order with the patient before you create the request again.
+[[Change]] {2} returns to the search. An order line that was already received is not offered again. When every exam of an order has been received, the order disappears from the search, so a patient cannot be received twice for the same prescription.
 
-### A patient without a file or without an order
+### A patient invoiced at the cash desk
 
-At the cash desk, the secretary can invoice a laboratory exam without any link to the laboratory, and the technician does not see invoices. Ask the patient for the doctor's note or for the receipt, and register the request yourself. If you search an internal patient who has no active order, the list says "No active prescription found." In that case, use the external mode.
+A patient who has a file may have paid for a laboratory exam at the cash desk without any doctor's order. The search at **Reception** then offers that patient too, with the line "2 exams invoiced at the cash desk" in place of the prescription. Select the line: the invoiced exams are put in the list with the green label **Invoiced**, and the card says "2 invoiced exams imported from the cash desk". Choose the prescriber and select [[Create request]] as above. An invoiced exam is received once: after that it is no longer offered, and the server refuses a second reception of the same invoice line.
+
+### A patient without a file, or with neither an order nor an invoice
+
+You do not see invoices. If you search a patient who has neither an active order nor an invoiced exam waiting, the list says "No prescription or invoice to receive for this patient." Ask the patient for the doctor's note or for the receipt. When the patient has no file at all, use the external mode. An external patient cannot be linked to an invoice: the exams of an external patient are always typed by hand.
 
 ![A request for an external patient](figures/recep-external.png)
 
@@ -102,7 +106,7 @@ The **Bench** tab lists every case waiting for results. The newest cases come fi
 
 Select [[Refresh the list]] {1} to reload the list. Each card carries the patient name, the sex and the age, a label {2} for an external patient, and a progress line {3} such as "1 of 2 exams done". Each exam is a pill {4} that shows its state with a word and an icon: **Pending** (yellow clock), **In progress** (blue flask) or **Completed** (green check). A request that was just created at Reception starts as In progress.
 
-> Note: The list does not always update the state of a pill at once after a validation. If a finished exam still reads "In progress", select [[Refresh the list]].
+The pills change state by themselves after a save or a validation. [[Refresh the list]] is only useful to see the work of a colleague.
 
 ### Typing the values
 
@@ -112,7 +116,7 @@ Select [[Refresh the list]] {1} to reload the list. Each card carries the patien
 
 ![The entry form of a blood count](figures/bench-form.png)
 
-The header {1} carries the code of the file. The progress line {2} counts the parameters that have a value. The result column shows, for each parameter, the value box {3}, the unit and the reference values {4}. A dash in the reference column means that no range is registered for the parameter: the application then cannot judge the value, and you read it against your own references. In the demonstration, only two parameters of the blood count (Erythrocytes and Hémoglobine) had a range.
+The header {1} carries the code of the file. The progress line {2} counts the parameters that have a value. The result column shows, for each parameter, the value box {3}, the unit and the reference values {4}. A dash in the reference column means that no range is registered for the parameter: the application then cannot judge the value, and you read it against your own references. In the demonstration, only two parameters of the blood count (Erythrocytes and Hémoglobine) had a range. The administrator adds the ranges and sets the order of the parameters in the exam configuration; the form always lists the parameters in that order.
 
 The exam list is the same for everyone, but the number of parameters depends on the exam: a glycaemia has two, a blood count has fourteen.
 
@@ -130,9 +134,9 @@ As soon as a box holds a value, a row of five choices appears under it, and an i
 
 Choose the flag with {5} and, if needed, type a short remark in the interpretation field {6}. The remark is printed next to the value on the sheet.
 
-When you leave a value without a flag and without a remark, the application compares it with the range of the patient's sex, if one exists. In the demonstration, a haemoglobin of 9.8 g/dL for a woman, with no flag chosen, was saved as "Bas" (low) and counted as abnormal. Where no range exists, nothing is judged for you. Choose a flag yourself for every value you consider abnormal: only flagged values count in the Pathological counter and in the "abnormal" label of the History.
+When you leave a value without a flag and without a remark, the application compares it with the range of the patient's sex, or with the range for everyone when no range exists for that sex. It never uses the range of the other sex. In the demonstration, a haemoglobin of 9.8 g/dL for a woman, with no flag chosen, was saved as "Bas" (low) and counted as abnormal. Where no range exists, nothing is judged for you. Choose a flag yourself for every value you consider abnormal: only flagged values count in the Pathological counter and in the "abnormal" label of the History.
 
-> Caution: A flag chosen by hand takes the place of the automatic judgement. When you choose High, Low or Abnormal, add a remark if you want the sheet to say more than a star. In the demonstration, a platelet count of 480000 flagged High showed on the sheet as a red value with two stars and no word, and a flag "Normal" left no text at all.
+> Note: A flag chosen by hand takes the place of the automatic judgement. Without a remark, the application records the word of the flag ("Haut", "Bas", "Anormal" or "Normal"), so the sheet is never left with an empty interpretation. A remark that you type replaces that word.
 
 ### Saving, validating and printing
 
@@ -140,17 +144,26 @@ When you leave a value without a flag and without a remark, the application comp
 
 Type a general conclusion in [[Overall Exam Conclusion]] {2} if the doctor must read one. The conclusion is printed at the bottom of the sheet, and it is shown to the doctor.
 
-- [[Save Draft]] {3} keeps what you typed and leaves the exam open. Use it when the analyser has not finished or when you must stop. The exam stays on the bench, and its parameters reappear when you open it again.
-- [[Validate & Close]] {4} completes the exam. The file leaves the bench and goes to the History as Completed. Doctors and nurses can read it from that moment.
+- [[Save Draft]] {3} keeps what you typed and leaves the exam open. Use it when the analyser has not finished or when you must stop. The exam stays on the bench, and its parameters reappear when you open it again. The message "Draft saved." confirms it.
+- [[Validate & Close]] {4} completes the exam. The message "Result validated and closed." appears, the exam leaves the bench list and goes to the History as Completed. Doctors and nurses can read it from that moment.
 - [[VALIDATE & PRINT]] {5} does the same and also asks for the PDF of the result sheet.
 
 Both validation buttons stay grey until at least one value is typed. The application does not ask for confirmation, and it does not require every parameter to be filled. Validate only when the values are final.
 
-> Caution: Save Draft gives no message. The only sign is that the progress line counts the typed values when you reopen the exam. After either validation, the form closes and the right-hand panel returns to "Select a case on the left." The counter of cases under analysis goes down by one. Neither action shows a success message, so look at the counter or open the History to check.
+After either validation, the form closes and the right-hand panel returns to "Select a case on the left." The counter of cases under analysis goes down by one when the last exam of a visit is done.
 
-After a save, the order of the parameters changes: the empty parameters come first, and the parameters that hold a value move to the end of the table. This also holds for the result sheet. Do not take this for a loss of data.
+The parameters keep the order set by the administrator, before and after a save, on the bench and on the result sheet.
 
-A completed exam is not locked. While its case is still on the bench, the green pill reopens it and [[Validate & Close]] replaces the values. Use this only to correct a mistake, and warn the doctor if the earlier values were already read.
+### Correcting a validated result
+
+A validated result is read-only. While its case is still on the bench, because another exam of the same visit is not finished, the green pill of the validated exam opens it with the notice "This result is validated: it is read-only. To change it, use the correction with a reason." The boxes are grey and the three buttons are replaced by [[Correct this result]].
+
+1. Select [[Correct this result]]. The boxes open.
+2. Change the values, the flags or the conclusion.
+3. Type the reason in [[Reason for the correction (required)]]. The doctor who prescribed the exam is told of the correction, so write a clear sentence.
+4. Select [[Save the correction]]. [[Cancel the correction]] gives back the original values.
+
+The message "Result corrected. The prescribing doctor has been informed." appears. The exam carries the label **Corrected** on the bench and in the History, and its window lists who corrected it, when, why, and the value before the correction. The correction needs the connection to the server and is not available offline.
 
 ### Several exams for one patient
 
@@ -162,11 +175,11 @@ The result sheet is a PDF. It is available from the History in two forms: one pe
 
 ![A page of the result sheet of a visit](figures/pdf-sheet.png)
 
-The sheet begins with a page that carries the name and the address of the centre, the patient, the laboratory code, the date of the sample, the prescriber and the list of exams. One section follows for each exam, with a table of parameters, results, units, reference values and interpretation, and the conclusion under the table. Values flagged abnormal are printed in red, with the remark between stars.
+The sheet begins with a page that carries the name and the address of the centre, the patient, the laboratory code, the date of the sample, the prescriber and the list of exams. One section follows for each exam, with a table of parameters, results, units, reference values and interpretation, and the conclusion under the table. Values flagged abnormal are printed in red, with the word of the flag or your remark between stars, for example "* Haut *".
 
-The sheet is written in French ("Informations Patient", "Valeurs de Réf.", "Conclusion / Note"). In the demonstration, the sex of the patient was printed as "X" on the first page for a woman, and the reference values were printed as a dash even where the bench had shown a range. Check these two points on a printed sheet before you hand it to a patient, and correct by hand if needed.
+The sheet is written in French ("Informations Patient", "Valeurs de Réf.", "Conclusion / Note"). The sex of the patient is printed in French ("Masculin", "Féminin" or "Non renseigné"), and the reference column shows the range of that sex, or the range for everyone, or a dash when none is registered.
 
-> Caution: In the demonstration, the buttons [[Download PDF]], [[Full file PDF]] and [[Print]] gave no file in the browser used for this guide: nothing was downloaded and no message appeared, although the server produced the PDF correctly when it was called directly. If a button does nothing on your computer, tell the administrator. Until it works, the result can be read on screen from [[View details]].
+[[Download PDF]], [[Full file PDF]] and [[Print]] each produce a PDF file that your browser saves on the computer, named "Resultat_" followed by the number of the exam, or "Dossier_" followed by the laboratory code for the whole visit. Open it from the downloads of the browser to read it or print it.
 
 ## History and search
 
@@ -174,11 +187,11 @@ The **History** tab keeps every case, finished or not, with the newest first. Th
 
 ![The history list](figures/history.png)
 
-Type at least two letters of a patient name or a code in [[Search a file]] {1}; the list updates after a short pause. The list [[Status]] {2} has three choices: All statuses, Pending and Completed (Tech). [[Refresh]] {3} clears both the search and the status. Each day has a heading {4} such as "Today, Monday, October 26, 2026". A card shows the time, the patient, the exams, the state, and the number of abnormal parameters in red. A case that is not finished shows no PDF button.
+Type at least two letters of a patient name or a code in [[Search a file]] {1}; the list updates after a short pause. The list [[Status]] {2} has three choices: All statuses, Pending and Completed (Tech). [[Refresh]] {3} clears both the search and the status. Each day has a heading {4} such as "Today, Monday, October 26, 2026". A card shows the time, the patient, the exams, the state, the number of abnormal parameters in red, and the label **Corrected** when a result was corrected after validation. A case that is not finished shows no PDF button.
 
 The list shows fifteen cases per page, with [[Previous]] and [[Next]] at the bottom. A card for one exam has [[View details]] and [[Download PDF]]. A card for a visit with several exams has [[Show exams]] {5} and [[Full file PDF]] {6}.
 
-> Note: The Pending choice of the status list keeps only the exams that nobody has started. A request created today at Reception is In progress, so it does not appear under Pending, although its card carries the label "Pending" in the list. To find it, search by name.
+> Note: The Pending choice of the status list keeps every exam that is not finished, those nobody has started and those in progress. A request created today at Reception appears under it.
 
 ![A visit with its exams opened](figures/history-open.png)
 
@@ -188,7 +201,7 @@ The list shows fifteen cases per page, with [[Previous]] and [[Next]] at the bot
 
 The window gives the state, the file number and the batch code, the patient and the prescriber, then the table {1} of the biological results with the value, the unit, the reference values {2} and the interpretation {3}. The conclusion {4} is at the bottom. [[Print]] {5} asks for the PDF. [[Close]] closes the window.
 
-Values flagged by you appear in red with a label next to the value: Low, High or Abnormal. The interpretation column repeats the remark. A parameter that you flagged High or Low by hand shows the label Abnormal on screen, whatever the direction. Only a value judged by the application itself keeps the label Low or High.
+Values flagged by you appear in red with a label next to the value: Low, High or Abnormal. The interpretation column repeats the remark. A parameter that you flagged High or Low by hand shows that label, with an arrow; a value flagged Abnormal shows the label Abnormal. When the exam was corrected after validation, a blue block at the top of the window gives, for each correction, the name, the date, the reason and the value before the correction.
 
 You can also arrive at the History from the dashboard. The Pathological counter opens a list limited to abnormal cases, with a button "Abnormal cases, This month" that you select to see all cases again.
 
@@ -204,13 +217,15 @@ Some points change while you are offline.
 
 - The list can differ slightly from the server: it counted 49 cases against 50, and a case created by a colleague may be missing.
 - A patient with a file may lose the age and the sex on the bench ("-, - years"). Do not rely on the reference column for such a case; open it once the connection is back.
-- The dashboard and the History need the server. Offline, the dashboard shows 0 in every counter and "No case waiting to be processed", and the History says "No exam found". Neither message means that the laboratory is empty. The counters come back when the connection returns.
-- The PDF buttons need the server as well.
+- The dashboard and the History need the server. Offline, the counters of the dashboard show a dash, and the dashboard and the History say "Cannot load the data while offline. Figures shown would not be reliable." with a [[Retry]] button. This does not mean that the laboratory is empty. Select Retry when the connection returns.
+- The PDF buttons and the correction of a validated result need the server as well.
 - Reception works offline. A patient with a lab order is found from the local copy ("2 exams prescribed" appeared as online). The list of prescribers is longer than online: it shows every member of staff with the word Doctor, including colleagues who are not doctors. Choose the name written on the order.
 
 > Caution: Keep the computer on and the browser open until the indicator reads "Connected" again. Do not clear the browser data while the indicator is yellow and entries are waiting.
 
-When the connection returns, the indicator turns green within a few seconds and the entries are sent. If the server refuses something typed offline, it is listed under **Sync failures** in your tabs. This screen is written in French ("Échecs de synchronisation"). When everything was accepted, it says "Aucun échec de synchronisation" (no synchronisation failure).
+When the connection returns, the indicator turns green within a few seconds and the entries are sent. If the server refuses something typed offline, it is listed under **Sync failures** in your tabs. When everything was accepted, the screen says "No synchronisation failure."
+
+Some entries typed offline can be refused when they arrive. For example, the server refuses a second reception of an exam that a colleague already received from the same order or the same invoice. Read the reason on the Sync failures screen.
 
 ## Notifications and your profile
 
@@ -236,11 +251,9 @@ The user name and the role cannot be changed here. To change your password, open
 
 **Trusting the automatic judgement.** Without a range, the application says nothing about a value. Flag every abnormal value yourself.
 
-**Expecting a message.** Save Draft and the two validation buttons do not confirm anything. Watch the case counter, or open the History.
+**Editing a validated result without telling anyone.** A validated result changes only through the correction with a reason, and the doctor is told. Give a precise reason.
 
 **Entering a value for the wrong exam.** The pill you selected is the exam in the header. Read the header before you type.
-
-**Counting on the Pending filter.** A request just received is In progress. Search by name.
 
 ## When something goes wrong {.unnumbered}
 
@@ -251,9 +264,10 @@ The user name and the role cannot be changed here. To change your password, open
 | "No active prescription found." | The patient has no active lab order | Check the patient code. If there is no order, use External Patient. |
 | "No exam selected" under the exam list | The request has no exam | Choose an exam and select Add. |
 | Validate buttons stay grey | No value is typed | Type at least one value. |
-| A finished exam still reads In progress | The list was not refreshed | Select Refresh the list. |
+| A validated exam is grey and read-only | A validated result is locked | Use Correct this result and give a reason. |
+| Correct this result fails | The connection to the server is down | Wait for "Connected", then try again. |
 | A result cannot be found in History | The case is In progress, or the search is too short | Type at least two letters, or search by the code. |
-| A PDF button does nothing | The browser did not receive the file | Tell the administrator. Read the result on screen meanwhile. |
+| A PDF button gives no file | The server cannot be reached | Wait for "Connected" and select the button again. Read the result on screen meanwhile. |
 | A case under Sync failures | The server refused an entry typed offline | Open it, read the reason, enter the data again. |
 | Sign-in refused several times | Wrong password, or too many attempts | Wait a minute, then try again. Ask an administrator to reset the password. |
 

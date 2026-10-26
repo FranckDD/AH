@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia';
+import i18n from '../i18n.js';
 import { ref, computed } from 'vue';
 import api from '@/services/api';
 import { db } from '@/powersync-client/client';
@@ -80,7 +81,7 @@ export const usePatientDossierStore = defineStore('patientDossier', () => {
                 patient_id: p.server_id,
                 patient_uuid: p.server_id ? null : p.id,
                 full_name: `${p.first_name || ''} ${p.last_name || ''}`.trim(),
-                code: p.code_patient || 'Code en attente',
+                code: p.code_patient || i18n.global.t('patients.code_pending'),
                 age: calculerAge(p.birth_date),
                 gender: p.gender,
                 flags: {

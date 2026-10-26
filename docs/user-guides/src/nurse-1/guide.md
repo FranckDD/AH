@@ -2,7 +2,7 @@
 title: Triage and care
 role: Nurse and head nurse
 subtitle: Registering a new patient, taking the measurements, writing the nursing consultation, sending the patient to a doctor, handling appointments, reading laboratory results and following the patients who stay in the centre.
-version: 26 October 2026
+version: 27 October 2026
 output: nurse-1-triage-care
 ---
 
@@ -24,7 +24,7 @@ You work on clinical patients and clinical data. You can register a patient, wri
 
 The application starts in French on a new computer. The language switch sits at the top right of every screen, next to the bell: select **EN** to work in English. The choice is kept on that computer.
 
-> Note: Some labels stay in French in English mode. The patient list and the registration form use "Ajouter un patient" (add a patient), "Créer" (create), "Annuler" (cancel), "Voir Dossier" (open the file), "Modifier" (edit) and "Supprimer" (delete). In the patient file you will meet "Prescrire" (prescribe), "Tension" (blood pressure), "Poids" (weight) and "Fermer" (close). This guide quotes each label as it appears and gives the English meaning the first time.
+> Note: A few texts stay in French in English mode because they come from the reference lists of the centre. The reasons of a consultation (consultation, gratuite, hospitalisation, rendez-vous, suivi_prénatal, urgence) and the laboratory exams keep their French names, a patient registered offline shows "CODE EN ATTENTE" until the code arrives, and the red error lines under the Hospitalization card are in French. This guide quotes each label as it appears.
 
 ## Signing in and the dashboard
 
@@ -52,19 +52,19 @@ The waiting list is for information. A nurse sees no [[Take in charge]] button, 
 A patient who has never come to the centre has no file. You create it before anything else, and the application then leads you straight to the first measurements. The patient code is built by the server and you cannot choose it.
 
 1. In the menu, select **Patients**.
-2. Select [[Ajouter un patient]] {1}.
+2. Select [[Add a patient]] {1}.
 
 ![The patient list](figures/patients-list.png)
 
-The list shows the patients of the centre. Use the search box {2} to look for a name or a code before you create a file: a patient who is already known must not be registered twice. The tabs {3} count **All Patients** and **Clinical Care**. The **Type** column shows NEW for a patient who has no follow-up yet, CLINIQUE for a clinical patient, and TOXICO or SPIRITUEL for a patient of another service. [[Voir Dossier]] {4} opens the file.
+The list shows the patients of the centre. Use the search box {2} to look for a name or a code before you create a file: a patient who is already known must not be registered twice. The tabs {3} count **All Patients** and **Clinical Care**. The newest patients come first. The **Type** column shows NEW for a patient who has no consultation yet, CLINIQUE as soon as a consultation exists, and TOXICO or SPIRITUEL for a patient of another service. [[View record]] {4} opens the file.
 
 ![The registration form](figures/newpat-form.png "small")
 
-3. Type the first name in [[Prénom]] {1} and the last name in [[Nom]]. Both are required.
-4. Choose the birth date in [[Date de naissance]] {2}. It is required.
-5. Choose [[Genre]] {3}: Non précisé, Masculin, Féminin or Autre.
-6. Type the national identity number if the patient has one. The telephone {4}, the residence, the insurance and the names of the parents are optional but useful.
-7. Select [[Créer]] {5}.
+3. Type the first name in [[First name]] {1} and the last name in [[Last name]]. Both are required.
+4. Choose the birth date in [[Date of birth]] {2}. It is required.
+5. Choose [[Gender]] {3}: Not specified, Male, Female or Other.
+6. Type the national identity number if the patient has one. The phone {4}, the residence, the insurance and the names of the parents are optional but useful.
+7. Select [[Create]] {5}.
 
 A window **Patient registered** opens.
 
@@ -75,7 +75,7 @@ A window **Patient registered** opens.
 
 The patient will give this code at the next visit, which is why it goes in the notebook before you continue.
 
-The form of the first measurements opens at once (chapter 3). In the demonstration, the Type column of the list kept reading NEW for such a patient after the measurements were saved, while the header of the file read CLINIQUE. Trust the file.
+The form of the first measurements opens at once (chapter 3). The patient stays NEW in the list until the measurements are saved as a consultation, and then reads CLINIQUE.
 
 > Caution: Do not create a second file for a patient who already has one. The Sync failures screen explains that a patient created offline can be refused by the server, for example when the national identity number is already used by another patient.
 
@@ -103,23 +103,23 @@ The form is a panel with these parts, from top to bottom.
 
 Select [[Save]] {7} when the form is complete. After a registration, the message "Measurements saved." appears at the top right. After a consultation started from a file, the file shows the new consultation at once and a green banner offers "Add a prescription for this consultation?" with the buttons [[No]] and [[Yes, prescribe]].
 
-> Note: Right after saving a new consultation, the author may show as "Inconnu" (unknown) and the cards of the file may show a dash. Reload the file: your name and the values appear.
+When the consultation was saved while the computer was offline, the author can read "Unknown" and the cards of the file can show a dash for a few seconds, until the entry has reached the server. The file then loads your name and the values by itself.
 
 ### The patient file
 
 ![The patient file](figures/dossier.png)
 
-The header {1} gives the name, the patient code, the age and a badge for each service that follows the patient. The cards show the last blood pressure {2}, the weight and the temperature, and the known allergies {3}, in red. The **Medical Record** tab lists the consultations, the newest first. [[New consultation]] {4} opens an empty form. [[Modifier]] {5} changes the consultation and [[Prescrire]] {6} writes a prescription for it. The other tabs are **Exams** (chapter 7), **Treatments** and **Hospitalization** (chapter 8).
+The header {1} gives the name, the patient code, the age and a badge for each service that follows the patient. The cards show the last blood pressure {2}, the weight and the temperature, and the known allergies {3}, in red. The **Medical Record** tab lists the consultations, the newest first. [[New consultation]] {4} opens an empty form. [[Edit]] {5} changes the consultation and [[Prescribe]] {6} writes a prescription for it. The other tabs are **Exams** (chapter 7), **Treatments** and **Hospitalization** (chapter 8).
 
 ### Correcting a consultation
 
-[[Modifier]] opens the same form with the saved values. The section **Doctor referral** does not appear in a form that you edit: the referral is decided when the consultation is created. Change the text, then select [[Save]]. The change shows in the file at once.
+[[Edit]] opens the same form with the saved values. The section **Doctor referral** does not appear in a form that you edit: the referral is decided when the consultation is created. Change the text, then select [[Save]]. The change shows in the file at once.
 
 ### Only the latest consultation can be changed
 
 As soon as a newer consultation exists for the same patient, the older one becomes read-only. Its buttons are replaced by the grey label "Consultation closed: a more recent consultation exists", and the prescriptions linked to it become read-only as well.
 
-> Caution: Complete the visit in the consultation you already started, with [[Modifier]]. A second [[New consultation]] on the same visit closes the first one, and its measurements stay behind in a record that nobody can edit.
+> Caution: Complete the visit in the consultation you already started, with [[Edit]]. A second [[New consultation]] on the same visit closes the first one, and its measurements stay behind in a record that nobody can edit.
 
 ### The Consultations screen
 
@@ -150,7 +150,7 @@ The doctor then takes the patient in charge, completes your consultation and wri
 
 ## Prescriptions
 
-The application also lets a nurse open the prescription form, from [[Prescrire]] under a consultation, from [[Yes, prescribe]] or from the **Prescriptions** screen. Use it only for what a doctor has told you to give.
+The application also lets a nurse open the prescription form, from [[Prescribe]] under a consultation, from [[Yes, prescribe]] or from the **Prescriptions** screen. Use it only for what a doctor has told you to give.
 
 1. Leave [[This is a lab order]] unticked for a medicine.
 2. Type the medicine in [[Medication]], then the [[Dosage]] and the [[Frequency]].
@@ -181,13 +181,11 @@ The new line shows "Pending".
 
 ### Working an appointment
 
-- [[Start consultation]] opens the patient file, where you select [[New consultation]].
-- [[Complete]] marks the appointment as done. The status turns to "Completed" and only [[Edit]] remains.
+- [[Start consultation]] opens the patient file with the consultation form already open. Choose the reason and save: the application then marks the appointment "Completed".
+- [[Complete]] marks the appointment as done without a consultation. The status turns to "Completed" and only [[Edit]] remains.
 - [[View record]] opens the patient file without changing anything.
 - [[Edit]] changes the date, the time, the doctor or the reason. In the demonstration, moving an appointment from 10:00 to 11:00 showed at once in the list.
-- [[Reject]] cancels the appointment. There is no confirmation question: the status turns to "Cancelled" immediately.
-
-Saving a consultation does not complete the appointment by itself. Select [[Complete]] after the visit.
+- [[Reject]] cancels the appointment. The application asks "Reject this appointment? This cannot be undone." and the status turns to "Cancelled" once you confirm.
 
 > Caution: Select [[Complete]] or [[Reject]] only after checking the line. A completed or cancelled appointment keeps only [[Edit]], and the way to undo a rejection is to book a new appointment.
 
@@ -202,11 +200,11 @@ The **Exam Results** screen shows the results that the laboratory has completed.
 3. Select [[Refresh]] {2} to reload the list.
 4. Select [[View details]] {3} to read a result, or [[Download PDF]] {4} to save it.
 
-A patient who had several exams in one visit has one line per exam. The detail opens in a panel.
+A patient who had several exams in one visit has one line per exam. The detail opens in a panel. If the laboratory corrected a validated result, the panel adds a block "Result corrected after validation" with the reason and the value before the correction, and the line of the **Exams** tab carries the label "Corrected".
 
 ![One result in detail](figures/result-detail.png)
 
-The panel shows the result table {1}: the parameter, the value, the unit, the reference values {2} and the interpretation {3}. A value outside the reference range carries the label High or Low, and the interpretation column says "Haut" or "Bas". A dash in the reference column means that the parameter has no range for this patient, so the value has no automatic flag: read it against your own references. The note of the technician appears at the bottom as "Conclusion / General notes".
+The panel shows the result table {1}: the parameter, the value, the unit, the reference values {2} and the interpretation {3}. A value outside the reference range carries the label High or Low, and the interpretation column says "Haut" or "Bas". A dash in the reference column means that the parameter has no range for the sex of this patient, so the value has no automatic flag: read it against your own references. The note of the technician appears at the bottom as "Conclusion / General notes".
 
 The same results appear in the patient file, on the **Exams** tab, with a status label per exam and a red label such as "2 abnormal" when values are out of range. [[View Results]] opens the same sheet.
 
@@ -216,16 +214,16 @@ A patient who must stay for treatment is hospitalised. The nurse and the doctor 
 
 **Hospitalized Patients** in the menu lists every patient who is in the centre now, whoever admitted the patient.
 
-The columns give the admission date and time, the number of days, the current status and the person who admitted the patient. [[View record]] opens the patient file. The status column shows the latest entry of each stay.
+The columns give the admission date and time, the length of the stay, the current status, the admission reason and the person who admitted the patient. [[View record]] opens the patient file. The status column shows the latest entry of each stay.
 
 ### Admitting a patient
 
 1. Open the patient file and select the **Hospitalization** tab.
 2. Select [[Admit]].
-3. Type the reason in [[Admission reason]]. The field is optional, but it is the only place where the reason is recorded.
+3. Type the reason in [[Admission reason]]. The field is optional, but it is the only place where the reason is recorded. It then shows on the card and in the list.
 4. Select [[Confirm]].
 
-The card now shows "Hospitalized since", the date and time, the number of days and your name under "Admitted by".
+The card now shows "Hospitalized since", the date and time with the length of the stay, your name under "Admitted by" and the admission reason.
 
 ### Recording the progress
 
@@ -242,13 +240,13 @@ Each time you see the patient, add an entry. The status is Improving, Stable or 
 
 **Latest update** {1} shows the status of the last entry, and **Current stay's clinical updates** {2} lists every entry with its author and its note. [[Update status]] {3} adds an entry and [[Discharge]] {4} closes the stay. Entries cannot be changed or deleted. If one is wrong, add a new entry that corrects it.
 
-> Caution: A Worsening entry is meant to send a notification to the other doctors and nurses, but in the demonstration none arrived: a doctor saved a Worsening entry on an inpatient, and the nurse's bell stayed empty. The status Worsening shows in the Hospitalized Patients list. Tell the doctor on duty yourself, and do not rely on the bell.
+A Worsening entry sends a notification to every other active doctor and nurse, and the status shows in red in the Hospitalized Patients list. The notification reaches you when a colleague saves the entry, not when you save it yourself. Chapter 9 describes the bell.
 
 ## Notifications
 
 The bell at the top right of every screen opens the list of your notifications.
 
-Select the bell. The list reads "No notifications." when nothing is waiting. In the demonstration installation, the nurse account received no notification during the tests, so keep the habit of telling colleagues directly about anything urgent.
+Select the bell. The list reads "No notifications." when nothing is waiting. When a doctor or another nurse saves a Worsening entry on an inpatient, you receive "Worsening reported: " followed by the patient name and the author. Select the notification to open the patient file. Keep the habit of telling colleagues directly about anything urgent: the bell does not replace a call.
 
 ## Working without a connection
 
@@ -256,12 +254,12 @@ The application keeps working when the internet connection drops. What you save 
 
 ![A consultation saved while the connection was down](figures/offline-saved.png)
 
-When the network is lost, the indicator {1} turns yellow and reads "Offline (your entries are saved)". The patient list and the patient files still open from the copy on the computer, and a new consultation {2} is accepted. After a consultation saved offline, the author may show as "Inconnu" until the file is reloaded online.
+When the network is lost, the indicator {1} turns yellow and reads "Offline (your entries are saved)". The patient list and the patient files still open from the copy on the computer, and a new consultation {2} is accepted. After a consultation saved offline, the author may show as "Unknown" until the entry has reached the server.
 
 Some things need the server and do not work offline.
 
-- The **Dashboard** shows "Unable to load the statistics. Try again" and an empty waiting list ("No patient waiting"). The list is not empty, it is simply not readable.
-- In the patient list, the totals and the counters of the tabs show 0.
+- The **Dashboard** shows "Unable to load the statistics." and, in the waiting list, "Cannot load the data while offline. Figures shown would not be reliable." with a [[Retry]] button. The list is not empty, it is simply not readable.
+- In the patient list, the counters of the tabs show a dash.
 
 ### Registering a patient offline
 
@@ -271,9 +269,9 @@ You can register a patient while offline, but the code does not exist yet.
 
 The window **Patient registered** says "The code is assigned at synchronization and will appear in the list." The patient shows in the list as "CODE EN ATTENTE". Select [[OK]] {2}.
 
-The measurements form opens, but its patient code reads "Code en attente" and the message "Patient not found" appears. In the demonstration, [[Save]] did nothing, and the measurements typed there were lost. A file opened from the list in the same state refused a new consultation in the same way. Until the connection returns, write the measurements on paper. When the indicator is green again, the patient receives a code shortly afterwards. Open the file from the list and enter the measurements with [[New consultation]].
+The measurements form opens with the patient already chosen, and its patient code field reads "Code assigned at sync". Fill the form as usual and select [[Save]]: the measurements are kept on the computer and sent to the server after the patient has been created. A file opened from the list in the same state accepts a new consultation in the same way.
 
-> Caution: Do not trust the measurements form that opens after an offline registration. Check in the patient file that the consultation exists before you send the patient away.
+> Note: Before you send the patient away, check in the patient file that the consultation appears. If the server refuses the patient later, for example because the national identity number is already used, the patient and the measurements are listed under **Sync failures**.
 
 When the connection returns, the indicator goes back to "Connected" within a few seconds and your entries are sent. Check that each entry you made offline is in the file. If the server refuses an entry, it is listed under **Sync failures** in the menu, with the text you typed so that you can enter it again.
 
@@ -297,15 +295,15 @@ The user name and the role cannot be changed here. To change your password, open
 
 **Forgetting the Refer to doctor switch.** From a patient file the switch starts off. A patient who needs a doctor but was saved without the switch appears on no doctor's dashboard.
 
-**Opening a new consultation to finish the visit.** The first consultation is closed and read-only. Use [[Modifier]] to add to it.
+**Opening a new consultation to finish the visit.** The first consultation is closed and read-only. Use [[Edit]] to add to it.
 
 **Trusting the dashboard offline.** An empty waiting list while the indicator reads "Offline" says nothing about the patients.
 
-**Typing measurements offline for a patient registered offline.** They are lost. Write them on paper and enter them once the patient has a code.
+**Leaving the Sync failures entry unread.** A patient or a consultation refused by the server is not in the file until you correct it. Open the screen after an offline day.
 
-**Waiting for a notification of a worsening.** Tell the doctor yourself.
+**Waiting for a notification of a worsening.** The bell warns the team, but call the doctor yourself when the patient needs someone now.
 
-**Selecting Reject by accident.** The appointment is cancelled at once, without a question.
+**Confirming Reject by accident.** A rejected appointment cannot be restored. Read the line before you answer the question.
 
 ## When something goes wrong {.unnumbered}
 
@@ -313,10 +311,9 @@ The user name and the role cannot be changed here. To change your password, open
 |---|---|---|
 | Yellow "Offline" indicator | The computer cannot reach the server | Your entries are kept. Wait for "Connected"; tell the administrator if it lasts. |
 | "CODE EN ATTENTE" in the list | A patient registered offline has no code yet | Wait for "Connected". The code appears in the list. |
-| "Patient not found" in the form | The patient has no code yet | Close the form, wait for the code, then enter the consultation from the file. |
 | "Consultation closed: a more recent consultation exists" | A newer consultation exists for this patient | Work in the newest consultation. Ask an administrator to correct an older one. |
-| "Unable to load the statistics. Try again" | The dashboard could not reach the server | Select Try again, or check the connection. |
-| "No completed exam found" | No result is complete, or the computer is offline | Select Refresh when the indicator is green, or ask the laboratory. |
+| "Unable to load the statistics." or "Cannot load the data while offline" | The dashboard could not reach the server | Select Try again or Retry, or check the connection. |
+| "No completed exam found" | No result is complete yet | Select Refresh later, or ask the laboratory. |
 | A red message when saving a consultation | A required field is missing or a vital is out of range | Check the reason, the temperature (30 to 45), the weight and the height. |
 | An entry listed under Sync failures | The server refused something entered offline | Open Sync failures, read the reason, enter the text again. |
 | Sign-in refused several times | Wrong password, or too many attempts | Wait a minute, then try again. Ask an administrator to reset the password. |

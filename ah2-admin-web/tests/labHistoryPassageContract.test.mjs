@@ -26,7 +26,7 @@ check('LabHistoryPassage', view, [
     't(passage.status.labelKey, passage.status.params)', 'passage.abnormalCount > 0', "t('labScreens.abnormal_count', passage.abnormalCount)", 'ExclamationTriangleIcon',
     // un seul examen : actions directes comme avant ; plusieurs : dépliage + PDF du dossier complet
     'const isMulti = computed(() => props.passage.exams.length > 1);', "$emit('view', passage.exams[0])", "$emit('pdf', passage.exams[0])", "passage.exams[0].status !== 'pending'",
-    "$emit('pdf-batch', passage)", 'isMulti.value && !!props.passage.batch_id && hasPrintable(props.passage)', "defineEmits(['view', 'pdf', 'pdf-batch'])",
+    "$emit('pdf-batch', passage)", 'isMulti.value && !!props.passage.batch_id && hasPrintable(props.passage)', "defineEmits(['view', 'pdf', 'pdf-batch', 'amend'])",
     ':aria-expanded="open"', ':aria-controls="panelId"', 'v-if="isMulti && open"',
     // examens du dossier
     'v-for="res in passage.exams"', ':key="res.result_id"', "$emit('view', res)", "$emit('pdf', res)", "res.status !== 'pending'", 'res.examen_nom', 'res.result_id', 'res.code', 'res.nb_anormaux > 0',

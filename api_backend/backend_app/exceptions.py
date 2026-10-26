@@ -20,6 +20,12 @@ def translate_integrity_error(ie: IntegrityError) -> HTTPException:
             detail="Un patient avec le même national_id existe déjà."
         )
 
+    # doublons sur les comptes utilisateurs
+    if "users_username" in msg or "(username)" in msg:
+        return HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Ce nom d'utilisateur existe déjà.")
+    if "users_email" in msg or "(email)" in msg:
+        return HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Cette adresse e-mail est déjà utilisée.")
+
     # autres contraintes uniques (générique)
     if "unique" in msg or "duplicate" in msg or "unique constraint" in msg:
         return HTTPException(

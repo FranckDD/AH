@@ -174,7 +174,7 @@ test('chaque onglet de la fiche a sa propre couleur (jeton tab-*), gardée par l
 
 test('un patient sans dossier s’affiche « NOUVEAU » (le type interne AUTRE ne change pas)', () => {
     assert.match(list, /:label="typeLabel\(patient\.type\)"/);
-    assert.match(list, /type === 'AUTRE' \? t\('patients\.types\.nouveau'\)/);
+    assert.match(list, /type === 'AUTRE' \? 'nouveau'/);
     for (const locale of ['fr', 'en']) {
         assert.equal(typeof msgs[locale].patients.types.nouveau, 'string', `${locale}.patients.types.nouveau`);
     }

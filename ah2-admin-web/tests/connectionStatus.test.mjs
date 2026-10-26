@@ -191,3 +191,9 @@ test('composable : lit le role, sonde /health pour les roles sans PowerSync', ()
     const src = readFileSync(new URL('../src/composables/useConnectionStatus.js', import.meta.url), 'utf8');
     for (const s of ['usesPowerSync', 'buildConnectionInput', '/health', 'apiReachable']) assert.ok(src.includes(s), s);
 });
+
+test('badge : le suffixe "saisies conservees" n apparait que pour les roles PowerSync', () => {
+    const src = readFileSync(new URL('../src/components/ui/ConnectionStatus.vue', import.meta.url), 'utf8');
+    assert.ok(src.includes('usesPowerSync'), 'le composant doit tester le role');
+    assert.match(src, /usesPowerSync\([^)]*\)\s*&&|&&\s*syncRole|syncRole\s*&&/);
+});

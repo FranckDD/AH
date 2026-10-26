@@ -61,3 +61,25 @@ test('Forbidden page has no hard-coded French', async () => {
     const src = fs.readFileSync(new URL('../src/views/errors/Forbidden.vue', import.meta.url), 'utf8');
     assert.doesNotMatch(src, /Accès|Désolé|Tableau de bord|Utilisateur/);
 });
+
+test('residual raw server messages are translated in English and keys exist in both languages', () => {
+    const cases = [
+        ["Conflit d'intégrité en base de données (valeur dupliquée).", 409, /already exists/],
+        ["Ce nom d'utilisateur existe déjà.", 409, /user name already exists/i],
+        ["Stock insuffisant pour Paracetamol : 2 disponible(s), 5 demandé(s).", 409, /not enough stock/i],
+        ["Une réception est liée à ce lot : annulation impossible.", 409, /reception is linked/i],
+        ["Une réception valide existe déjà pour ce fournisseur et ce numéro de facture.", 409, /valid reception already exists/i],
+        ["Un produit actif nommé « X » existe déjà.", 409, /active product/i],
+        ["Vous avez deja un comptage en cours.", 409, /count in progress/i],
+        ["Ce comptage n'est plus en cours (statut : abandonne).", 409, /no longer in progress/i],
+        ["Le total trouve depasse l'attendu.", 409, /exceeds/i],
+        ["Le fichier de consentement dépasse 5 Mo.", 413, /exceeds the maximum/i],
+    ];
+    for (const [fr, status, re] of cases) {
+        assert.match(localizeDetail(fr, status, 'en', tIn('en'), teIn('en')), re, fr);
+        assert.equal(localizeDetail(fr, status, 'fr', tIn('fr'), teIn('fr')), undefined, fr);
+    }
+    const code = localizeDetail({ code: 'exam_in_use', message: 'x' }, 409, 'en', tIn('en'), teIn('en'));
+    assert.match(code, /used by results/);
+    assert.match(localizeDetail({ code: 'exam_in_use', message: 'x' }, 409, 'fr', tIn('fr'), teIn('fr')), /utilisé/);
+});

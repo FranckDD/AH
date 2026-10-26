@@ -2,7 +2,7 @@
 title: Receipt control and incidents
 role: Stock controller
 subtitle: Checking the receipts and damage reports entered by the assistant, correcting or refusing them, entering laboratory deliveries, reading the movements and the alerts, and knowing what the screens do without a connection.
-version: 26 October 2026
+version: 27 October 2026
 output: stock-1-receipt-control-incidents
 ---
 
@@ -18,11 +18,9 @@ The application opens on **To check**, the queue of everything that waits for yo
 
 ![The menu of the stock controller](figures/menu.png "small")
 
-The group **Stock management** {1} holds **To check** {2}, the queue of receipts and damage reports, **Movements** {3}, the journal of the pharmacy and natural stock, and **Stock count** {4}, which belongs to the second guide. The group **Lab stock** {5} unfolds four screens: **Lab products**, **To order**, **Lab receipts** and **Lab history**.
+The group **Stock management** {1} holds **To check** {2}, the queue of receipts and damage reports, **Movements** {3}, the journal of the pharmacy and natural stock, and **Stock count** {4}, which belongs to the second guide. The group **Lab stock** {5} unfolds five screens: **Lab products**, **To order**, **Lab receipts**, **Lab alerts** and **Lab history**.
 
-You can validate, correct or reject the entries of the assistant. You cannot create a receipt or a damage report for the pharmacy and natural stock, and you cannot cancel one. The list of pharmacy products, the production lots, the receipts and damage reports of the assistant, the patient screens, the laboratory count and the laboratory expenses are closed to you. If you type the address of one of them, the application sends you to a page that says the access is forbidden.
-
-> Note: An eighth screen, **Lab alerts**, is open to you but has no menu entry. The chapter on alerts explains how to reach it.
+You can validate, correct or reject the entries of the assistant. You cannot create a receipt or a damage report for the pharmacy and natural stock, and you cannot cancel one. The list of pharmacy products, the production lots, the receipts and damage reports of the assistant, the patient screens, the laboratory count and the laboratory expenses are closed to you. If you type the address of one of them, the application sends you to a page that says 403 and "Access denied", with a button "Go to my dashboard".
 
 You have no button to request a restock. Restock and correction requests for the pharmacy are written by the secretary and decided by the administrator. In the laboratory, the technician reports a product that is almost out, and the promoter or the toxicology manager places the order. Your part is to receive the goods when they arrive.
 
@@ -71,9 +69,9 @@ The page answers "Corrections saved." after the first button. If you select [[Va
 Two limits apply to a correction.
 
 - The total of a line cannot exceed the expected quantity. The line then shows "The line total exceeds the expected quantity." under the product name, and nothing is sent.
-- A correction can only reduce the total typed by the assistant or move units from one box to another. It cannot add. If the assistant typed 25 on a line that expected 30, and you type 28, the server answers in French: "Ligne 2330 : une correction ne peut que réduire ou redistribuer les quantités (total actuel 25, demandé 28)." The number after "Ligne" is an internal number, not the row of the table.
+- A correction can only reduce the total typed by the assistant or move units from one box to another. It cannot add. If the assistant typed 25 on a line that expected 30, and you type 28, the server refuses and the page shows the name of the product followed by the reason: "Miel Pure : A correction can only reduce or redistribute the quantities (current total 25, requested 28)."
 
-> Note: A red message under a line stays on the screen until your next attempt, even after you fix the number. Select [[Save corrections]] or [[Validate]] again to clear it.
+> Note: The red message under a line disappears as soon as you change a box of that line. It comes back at the next attempt if the figures are still refused.
 
 ### Rejecting a receipt
 
@@ -87,7 +85,7 @@ If the reason is empty, the window answers "The reason is required." and nothing
 
 ### Your own entries
 
-You cannot validate or reject an entry that you wrote yourself. On the screen the entry carries the label **Your entry**, the buttons are hidden, and a yellow band says "You entered this item: another controller must validate it." The server applies the same rule: it refuses with "Vous ne pouvez pas valider une avarie que vous avez saisie." You cannot cancel the entry of another person either. In daily work you meet this rule little, because you do not enter pharmacy receipts. It matters for the administrator, who can do both.
+You cannot validate or reject an entry that you wrote yourself. On the screen the entry carries the label **Your entry**, the buttons are hidden, and a yellow band says "You entered this item: another controller must validate it." The server applies the same rule: it refuses with "You cannot decide on an entry you made yourself." You cannot cancel the entry of another person either. In daily work you meet this rule little, because you do not enter pharmacy receipts. It matters for the administrator, who can do both.
 
 ## Checking a damage report
 
@@ -116,9 +114,9 @@ The message means that the system holds fewer units than the report. The report 
 
 ![The movements of one product](figures/movements.png)
 
-The search box {1} and the list **Product** {2} find a product. **Movement type** {3} limits the list to one kind, and **From** and **To** limit it by date. [[Filter]] applies the choices and [[Reset]] clears them. Each line gives the date, the product, the type {4}, the signed quantity, a note and the author {5}. Red quantities lower the stock and green ones raise it. The types are Sale, Sale cancellation, Initial stock, Correction, Restock and Receipt, and one type for each kind of damage report: damaged, lost and defective.
+The search box {1} and the list **Product** {2} find a product. **Movement type** {3} limits the list to one kind, and **From** and **To** limit it by date. [[Filter]] applies the choices and [[Reset]] clears them. Each line gives the date and time (day, month, year), the product, the type {4}, the signed quantity, a note and the author {5}. Red quantities lower the stock and green ones raise it. The types are Sale, Sale cancellation, Initial stock, Correction, Restock and Receipt, and one type for each kind of damage report: damaged, lost and defective.
 
-Three details help when you read it. The author is shown as the user name, such as doc_stock, and not as the full name. The notes are written by the server and are often in French, such as "Avarie #1309 (perdu)", which reads "Damage report 1309 (lost)". A validated receipt writes one line per product, and it lists the damaged, lost and defective units in the note.
+Two details help when you read it. The author is shown with his or her full name. The notes are written by the server and are often in French, such as "Avarie #1309 (perdu)", which reads "Damage report 1309 (lost)". A validated receipt writes one line per product, and it lists the damaged, lost and defective units in the note.
 
 ## Notifications
 
@@ -132,9 +130,9 @@ The laboratory stock is separate from the pharmacy stock. It holds reagents and 
 
 ### Reading the products and the requests
 
-**Lab products** lists the products with their packaging, supplier, stock, threshold and last count date. You can add a product with [[Add a product]] and change one with [[Edit]]: name, packaging, supplier, threshold, and the box **Active product** to retire it. The stock is not a field you can type. It starts at 0 and changes through deliveries and counts. You cannot send a report on a product, which is the technician's action.
+**Lab products** lists the products with their packaging, supplier, stock, threshold and last count date. You can add a product with [[Add a product]] and change one with [[Edit]]: name, packaging, supplier, threshold, and the box **Active product** to retire it. The stock is not a field you can type. It starts at 0 and changes through deliveries and counts. A new product created with a threshold above 0 appears at once in **To order**, since its stock of 0 is under the threshold. You cannot send a report on a product, which is the technician's action.
 
-**To order** is read-only for you. It lists the requests, and the filter **Status** opens on **Open**. The column **Origin** tells how the request was born: "Report (Almost out)", "Report (Out)" or "Threshold reached". The status goes from **To order** to **Ordered**, **Received** or **Cancelled**. When you enter a delivery that contains the product, its open request becomes **Received**, whatever the quantity. In the demonstration, a delivery of 5 boxes closed a request for 10.
+**To order** is read-only for you. It lists the requests, and the filter **Status** opens on **Open**. The column **Origin** tells how the request was born: "Report (Almost out)", "Report (Out)", "Threshold reached" or "Expiry", the last one when a lot of the product enters the 60 days before its expiry date. The status goes from **To order** to **Ordered**, **Received** or **Cancelled**. When you enter a delivery that contains the product, its open request becomes **Received**, whatever the quantity. In the demonstration, a delivery of 5 boxes closed a request for 10.
 
 ### Entering a delivery
 
@@ -154,7 +152,7 @@ Keep the supplier invoice in front of you. Select **Lab receipts** to see the re
 
 ![The form for a laboratory receipt](figures/lab-receipt-form.png)
 
-The box {6} is **Qty received**, the quantity that enters the stock. The button stays pale until the invoice number, the supplier, the date and, on every line, the quantity, the lot, the expiry date and the price are filled in. The application does not require the **Checked** boxes, so the ticks are your own discipline.
+The box {6} is **Qty received**, the quantity that enters the stock. The button stays pale until the invoice number, the supplier, the date and, on every line, the quantity, the lot, the expiry date and the price are filled in. Every line must also have its **Checked** box ticked: otherwise the button stays pale and the form says "Tick every received line before confirming".
 
 The page answers "Receipt saved." and the new line appears at the top of the list. In the demonstration, a delivery of 20 urine test strips and 9 glucose kits raised their stock from 30 to 50 and from 58 to 67.
 
@@ -166,21 +164,21 @@ The sentence under the title is in French: "Une réception valide existe déjà 
 
 **Lab history** is the journal of the laboratory stock. It lists receipts, counts and cancellations.
 
-The list **Product** limits it to one product. The column **Type** says Receipt, Count or cancellation, **Stock after** gives the quantity once the movement was applied, and **Reference** gives the number of the receipt or of the count. Receipts entered by you carry your name. A count that confirms the system figure still writes a line with a change of 0.
+The list **Product** limits it to one product. The column **Type** says Receipt, Count or cancellation, **Stock after** gives the quantity once the movement was applied, and **Reference** gives the number of the receipt or of the count. Receipts entered by you carry your name. A count that confirms the system figure writes no line in this journal.
 
-**Lab alerts** has no menu entry for your role, although you may read it. Type the address of the application followed by /dashboard/lab-stock-alerts in the browser.
+**Lab alerts** has its own entry in the group **Lab stock**.
 
 ![The laboratory alerts](figures/lab-alerts.png)
 
-The card **Weekly count** {1} says how long ago the last count was made. **Low stock** {2} lists the products at or below their threshold, and **Upcoming expiries** {3} lists the lots that expire within 60 days, with the number of days left. The screen only reads: it has no button that changes anything for you. Open it when you start your week, because the notices about low stock and expiries go to the promoter and the toxicology manager, not to you.
+The card **Weekly count** {1} says how long ago the last count was made. **Low stock** {2} lists the products at or below their threshold, and **Upcoming expiries** {3} lists the lots that expire within 60 days, with the number of days left, the quantity received in that lot and the current stock of the product. The remainder per lot is not tracked, so the two figures are indications. The screen only reads: it has no button that changes anything for you. Open it when you start your week, because the notices about low stock and expiries go to the promoter and the toxicology manager, not to you.
 
 ## Working without a connection
 
-The screens of this guide read and write on the server. They keep no copy on the computer. The yellow indicator at the top reads "Offline (your entries are saved)" for your role even when the connection is good, so do not use it to judge the network. It is true for other roles, whose work is saved on the computer, and not for yours.
+The screens of this guide read and write on the server. They keep no copy on the computer. The indicator at the top reads **Connected** while the server answers and **Offline** when the network is lost; for your role it checks the server about every 15 seconds. When it reads **Offline** it adds "(your entries are saved)" on a wide screen. That sentence is true for other roles and not for yours: nothing you type is kept on the computer.
 
 ![To check without a connection](figures/offline.png "small")
 
-When the computer cannot reach the server, **To check** shows a red band "Unable to load data." {2}, the tabs read **Receipts (0)** and **Damages (0)**, and the list says "No receipt to check." This does not mean that nothing waits. The same holds for the other screens. If the connection drops while you decide on an entry, the button answers with an error and the entry stays in the queue, unchanged.
+When the computer cannot reach the server, **To check** shows a red band "Unable to load data." {2}, the tabs read **Receipts (-)** and **Damages (-)** instead of a number, and the list says "No receipt to check." This does not mean that nothing waits. The same holds for the other screens. If the connection drops while you decide on an entry, the button answers with an error and the entry stays in the queue, unchanged.
 
 > Caution: Never conclude from an empty queue that there is nothing to check. Reload the page after a network cut, and select [[Refresh]], before you act. A correction typed in the boxes and not saved is lost when you reload.
 
@@ -210,13 +208,13 @@ The user name and the role cannot be changed here. To change your password, open
 
 | What you see | What it means | What to do |
 |---|---|---|
-| A page that says the access is forbidden | The screen is closed to your role | Select the button back to your dashboard. |
+| A page that says 403 and "Access denied" | The screen is closed to your role | Select the button back to your dashboard. |
 | "Unable to load data." and empty tabs | The computer cannot reach the server | Wait for the network, then reload the page. |
 | "The line total exceeds the expected quantity." | The four boxes add up to more than expected | Lower a box, then select Validate or Save corrections again. |
-| "Ligne ... : une correction ne peut que réduire ou redistribuer les quantités" | You raised the total typed by the assistant | Keep the total or lower it, or reject the receipt. |
+| "A correction can only reduce or redistribute the quantities" after a product name | You raised the total typed by the assistant | Keep the total or lower it, or reject the receipt. |
 | "The reason is required." | The rejection window was sent empty | Type the reason, then select Reject. |
 | "Stock insuffisant pour ..." | The report removes more than the stock holds | Reject the report with a reason, or correct the stock first. |
-| "Vous ne pouvez pas valider ... que vous avez saisie" | You entered the item yourself | Ask another controller or the administrator. |
+| "You cannot decide on an entry you made yourself." | You entered the item yourself | Ask another controller or the administrator. |
 | "Invoice already recorded" | A valid laboratory receipt has this supplier and number | Check the paper, then drop the duplicate or fix the number. |
 | "Operation failed." after a button | The connection dropped as you sent | Keep the page open and try again when the network is back. |
 | Sign-in refused several times | Wrong password, or too many attempts | Wait a minute, then try again. Ask an administrator to reset the password. |

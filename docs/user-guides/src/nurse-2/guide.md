@@ -2,7 +2,7 @@
 title: Shifts and hospitalisation
 role: Nurse and head nurse
 subtitle: Reading the shift calendar, planning the rotation as head nurse, and following the patients who stay in the centre, from the admission to the discharge letter.
-version: 26 October 2026
+version: 27 October 2026
 output: nurse-2-shifts-hospitalisation
 ---
 
@@ -27,7 +27,7 @@ The nurse and the head nurse columns of the second part were checked with the de
 
 ### Interface language
 
-All labels in this guide are the English labels, selected with **EN** at the top right. Three things stay in French whatever the language: the discharge letter, the error messages under the Hospitalization card, and the message shown when the server refuses a schedule change.
+All labels in this guide are the English labels, selected with **EN** at the top right. Three things stay in French whatever the language: the discharge letter, the error messages under the Hospitalization card, and the message shown when the server refuses a schedule change because your account may not edit the rotation. The refusals that come from the shift rules (chapter 2) are shown in the language of the screen.
 
 ## The shift calendar
 
@@ -48,7 +48,7 @@ You find your own shifts by reading for your name {3}. The screen does not highl
 
 ![The month view](figures/plan-month.png "small")
 
-The month view, reached with [[Month]] {1}, is a grid of days, Monday to Sunday. Each cell lists the three shifts with the names after them. The cells are narrow, so a long name is cut short, and with two nurses on the same shift the second is hidden. Open the day, or use the week view, when you need the exact names. Days from the neighbouring months appear in grey.
+The month view, reached with [[Month]] {1}, is a grid of days, Monday to Sunday. Each cell lists the three shifts with the names after them. A long name wraps onto a second line instead of being cut, and every nurse of a shift is listed. Days from the neighbouring months appear in grey.
 
 The panel of a day lists the nurses of each shift. For a nurse it also carries the grey sentence "Only the physician or the head nurse can edit this schedule." {2} and has no button. If you try to change the rotation by another route, the server answers in French that only the doctor or the head nurse may edit the schedule.
 
@@ -65,16 +65,23 @@ The head nurse builds the rotation day by day. The work is the same for every da
 
 ![A week of the rotation with a day open for editing](figures/plan-filled.png)
 
-[[Add a nurse]] stays grey until a nurse is chosen. The lists contain the active nurse accounts, and a head nurse carries the mention "(Head nurse)" after the name, so you can also place yourself or a colleague head nurse. A nurse who is already in a shift no longer appears in the list of that shift, so a nurse cannot be added twice to the same shift.
+[[Add a nurse]] stays grey until a nurse is chosen. The lists contain the active nurse accounts, and a head nurse carries the mention "(Head nurse)" after the name, so you can also place yourself or a colleague head nurse. A nurse who is already in a shift no longer appears in the list of that shift, so a nurse cannot be added twice to the same shift. The lists also leave out the nurses whom the rules below forbid, and the panel carries a reminder that nurses on night duty the day before are not offered for the morning.
 
 A shift can hold as many nurses as you add. Select [[Add a nurse]] again for each one. To take a nurse off a shift, select [[Remove]] on the line of the nurse. Nothing is asked before the removal and nothing is kept as a draft: the calendar is updated as soon as you select the button.
 
 For an ordinary week, work through the days from Monday to Sunday. The week view {1} fills as you go, and you can check the result in the table without closing the panel. Select another day in the table to move the panel to it. To correct a day, select [[Remove]] {2} next to the wrong name, or choose another nurse in the list {3} and select [[Add a nurse]] {4}.
 
-A few rules to know:
+The application applies three rules to a nurse.
 
-- The calendar does not check for conflicts. The same nurse can be placed in the morning and at night of the same day, or in two consecutive shifts. Read the day before you leave it.
-- Nothing stops you from leaving a shift empty. An empty shift shows "No nurse assigned." in the panel.
+| Rule | What it means |
+|---|---|
+| Night is exclusive | A nurse on night duty cannot also work the morning or the afternoon of the same day. |
+| Rest after a night | A nurse on night duty on a day cannot work the morning of the next day. The afternoon of the next day is allowed. The same rule applies the other way round: a nurse already on the morning of a day cannot be placed on the night before. |
+| Morning and afternoon | The same nurse can work the morning and the afternoon of the same day. |
+
+If a choice breaks a rule, the server refuses it and a red message under the panel says which one, for example "Mandatory rest: a nurse on night duty cannot work the morning shift the next day." This can happen at the edge of the displayed period, where the day before or after is not on screen, even though the list offered the nurse.
+
+Nothing stops you from leaving a shift empty. An empty shift shows "No nurse assigned." in the panel.
 
 > Caution: A removal cannot be undone. If you remove the wrong nurse, add the nurse again with the same steps.
 
@@ -88,7 +95,7 @@ A nurse has the same rights as a doctor on these screens. You can admit a patien
 
 ![The list of the current stays](figures/hosp-list.png)
 
-**Hospitalized Patients** {1}, under **Activity**, lists every open stay of the centre, whoever admitted the patient. The columns give the admission date and time, the number of days, the current status and the person who admitted the patient. A red triangle before a name means that the latest entry is Worsening {2}. Start your round with these lines. [[View record]] {3} opens the patient file on the same screen as the patient name.
+**Hospitalized Patients** {1}, under **Activity**, lists every open stay of the centre, whoever admitted the patient. The columns give the admission date and time, the length of the stay, the current status, the admission reason and the person who admitted the patient. A red triangle before a name means that the latest entry is Worsening {2}. Start your round with these lines. [[View record]] {3} opens the patient file on the same screen as the patient name.
 
 The list shows open stays only. A patient who has been discharged leaves it at once. The status column shows "No update since admission." for a stay that has no entry yet.
 
@@ -98,12 +105,10 @@ The list shows open stays only. A patient who has been discharged leaves it at o
 
 1. Open the patient file from **Patients** or from the list, and select the **Hospitalization** tab. A patient without an open stay shows "This patient is not currently hospitalized."
 2. Select [[Admit]] {1}. A grey form opens.
-3. Type the reason {2}. The field is optional, but it is the only place where the reason is recorded, and it is printed on the discharge letter.
+3. Type the reason {2}. The field is optional, but it is the only place where the reason is recorded. It then shows on the card, in the list and in the history, and it is printed on the discharge letter.
 4. Select [[Confirm]] {3}.
 
-The card then shows "Hospitalized since", the date and time, the number of days and your name next to "Admitted by". The patient appears at once in the list of the patients in the centre.
-
-> Note: The reason is not shown again on the screen after you confirm. Read it before you select [[Confirm]]. It is printed on the letter.
+The card then shows "Hospitalized since", the date and time with the length of the stay (for example "5 h 20 min"), your name next to "Admitted by" and the admission reason. The patient appears at once in the list of the patients in the centre.
 
 ### Recording the progress
 
@@ -135,7 +140,9 @@ A worsening is the status that must not wait. Save an entry with the status **Wo
 
 The status turns red on the card, with a triangle, and the patient gets the same red triangle in the list of the patients in the centre. The mark stays until a later entry changes the status.
 
-> Caution: The application is meant to warn the other doctors and nurses when a Worsening entry is saved. In the demonstration it did not: after the entry above, the bell of the head nurse and of the doctor stayed empty. The red mark is the only alert. Call the doctor on duty yourself, and use the note as the written record of the call.
+The application also warns the other doctors and nurses: each of them receives "Worsening reported: " followed by the patient name and your name on the bell, and selecting it opens the patient file. You do not receive your own alert.
+
+> Note: The notification does not replace a call. Call the doctor on duty yourself, and use the note as the written record of the call.
 
 ### Discharging a patient
 
@@ -152,35 +159,33 @@ The type cannot be changed afterwards, so check it, above all for Transferred an
 
 ![The history after the discharge](figures/discharged.png)
 
-The **History** shows the closed stay with its two dates, the type of discharge and the line "Discharge recorded by" followed by your name. The button [[Download discharge letter]] {1} is next to it. A returning patient is admitted again with [[Admit]] {2}. The second guide of the doctor describes the readmission.
-
-> Note: In the demonstration the end time of the stay was one hour earlier than the clock, so a stay discharged right after its admission could show an end before its start. The entries keep the correct times. Do not rely on the end time to prove when the patient left.
+The **History** shows the closed stay with its two dates, the admission reason, the type of discharge, the discharge note and the line "Discharge recorded by" followed by your name. The button [[Download discharge letter]] {1} is next to it. A returning patient is admitted again with [[Admit]] {2}. The second guide of the doctor describes the readmission.
 
 ### The discharge letter
 
-The letter is a PDF of the stay in French: the centre header, the patient, the admission and discharge dates, the reason, a table of every entry, the type of discharge, "Prononcée par" followed by the name of the person who discharged, and the discharge note. A second page carries a line for the signature of the referring doctor.
+The letter is a PDF of the stay in French: the centre header, the patient, the admission and discharge dates, the reason, a table of every entry, the type of discharge, "Prononcée par" followed by the name of the person who discharged, and the discharge note. A line for the signature of the referring doctor closes the letter. The length of the stay is written in hours and minutes for a short stay, and a short stay fits on one page.
 
 ![The first page of the letter](figures/letter.png "small")
 
 Select [[Download discharge letter]] in the History. The letter can be downloaded again at any time and always shows the stay as it is now.
 
-> Caution: A letter produced after a nurse's discharge still waits for the signature of a doctor on its second page. Print it, give it to the doctor to sign, then hand it to the patient. In the demonstration the button did not save any file in the browser, although the server answered and produced the letter correctly. If the same happens to you, tell the administrator, and ask the doctor to download the letter from another computer.
+> Caution: A letter produced after a nurse's discharge still waits for the signature of a doctor. Print it, give it to the doctor to sign, then hand it to the patient.
 
 ## Working without a connection
 
 The first nurse guide explains the yellow "Offline (your entries are saved)" indicator. Two screens of this guide do not keep a copy on the computer.
 
-The Nurse Schedule reads the server. When the connection is lost, the calendar shows an empty rotation, with "No nurse assigned." everywhere, and no message says that it could not load. The rotation has not been erased. Do not read the schedule and do not edit it while the indicator reads "Offline". Wait for "Connected" and reopen the screen.
+The Nurse Schedule reads the server. When the connection is lost, a yellow line says "Schedule unavailable offline: reconnect to view or edit it.", the cells show a question mark and the day panel reads "Unknown state" instead of "No nurse assigned." Editing is switched off. The rotation has not been erased. Wait for "Connected" and reopen the screen.
 
 The hospitalisation screens also need the server. With a weak connection the tab of a patient who is in the centre can read "This patient is not currently hospitalized." and offer [[Admit]]. Do not admit, update or discharge until the indicator reads "Connected". Reopen the tab and check that the stay appears.
 
 ## Common mistakes
 
-**Reading an empty calendar as an empty rotation.** Check the indicator first. A green "Connected" is needed before you trust the schedule.
+**Reading an unavailable calendar as an empty rotation.** A question mark in a cell means the schedule could not be loaded, not that nobody works. Wait for "Connected".
 
 **Leaving the status on Improving.** The status list opens on Improving. Choose the real status each time, above all when the patient is worse.
 
-**Waiting for the bell after a Worsening entry.** It does not warn anyone yet. Call the doctor.
+**Relying on the bell after a Worsening entry.** It warns the team, but call the doctor when the patient needs someone now.
 
 **Giving the letter to the patient unsigned.** The signature line of the referring doctor is on the second page.
 
@@ -188,15 +193,14 @@ The hospitalisation screens also need the server. With a weak connection the tab
 
 | What you see | What it means | What to do |
 |---|---|---|
-| The calendar is empty and the indicator reads "Offline" | The schedule could not be loaded | Wait for "Connected" and reopen Nurse Schedule. |
+| "Schedule unavailable offline: reconnect to view or edit it." | The schedule could not be loaded | Wait for "Connected" and reopen Nurse Schedule. |
+| A red message such as "Mandatory rest: a nurse on night duty cannot work the morning shift the next day." | The choice breaks a shift rule | Choose another nurse or another shift (chapter 2). |
 | The panel of a day says "Only the physician or the head nurse can edit this schedule." | Your account is not a head nurse | Ask the head nurse to make the change, or ask an administrator to give the right. |
 | A red French message "Seuls le médecin ou le chef infirmier/infirmière peuvent modifier le planning." | The server refused the change for the same reason | Same as above. |
 | "This patient is not currently hospitalized." for a patient who is in the centre, with "Offline" at the top | The stay could not be read | Wait for "Connected", reopen the tab, do not admit again. |
 | "Erreur lors de l'admission du patient." | The admission did not reach the server | Check the connection and the list of the patients in the centre, then try once more. |
 | "Erreur lors de la mise à jour du statut." | The entry was not saved | Check the connection and that the stay is open, then enter it again. |
 | "Erreur lors de la sortie du patient." | The discharge was not saved | Check the connection. If the stay is in the History, it is closed. |
-| Download discharge letter saves nothing | The browser did not receive the file | Try again once, then tell the administrator. |
-| No notification after a Worsening entry | The notification is not delivered at present | Call the doctor yourself. |
 
 ## Glossary {.unnumbered}
 

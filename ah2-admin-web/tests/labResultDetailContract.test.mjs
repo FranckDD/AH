@@ -21,7 +21,7 @@ function check(name, src, needles) {
 // --- Contrat : détail d'un résultat de laboratoire (utilisé par l'historique, les résultats médicaux et le dossier patient) ---
 check('ResultDetailModal', view, [
     // interface avec les écrans parents
-    'result: { type: Object, required: true }', "defineEmits(['close', 'print'])", "emit('print', props.result)", "$emit('close')",
+    'result: { type: Object, required: true }', "defineEmits(['close', 'print', 'amend'])", "emit('print', props.result)", "$emit('close')",
     // nom du patient
     'if (r.patient_info?.nom) return r.patient_info.nom;', 'if (r.patient_name) return r.patient_name;', "r.external_patient_info.nom_complet || t('lab.result_modal.external_patient')", "return t('lab.result_modal.anonymous');",
     // statut

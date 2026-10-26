@@ -2,7 +2,7 @@
 title: Patients, appointments and invoicing
 role: Secretary
 subtitle: Registering patients, finding a patient file, and recording invoices and payments at the cash desk.
-version: 26 October 2026
+version: 27 October 2026
 output: secretary-1-patients-appointments-invoicing
 ---
 
@@ -22,7 +22,7 @@ You can register patients, correct their identity details and invoice them. You 
 
 The application starts in French on a new computer. The language switch sits at the top right of every screen, next to the bell: select **EN** to work in English. The choice is kept on that computer.
 
-> Note: Some screens are not fully translated yet. The patient list and the new patient form still show French labels such as "Ajouter un patient" (Add a patient), "Modifier" (Edit) and "Créer" (Create). This guide quotes the label exactly as it appears on screen and gives the English meaning the first time.
+> Note: A few texts stay in French in English mode, for example the code "CODE EN ATTENTE" of a patient registered offline and the yellow message "Ticket non imprimé : imprimante indisponible". This guide quotes them as they appear and gives the English meaning the first time.
 
 ## Signing in and the home screen
 
@@ -53,16 +53,16 @@ Before you create a file, search for the patient (see chapter 3). Many people co
 
 ### Creating the file
 
-1. In the menu, select [[Patients]], then [[Ajouter un patient]] (Add a patient). The same form opens from [[Add a patient]] on the home screen.
+1. In the menu, select [[Patients]], then [[Add a patient]]. The same form opens from [[Add a patient]] on the home screen.
 2. Fill in the first name {1} and the family name.
 3. Enter the date of birth {2}. It is required, and it is used to build the patient code.
-4. If the patient carries a national identity card, type its number in [[Numéro national d'identité]] {3}. Copy it from the card itself, not from memory.
+4. If the patient carries a national identity card, type its number in [[National identity number]] {3}. Copy it from the card itself, not from memory.
 5. Add a telephone number {4} and the place of residence. The phone number is what the clinical staff use to call a patient back after a result.
-6. Select [[Créer]] (Create) {5}.
+6. Select [[Create]] {5}.
 
 ![The new patient form, filled in for a demonstration patient](figures/patient-form.png "small")
 
-Only the first name, the family name and the date of birth are required. The other fields can be completed later with [[Modifier]] (Edit) in the patient list.
+Only the first name, the family name and the date of birth are required. The other fields can be completed later with [[Edit]] in the patient list.
 
 The application then shows the patient code in large characters.
 
@@ -91,11 +91,11 @@ The patient list opens with the most recent files first. The tabs above the tabl
 1. Select [[Patients]] in the menu.
 2. Type part of the name or of the patient code in the search box {1}. The list narrows by itself a moment after you stop typing.
 3. Check that the **All Patients** tab {2} is selected, otherwise the search is limited to one service.
-4. To correct the identity details of the file, select [[Modifier]] (Edit) {3}.
+4. To correct the identity details of the file, select [[Edit]] {3}.
 
 To clear the search, empty the box.
 
-> Note: [[Supprimer]] (Delete) is next to [[Modifier]] and is just as easy to reach. A file that already has invoices or consultations should never be deleted. If a file was created by mistake, ask an administrator.
+> Note: [[Delete]] is next to [[Edit]] and is just as easy to reach. A file that already has invoices or consultations should never be deleted. If a file was created by mistake, ask an administrator.
 
 ## Appointments
 
@@ -207,7 +207,7 @@ The indicator at the top right of the screen tells you where you stand.
 
 ![The indicator while the network is down, and a patient registered offline](figures/offline-code.png)
 
-When the connection is lost, the indicator {1} turns yellow and reads "Offline (your entries are saved)". If you register a patient or an invoice while offline, the indicator keeps reading "Offline". Your entry is saved on the computer and waits for the connection. A patient registered offline shows "Assigning the code..." {2} instead of a code, and "CODE EN ATTENTE" (code pending) in the list, because only the server can give out patient codes.
+Right after you sign in, the indicator can read "Offline" for a few seconds while the copy of the data kept on the computer is prepared; it then turns to "Connected" by itself. When the connection is lost, the indicator {1} turns yellow and reads "Offline (your entries are saved)". If you register a patient or an invoice while offline, the indicator keeps reading "Offline". Your entry is saved on the computer and waits for the connection. A patient registered offline shows "Assigning the code..." {2} instead of a code, and "CODE EN ATTENTE" (code pending) in the list, because only the server can give out patient codes.
 
 ![The indicator once the connection is back](figures/online.png)
 

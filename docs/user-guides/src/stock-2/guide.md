@@ -2,7 +2,7 @@
 title: Physical count
 role: Stock controller
 subtitle: Counting the shelves of the pharmacy without seeing the system figures, reading the gaps, following the correction requests sent to the administrator, and keeping every product counted on time.
-version: 26 October 2026
+version: 27 October 2026
 output: stock-2-physical-count
 ---
 
@@ -24,7 +24,7 @@ Open **Stock management** {1} in the menu, then **Stock count** {2}.
 
 The screen has three tabs. **Count** is where you count. **Frequency** tells which products must be counted soon. **History** lists the counts already validated. The same screen is open to the administrator and the promoter, but only you see the **Count** tab.
 
-> Note: The yellow indicator at the top reads "Offline (your entries are saved)" for your role even when the connection is good. It is not true for the count. The count needs the server, and the last chapter explains what happens without it.
+> Note: The count needs the server. The indicator at the top reads "Connected" while the server answers, and "Offline" when it does not. Nothing typed in the count is kept on the computer, whatever the indicator says. The last chapter explains what happens without a connection.
 
 ## Counting the shelves
 
@@ -33,10 +33,9 @@ Count the products on the shelves of the pharmacy, in the order you like, and ty
 ![The start of a count](figures/start.png)
 
 1. Open **Stock count**. The tab **Count** shows the card **New count**.
-2. In **Scope** {1}, keep **All products**, or choose **A selection of products**.
-3. Select [[Start a count]] {2}.
+2. Select [[Start a count]] {1}.
 
-The page then shows the title "Count no. 1123 in progress" with the time the count started, and one line for each product of the pharmacy. The scope does not change that list: both choices show every product, and the scope is only recorded with the count. What decides which products are counted is what you type. A field left empty reads **Not counted** and the product is simply left out. You may therefore count the whole pharmacy in one go, or only one shelf.
+The page then shows the title "Count no. 1123 in progress" with the time the count started, and one line for each product of the pharmacy. There is no choice of scope: the list always holds every product. What decides which products are counted is what you type. A field left empty reads **Not counted** and the product is simply left out. You may therefore count the whole pharmacy in one go, or only one shelf.
 
 ### Typing the quantities
 
@@ -92,13 +91,13 @@ The column **Movements after counting** tells you that the stock moved since you
 
 Every line with a gap creates one request of the type correction and sends it to the administrator. The line carries its number, such as "Request no. 2193 created". A line without a gap creates nothing. In the demonstration, the count of five products created four requests.
 
-The request holds the quantity you counted and the stock the system held at the moment you counted. If you wrote a note, the note is the reason of the request. If not, the reason is generated and written in French: "Ecart constate au comptage n. 1123 : systeme 83, compte 80". The administrator is notified at once.
+The request holds the quantity you counted and the stock the system held at the moment you counted. If you wrote a note, the note is the reason of the request. If not, the reason is generated from the figures and shown in the language of the screen, for example "Gap found at count no. 1123: system 83, counted 80". The administrator is notified at once.
 
 > Important: The stock does not change when you validate. It changes only if the administrator approves the request. Until then the pharmacy keeps selling with the old figure.
 
 ### While the request is waiting
 
-You have no screen that lists the requests: the page **Adjustment requests** is closed to your role and sends you to a page saying that access is forbidden. You see only what the bell tells you and what the history shows. Nothing prevents you from starting another count meanwhile.
+The page **Adjustment requests** is closed to your role: it is the administrator's page. You follow your requests in the tab **History**, in the card **My adjustment requests**, which lists each request with its number, the product, its outcome (Pending, Approved, Refused, Replaced by a more recent count or Cancelled) and the date. For a refused request, the reason of the administrator is written under the outcome. Nothing prevents you from starting another count meanwhile.
 
 ### When the administrator decides
 
@@ -112,11 +111,11 @@ Approved: the stock is corrected. The administrator's request applies the differ
 
 Refused: nothing changes. The stock keeps its figure and the reason comes with the notice. Efferalgan stayed at 83 after the refusal above. Count the product again, with the reason in mind, and validate a new count.
 
-> Caution: Selecting the entry of an approval or a refusal in the bell takes you to a page that says the access is forbidden. The administrator's page is closed to you. Read the entry in the bell and leave it there, then use **Movements** to see an approved correction.
+Selecting the entry of an approval or a refusal in the bell opens the **Stock count** screen. Look at **My adjustment requests** in the tab **History** for the outcome, and at **Movements** to see an approved correction.
 
 ### Counting a product again
 
-If you count again a product whose request still waits, the new count takes the place of the old request. The old request is cancelled with the note "remplacee par le comptage n." and the number of the new count, and the screen shows "Request no. 2195 replaced" under the line.
+If you count again a product whose request still waits, the new count takes the place of the old request. The old request is cancelled and its outcome reads "Replaced by a more recent count", and the screen shows "Request no. 2195 replaced" under the line.
 
 Two cases are possible. If the new figure still differs from the system, a new request is created. In the demonstration, Api1 was counted 5, then 4: request 2197 replaced request 2195. If the new figure now equals the system figure, no request is created and the old one is cancelled. Carnet 3 was recounted at 30, the system value, so request 2194 was replaced and the line read **No gap**. The administrator receives a notice "recounted Carnet 3 with no gap: request(s) no. 2194 replaced".
 
@@ -146,7 +145,7 @@ The tab **History** lists the validated counts, the most recent first.
 
 The dates **From** and **To** {1} limit the list, and [[Filter]] applies them. [[Clear filters]] removes them. Each row gives the validation date, who counted, and the summary {2}, for example "5 product(s), 4 gap(s)". Select [[View details]] {3} to open the table of that count under the list, with the columns **System** {4}, **Gap** {5}, **Movements after counting** {6} and **Adjustment request** {7}. Select [[Close]] to hide it. The list shows 50 counts per page.
 
-The history shows how the count ended, not how the requests ended. It tells "Request no. 2193 created", never whether the administrator approved it. For that, read the bell and **Movements**.
+In the detail of a count, the column **Adjustment request** gives the request number, for example "Request no. 2193 created", with a label that shows the outcome of that request: Pending, Approved, Refused or Replaced by a more recent count. The card **My adjustment requests**, under the list of counts, gathers the requests of all your counts. For an approved correction, **Movements** shows the line.
 
 ## Working without a connection
 
@@ -181,7 +180,6 @@ Without a connection the card **New count** still shows, but [[Start a count]] a
 | "Vous avez deja un comptage en cours." | You already have an open count | Reopen the screen, finish it or abandon it. |
 | "Ce comptage n'est plus en cours" | The count was validated or abandoned elsewhere | Reload the page, then start a new count if needed. |
 | Boxes empty after a reload | The quantities are not saved before validation | Type them again. |
-| A page that says the access is forbidden after selecting a bell entry | The page opened by the entry is for the administrator | Read the entry in the bell, then use Movements. |
 | "Unable to load the count frequency." | The server cannot be reached | Reload the page when the network is back. |
 
 ## Glossary {.unnumbered}

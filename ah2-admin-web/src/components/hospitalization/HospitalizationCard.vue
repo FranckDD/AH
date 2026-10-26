@@ -218,7 +218,7 @@ async function submitAdmit() {
     admissionReason.value = '';
   } catch (err) {
     console.error('Erreur lors de l\'admission:', err);
-    error.value = "Erreur lors de l'admission du patient.";
+    error.value = t('hospitalization.err_admit');
   } finally {
     isSubmitting.value = false;
   }
@@ -234,7 +234,7 @@ async function submitStatusUpdate() {
     statusNote.value = '';
   } catch (err) {
     console.error('Erreur lors de la mise à jour du statut:', err);
-    error.value = "Erreur lors de la mise à jour du statut.";
+    error.value = t('hospitalization.err_status');
   } finally {
     isSubmitting.value = false;
   }
@@ -270,7 +270,7 @@ async function downloadLetter(hospitalizationId) {
     } else {
       detail = err.response?.data?.detail;
     }
-    error.value = detail || "Impossible de télécharger la lettre de sortie.";
+    error.value = detail || t('hospitalization.err_letter');
   } finally {
     downloadingLetterId.value = null;
   }
@@ -287,7 +287,7 @@ async function submitDischarge() {
     dischargeNote.value = '';
   } catch (err) {
     console.error('Erreur lors de la sortie:', err);
-    error.value = "Erreur lors de la sortie du patient.";
+    error.value = t('hospitalization.err_discharge');
   } finally {
     isSubmitting.value = false;
   }
@@ -299,7 +299,7 @@ onMounted(async () => {
     await hospitalizationStore.fetchPatientHistory(props.patientId);
   } catch (err) {
     console.error('Erreur chargement historique hospitalisation:', err);
-    error.value = "Impossible de charger l'historique d'hospitalisation.";
+    error.value = t('hospitalization.err_history');
   }
 });
 </script>

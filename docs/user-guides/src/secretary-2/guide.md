@@ -2,7 +2,7 @@
 title: Cash register, withdrawals and daily closing
 role: Secretary
 subtitle: Recording money that leaves the till, cancelling a sale or a withdrawal, and closing the cash register at the end of the day.
-version: 26 October 2026
+version: 27 October 2026
 output: secretary-2-cash-withdrawals-closing
 ---
 
@@ -66,7 +66,9 @@ The list opens on **Cash Withdrawals** with the most recent entry first. The sea
 
 The withdrawal appears at the top of the list with the status **Active**.
 
-> Note: In the list, the category column shows the raw code (SUPPLIES, BILLS, OTHER) instead of the English label chosen in the form. Older withdrawals entered in French show "Dépense". This does not change the amounts.
+The **Category** column of the list shows the same English label as the form, for example "Supplies/Medicine Purchase". Some older withdrawals entered before the categories existed may show a different word, which does not change their amounts.
+
+> Caution: A cash withdrawal larger than the cash that should be in the till is refused with the message "This cash withdrawal is larger than the money in the till. Check the amount or the payment mode." The screen does not tell you how much the till holds. Check the amount and the payment method. If the money really left from a mobile wallet, choose that mode. This check runs only while the computer is online; a withdrawal entered offline is accepted and any difference appears at the closing.
 
 ### Choosing the payment method
 
@@ -78,7 +80,7 @@ A withdrawal cannot be edited. When one is wrong, you cancel it with a reason an
 
 1. In the list of withdrawals, find the row. Use the search box {1} if the list is long.
 2. Select the red button {4} at the end of the row.
-3. The form **Cancel Transaction** shows the amount and the date. Type the reason in [[Justification]] {5}. The button stays grey until you write one.
+3. The form **Cancel withdrawal** shows the amount and the date, and says that a cancelled withdrawal is no longer counted in the till and that the reason is kept. Type the reason in [[Justification]] {5}. The button stays grey until you write one.
 4. Select [[Confirm Cancellation]] {6}.
 
 ![The cancellation form of a withdrawal](figures/withdrawal-cancel.png)
@@ -89,7 +91,7 @@ The row leaves the Active list. Filter the **Status** on **Cancelled** to find i
 
 A cancelled withdrawal no longer counts in the closing: the money is back in the expected total as if it had never left.
 
-> Caution: The cancellation form says "A cancelled invoice cannot be restored", although it is a withdrawal. The meaning is the same: a cancellation cannot be undone. If you cancel by mistake, record a new withdrawal.
+> Caution: A cancellation cannot be undone. If you cancel by mistake, record a new withdrawal.
 
 ## Cancelling a sale
 
@@ -164,7 +166,7 @@ The first closing of that day worked the same way. The opening was the starting 
 
 A saved closing has no edit and no delete button, for you or for anyone else. Reopening the Cash closing screen shows a new empty count for the next period, with the time of the previous closing at the top. The next period starts exactly where the previous one ended, so no payment is counted twice or skipped.
 
-> Note: You can validate more than one closing in a day. Each one covers the time since the previous one. The promoter sees them all, one line each, in the closings list.
+> Note: You can validate more than one closing in a day. Each one covers the time since the previous one. The promoter sees them all, one line each, in the closings list, with the date and the time at which each was saved.
 
 ### Requesting an adjustment
 
@@ -178,7 +180,9 @@ When you find after the closing that a figure was wrong, for instance the 500 co
 4. Write the reason in {3}.
 5. Select [[Send the request]] {4}. The screen answers that the request waits for the promoter or an administrator.
 
-The promoter or an administrator approves or rejects the request from the closings screen. An approved adjustment does not change the closing already saved. It is counted in the next period as an entry (positive amount) or an exit (negative amount), and the next result lists it under **Adjustments applied to this period**.
+The promoter and the administrators receive a notification as soon as you send the request. They approve or reject it from the closings screen, and you receive a notification with their decision: "Your cash adjustment (Cash, -500 FCFA) was approved." or "Your cash adjustment (Cash, -500 FCFA) was refused." A request still undecided after several days also appears in the daily control that management reads.
+
+An approved adjustment does not change the closing already saved. It is counted in the next period as an entry (positive amount) or an exit (negative amount), and the next result lists it under **Adjustments applied to this period**.
 
 ![The next closing, listing the approved adjustment](figures/closure-adjusted.png)
 
@@ -232,6 +236,7 @@ The indicator {1} reads "Offline (your entries are saved)" and the screen says t
 | "Invalid amount: a positive number, two decimals at most" | The amount contains a space, a letter or too many decimals | Retype the amount without separators. |
 | "The closing was not saved ... The screen was reloaded" | Another closing was validated in the meantime | Count again and validate again. |
 | Validate the closing stays grey | A field is empty, or a comment is required | Read the yellow message above the button. |
+| "This cash withdrawal is larger than the money in the till" | A cash withdrawal exceeds the cash that should be in the till | Check the amount and the payment method, then save again. |
 | Save Transaction stays grey on a withdrawal | The amount, the payment method or the justification is missing | Fill the three required fields. |
 
 ## Glossary {.unnumbered}

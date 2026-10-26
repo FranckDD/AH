@@ -112,6 +112,7 @@
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import api from '@/services/api';
+import { formatDateDMY } from '@/utils/localDate';
 import { AppButton, StatusBadge, ActionBar, FullScreenPanel } from '@/components/ui';
 import { toneClasses } from '@/design/tones';
 import { phaseMeta } from '@/utils/toxicoUi';
@@ -156,12 +157,7 @@ const emit = defineEmits(['close', 'open-dossier']);
 const formatDate = (dateString) => {
   if (!dateString) return t('toxicoScreens.not_provided_f');
   try {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('fr-FR', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
+    return formatDateDMY(dateString);
   } catch (e) {
     return dateString;
   }

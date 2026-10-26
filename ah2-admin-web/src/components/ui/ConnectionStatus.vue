@@ -10,10 +10,12 @@ import {
 } from '@heroicons/vue/20/solid';
 import { toneClasses } from '@/design/tones';
 import { useConnectionStatus } from '@/composables/useConnectionStatus';
-import { connectionTone, connectionLabelKey } from '@/utils/connectionStatus';
+import { connectionTone, connectionLabelKey, usesPowerSync } from '@/utils/connectionStatus';
+import { useAuthStore } from '@/stores/auth';
 
 const { t } = useI18n();
 const { state, pending } = useConnectionStatus();
+const syncRole = computed(() => usesPowerSync(useAuthStore().userRole));
 
 const ICONS = {
     online: CheckCircleIcon,
@@ -30,9 +32,10 @@ const label = computed(() =>
         ? t(connectionLabelKey('pending'), { n: pending.value }, pending.value)
         : t(connectionLabelKey(state.value))
 );
-// Hors ligne : on rassure sur les saisies (détail visible à partir de lg).
+// Hors ligne : on rassure sur les saisies (détail visible à partir de lg), seulement pour les rôles qui
+// synchronisent via PowerSync ; les autres rôles n'ont pas de file locale.
 const detail = computed(() =>
-    state.value === 'offline' ? t('medicalShell.connection.offlineDetail') : ''
+    state.value === 'offline' && syncRole.value ? t('medicalShell.connection.offlineDetail') : ''
 );
 </script>
 

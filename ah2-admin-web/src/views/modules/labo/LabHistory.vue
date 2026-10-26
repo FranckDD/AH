@@ -36,7 +36,7 @@
       <div v-else class="grid gap-6">
         <section v-for="day in days" :key="day.key" :aria-label="dayLabel(day.key)" class="grid gap-3">
           <h2 class="sticky top-0 z-10 bg-page py-1 text-sm font-semibold capitalize text-ink-muted">{{ dayLabel(day.key) }}</h2>
-          <LabHistoryPassage v-for="passage in day.passages" :key="passage.key" :passage="passage" @view="openView" @pdf="downloadPdf" @pdf-batch="downloadBatchPdf" />
+          <LabHistoryPassage v-for="passage in day.passages" :key="passage.key" :passage="passage" :can-amend="canAmend" @amend="startAmend" @view="openView" @pdf="downloadPdf" @pdf-batch="downloadBatchPdf" />
         </section>
       </div>
 
@@ -57,6 +57,8 @@
       <ResultDetailModal
           v-if="selectedResult"
           :result="selectedResult"
+          :can-amend="canAmend"
+          @amend="startAmend"
           @close="selectedResult = null"
           @print="downloadPdf"
       />
@@ -66,7 +68,9 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
+import { useAuthStore } from '@/stores/auth';
+import { useToastStore } from '@/stores/toastStore';
 import { useLabStore } from '@/stores/labStore';
 import { useI18n } from 'vue-i18n';
 import ResultDetailModal from '@/components/lab/ResultDetailModal.vue';
@@ -81,6 +85,21 @@ const store = useLabStore();
 const { t, locale } = useI18n();
 const selectedResult = ref(null);
 const route = useRoute();
+const router = useRouter();
+const authStore = useAuthStore();
+const toast = useToastStore();
+
+// Corriger un resultat valide : memes roles que POST /labo/results/{id}/amend. La correction (motif obligatoire,
+// valeurs d'avant conservees) est celle de la paillasse : on y ouvre le dossier en mode correction. Serveur seulement.
+const canAmend = computed(() => authStore.hasRole(['laborantin', 'admin', 'ToxicoManager']));
+const startAmend = (item) => {
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+        toast.push(t('lab.history_view.amend_offline'), 'error');
+        return;
+    }
+    const id = item?.result_id || item?.id;
+    if (id) router.push({ name: 'lab-technician', query: { open: id, amend: 1 } });
+};
 
 // Un passage patient (batch_id) = une carte avec tous ses examens ; la pagination serveur porte sur les passages.
 const passages = computed(() => groupHistory(store.paginatedHistory.items));

@@ -2,7 +2,7 @@
 title: Laboratory stock and weekly count
 role: Laboratory technician
 subtitle: Keeping the list of reagents and consumables, reporting a product that is almost out, following orders and deliveries, counting the stock every week, reading alerts and history, and knowing what the screens do without a connection.
-version: 26 October 2026
+version: 27 October 2026
 output: lab-2-stock-weekly-count
 ---
 
@@ -14,15 +14,13 @@ The screenshots come from a demonstration installation. The products, suppliers 
 
 ### What the technician can see and do
 
-Your menu has two entries: **Laboratory** and **Lab stock**. This guide covers the second. Selecting **Lab stock** unfolds four screens: **Lab products**, **To order**, **Lab count** and **Lab alerts**.
+Your menu has two entries: **Laboratory** and **Lab stock**. This guide covers the second. Selecting **Lab stock** unfolds five screens: **Lab products**, **To order**, **Lab count**, **Lab alerts** and **Lab history**.
 
-You can add and edit products, report a product as almost out or out, count the stock, and read the orders and the alerts. You cannot place an order, change an order date or cancel an order: the promoter and the toxicology manager do that. You cannot enter a delivery. The stock controller and the promoter do that on screens that are closed to you: if you type the address of the receipts screen, the application answers with a page that says 403 (access refused). The laboratory expenses screen is closed to you in the same way.
-
-> Note: A sixth screen, **Lab history**, is open to you but has no menu entry. The chapter on history explains how to reach it.
+You can add and edit products, report a product as almost out or out, count the stock, and read the orders and the alerts. You cannot place an order, change an order date or cancel an order: the promoter and the toxicology manager do that. You cannot enter a delivery. The stock controller and the promoter do that on screens that are closed to you: if you type the address of the receipts screen, the application answers with a page that says 403 and "Access denied". The laboratory expenses screen is closed to you in the same way.
 
 ### Interface language
 
-The application starts in French on a new computer. Select **EN** in the language switch at the top right, next to the bell, to work in English. The choice is kept on that computer. Everything in the stock screens is available in English, with one exception: some error messages written by the server stay in French. This guide quotes them as they appear.
+The application starts in French on a new computer. Select **EN** in the language switch at the top right, next to the bell, to work in English. The choice is kept on that computer. Everything in the stock screens is available in English, with one exception: a few error messages written by the server stay in French. This guide quotes them as they appear.
 
 ### The connection
 
@@ -48,7 +46,7 @@ The stock you read here is not typed by hand anywhere. It moves in two ways only
 
 ![The form for a new product](figures/product-form.png "small")
 
-The page answers "Product saved." and the new line appears in the list. The form says it in one sentence: the stock starts at 0 and changes through deliveries and counts. A new product therefore shows **Low** straight away. This is normal, and no order is created for it until a delivery or a count leaves it at or under its threshold.
+The page answers "Product saved." and the new line appears in the list. The form says it in one sentence: the stock starts at 0 and changes through deliveries and counts. A new product therefore shows **Low** straight away. This is normal. If its threshold is above 0, the application opens a "Threshold reached" request for it at once, and the promoter and the toxicology manager are told, so the product is ordered without waiting for a count. With a threshold of 0, nothing is opened.
 
 Two products cannot carry the same name while both are active. The server then refuses the second one with a message in French: "Un produit actif nommé « Pipette tips » existe déjà." (an active product with this name already exists). Choose another name, or edit the first product.
 
@@ -67,7 +65,7 @@ A product that is no longer active disappears from the list and from the weekly 
 
 ## Reporting a product that is almost out
 
-The threshold warns by itself, but only when someone counts or when a delivery arrives. When you open the last box and see that the product will not last the week, report it without waiting for the count.
+The threshold warns by itself, but only when a product is created, when someone counts or when a delivery arrives. When you open the last box and see that the product will not last the week, report it without waiting for the count.
 
 1. In **Lab products**, find the product and select [[Report]].
 2. In the window **Report the product status**, choose [[Almost out]] {1} if some stock remains but will not last, or [[Out]] {2} if nothing is left.
@@ -92,21 +90,21 @@ There are three origins.
 |---|---|
 | Report | You, or a colleague of the laboratory, used the Report button. The level is written in brackets: Almost out or Out. |
 | Threshold reached | A count or a delivery left the stock at or below the threshold and no request was open. The application creates it by itself. The promoter and the toxicology manager receive the bell entry "Lab: [product] below threshold". |
-| Expiry | Foreseen by the application, but no action creates it today. You should not meet it. |
+| Expiry | A lot of the product entered the expiry window of 60 days and no request was open. The application creates it by itself when the alerts are read, for example when someone opens **Lab alerts**. |
 
 A request goes through four statuses. **To order** means nobody has placed the order. **Ordered** means the promoter or the toxicology manager marked it with an expected date. **Received** means a delivery that contained the product was entered. **Cancelled** means someone closed it with a reason, which is shown under the status.
 
 A request that the application created by itself because of the threshold can cancel itself too. In the demonstration, a count that raised a product from 3 to 30 closed its "Threshold reached" request, with the reason "stock remonté" (stock went up). A request that came from a report is not cancelled by a count, because a person asked for it.
 
-> Note: The title says "(4 requests)" even when there is one. The count is right, the plural is not.
+The subtitle ends with the number of requests shown, for example "(4 requests)" or "(1 request)".
 
 ## Deliveries
 
-You do not enter deliveries, but you see their effect, so it helps to know what happens at the other desk. The stock controller, or the promoter, receives the goods and fills a receipt that copies the supplier invoice. The promoter guide describes the form step by step. In short, the person types the invoice number, the supplier and the delivery date, adds each product of the invoice, then types for each line the quantity received, the lot number, the expiry date and the unit price, and ticks the line to say that the goods were checked.
+You do not enter deliveries, but you see their effect, so it helps to know what happens at the other desk. The stock controller, or the promoter, receives the goods and fills a receipt that copies the supplier invoice. The promoter guide describes the form step by step. In short, the person types the invoice number, the supplier and the delivery date, adds each product of the invoice, then types for each line the quantity received, the lot number, the expiry date and the unit price, and ticks the line to say that the goods were checked. The tick is required on every line: the receipt cannot be confirmed with a line left unticked.
 
 ![A receipt being filled by the stock controller](figures/receipt-form.png "small")
 
-The figure shows the form filled by the stock controller for an invoice of three products. The fields {1} and {2} carry the invoice number and the supplier. [[Add a product]] {3} adds a line, the box {4} confirms that the line was checked, and [[Confirm receipt]] {5} saves everything. The lot number and the expiry date are required on every line.
+The figure shows the form filled by the stock controller for an invoice of three products. The fields {1} and {2} carry the invoice number and the supplier. [[Add a product]] {3} adds a line, the box {4} confirms that the line was checked, and [[Confirm receipt]] {5} saves everything. The lot number, the expiry date and the tick are required on every line.
 
 When the receipt is saved, you notice four things.
 
@@ -141,7 +139,7 @@ This screen shows the application stock, unlike the physical count of the pharma
 
 ![The count screen with quantities typed](figures/count-filled.png "small")
 
-The button stays grey until at least one quantity is typed, and stays grey while a box holds something that is not a whole number. The page answers "Count saved" with the number of products between brackets, for example "Count saved (4 product(s)).", and empties the boxes. The stock of every counted product now equals what you typed. A product counted at the same value is recorded too, with a change of 0.
+The button stays grey until at least one quantity is typed, and stays grey while a box holds something that is not a whole number. The page answers "Count saved" with the number of products between brackets, for example "Count saved (4 product(s)).", and empties the boxes. The stock of every counted product now equals what you typed. A product counted at the same value as the application is recorded as counted, but it produces no movement in the history.
 
 The count never asks you for a reason and never compares your number with a limit, so a typing mistake changes the stock at once. Read each box before you submit.
 
@@ -163,7 +161,7 @@ The page answers "Count saved (1 product(s))." If every product of a submission 
 
 The stock of the counted products changes immediately, as does the date in the column **Last count**. The reminder bell entry is marked as read, and the band disappears. A product that falls at or below its threshold gets a "Threshold reached" request, and the promoter and the toxicology manager are told. A product that rises above its threshold has its automatic request cancelled, if nobody ordered it yet.
 
-The count is not announced to anyone, and no summary is sent. The people who follow the stock read it in two places: the **Last count** column in **Lab products**, and **Lab history**, where each counted product has a line with its change and the stock after. The next chapter shows that screen.
+The count is not announced to anyone, and no summary is sent. The people who follow the stock read it in two places: the **Last count** column in **Lab products**, and **Lab history**, where each product whose stock changed has a line with its change and the stock after. The next chapter shows that screen.
 
 ## Alerts
 
@@ -173,7 +171,7 @@ The count is not announced to anyone, and no summary is sent. The people who fol
 
 The card **Weekly count** {1} says when the last count was made. [[Go to count]] {2} opens the count screen. **Low stock** {3} lists every product at or below its threshold with a label such as "Stock 3 / threshold 5", and says under the name whether a request is open ("Request: To order"). A product with a threshold of 0 and no stock is not listed, so that a product you do not use does not raise a false alert. [[Open the to-order list]] leads to **To order**. **Upcoming expiries** {4} lists the lots that expire within 60 days, with the number of days left, and a lot that has already expired in red with "Expired N days ago".
 
-An expiry belongs to a lot that was delivered, not to what is left on the shelf. The list shows every lot of an active product that still has stock, whatever has been used. If a lot is long finished, the line will stay until the product is retired or the stock reaches zero. Compare the lot number with the label on the boxes before you act.
+An expiry belongs to a lot that was delivered, not to what is left on the shelf. The application does not track what remains of each lot. Under each lot, the line "Quantity received in this lot: 20. Current product stock: 12 (the remainder per lot is not tracked)." gives the quantity delivered in that lot and the stock of the whole product. The list shows every lot of an active product that still has stock, whatever has been used. If a lot is long finished, the line will stay until the product is retired or the stock reaches zero. Compare the lot number with the label on the boxes before you act.
 
 The promoter and the toxicology manager receive a bell entry for each lot at 60 days or less ("Lab: [product] (lot [lot]) expires in [n] day(s)"). You do not receive it. Your only sign is this screen, so open it when you start your week.
 
@@ -189,13 +187,13 @@ The bell {1} shows the number of unread entries. A delivery notice {2} says that
 
 **Lab history** lists every stock movement: receipts, count corrections and cancelled receipts. It answers the question "why does the stock read this number?"
 
-The screen has no entry in your menu, although you are allowed to read it. Open it by typing the address of the application followed by /dashboard/lab-stock-movements in the browser, or ask the promoter or the stock controller, who have it in their menu. The figure below shows it.
+Select **Lab history** in the **Lab stock** menu. The figure below shows it.
 
 ![The movement history](figures/history.png "small")
 
-The filter {1} limits the list to one product. The column **Type** {2} says Receipt, Count or Receipt cancellation. **Change** gives the difference, in red when the stock goes down and in green when it goes up, and **Stock after** {3} the quantity once the movement was applied. **By** {4} names the person, and **Reference** gives the number of the receipt or of the count. The 200 most recent movements are shown.
+The filter {1} limits the list to one product. The column **Type** {2} says Receipt, Count or Receipt cancellation. **Change** gives the difference, in red when the stock goes down and in green when it goes up, and **Stock after** {3} the quantity once the movement was applied. **By** {4} names the person by full name, and **Reference** gives the number of the receipt or of the count. Dates and times are in local time. The 200 most recent movements are shown.
 
-Two things can surprise you. A count that confirms the application figure still produces a line, with a change of 0. And one count writes one line per product, all with the same count number, so several lines can share a minute. A large negative change deserves a second look before you submit: in the demonstration, a count removed 17 test strips from the stock at once.
+Two things can surprise you. A count that confirms the application figure produces no line, because nothing changed. And one count writes one line per product whose stock changed, all with the same count number, so several lines can share a minute. A large negative change deserves a second look before you submit: in the demonstration, a count removed 17 test strips from the stock at once.
 
 ## Working without a connection
 
@@ -227,16 +225,15 @@ If the connection drops while a screen is open, the product list stays on screen
 
 | What you see | What it means | What to do |
 |---|---|---|
-| A page that says 403 | The screen is closed to your role | Use one of your four screens. Ask the promoter for receipts or expenses. |
+| A page that says 403 and "Access denied" | The screen is closed to your role | Use one of your five screens. Ask the promoter for receipts or expenses. |
 | "Unable to load data." and "No products." | The computer cannot reach the server | Wait for "Connected", then reopen the screen. |
 | "Operation failed." after Submit count | The connection dropped as you sent | Keep the numbers, wait for "Connected", select Submit count again. |
 | "Stock changed during the count: recount these products." | A delivery arrived while you counted | Recount the products marked To recount and submit again. |
 | Submit count stays grey | No box is filled, or one value is not a whole number | Type whole numbers, zero or more. |
 | "Un produit actif nommé ... existe déjà." | A product with that name is active | Pick another name or edit the existing product. |
-| A new product shows Low and has no order | Its stock is 0 and nothing has triggered a request | Wait for the delivery, or report the product yourself. |
+| A new product shows Low and has no order | Its threshold is 0, so no request is opened | Report the product yourself, or ask the promoter to set a threshold. |
 | The product you reported is not in To order | The filter is on a status that does not match | Choose All in the Status filter. |
 | The count reminder stays after you counted | The count was not saved | Look for a red or yellow band, then submit again. A saved count marks the reminder as read. |
-| No Lab history in the menu | The screen has no entry for your role | Use the address given in the History chapter. |
 
 ## Glossary {.unnumbered}
 

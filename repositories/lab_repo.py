@@ -68,6 +68,15 @@ class LabRepository:
     def delete_examen(self, examen_id: int) -> bool:
         examen = self.session.get(Examen, examen_id)
         if examen:
+            # Les parametres et leurs plages n'ont de sens que pour l'examen : suppression en cascade
+            # (le controleur a deja refuse si des resultats l'utilisent).
+            param_ids = [r[0] for r in self.session.query(Parametre.id).filter(Parametre.examen_id == examen_id).all()]
+            if param_ids:
+                self.session.query(ReferenceRange).filter(
+                    ReferenceRange.parametre_id.in_(param_ids)).delete(synchronize_session=False)
+                self.session.query(Parametre).filter(
+                    Parametre.id.in_(param_ids)).delete(synchronize_session=False)
+            self.session.expire(examen)
             self.session.delete(examen)
             self.session.commit()
             return True
@@ -125,6 +134,13 @@ class LabRepository:
             self.session.refresh(p)
             return p
         return None
+
+    def examen_has_results(self, examen_id: int) -> bool:
+        if self.session.query(LabResult.result_id).filter(LabResult.examen_id == examen_id).first() is not None:
+            return True
+        return self.session.query(LabResultDetail.detail_id).join(
+            Parametre, Parametre.id == LabResultDetail.parametre_id
+        ).filter(Parametre.examen_id == examen_id).first() is not None
 
     def parametre_has_results(self, parametre_id: int) -> bool:
         return self.session.query(LabResultDetail.detail_id).filter(

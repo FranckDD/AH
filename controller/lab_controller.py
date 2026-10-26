@@ -19,6 +19,10 @@ from api_backend.backend_app.utils.pdf_header import get_pdf_header_context
 from api_backend.backend_app.utils.patient_resolution import resolve_patient_id
 from utils.lab_reference import SEX_LABELS_FR, ABNORMAL_FALLBACK, select_range, normalize_sex
 
+class ExamInUseError(ValueError):
+    """Examen deja utilise par des resultats : suppression refusee."""
+
+
 class LabController:
     def __init__(self, repo: LabRepository, current_user=None):
         self.repo = repo
@@ -171,6 +175,8 @@ class LabController:
         """Supprime un examen."""
         current = self.repo.get_examen_by_id(examen_id)
         before = {"code": current.code, "nom": current.nom, "prix": current.prix} if current else {}
+        if current and self.repo.examen_has_results(examen_id):
+            raise ExamInUseError("Des resultats utilisent deja cet examen : il ne peut pas etre supprime.")
         ok = self.repo.delete_examen(examen_id)
         if ok:
             self._audit_exam("DELETE", examen_id, before, {})
