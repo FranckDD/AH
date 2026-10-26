@@ -32,6 +32,7 @@ ROUTES = {
     ("POST", "/stock-counts/{count_id}/abandon"): (WRITE, None),
     ("GET", "/stock-counts/status"): (READ, None),
     ("GET", "/stock-counts/settings"): (READ, None),
+    ("GET", "/stock-counts/requests"): (READ, None),
     ("PUT", "/stock-counts/settings"): (ADMIN, {}),
     ("GET", "/stock-counts"): (READ, None),
     ("GET", "/stock-counts/{count_id}"): (READ, None),

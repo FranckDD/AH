@@ -88,13 +88,16 @@
         <template #cell-date="{ row: p }">{{ formatDate(p.purchase_date) }}</template>
         <template #cell-quantity="{ row: p }">{{ qty(p.quantity) }}</template>
         <template #cell-unit_cost="{ row: p }">{{ formatCurrency(p.unit_cost) }}</template>
-        <template #cell-remaining="{ row: p }">{{ qty(p.remaining_qty) }}</template>
+        <template #cell-remaining="{ row: p }">{{ p.status === 'actif' ? qty(p.remaining_qty) : qty(0) }}</template>
         <template #cell-status="{ row: p }">
           <StatusBadge v-if="p.status === 'actif'" tone="success" :label="t('fabrication.status_actif')" />
           <StatusBadge v-else tone="neutral" :label="t('fabrication.status_annule')" />
         </template>
         <template v-if="canWrite" #actions="{ row: p }">
-          <AppButton v-if="p.status === 'actif'" size="sm" variant="danger" @click="openCancel(p)">{{ t('fabrication.cancel_purchase') }}</AppButton>
+          <div class="flex flex-wrap items-center justify-end gap-2">
+            <AppButton v-if="canEditPurchase(p)" size="sm" variant="secondary" :icon="PencilSquareIcon" @click="openPurchaseEdit(p)">{{ t('fabrication.edit_purchase') }}</AppButton>
+            <AppButton v-if="p.status === 'actif'" size="sm" variant="danger" @click="openCancel(p)">{{ t('fabrication.cancel_purchase') }}</AppButton>
+          </div>
         </template>
       </ResponsiveTable>
     </AppCard>
@@ -163,6 +166,33 @@
             <AppButton variant="ghost" @click="purchaseOpen = false">{{ t('stockOps.close') }}</AppButton>
           </template>
           <AppButton type="submit" form="fab-purchase-form" variant="brand" :disabled="busy" :loading="busy">{{ t('stockOps.save') }}</AppButton>
+        </ActionBar>
+      </template>
+    </FullScreenPanel>
+
+    <!-- Modification minimale d'un achat non consomme : cout unitaire, fournisseur, reference -->
+    <FullScreenPanel v-if="purchaseEditTarget" :title="t('fabrication.edit_purchase_title')" @close="purchaseEditTarget = null">
+      <form id="fab-purchase-edit-form" @submit.prevent="savePurchaseEdit" class="grid gap-4">
+        <p class="text-base font-medium text-ink">{{ purchaseEditTarget.intrant_name }} ({{ formatDate(purchaseEditTarget.purchase_date) }})</p>
+        <p v-if="modalError" role="alert" class="rounded-control border p-3 text-base" :class="toneClasses('danger')">{{ modalError }}</p>
+        <div class="grid gap-4 sm:grid-cols-2">
+          <FormField id="fab-pedit-supplier" :label="t('fabrication.supplier')" v-slot="{ describedBy }">
+            <input id="fab-pedit-supplier" v-model="purchaseEditForm.supplier" type="text" maxlength="150" :aria-describedby="describedBy" :class="fieldClass" />
+          </FormField>
+          <FormField id="fab-pedit-ref" :label="t('fabrication.delivery_ref')" v-slot="{ describedBy }">
+            <input id="fab-pedit-ref" v-model="purchaseEditForm.delivery_ref" type="text" maxlength="100" :aria-describedby="describedBy" :class="fieldClass" />
+          </FormField>
+        </div>
+        <FormField id="fab-pedit-cost" :label="t('fabrication.unit_cost')" required v-slot="{ describedBy }">
+          <input id="fab-pedit-cost" v-model="purchaseEditForm.unit_cost" type="number" inputmode="decimal" min="0" step="0.01" required :aria-describedby="describedBy" :class="[fieldClass, 'text-right']" />
+        </FormField>
+      </form>
+      <template #footer>
+        <ActionBar>
+          <template #secondary>
+            <AppButton variant="ghost" @click="purchaseEditTarget = null">{{ t('stockOps.close') }}</AppButton>
+          </template>
+          <AppButton type="submit" form="fab-purchase-edit-form" variant="brand" :disabled="busy" :loading="busy">{{ t('stockOps.save') }}</AppButton>
         </ActionBar>
       </template>
     </FullScreenPanel>
@@ -242,6 +272,7 @@ import { useAuthStore } from '@/stores/auth';
 import { FabricationGateway, describeFabricationError } from '@/services/FabricationGateway';
 import { AppButton, AppCard, PageHeader, FormField, StatusBadge, ResponsiveTable, FullScreenPanel, ActionBar } from '@/components/ui';
 import { toneClasses } from '@/design/tones';
+import { classifyQuantity } from '@/utils/fabFormat';
 
 const { t } = useI18n();
 const authStore = useAuthStore();
@@ -278,6 +309,8 @@ const busy = ref(false);
 
 const purchaseOpen = ref(false);
 const cancelTarget = ref(null);
+const purchaseEditTarget = ref(null);
+const purchaseEditForm = ref({ supplier: '', delivery_ref: '', unit_cost: '' });
 const cancelReason = ref('');
 const showInactive = ref(false);
 const dateFrom = ref('');
@@ -429,7 +462,9 @@ const savePurchase = async () => {
     if (!(f.unit || '').trim()) { modalError.value = t('fabrication.err_unit_required'); return; }
   } else if (!intrantId) { modalError.value = t('fabrication.err_intrant_required'); return; }
   if (!f.purchase_date) { modalError.value = t('fabrication.err_date_required'); return; }
-  if (!(Number(f.quantity) > 0)) { modalError.value = t('fabrication.err_quantity'); return; }
+  const quantityKind = classifyQuantity(f.quantity);
+  if (quantityKind === 'invalid') { modalError.value = t('fabrication.err_quantity_invalid'); return; }
+  if (quantityKind === 'zero') { modalError.value = t('fabrication.err_quantity'); return; }
   if (f.unit_cost === '' || !(Number(f.unit_cost) >= 0)) { modalError.value = t('fabrication.err_unit_cost'); return; }
   busy.value = true;
   try {
@@ -456,6 +491,37 @@ const savePurchase = async () => {
   } catch (err) {
     modalError.value = describeFabricationError(err, t('fabrication.error_save'));
     console.error('Enregistrement de l\'achat echoue :', err);
+  } finally {
+    busy.value = false;
+  }
+};
+
+// Un achat se corrige tant qu'il est actif et qu'aucun lot ne l'a consomme (le serveur refuse sinon, avec son message).
+const canEditPurchase = (p) => canWrite.value && p.status === 'actif' && num(p.remaining_qty) === num(p.quantity);
+
+const openPurchaseEdit = (p) => {
+  pageMessage.value = '';
+  modalError.value = '';
+  purchaseEditForm.value = { supplier: p.supplier || '', delivery_ref: p.delivery_ref || '', unit_cost: String(num(p.unit_cost)) };
+  purchaseEditTarget.value = p;
+};
+
+const savePurchaseEdit = async () => {
+  modalError.value = '';
+  const f = purchaseEditForm.value;
+  if (f.unit_cost === '' || !(Number(f.unit_cost) >= 0)) { modalError.value = t('fabrication.err_unit_cost'); return; }
+  busy.value = true;
+  try {
+    await FabricationGateway.updatePurchase(purchaseEditTarget.value.id, {
+      supplier: (f.supplier || '').trim(), delivery_ref: (f.delivery_ref || '').trim(), unit_cost: f.unit_cost,
+    });
+    purchaseEditTarget.value = null;
+    flash(t('fabrication.purchase_updated'));
+    await load();
+  } catch (err) {
+    // Achat deja consomme par un lot : le serveur repond 409 avec son message, affiche tel quel.
+    modalError.value = describeFabricationError(err, t('fabrication.error_save'));
+    console.error('Modification de l\'achat echouee :', err);
   } finally {
     busy.value = false;
   }

@@ -15,7 +15,7 @@
                 tab === tb ? 'border-brand-600 text-brand-700 font-semibold' : 'border-transparent text-ink-muted hover:border-tone-neutral-border hover:text-ink',
                 'flex min-h-11 items-center border-b-4 px-3 text-base focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand-600'
               ]">
-        {{ $t(`stockControl.tab_${tb}`) }} ({{ tb === 'receipts' ? receipts.length : incidents.length }})
+        {{ $t(`stockControl.tab_${tb}`) }} ({{ loadFailed ? '-' : (tb === 'receipts' ? receipts.length : incidents.length) }})
       </button>
     </div>
 
@@ -60,7 +60,7 @@
             </template>
             <template #cell-expected="{ row: l }">{{ l.qty_expected ?? '-' }}</template>
             <template v-for="f in QTY_FIELDS" :key="f" #[qtySlot(f)]="{ row: l }">
-              <input v-if="canDecide" v-model.number="l[f]" type="number" min="0" step="1" inputmode="numeric"
+              <input v-if="canDecide" v-model.number="l[f]" type="number" min="0" step="1" inputmode="numeric" @input="clearLineError(l)"
                      :aria-label="$t(`stockOps.${f}`)" :class="[fieldClass, 'w-24 text-right']" />
               <span v-else>{{ l[f] }}</span>
             </template>
@@ -122,12 +122,13 @@ import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '@/stores/auth';
 import { StockOpsGateway, describeStockError } from '@/services/StockOpsGateway';
 import { actorLabel } from '@/utils/actorName';
+import { describeStockLineError } from '@/utils/stockLineError';
 import { QTY_FIELDS, lineTotal, validateReceiptLine } from '@/utils/receiptLines';
 import { ArrowPathIcon } from '@heroicons/vue/24/outline';
 import { AppButton, PageHeader, FormField, ResponsiveTable, FullScreenPanel, ActionBar } from '@/components/ui';
 import { toneClasses } from '@/design/tones';
 
-const { t } = useI18n();
+const { t, te } = useI18n();
 const authStore = useAuthStore();
 const TABS = ['receipts', 'incidents'];
 
@@ -176,9 +177,11 @@ const linesDirty = computed(() => {
 
 const resetMessages = () => { pageError.value = ''; pageMessage.value = ''; };
 
+const loadFailed = ref(false); // file non chargee : les compteurs des onglets affichent "-", jamais (0)
 const loadAll = async () => {
   isLoading.value = true;
   pageError.value = '';
+  loadFailed.value = false;
   try {
     const [r, i] = await Promise.all([
       StockOpsGateway.listReceipts({ status: 'a_controler' }),
@@ -192,6 +195,7 @@ const loadAll = async () => {
     }
   } catch (err) {
     pageError.value = describeStockError(err, t('stockOps.error_load'));
+    loadFailed.value = true;
     console.error('Chargement de la file de controle echoue :', err);
   } finally {
     isLoading.value = false;
@@ -203,6 +207,15 @@ const selectReceipt = (r) => {
   editLines.value = r.lines.map((l) => ({ ...l }));
   lineErrors.value = [];
 };
+
+// La remarque d'une ligne disparait des que sa valeur est modifiee (elle est recalculee a la prochaine validation).
+const clearLineError = (l) => {
+  const i = editLines.value.indexOf(l);
+  if (i >= 0 && lineErrors.value[i]) lineErrors.value[i] = null;
+};
+
+// Refus serveur sur une ligne : code traduit + produit de la ligne ; sinon le message du serveur.
+const serverMessage = (err) => describeStockLineError(err, editLines.value, t, te) || describeStockError(err, t('stockOps.error_save'));
 
 const checkLines = () => {
   lineErrors.value = editLines.value.map((l) => {
@@ -228,7 +241,7 @@ const saveLines = async () => {
     pageMessage.value = t('stockControl.corrections_saved');
     await loadAll();
   } catch (err) {
-    pageError.value = describeStockError(err, t('stockOps.error_save'));
+    pageError.value = serverMessage(err);
     console.error('Correction des lignes echouee :', err);
   } finally {
     busy.value = false;
@@ -248,7 +261,7 @@ const validateReceipt = async () => {
     editLines.value = [];
     await loadAll();
   } catch (err) {
-    pageError.value = describeStockError(err, t('stockOps.error_save'));
+    pageError.value = serverMessage(err);
     console.error('Validation de la reception echouee :', err);
   } finally {
     busy.value = false;

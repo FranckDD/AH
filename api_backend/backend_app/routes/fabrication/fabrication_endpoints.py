@@ -21,6 +21,7 @@ from controller.fabrication_controller import (
 )
 from repositories.fabrication_repo import FabricationJustificationRequired
 from repositories.audit_repo import AuditRepository
+from repositories.notification_repo import NotificationRepository
 from repositories.fabrication_repo import FabricationRepository
 
 from .fabrication_schemas import (
@@ -47,7 +48,8 @@ def get_fabrication_controller(
     current_user: Any = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> FabricationController:
-    return FabricationController(FabricationRepository(db), AuditRepository(db), current_user)
+    return FabricationController(FabricationRepository(db), AuditRepository(db), current_user,
+                                 NotificationRepository(db))
 
 
 @contextmanager

@@ -1,6 +1,10 @@
+import { isLoadFailure } from '@/utils/loadFailure';
+import { notify } from '@/utils/notify';
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import api from '@/services/api'; // Votre client Axios configuré
+import { mapProductToApi } from '@/utils/productApi';
+import { describeServerError } from '@/utils/serverError';
 
 export const useStockStore = defineStore('stock', () => {
     
@@ -14,6 +18,8 @@ export const useStockStore = defineStore('stock', () => {
     });
 
     // KPI Globaux (Initialisés à 0)
+    const loadFailed = ref(false); // liste non chargee (hors ligne, serveur)
+    const statsFailed = ref(false);
     const stats = ref({
         totalValue: 0,
         countPharma: 0,
@@ -60,25 +66,8 @@ export const useStockStore = defineStore('stock', () => {
             minThreshold: p.threshold,
             price: p.price,
             expiryDate: p.expiry_date ? p.expiry_date.split('T')[0] : null,
-            forme: p.forme
-        };
-    };
-
-    // Convertit le format Frontend vers Backend (pour Create/Update)
-    const mapProductToApi = (p) => {
-        let typeDb = 'Autre';
-        if (p.category === 'PHARMA') typeDb = 'pharmaceutique';
-        else if (p.category === 'NATUREL') typeDb = 'Naturel';
-        else if (p.category === 'MATERIEL') typeDb = 'Materiel';
-
-        return {
-            drug_name: p.name,
-            medication_type: typeDb,
-            quantity: parseInt(p.quantity),
-            threshold: parseInt(p.minThreshold),
-            price: parseFloat(p.price),
-            expiry_date: p.expiryDate,
-            forme: p.forme || 'Autre'
+            forme: p.forme,
+            dosage: p.dosage_mg !== null && p.dosage_mg !== undefined ? String(p.dosage_mg) : ''
         };
     };
 
@@ -110,6 +99,7 @@ export const useStockStore = defineStore('stock', () => {
             // L'API renvoie { data: [], total: x, page: x ... }
             const result = response.data;
 
+            loadFailed.value = false;
             stockData.value.data = result.data.map(mapProductFromApi);
             stockData.value.total = result.total;
             stockData.value.total_pages = result.total_pages;
@@ -124,6 +114,7 @@ export const useStockStore = defineStore('stock', () => {
         } catch (err) {
             console.error("Erreur fetchStock:", err);
             error.value = "Impossible de charger le stock.";
+            loadFailed.value = isLoadFailure(err);
         } finally {
             isLoading.value = false;
         }
@@ -134,8 +125,10 @@ export const useStockStore = defineStore('stock', () => {
         try {
             const response = await api.get('/pharmacy/kpi/dashboard_stats');
             stats.value = response.data;
+            statsFailed.value = false;
         } catch (err) {
             console.error("Erreur KPI:", err);
+            statsFailed.value = isLoadFailure(err);
         }
     }
 
@@ -162,7 +155,7 @@ export const useStockStore = defineStore('stock', () => {
             await fetchStock(); // Rafraîchir la liste
         } catch (err) {
             console.error("Erreur saveProduct:", err);
-            alert("Erreur lors de la sauvegarde : " + (err.response?.data?.detail || err.message));
+            notify('alerts.save_failed', { detail: describeServerError(err, err.message) });
         } finally {
             isLoading.value = false;
         }
@@ -176,7 +169,7 @@ export const useStockStore = defineStore('stock', () => {
             await fetchStock();
         } catch (err) {
             console.error("Erreur deleteProduct:", err);
-            alert("Impossible de supprimer.");
+            notify('alerts.cannot_delete');
         } finally {
             isLoading.value = false;
         }
@@ -208,7 +201,7 @@ export const useStockStore = defineStore('stock', () => {
     }));
 
     return { 
-        stockData, isLoading, error, products, pagination, filters, stats, currentFilteredValue,
+        stockData, isLoading, error, loadFailed, statsFailed, products, pagination, filters, stats, currentFilteredValue,
         fetchStock, fetchStats, setPage, setFilters, saveProduct, deleteProduct
     };
 });

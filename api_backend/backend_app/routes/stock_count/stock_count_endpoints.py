@@ -5,7 +5,7 @@ Garde de role PAR ROUTE : ecriture COUNTERS (StockController seul), lecture READ
 (StockController, admin, promoteur), frequence SETTINGS_WRITERS (admin seul). Tout autre role : 403.
 Erreurs du controleur : StockCountNotFoundError -> 404, StockCountConflictError -> 409,
 PermissionError -> 403, ValueError -> 422.
-Chemins fixes (/status, /settings) declares AVANT /{count_id}.
+Chemins fixes (/status, /settings, /requests) declares AVANT /{count_id}.
 """
 from contextlib import contextmanager
 from typing import Any, Optional
@@ -93,6 +93,12 @@ def list_counts(date_from: Optional[str] = Query(None, max_length=10),
     with _errors():
         return ctrl.list({"date_from": date_from, "date_to": date_to, "status": status_,
                           "limit": limit, "offset": offset, "mine": mine})
+
+
+@router.get("/requests", dependencies=[Depends(role_required(*READERS))])
+def my_requests(ctrl: StockCountController = Depends(get_controller)):
+    with _errors():
+        return ctrl.my_requests()
 
 
 @router.get("/{count_id}", dependencies=[Depends(role_required(*READERS))])

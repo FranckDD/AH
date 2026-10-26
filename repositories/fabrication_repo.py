@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session
 from models.fabrication import FabBatch, FabBatchOutput, FabConsumption, FabIntrant, FabIntrantPurchase, FabSettings
 from models.pharmacy import Pharmacy
 from models.user import User
+from models.application_role import ApplicationRole
 from models.stock_reception import ProductionLot, StockReceipt, StockReceiptLine
 from repositories.stock_repo import StockRepository
 from utils.business_time import BUSINESS_TZ
@@ -75,6 +76,24 @@ class FabricationRepository:
             q = q.filter(FabIntrant.is_active.is_(True))
         rows = q.order_by(func.lower(FabIntrant.name), FabIntrant.id).all()
         return [(i, Decimal(s)) for i, s in rows]
+
+    def intrant_stocks(self, intrant_ids) -> Dict[int, Decimal]:
+        """{intrant_id: stock} (somme des restants des achats actifs) ; 0 pour un intrant sans achat."""
+        ids = list(intrant_ids)
+        if not ids:
+            return {}
+        rows = (self.session.query(FabIntrantPurchase.intrant_id, func.coalesce(func.sum(FabIntrantPurchase.remaining_qty), 0))
+                .filter(FabIntrantPurchase.intrant_id.in_(ids), FabIntrantPurchase.status == 'actif')
+                .group_by(FabIntrantPurchase.intrant_id).all())
+        found = {i: Decimal(s) for i, s in rows}
+        return {i: found.get(i, Decimal(0)) for i in ids}
+
+    def active_user_ids_with_roles(self, role_names) -> List[int]:
+        rows = (self.session.query(User.user_id)
+                .join(ApplicationRole, ApplicationRole.role_id == User.role_id)
+                .filter(ApplicationRole.role_name.in_(tuple(role_names)), User.is_active.is_(True))
+                .order_by(User.user_id).all())
+        return [r[0] for r in rows]
 
     def delivered_purchase_counts(self, intrant_ids=None) -> Dict[int, int]:
         """{intrant_id: nombre d'achats non annules} ; un achat annule mais deja consomme

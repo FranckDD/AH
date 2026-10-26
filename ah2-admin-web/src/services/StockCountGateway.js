@@ -24,5 +24,7 @@ export const StockCountGateway = {
             params: clean({ date_from: dateFrom, date_to: dateTo, status, limit, offset, mine }),
         })).data;
     },
+    // { items: [{ id, number, product_name, status, requested_at, decided_at, decision_note }] } : demandes d'ajustement
+    async myRequests() { return (await api.get('/stock-counts/requests')).data; },
     async get(id) { return (await api.get(`/stock-counts/${id}`)).data; },
 };

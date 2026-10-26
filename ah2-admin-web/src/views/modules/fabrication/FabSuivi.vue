@@ -207,7 +207,7 @@ const detailText = (a) => {
     // d.expedie = quantite expediee figee (bonnes - sorties) ; repli sur qty_good pour un ancien serveur.
     ecart_expedie_recu: { shipped: qty(d.expedie ?? d.qty_good), received: qty(d.received_good), gap: qty(d.gap) },
   }[a.kind];
-  return params ? t(`fabrication.anomaly_detail_${a.kind}`, params) : '';
+  return params ? t(`fabrication.anomaly_detail_${a.kind}`, params, Number(d.missing_qty ?? d.days ?? 0) || 0) : '';
 };
 
 // ---- sorties declarees recentes (lecture) ----

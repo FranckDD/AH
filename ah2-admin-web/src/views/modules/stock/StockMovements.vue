@@ -58,7 +58,7 @@
           </span>
         </template>
         <template #cell-note="{ row: m }"><span class="block max-w-xs">{{ m.note }}</span></template>
-        <template #cell-author="{ row: m }">{{ m.created_by || '' }}</template>
+        <template #cell-author="{ row: m }">{{ m.created_by_name || m.created_by || '' }}</template>
       </ResponsiveTable>
 
       <div v-if="totalPages > 1" class="flex items-center justify-between gap-3 rounded-card border border-tone-neutral-border bg-white p-3">
@@ -76,7 +76,7 @@
 import { ref, reactive, computed, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { StockOpsGateway, describeStockError } from '@/services/StockOpsGateway';
-import { todayLocalISO } from '@/utils/localDate';
+import { formatDateTimeDMY, todayLocalISO } from '@/utils/localDate';
 import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/vue/24/outline';
 import { AppButton, PageHeader, FormField, ResponsiveTable } from '@/components/ui';
 import { toneClasses } from '@/design/tones';
@@ -115,7 +115,7 @@ const visibleProducts = computed(() => {
 });
 
 const movementLabel = (mt) => (te(`stockControl.movement.${mt}`) ? t(`stockControl.movement.${mt}`) : mt);
-const formatDateTime = (v) => (v ? new Date(v).toLocaleString() : '');
+const formatDateTime = (v) => (v ? formatDateTimeDMY(new Date(v)) : '');
 
 const load = async () => {
   isLoading.value = true;

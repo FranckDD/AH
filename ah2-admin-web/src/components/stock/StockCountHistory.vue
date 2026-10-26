@@ -37,6 +37,8 @@
       </nav>
     </AppCard>
 
+    <StockCountRequests />
+
     <p v-if="detailError" role="alert" class="rounded-card border p-4 text-base" :class="toneClasses('danger')">{{ detailError }}</p>
     <AppCard v-if="detail" :title="t('stockCount.detail_title', { id: detail.id })"
              :subtitle="t('stockCount.detail_subtitle', { date: formatLocalDateTime(detail.submitted_at, locale), name: detail.started_by_name || '' })">
@@ -53,6 +55,7 @@ import { ref, computed, watch, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { AppButton, AppCard, FormField, ResponsiveTable } from '@/components/ui';
 import StockCountReveal from '@/components/stock/StockCountReveal.vue';
+import StockCountRequests from '@/components/stock/StockCountRequests.vue';
 import { toneClasses } from '@/design/tones';
 import { useAuthStore } from '@/stores/auth';
 import { useStockCountStore, HISTORY_PAGE_SIZE } from '@/stores/stockCountStore';

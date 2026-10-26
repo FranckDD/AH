@@ -3,7 +3,7 @@
 <template>
   <div class="grid w-full gap-6">
 
-    <PageHeader :title="$t('stockAdjust.admin_title')" :subtitle="$t('stockAdminScreens.requests_count', { n: requests.length })" />
+    <PageHeader :title="$t('stockAdjust.admin_title')" :subtitle="$t('stockAdminScreens.requests_count', requests.length)" />
 
     <section :aria-label="$t('stockAdminScreens.status_filter')" class="rounded-card border border-tone-neutral-border bg-white p-4 shadow-card">
       <div class="max-w-xs">
@@ -40,7 +40,7 @@
       </template>
       <template #cell-kind="{ row: r }">{{ $t(`stockAdjust.kind.${r.kind}`) }}</template>
       <template #cell-quantity="{ row: r }"><span class="font-semibold">{{ r.kind === 'reapprovisionnement' ? '+' : '= ' }}{{ r.quantity }}</span></template>
-      <template #cell-reason="{ row: r }"><span class="block max-w-xs">{{ r.reason }}</span></template>
+      <template #cell-reason="{ row: r }"><span class="block max-w-xs">{{ adjustmentReasonText(r.reason, t) }}</span></template>
       <template #cell-requester="{ row: r }">{{ actorLabel(r.requested_by_name, r.requested_by) }}</template>
       <template #cell-status="{ row: r }">
         <StatusBadge :tone="badge(r.status)" :label="$t(`stockAdjust.status.${r.status}`)" />
@@ -79,8 +79,10 @@
 </template>
 
 <script setup>
+import { formatDateTimeDMY } from '@/utils/localDate';
 import { ref, computed, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { adjustmentReasonText } from '@/utils/stockNotificationLabels';
 import { actorLabel } from '@/utils/actorName';
 import { StockOpsGateway, describeStockError } from '@/services/StockOpsGateway';
 import { AppButton, PageHeader, FormField, StatusBadge, ResponsiveTable, FullScreenPanel, ActionBar } from '@/components/ui';
@@ -119,7 +121,7 @@ const badge = (s) => ({
   annule: 'neutral',
 }[s] || 'neutral');
 
-const formatDateTime = (v) => (v ? new Date(v).toLocaleString() : '');
+const formatDateTime = (v) => (v ? formatDateTimeDMY(new Date(v)) : '');
 
 const load = async () => {
   isLoading.value = true;

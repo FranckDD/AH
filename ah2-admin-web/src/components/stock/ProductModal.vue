@@ -16,6 +16,7 @@
                     <option value="PHARMA">{{ t('stock.categories.PHARMA') }}</option>
                     <option value="NATUREL">{{ t('stock.categories.NATUREL') }}</option>
                     <option value="MATERIEL">{{ t('stock.categories.MATERIEL') }}</option>
+                    <option value="AUTRE">{{ t('stock.categories.AUTRE') }}</option>
                 </select>
             </FormField>
 
@@ -35,8 +36,8 @@
                         </option>
                     </select>
                 </FormField>
-                <FormField id="product-dosage" label="Dosage (mg/ml)" v-slot="{ describedBy }">
-                    <input id="product-dosage" v-model="form.dosage" type="text" placeholder="Ex: 500mg" :aria-describedby="describedBy" :class="[fieldClass, 'bg-white']" />
+                <FormField id="product-dosage" :label="t('stock.modal.dosage')" v-slot="{ describedBy }">
+                    <input id="product-dosage" v-model="form.dosage" type="text" :placeholder="t('stock.modal.dosage_ph')" :aria-describedby="describedBy" :class="[fieldClass, 'bg-white']" />
                 </FormField>
             </template>
         </FormSection>
@@ -50,7 +51,7 @@
                 </template>
             </FormField>
 
-            <FormField id="product-threshold" label="Seuil Alerte" required v-slot="{ describedBy }">
+            <FormField id="product-threshold" :label="t('stock.modal.threshold')" required v-slot="{ describedBy }">
                 <input id="product-threshold" v-model.number="form.minThreshold" type="number" required min="0" inputmode="numeric" :aria-describedby="describedBy" :class="[fieldClass, 'bg-white font-mono']" />
             </FormField>
 
@@ -58,7 +59,7 @@
                 <FormField
                     id="product-expiry"
                     :label="t('stock.modal.expiry')"
-                    :help="form.category === 'MATERIEL' ? 'Optionnel pour le matériel non périssable.' : ''"
+                    :help="form.category === 'MATERIEL' ? t('stock.modal.expiry_optional') : ''"
                     v-slot="{ describedBy }"
                 >
                     <input id="product-expiry" v-model="form.expiryDate" type="date" :aria-describedby="describedBy" :class="[fieldClass, 'bg-white']" />
@@ -75,7 +76,7 @@
           <AppButton variant="ghost" @click="$emit('close')">{{ t('common.cancel') }}</AppButton>
         </template>
         <AppButton type="submit" form="product-form">
-          <span v-if="isEditing">Mettre à jour</span>
+          <span v-if="isEditing">{{ t('stock.modal.update') }}</span>
           <span v-else>{{ t('common.save') }}</span>
         </AppButton>
       </ActionBar>

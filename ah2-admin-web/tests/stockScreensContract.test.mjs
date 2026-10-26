@@ -64,7 +64,7 @@ check('ProductModal', product, [
     'v-if="canEditQuantity"', 'v-if="form.category === \'PHARMA\'"', 'Object.assign(form, newVal)', "if (!form.forme) form.forme = 'Autre';",
     "value: 'Comprimé'", "value: 'Sirop'", "value: 'Injection'", "value: 'Pommade'", "value: 'Gélule'", "value: 'Sachet'", "value: 'Autre'",
     "t('stockAdjust.qty_readonly_edit')", "t('stockAdjust.qty_readonly_create')",
-    'Optionnel pour le matériel non périssable.', 'Seuil Alerte', 'Dosage (mg/ml)', 'Mettre à jour', 'required min="0"',
+    "t('stock.modal.expiry_optional')", "t('stock.modal.threshold')", "t('stock.modal.dosage')", "t('stock.modal.update')", 'required min="0"',
     "t('stock.modal.edit_title')", "t('stock.modal.add_title')", "t('stock.modal.name')", "t('stock.modal.category')", "t('stock.modal.price')",
     "t('stock.modal.qty')", "t('stock.modal.expiry')", "t('common.cancel')", "t('common.save')",
 ]);
@@ -128,5 +128,5 @@ test('couleurs par jetons, texte >= 13 px, aucun caractère typographique interd
 
 test('le statut de péremption et la quantité basse s’écrivent en toutes lettres (jamais la couleur seule)', () => {
     assert.match(list, /StatusBadge/);
-    assert.match(list, /BAS/);
+    assert.match(list, /screens\.stockList\.low/);
 });

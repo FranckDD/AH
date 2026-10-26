@@ -33,6 +33,8 @@
             {{ t('stockCount.request_created', { id: row.adjustment_request_id }) }}
           </router-link>
           <span v-else>{{ t('stockCount.request_created', { id: row.adjustment_request_id }) }}</span>
+          <StatusBadge v-if="row.adjustment_status" class="mt-1 block w-fit" :tone="requestTone(row.adjustment_status)"
+                       :label="t(`stockCount.request_status.${row.adjustment_status}`)" />
         </template>
         <span v-else class="text-ink-muted">{{ t('stockCount.request_none') }}</span>
         <span v-for="sid in row.superseded_request_ids || []" :key="sid" class="block text-base text-ink-muted">
@@ -56,6 +58,7 @@ defineProps({ count: { type: Object, required: true } });
 const { t, locale } = useI18n();
 // cumul des mouvements apres le comptage, signe explicite (+5, -3, 0)
 const signed = (n) => (Number(n) > 0 ? `+${n}` : String(n ?? 0));
+const requestTone = (s) => ({ approuve: 'success', refuse: 'danger', en_attente: 'warning' }[s] || 'neutral');
 const authStore = useAuthStore();
 const isAdmin = computed(() => authStore.hasRole(['admin']));
 

@@ -94,7 +94,7 @@ test('FabIntrants : composants ui/, deux tableaux responsive a lignes alternees,
     const t = templateOf(view);
     assert.equal((t.match(/<ResponsiveTable/g) || []).length, 2);
     assert.equal((t.match(/\bstriped\b/g) || []).length, 2);
-    assert.equal((t.match(/<FullScreenPanel/g) || []).length, 4);
+    assert.equal((t.match(/<FullScreenPanel/g) || []).length, 5); // achat, modification d achat, annulation, intrant, activation
     assert.ok((t.match(/<FormField/g) || []).length >= 8);
     assert.match(view, /align: 'right'/);
 });

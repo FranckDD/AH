@@ -183,6 +183,14 @@ class StockRepository:
         rows = self.session.query(User.user_id, User.full_name).filter(User.user_id.in_(wanted)).all()
         return {uid: name for uid, name in rows}
 
+    def names_by_username(self, usernames) -> dict:
+        """{username: full_name} en UNE requete (mouvements : l'auteur est enregistre par identifiant)."""
+        wanted = {u for u in usernames if u}
+        if not wanted:
+            return {}
+        rows = self.session.query(User.username, User.full_name).filter(User.username.in_(wanted)).all()
+        return {u: n for u, n in rows}
+
     # ---------- historique des mouvements ----------
     def list_movements(self, product_id: Optional[int], movement_type: Optional[str],
                        date_from: Optional[date], date_to: Optional[date], offset: int, limit: int):

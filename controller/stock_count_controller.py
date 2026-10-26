@@ -158,6 +158,33 @@ class StockCountController:
                 return req.stock_at_request
         return l.previous_qty
 
+    def _request_outcome(self, l: StockCountLine):
+        """(statut, note) de la demande d'ajustement d'une ligne ; 'remplace' = annulee par un comptage plus recent."""
+        if l.adjustment_request_id is None:
+            return None, None
+        req = self.session.get(StockAdjustmentRequest, l.adjustment_request_id)
+        if req is None:
+            return None, None
+        if req.status == "annule" and (req.decision_note or "").startswith("remplacee par le comptage"):
+            return "remplace", req.decision_note
+        return req.status, req.decision_note
+
+    def my_requests(self, limit: int = 100) -> Dict[str, Any]:
+        """Demandes d'ajustement saisies par l'utilisateur (le controleur voit les siennes ; admin/promoteur toutes)."""
+        self._require_reader()
+        q = self.session.query(StockAdjustmentRequest)
+        if not self._sees_all():
+            q = q.filter(StockAdjustmentRequest.requested_by == self.user.user_id)
+        rows = q.order_by(StockAdjustmentRequest.id.desc()).limit(limit).all()
+        items = []
+        for r in rows:
+            status = "remplace" if (r.status == "annule" and (r.decision_note or "").startswith("remplacee par le comptage")) else r.status
+            items.append({"id": r.id, "number": f"AJU-{r.id}", "product_id": r.product_id,
+                          "product_name": r.product.drug_name if r.product else None, "status": status,
+                          "requested_at": _iso(r.requested_at), "decided_at": _iso(r.decided_at),
+                          "decision_note": r.decision_note})
+        return {"items": items}
+
     def _detail(self, c: StockCount) -> Dict[str, Any]:
         out = self._header(c)
         if c.status != "valide":
@@ -176,6 +203,8 @@ class StockCountController:
             "counted_at": _iso(l.counted_at), "movements_net": l.movements_net,
             "stock_at_count": self._stock_at_count(l),
             "adjustment_request_id": l.adjustment_request_id,
+            "adjustment_status": self._request_outcome(l)[0],
+            "adjustment_decision_note": self._request_outcome(l)[1],
             "recount": l.product_id in prev, "previous_count_id": prev.get(l.product_id),
             "superseded_request_ids": superseded.get(l.product_id, []),
         } for l, name in rows]

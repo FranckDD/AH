@@ -6,7 +6,7 @@
      ne peut pas l'approuver, son comptage serait inapprouvable. -->
 <template>
   <div class="grid w-full gap-6">
-    <PageHeader :title="t('stockCount.title')" :subtitle="t('stockCount.subtitle')" />
+    <PageHeader :title="t('stockCount.title')" :subtitle="canCount ? t('stockCount.subtitle') : t('stockCount.subtitle_review')" />
 
     <div role="tablist" :aria-label="t('stockCount.tabs_label')" class="flex flex-col gap-1 border-b border-tone-neutral-border sm:flex-row sm:gap-2">
       <button v-for="tb in tabs" :key="tb" type="button" role="tab" :aria-selected="tab === tb" @click="tab = tb"
@@ -26,12 +26,6 @@
       <AppCard v-if="!store.open && !store.result" :title="t('stockCount.start_title')">
         <p class="mb-4 text-base text-ink-muted">{{ t('stockCount.start_help') }}</p>
         <div class="flex flex-col gap-3 sm:flex-row sm:items-end">
-          <FormField id="count-scope" :label="t('stockCount.scope_label')" v-slot="{ describedBy }">
-            <select id="count-scope" v-model="scope" :aria-describedby="describedBy" :class="fieldClass">
-              <option value="tous">{{ t('stockCount.scope_tous') }}</option>
-              <option value="selection">{{ t('stockCount.scope_selection') }}</option>
-            </select>
-          </FormField>
           <AppButton variant="primary" :disabled="starting" :loading="starting" @click="handleStart">{{ t('stockCount.start') }}</AppButton>
         </div>
       </AppCard>
@@ -115,7 +109,6 @@ const tabs = computed(() => (canCount.value ? ['count', 'frequency', 'history'] 
 const tab = ref(canCount.value ? 'count' : 'frequency');
 const myId = computed(() => authStore.user?.id ?? null);
 
-const scope = ref('tous');
 const search = ref('');
 const pageError = ref('');
 const info = ref('');
@@ -165,7 +158,7 @@ async function handleStart() {
   pageError.value = '';
   info.value = '';
   try {
-    await store.start(scope.value);
+    await store.start('tous');
   } catch (err) {
     if (err?.response?.status === 409 && await resumeOpen()) {
       info.value = t('stockCount.resumed', { detail: describeServerError(err, '') });

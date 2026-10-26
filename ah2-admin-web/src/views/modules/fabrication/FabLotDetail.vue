@@ -104,7 +104,7 @@
       <AppCard v-if="batch.total_cost != null" :title="t('fabrication.cost_title')">
         <div class="grid gap-4 sm:grid-cols-2">
           <StatTile :title="t('fabrication.total_cost')" :value="formatCurrency(batch.total_cost)" tone="success" />
-          <StatTile v-if="batch.unit_cost != null" :title="t('fabrication.cost_per_bottle')" :value="formatCurrency(batch.unit_cost)" tone="success" />
+          <StatTile v-if="batch.unit_cost != null" :title="t('fabrication.cost_per_bottle')" :value="formatUnitCost(batch.unit_cost)" tone="success" />
         </div>
       </AppCard>
 
@@ -222,7 +222,7 @@
     <!-- Annuler une sortie declaree : motif obligatoire -->
     <FullScreenPanel v-if="outputCancelTarget" :title="t('fabrication.outputs.cancel_title')" @close="outputCancelTarget = null">
       <form id="fab-output-cancel-form" @submit.prevent="confirmCancelOutput" class="grid gap-4">
-        <p class="text-base text-ink">{{ t('fabrication.outputs.cancel_help', { reason: t(`fabrication.outputs.reason.${outputCancelTarget.reason}`), quantity: outputCancelTarget.quantity }) }}</p>
+        <p class="text-base text-ink">{{ t('fabrication.outputs.cancel_help', { reason: t(`fabrication.outputs.reason.${outputCancelTarget.reason}`), quantity: outputCancelTarget.quantity }, Number(outputCancelTarget.quantity) || 0) }}</p>
         <p v-if="outputCancelError" role="alert" class="rounded-control border p-3 text-base" :class="toneClasses('danger')">{{ outputCancelError }}</p>
         <FormField id="fab-output-cancel-reason" :label="t('fabrication.outputs.cancel_reason')" required v-slot="{ describedBy }">
           <textarea id="fab-output-cancel-reason" v-model="outputCancelReason" rows="3" required maxlength="500" :aria-describedby="describedBy" :class="[fieldClass, 'py-2']"></textarea>
@@ -242,7 +242,7 @@
     <FullScreenPanel v-if="shipOpen && batch" :title="t('fabrication.ship_title')" @close="shipOpen = false">
       <form id="fab-ship-form" @submit.prevent="confirmShip" class="grid gap-4">
         <p v-if="modalError" role="alert" class="rounded-control border p-3 text-base" :class="toneClasses('danger')">{{ modalError }}</p>
-        <p class="text-base text-ink">{{ t('fabrication.ship_help', { good: batch.qty_shipped }) }}</p>
+        <p class="text-base text-ink">{{ t('fabrication.ship_help', { good: batch.qty_shipped }, Number(batch.qty_shipped) || 0) }}</p>
         <div class="grid gap-4 sm:grid-cols-2">
           <FormField id="fab-ship-delivery" :label="t('fabrication.delivery_date')" required v-slot="{ describedBy }">
             <input id="fab-ship-delivery" v-model="shipForm.delivery_date" type="date" required :aria-describedby="describedBy" :class="fieldClass" />
@@ -251,7 +251,7 @@
             <input id="fab-ship-expiry" v-model="shipForm.expiry_date" type="date" :aria-describedby="describedBy" :class="fieldClass" />
           </FormField>
         </div>
-        <p v-if="batch.out_of_tolerance" class="rounded-control border p-3 text-base" :class="toneClasses('danger')">{{ t('fabrication.ship_out_of_tolerance', { missing: batch.missing_qty, pct: pct(batch.missing_pct) }) }}</p>
+        <p v-if="batch.out_of_tolerance" class="rounded-control border p-3 text-base" :class="toneClasses('danger')">{{ t('fabrication.ship_out_of_tolerance', { missing: batch.missing_qty, pct: pct(batch.missing_pct) }, Number(batch.missing_qty) || 0) }}</p>
         <FormField v-if="needsJustification" id="fab-ship-justification" :label="t('fabrication.justification')" required v-slot="{ describedBy }">
           <textarea id="fab-ship-justification" v-model="shipForm.justification" rows="4" required maxlength="5000" :aria-describedby="describedBy" :class="[fieldClass, 'py-2']"></textarea>
         </FormField>
@@ -270,6 +270,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
+import { classifyQuantity, formatUnitCost, purchaseOptionLabel } from '@/utils/fabFormat';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { PlusIcon, TrashIcon, CheckIcon, PlayIcon, FlagIcon, ArrowUturnLeftIcon, TruckIcon, ArrowLeftIcon, XMarkIcon, MinusCircleIcon } from '@heroicons/vue/24/outline';
@@ -333,7 +334,7 @@ const qty = (v) => num(v).toLocaleString('fr-FR', { maximumFractionDigits: 3 });
 const pct = (v) => (v == null ? '-' : String(v));
 const formatCurrency = (v) => new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XAF' }).format(num(v)).replace('XOF', 'FCFA');
 const formatDate = (v) => (v ? new Date(v).toLocaleDateString('fr-FR') : '-');
-const purchaseLabel = (p) => `${p.intrant_name || '-'} | ${p.supplier || '-'} | ${formatDate(p.purchase_date)} | ${t('fabrication.col_remaining')} ${qty(p.remaining_qty)}`;
+const purchaseLabel = (p) => purchaseOptionLabel(p, t, qty, formatDate);
 
 let msgTimer = null;
 const flash = (msg) => {
@@ -387,9 +388,9 @@ const run = async (fn, successKey, logLabel, { silent = false } = {}) => {
 const draftIsValid = () => {
   for (const d of draft.value) {
     if (!d.purchase_id) { pageError.value = t('fabrication.err_purchase_required'); return false; }
-    if (!/^\d+([.,]\d{1,3})?$/.test(String(d.quantity).trim()) || /^0+([.,]0+)?$/.test(String(d.quantity).trim())) {
-      pageError.value = t('fabrication.err_quantity'); return false;
-    }
+    const kind = classifyQuantity(d.quantity);
+    if (kind === 'invalid') { pageError.value = t('fabrication.err_quantity_invalid'); return false; }
+    if (kind === 'zero') { pageError.value = t('fabrication.err_quantity'); return false; }
   }
   return true;
 };

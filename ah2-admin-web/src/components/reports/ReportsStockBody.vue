@@ -105,7 +105,7 @@ const countStatus = (s) => (te(`stockCount.status_${s}`) ? t(`stockCount.status_
             <p v-if="c.cost_per_good_bottle?.length" class="mt-2 font-semibold">{{ t('reports.labels.cost_per_good_bottle') }}</p>
             <p v-if="c.cost_per_good_bottle?.length" class="text-sm text-ink-muted">{{ t(`reports.scopes.${c.cost_per_good_bottle_scope || 'all_time'}`) }}</p>
             <ul v-if="c.cost_per_good_bottle?.length" class="mt-1 grid gap-1 text-sm">
-                <li v-for="p in c.cost_per_good_bottle" :key="p.product_id">{{ t('reports.labels.cost_line', { name: p.product_name, last: formatMoney(p.last_unit_cost), avg: formatMoney(p.average_unit_cost), n: p.batches }) }}</li>
+                <li v-for="p in c.cost_per_good_bottle" :key="p.product_id">{{ t('reports.labels.cost_line', { name: p.product_name, last: formatMoney(p.last_unit_cost), avg: formatMoney(p.average_unit_cost) }, Number(p.batches) || 0) }}</li>
             </ul>
         </div>
     </div>

@@ -14,6 +14,7 @@ from typing import Any, Dict, List, Optional
 
 from models.fabrication import FabBatch, FabBatchOutput, FabConsumption, FabIntrant, FabIntrantPurchase, FabSettings
 from repositories.audit_repo import AuditRepository
+from repositories.notification_repo import NotificationRepository
 from utils.fabrication_rules import (
     OUTPUT_REASONS, TRANSITIONS, OutputExceedsAvailable, compute_bilan, compute_cost, next_batch_number,
     validate_output,
@@ -119,13 +120,49 @@ def _output_d(o: FabBatchOutput, names: Optional[Dict[int, str]] = None) -> Dict
 
 
 class FabricationController:
-    def __init__(self, repo: FabricationRepository, audit_repo: AuditRepository, current_user):
+    LOW_STOCK_TYPE = "fab_intrant_low"
+    LOW_STOCK_ROLES = ("ProductionManager", "admin", "promoteur")
+
+    def __init__(self, repo: FabricationRepository, audit_repo: AuditRepository, current_user,
+                 notification_repo: Optional[NotificationRepository] = None):
         if repo is None or audit_repo is None:
             raise TypeError("FabricationController exige repo et audit_repo.")
         self.repo = repo
         self.audit_repo = audit_repo
         self.user = current_user
         self.session = repo.session
+        # jamais None : un appelant qui oublie de l'injecter ne doit pas faire taire les alertes de seuil
+        self.notification_repo = notification_repo or NotificationRepository(repo.session)
+
+    # ---- alerte « intrant sous le seuil » : une notification par franchissement ----
+    def _stock_state(self, intrant_ids) -> Dict[int, tuple]:
+        """{intrant_id: (stock, seuil)} a l'instant T (avant ou apres une operation)."""
+        ids = list(dict.fromkeys(intrant_ids))
+        stocks = self.repo.intrant_stocks(ids)
+        out = {}
+        for i in ids:
+            intr = self.repo.get_intrant(i)
+            out[i] = (stocks.get(i, Decimal(0)), Decimal(intr.alert_threshold or 0) if intr else Decimal(0))
+        return out
+
+    def _notify_crossings(self, before: Dict[int, tuple]) -> None:
+        """Notifie quand un intrant ACTIF passe de « au seuil ou au dessus » a « sous le seuil » ;
+        pas de repetition tant que le stock reste sous le seuil."""
+        after = self._stock_state(before.keys())
+        recipients = None
+        for iid, (stock_b, thr_b) in before.items():
+            stock_a, thr_a = after[iid]
+            if stock_b < thr_b or not stock_a < thr_a:
+                continue
+            intr = self.repo.get_intrant(iid)
+            if intr is None or not intr.is_active:
+                continue
+            if recipients is None:
+                recipients = self.repo.active_user_ids_with_roles(self.LOW_STOCK_ROLES)
+            payload = _jsonable({"intrant_id": iid, "intrant_name": intr.name, "unit": intr.unit,
+                                 "stock": stock_a, "alert_threshold": thr_a})
+            for uid in recipients:
+                self.notification_repo.create(uid, self.LOW_STOCK_TYPE, payload)
 
     def _audit(self, resource_type, action, resource_id, old=None, new=None):
         self.audit_repo.log_user_action(current_user=self.user, resource_type=resource_type,
@@ -194,10 +231,13 @@ class FabricationController:
             if i is None:
                 raise FabricationNotFoundError("Intrant introuvable.")
             old = _intrant_d(i)
+            before = self._stock_state([i.id])
             i.alert_threshold = v
             self.session.flush()
             out = _intrant_d(i)
             self._audit("FabIntrant", "UPDATE_THRESHOLD", i.id, old=old, new=out)
+            # etat « avant » = ancien seuil ; apres = nouveau seuil, meme stock
+            self._notify_crossings({i.id: (before[i.id][0], Decimal(old["alert_threshold"] or 0))})
             return out
         return self._tx(run)
 
@@ -267,6 +307,7 @@ class FabricationController:
                 raise ValueError("Aucune modification fournie.")
             name = self.repo.intrant_names([p.intrant_id]).get(p.intrant_id)
             old = _purchase_d(p, name)
+            before = self._stock_state([p.intrant_id])
             for k, v in clean.items():
                 setattr(p, k, v)
             if "quantity" in clean:
@@ -274,6 +315,7 @@ class FabricationController:
             self.session.flush()
             out = _purchase_d(p, name)
             self._audit("FabIntrantPurchase", "UPDATE", p.id, old=old, new=out)
+            self._notify_crossings(before)
             return out
         return self._tx(run)
 
@@ -283,11 +325,14 @@ class FabricationController:
             p = self._locked_editable_purchase(purchase_id)
             name = self.repo.intrant_names([p.intrant_id]).get(p.intrant_id)
             old = _purchase_d(p, name)
+            before = self._stock_state([p.intrant_id])
             p.status = "annule"
             p.cancel_reason = r
+            p.remaining_qty = Decimal(0)  # un achat annule n'a plus rien de disponible (la quantite d'origine reste lisible)
             self.session.flush()
             out = _purchase_d(p, name)
             self._audit("FabIntrantPurchase", "CANCEL", p.id, old=old, new=out)
+            self._notify_crossings(before)
             return out
         return self._tx(run)
 
@@ -454,6 +499,7 @@ class FabricationController:
             qty = Decimal(containers[0].quantity)
             if qty != qty.to_integral_value():
                 raise ValueError("La quantite de contenant doit etre un nombre entier.")
+            before = self._stock_state(locked[c.purchase_id].intrant_id for c in cons)
             for c in cons:
                 p = locked[c.purchase_id]
                 if Decimal(c.quantity) > Decimal(p.remaining_qty):
@@ -466,6 +512,7 @@ class FabricationController:
             self.session.flush()
             out = self._batch_d(b, with_detail=True)
             self._audit("FabBatch", "START", b.id, old=old, new=out)
+            self._notify_crossings(before)
             return out
         return self._tx(run)
 
@@ -516,6 +563,12 @@ class FabricationController:
             old = self._batch_d(b)
             self._move(b, "en_production")
             b.finished_at = None
+            # le bilan de la fin de production est a refaire : ni comptes, ni ecart, ni drapeau hors tolerance
+            b.qty_good = b.qty_damaged = b.qty_rejected = 0
+            b.liquid_lost = Decimal(0)
+            b.found_qty = b.missing_qty = b.missing_pct = None
+            b.out_of_tolerance = False
+            b.total_cost = b.unit_cost = None
             self.session.flush()
             out = self._batch_d(b, with_detail=True)
             self._audit("FabBatch", "REOPEN", b.id, old=old, new=out)

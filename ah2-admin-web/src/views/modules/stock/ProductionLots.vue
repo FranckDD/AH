@@ -2,7 +2,7 @@
 <template>
   <div class="grid w-full gap-6">
 
-    <PageHeader :title="$t('stockOps.lots.title')" :subtitle="$t('stockAdminScreens.lots_count', { n: lots.length })">
+    <PageHeader :title="$t('stockOps.lots.title')" :subtitle="lotsSubtitle">
       <template #actions>
         <AppButton :icon="PlusCircleIcon" @click="openForm">{{ $t('stockOps.lots.new') }}</AppButton>
       </template>
@@ -41,7 +41,7 @@
       <template #cell-status="{ row: lot }"><StatusBadge :tone="badge(lot.status)" :label="$t(`stockOps.lot_status.${lot.status}`)" /></template>
       <template #actions="{ row: lot }">
         <AppButton v-if="lot.status === 'produit'" variant="info" @click="openDeliver(lot)">{{ $t('stockOps.lots.mark_delivered') }}</AppButton>
-        <AppButton v-if="lot.status === 'produit' || lot.status === 'livre'" variant="danger" @click="cancelLot(lot)" :disabled="busyId === lot.id" :loading="busyId === lot.id">{{ $t('stockOps.cancel') }}</AppButton>
+        <AppButton v-if="canCancelLot(lot)" variant="danger" @click="cancelLot(lot)" :disabled="busyId === lot.id" :loading="busyId === lot.id">{{ $t('stockOps.cancel') }}</AppButton>
       </template>
     </ResponsiveTable>
 
@@ -114,9 +114,16 @@ import { StockOpsGateway, describeStockError } from '@/services/StockOpsGateway'
 import { PlusCircleIcon } from '@heroicons/vue/24/outline';
 import { AppButton, PageHeader, FormField, StatusBadge, ResponsiveTable, FullScreenPanel, ActionBar } from '@/components/ui';
 import { toneClasses } from '@/design/tones';
+import { useAuthStore } from '@/stores/auth';
 
 const { t } = useI18n();
+const authStore = useAuthStore();
 const LOT_STATUSES = ['produit', 'livre', 'recu', 'annule'];
+
+// Seul le createur du lot ou un administrateur peut l'annuler (regle du serveur) : le bouton n'est montre qu'a eux,
+// et seulement tant que le lot n'est ni recu ni deja annule. Un lot issu de la Fabrication appartient a son responsable.
+const canCancelLot = (lot) => (lot.status === 'produit' || lot.status === 'livre')
+  && (authStore.hasRole(['admin']) || (authStore.user?.id != null && lot.created_by === authStore.user.id));
 const today = todayLocalISO;
 
 // Colonnes du tableau (cartes empilees sous lg) et style commun des champs.
@@ -133,6 +140,13 @@ const columns = computed(() => [
 const fieldClass = 'block w-full min-h-11 lg:min-h-10 rounded-control border border-tone-neutral-border bg-white px-3 text-base text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand-600';
 
 const lots = ref([]);
+// Le compte ne tient pas compte des lots annules (ils sont comptes a part)
+const activeLotsCount = computed(() => lots.value.filter((l) => l.status !== 'annule').length);
+const cancelledLotsCount = computed(() => lots.value.filter((l) => l.status === 'annule').length);
+const lotsSubtitle = computed(() => {
+  const base = t('stockAdminScreens.lots_count', activeLotsCount.value);
+  return cancelledLotsCount.value ? `${base} (${t('stockAdminScreens.lots_cancelled', cancelledLotsCount.value)})` : base;
+});
 const products = ref([]);
 const statusFilter = ref('');
 const isLoading = ref(false);

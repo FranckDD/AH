@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session
 
 from ...database import SessionLocal
 from api_backend.backend_app.routes.auth.auth_endpoints import get_current_user, role_required
-from controller.stock_controller import StockController
+from controller.stock_controller import StockController, StockLineError
 from repositories.audit_repo import AuditRepository
 from repositories.notification_repo import NotificationRepository
 from repositories.stock_repo import StockConflictError, StockNotFoundError, StockRepository
@@ -52,6 +52,8 @@ def get_stock_controller(
 def _errors():
     try:
         yield
+    except StockLineError as e:  # sous-classe de ValueError : avant ValueError
+        raise HTTPException(status_code=422, detail=e.to_detail())
     except StockNotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except StockConflictError as e:

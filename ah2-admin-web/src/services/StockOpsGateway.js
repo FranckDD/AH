@@ -86,5 +86,6 @@ export function describeStockError(err, fallback) {
     if (Array.isArray(detail) && detail.length) {
         return detail.map((d) => (d.loc ? `${d.loc.slice(1).join('.')} : ` : '') + (d.msg || String(d))).join(' ; ');
     }
+    if (detail && typeof detail === 'object' && detail.message) return detail.message; // refus structure (code + message)
     return fallback;
 }

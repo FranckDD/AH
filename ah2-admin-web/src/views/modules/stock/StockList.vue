@@ -14,13 +14,13 @@
 
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <StatTile
-            :title="isFiltered ? 'VALEUR (SÉLECTION)' : t('stock.kpi.total_value')"
-            :value="formatCurrency(stockStore.currentFilteredValue)"
+            :title="isFiltered ? t('screens.stockList.value_selection') : t('stock.kpi.total_value')"
+            :value="stockStore.statsFailed || stockStore.loadFailed ? '-' : formatCurrency(stockStore.currentFilteredValue)"
         />
-        <StatTile :title="t('stock.kpi.pharma_items')" :value="stockStore.stats.countPharma" />
-        <StatTile :title="t('stock.kpi.natural_items')" :value="stockStore.stats.countNatural" />
-        <StatTile :title="t('stock.kpi.low_stock')" :value="stockStore.stats.lowStockAlerts" :tone="stockStore.stats.lowStockAlerts > 0 ? 'danger' : 'neutral'" :icon="ExclamationTriangleIcon" />
-        <StatTile title="PÉRIMÉS" :value="stockStore.stats.expiredCount" :tone="stockStore.stats.expiredCount > 0 ? 'danger' : 'neutral'" :icon="ClockIcon" />
+        <StatTile :title="t('stock.kpi.pharma_items')" :value="stockStore.statsFailed || stockStore.loadFailed ? '-' : stockStore.stats.countPharma" />
+        <StatTile :title="t('stock.kpi.natural_items')" :value="stockStore.statsFailed || stockStore.loadFailed ? '-' : stockStore.stats.countNatural" />
+        <StatTile :title="t('stock.kpi.low_stock')" :value="stockStore.statsFailed || stockStore.loadFailed ? '-' : stockStore.stats.lowStockAlerts" :tone="stockStore.stats.lowStockAlerts > 0 ? 'danger' : 'neutral'" :icon="ExclamationTriangleIcon" />
+        <StatTile :title="t('screens.stockList.expired')" :value="stockStore.statsFailed || stockStore.loadFailed ? '-' : stockStore.stats.expiredCount" :tone="stockStore.stats.expiredCount > 0 ? 'danger' : 'neutral'" :icon="ClockIcon" />
     </div>
 
     <section class="flex flex-col gap-3 rounded-card border border-tone-neutral-border bg-white p-4 shadow-card md:flex-row md:items-end">
@@ -41,11 +41,11 @@
         <div class="md:w-64">
             <label for="stock-category" class="sr-only">{{ t('stock.table.category') }}</label>
             <select id="stock-category" v-model="categoryFilter" :class="fieldClass">
-                <option value="ALL">Toutes Catégories</option>
+                <option value="ALL">{{ t('screens.stockList.all_categories') }}</option>
                 <option value="PHARMA">{{ t('stock.categories.PHARMA') }}</option>
                 <option value="NATUREL">{{ t('stock.categories.NATUREL') }}</option>
                 <option value="MATERIEL">{{ t('stock.categories.MATERIEL') }}</option>
-                <option value="EXPIRED_ONLY">Afficher seulement les périmés</option>
+                <option value="EXPIRED_ONLY">{{ t('screens.stockList.expired_only') }}</option>
             </select>
         </div>
 
@@ -55,12 +55,14 @@
     </section>
 
     <section class="grid gap-3">
+        <LoadErrorState v-if="stockStore.loadFailed" @retry="stockStore.fetchStock()" />
         <ResponsiveTable
+            v-else
             :columns="columns"
             :rows="stockStore.products"
             row-key="id"
             :loading="stockStore.isLoading"
-            empty-title="Aucun produit ne correspond à vos critères."
+            :empty-title="t('screens.stockList.empty')"
             :empty-message="' '"
         >
             <template #cell-product="{ row: prod }">
@@ -84,7 +86,7 @@
                     <span class="font-bold" :class="prod.quantity <= prod.minThreshold ? 'text-tone-danger-text' : 'text-ink'">
                         {{ prod.quantity }}
                     </span>
-                    <StatusBadge v-if="prod.quantity <= prod.minThreshold" tone="danger" label="BAS" />
+                    <StatusBadge v-if="prod.quantity <= prod.minThreshold" tone="danger" :label="t('screens.stockList.low')" />
                 </div>
             </template>
 
@@ -108,7 +110,7 @@
 
         <div v-if="stockStore.pagination.total_pages > 1" class="flex items-center justify-between gap-3 rounded-card border border-tone-neutral-border bg-white p-3">
             <p class="text-base text-ink">
-                Page {{ stockStore.pagination.page }} sur {{ stockStore.pagination.total_pages }}
+                {{ t('screens.stockList.page_of', { page: stockStore.pagination.page, total: stockStore.pagination.total_pages }) }}
             </p>
             <div class="flex gap-2">
                 <AppButton
@@ -146,7 +148,7 @@
             <template #cell-product="{ row: r }">{{ r.product_name }}</template>
             <template #cell-kind="{ row: r }">{{ t(`stockAdjust.kind.${r.kind}`) }}</template>
             <template #cell-quantity="{ row: r }">{{ r.quantity }}</template>
-            <template #cell-reason="{ row: r }"><span class="lg:block lg:max-w-xs">{{ r.reason }}</span></template>
+            <template #cell-reason="{ row: r }"><span class="lg:block lg:max-w-xs">{{ adjustmentReasonText(r.reason, t) }}</span></template>
             <template #cell-status="{ row: r }">
                 <StatusBadge :tone="requestTone(r.status)" :label="t(`stockAdjust.status.${r.status}`)" />
                 <div v-if="r.decision_note" class="mt-1 text-sm text-ink-muted">{{ t('stockAdjust.decision_note') }} : {{ r.decision_note }}</div>
@@ -180,14 +182,16 @@
 </template>
 
 <script setup>
+import { formatDateTimeDMY } from '@/utils/localDate';
 import { ref, computed, onMounted, watch } from 'vue';
 import { useStockStore } from '@/stores/stockStore';
 import { useI18n } from 'vue-i18n';
+import { adjustmentReasonText } from '@/utils/stockNotificationLabels';
 import ProductModal from '@/components/stock/ProductModal.vue';
 import AdjustmentRequestModal from '@/components/stock/AdjustmentRequestModal.vue';
 import { useAuthStore } from '@/stores/auth';
 import { StockOpsGateway, describeStockError } from '@/services/StockOpsGateway';
-import { AppButton, AppCard, PageHeader, StatTile, StatusBadge, EmptyState, ResponsiveTable } from '@/components/ui';
+import { AppButton, AppCard, PageHeader, StatTile, StatusBadge, EmptyState, ResponsiveTable, LoadErrorState } from '@/components/ui';
 import { toneClasses } from '@/design/tones';
 import { 
     PlusIcon, MagnifyingGlassIcon, PencilSquareIcon, TrashIcon, XMarkIcon, ExclamationTriangleIcon,
@@ -270,7 +274,7 @@ const requestTone = (s) => ({
     annule: 'neutral',
 }[s] || 'neutral');
 
-const formatDateTime = (v) => (v ? new Date(v).toLocaleString() : '');
+const formatDateTime = (v) => (v ? formatDateTimeDMY(new Date(v)) : '');
 
 const showModal = ref(false);
 const selectedProduct = ref(null);

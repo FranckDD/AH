@@ -123,15 +123,30 @@ def _date(v, name, required=False) -> Optional[date]:
     raise ValueError(f"{name} invalide (format attendu AAAA-MM-JJ).")
 
 
-def _check_line_quantities(qtys: Dict[str, int], expected: Optional[int]):
+class StockLineError(ValueError):
+    """Refus portant sur une ligne de reception : code stable + parametres (l'ecran traduit et nomme la ligne)."""
+
+    def __init__(self, code: str, message: str, line_id: Optional[int] = None, params: Optional[Dict[str, Any]] = None):
+        super().__init__(message)
+        self.code = code
+        self.line_id = line_id
+        self.params = params or {}
+
+    def to_detail(self) -> Dict[str, Any]:
+        return {"code": self.code, "line_id": self.line_id, "params": self.params, "message": str(self)}
+
+
+def _check_line_quantities(qtys: Dict[str, int], expected: Optional[int], line_id: Optional[int] = None):
     for f, v in qtys.items():
         if v < 0:
-            raise ValueError(f"{f} ne peut pas être négatif.")
+            raise StockLineError("qty_negative", f"{f} ne peut pas être négatif.", line_id, {"field": f})
     total = sum(qtys.values())
     if total <= 0:
-        raise ValueError("Chaque ligne doit porter au moins une quantité.")
+        raise StockLineError("qty_zero", "Chaque ligne doit porter au moins une quantité.", line_id)
     if expected is not None and total > expected:
-        raise ValueError(f"La somme des quantités ({total}) dépasse la quantité attendue ({expected}).")
+        raise StockLineError("qty_over_expected",
+                             f"La somme des quantités ({total}) dépasse la quantité attendue ({expected}).",
+                             line_id, {"total": total, "expected": expected})
 
 
 class StockController:
@@ -313,16 +328,19 @@ class StockController:
             for change in lines:
                 line = by_id.get(change.get("id"))
                 if line is None:
-                    raise ValueError(f"Ligne {change.get('id')} absente de cette réception.")
+                    raise StockLineError("line_missing", f"Ligne {change.get('id')} absente de cette réception.",
+                                         change.get("id"))
                 qtys = {f: _int(change.get(f, getattr(line, f)), f) for f in QTY_FIELDS}
-                _check_line_quantities(qtys, line.qty_expected)
+                _check_line_quantities(qtys, line.qty_expected, line.id)
                 # R9 : le controleur ne peut que REDUIRE ou REDISTRIBUER une ligne ;
                 # son total ne depasse jamais le total ACTUEL (donc jamais celui de l'auteur).
                 current_total = sum(int(getattr(line, f) or 0) for f in QTY_FIELDS)
                 if sum(qtys.values()) > current_total:
-                    raise ValueError(
+                    raise StockLineError(
+                        "line_total_increase",
                         f"Ligne {line.id} : une correction ne peut que réduire ou redistribuer "
-                        f"les quantités (total actuel {current_total}, demandé {sum(qtys.values())}).")
+                        f"les quantités (total actuel {current_total}, demandé {sum(qtys.values())}).",
+                        line.id, {"current": current_total, "requested": sum(qtys.values())})
                 for f, v in qtys.items():
                     setattr(line, f, v)
             self.session.flush()
@@ -702,9 +720,12 @@ class StockController:
         rows, total = self.repo.list_movements(
             _int(product_id, "product_id", None, limit=None), movement_type or None,
             date_from, date_to, (page - 1) * per_page, per_page)
+        authors = self.repo.names_by_username(m.created_by for m, _ in rows)
+        # created_at est enregistre en UTC (naif) : on le sert avec « Z » pour que l'ecran l'affiche en heure locale
         items = [{"movement_id": m.movement_id, "product_id": m.medication_id, "product_name": name,
                   "movement_type": m.movement_type, "change_qty": m.change_qty, "note": m.note,
-                  "created_by": m.created_by, "created_at": m.created_at} for m, name in rows]
+                  "created_by": m.created_by, "created_by_name": authors.get(m.created_by) or m.created_by,
+                  "created_at": (m.created_at.isoformat() + "Z") if m.created_at else None} for m, name in rows]
         return {"items": items, "total": total, "page": page, "per_page": per_page}
 
     # ---------------- helpers ----------------
