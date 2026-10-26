@@ -18,7 +18,7 @@
     {% include '_pdf_header.html' %}
 
     <div class="section-title">Patient</div>
-    <p><strong>{{ patient.first_name }} {{ patient.last_name }}</strong> — {{ patient.code_patient }}</p>
+    <p><strong>{{ patient.first_name }} {{ patient.last_name }}</strong> - {{ patient.code_patient }}</p>
 
     {% if historique_medical is not none %}
     <div class="section-title">Historique médical</div>
@@ -44,13 +44,29 @@
     </table>
     {% endif %}
 
+    {% if hospitalisations is not none %}
+    <div class="section-title">Hospitalisations</div>
+    {% if hospitalisations %}
+    <table>
+        <thead><tr><th>Admission</th><th>Sortie</th><th>Durée</th><th>Motif d'admission</th><th>Type de sortie</th><th>Note de sortie</th></tr></thead>
+        <tbody>
+            {% for h in hospitalisations %}
+            <tr><td>{{ h.admitted_at }}</td><td>{{ h.discharged_at }}</td><td>{{ h.duration_label }}</td><td>{{ h.admission_reason }}</td><td>{{ h.disposition_label }}</td><td>{{ h.discharge_note }}</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p><em>Aucune hospitalisation enregistrée.</em></p>
+    {% endif %}
+    {% endif %}
+
     {% if historique_labo is not none %}
     <div class="section-title">Laboratoire</div>
     <table>
         <thead><tr><th>Date</th><th>Examen</th><th>Statut</th></tr></thead>
         <tbody>
             {% for r in historique_labo %}
-            <tr><td>{{ r.test_date }}</td><td>{{ r.examen_name }}</td><td>{{ r.status }}</td></tr>
+            <tr><td>{{ r.test_date }}</td><td>{{ r.examen_name }}</td><td>{{ {'pending': 'En attente', 'partial': 'Partiel', 'analyzed': 'Analysé', 'completed': 'Terminé'}.get(r.status, r.status) }}</td></tr>
             {% endfor %}
         </tbody>
     </table>
@@ -58,7 +74,7 @@
 
     {% if dossier_toxico is not none %}
     <div class="section-title">Toxicologie</div>
-    <p>Substance : {{ dossier_toxico.substance }} — Phase : {{ dossier_toxico.current_phase }}</p>
+    <p>Substance : {{ dossier_toxico.substance }} - Phase : {{ dossier_toxico.current_phase }}</p>
     {% endif %}
 
     {% if historique_spirituel is not none %}

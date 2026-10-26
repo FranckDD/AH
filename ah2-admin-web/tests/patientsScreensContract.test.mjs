@@ -28,18 +28,18 @@ function check(name, src, needles) {
 check('PatientList', list, [
     'patientStore.fetchPatients()', 'patientStore.fetchCounts()', 'patientStore.addPatient(payload)',
     'patientStore.updatePatient(patientBeingEdited.value.patient_id, payload)', 'patientStore.deletePatient(patient.id)',
-    'patientStore.getPatientById(patient.id)', 'patientStore.setPage(page)', 'patientStore.setFilters({ search: val })',
+    'patientStore.getPatientById(patient.id)', 'patientStore.setPage(page)', 'patientStore.setFilters({ search: searchInput.value })',
     'patientStore.setFilters({ type: val })', 'patientStore.pagination.hasNext', 'patientStore.pagination.total_pages',
-    '@keyup.enter="patientStore.fetchPatients()"', 'v-model.lazy="searchQuery"',
+    '@keyup.enter="searchNow"', 'v-model="searchInput"', '@input="onSearchInput"', 'setTimeout(() => {', '}, 300);',
     "authStore.hasRole(['medecin', 'nurse', 'secretaire', 'admin', 'manager'])", 'canManagePatients',
     "authStore.hasRole(['medecin', 'nurse'])", "tousLesOnglets.filter((t) => t.value !== 'TOXICO' && t.value !== 'SPIRITUEL')",
     "value: 'ALL'", "value: 'CLINIQUE'", "value: 'TOXICO'", "value: 'SPIRITUEL'",
     'disableDetailLink', 'router.push(`${route.path}/${patientId}`)', 'router.push(`${route.path}/${created.localUuid}`)',
-    'showsCodeDialog(authStore.userRole, created)', 'patient.pending', "'En attente de synchronisation'",
+    'showsCodeDialog(authStore.userRole, created)', 'patient.pending', "t('screens.patientList.pending_sync')",
     'Voulez-vous vraiment supprimer ${patient.firstName} ${patient.lastName} ?', "t('staffDiscount.badge')", 'patient.is_staff',
     "api.get('/patients/export'", 'ExportModal', 'NewPatientCodeModal', 'MedicalRecordModal', ':defaultNeedsDoctorReview="true"',
     '@close="closeModal"', '@save="handleSave"', 'viewPatientDossier(patient.id)',
-    '"Impossible de charger les détails du patient pour modification."', 'mapErrorToMessage',
+    "t('screens.patientList.load_for_edit_failed')", 'mapErrorToMessage',
 ]);
 
 // --- Fiche patient : cloisonnement par rôle, onglets, flux de consultation et de prescription ---
@@ -51,7 +51,7 @@ check('PatientDetailView', detail, [
     'prescriptionStore.createPrescription(data)', 'appointmentStore.completeAppointment(data.appointmentId)',
     "authStore.hasRole(['medecin', 'nurse'])", 'isRecordEditable(target, dossierStore.medicalHistory, { samePatient: true })',
     "['MEDICAL', 'PHARMA'].includes(route.query.tab)", 'route.query.appointmentId', 'route.query.record',
-    'router.replace({ query: {} })', '`/patients/${route.params.id}/dossier/export`', "params: { format }",
+    'clearDeepLinkQuery()', '`/patients/${route.params.id}/dossier/export`', "params: { format }",
     "currentTab = 'MEDICAL'", "currentTab = 'LABO'", "currentTab = 'PHARMA'", "currentTab = 'HOSPITALISATION'",
     "currentTab = 'TOXICO'", "currentTab = 'SPIRITUEL'",
     'v-if="dossierStore.isToxicology"', 'v-if="dossierStore.isSpiritual"',
@@ -88,7 +88,7 @@ check('LabResultTable', labTable, [
 
 check('SpiritualTimeline', spiritual, [
     'rec.type || rec.type_consultation', 'rec.psaume', 'rec.notes', 'rec.fr_amount_paid', 'rec.fr_appointment_at',
-    'rec.presc_generic', 'rec.presc_med_spirituel', "toLocaleDateString('fr-FR'", 'Aucun historique spirituel.',
+    'rec.presc_generic', 'rec.presc_med_spirituel', 'formatDateDMY', "t('screens.spiritual.none')",
 ]);
 
 // --- Clés i18n ---

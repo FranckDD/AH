@@ -125,3 +125,10 @@ test('contrat : aucune couleur de marque ou d’état en dur, composants ui/ uti
 test('la file « à prendre en charge » vient avant les statistiques', () => {
     assert.ok(view.indexOf('doctorKpi.pending_review_title') < view.indexOf('doctorKpi.stats_title'));
 });
+
+test('file en attente non chargee : etat d erreur, jamais "aucun patient"', () => {
+    assert.equal(dashboardBlocks({ role: 'medecin', pendingCount: 0, pendingFailed: true }).queueState, 'error');
+    // des donnees deja affichees restent visibles meme si le rafraichissement echoue
+    assert.equal(dashboardBlocks({ role: 'medecin', pendingCount: 2, pendingFailed: true }).queueState, 'list');
+    assert.equal(dashboardBlocks({ role: 'medecin', pendingCount: 0, pendingFailed: false }).queueState, 'empty');
+});

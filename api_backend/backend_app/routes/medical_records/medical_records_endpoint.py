@@ -251,7 +251,7 @@ def find_patient(q: str = Query(..., description="id numérique ou code_patient"
         p = medical_ctrl.find_patient(q)
         if not p:
             raise HTTPException(status_code=404, detail="Patient non trouvé")
-        # retourne l'objet patient (normalisation si nécessaire) — ici on réutilise la logique du patient controller si besoin
+        # retourne l'objet patient (normalisation si nécessaire), ici on réutilise la logique du patient controller si besoin
         return p
     except SQLAlchemyError:
         logger.exception("Erreur DB find_patient")

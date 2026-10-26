@@ -26,7 +26,7 @@ function check(name, src, needles) {
 // Liste figée de ce que faisaient les écrans avant la refonte : rien ne doit disparaître.
 check('HospitalizationsList', hospList, [
     'hospitalizationStore.fetchCurrent()', 'hospitalizationStore.current',
-    'router.push(`/medical/patients/${patientId}`)', 'latestStatusOf(stay)', 'daysSince(stay.admitted_at)',
+    'router.push(`/medical/patients/${patientId}`)', 'latestStatusOf(stay)', 'stayDuration(stay.admitted_at)',
     "stay.status_updates?.length ? stay.status_updates[0].status : null", 'stay.admitted_by_name', 'goToDossier(stay.patient_id)',
     "dayjs(d).format('DD/MM/YYYY HH:mm')", "'AGGRAVATION'", "'AMELIORATION'",
 ]);
@@ -52,7 +52,7 @@ check('NurseShiftsView', shiftsView, [
     'nurseShiftStore.deleteShift(shiftId, currentRange.value.start, currentRange.value.end)',
     'nurseShiftStore.fetchActiveNurses()', "authStore.hasRole(['medecin'])",
     "authStore.hasRole(['nurse']) && !!authStore.user?.is_head_nurse",
-    '@day-click="handleDayClick"', '@month-change="handleMonthChange"', ':can-manage="canManage"',
+    '@day-click="handleDayClick"', '@month-change="handleMonthChange"', ':can-manage="canManage && !nurseShiftStore.error"',
     '@add="handleAdd"', '@remove="handleRemove"', ':available-nurses="nurseShiftStore.activeNurses"',
     'if (!nurseId) return;', 'actionError',
 ]);

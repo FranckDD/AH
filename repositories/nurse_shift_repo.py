@@ -8,6 +8,15 @@ from models.user import User
 from models.application_role import ApplicationRole
 
 
+class ShiftConflictError(ValueError):
+    """Refus d'affectation avec un code stable (traduit cote frontend) et un
+    message francais de repli."""
+
+    def __init__(self, code: str, message: str):
+        super().__init__(message)
+        self.code = code
+
+
 class NurseShiftRepository:
     def __init__(self, session: Session):
         self.session = session
@@ -42,7 +51,51 @@ class NurseShiftRepository:
             .one_or_none()
         )
         if existing is not None:
-            raise ValueError("Cet infirmier est déjà affecté à ce créneau.")
+            raise ShiftConflictError("shift_already_assigned", "Cet infirmier est déjà affecté à ce créneau.")
+
+        # Conflit de garde (decision du proprietaire) : MATIN + APRES_MIDI le meme
+        # jour restent permis ; NUIT est exclusive (jamais avec un autre creneau).
+        # Plusieurs infirmiers par creneau : aucune limite.
+        others = (
+            self.session.query(NurseShift)
+            .filter(
+                NurseShift.shift_date == shift_date,
+                NurseShift.nurse_id == nurse_id,
+                NurseShift.shift_type != shift_type,
+            )
+            .all()
+        )
+        if others and (shift_type == "NUIT" or any(o.shift_type == "NUIT" for o in others)):
+            if shift_type == "NUIT":
+                raise ShiftConflictError(
+                    "shift_night_exclusive",
+                    "Cet infirmier a déjà un créneau ce jour-là : la nuit ne peut pas être cumulée avec le matin ou l'après-midi."
+                )
+            raise ShiftConflictError(
+                "shift_night_exclusive",
+                "Cet infirmier est déjà de nuit ce jour-là : la nuit ne peut pas être cumulée avec le matin ou l'après-midi."
+            )
+
+        # Repos obligatoire : NUIT le jour D interdit MATIN le jour D+1 (les deux sens).
+        if shift_type in ("MATIN", "NUIT"):
+            from datetime import timedelta
+            if shift_type == "MATIN":
+                neighbour_date, neighbour_type = shift_date - timedelta(days=1), "NUIT"
+            else:
+                neighbour_date, neighbour_type = shift_date + timedelta(days=1), "MATIN"
+            clash = (
+                self.session.query(NurseShift)
+                .filter(
+                    NurseShift.shift_date == neighbour_date,
+                    NurseShift.nurse_id == nurse_id,
+                    NurseShift.shift_type == neighbour_type,
+                )
+                .first()
+            )
+            if clash is not None:
+                if shift_type == "MATIN":
+                    raise ShiftConflictError("shift_rest_after_night", "Cet infirmier était de nuit la veille : repos obligatoire le matin.")
+                raise ShiftConflictError("shift_rest_after_night", "Cet infirmier est déjà de matin le lendemain : repos obligatoire après une nuit.")
 
         shift = NurseShift(
             shift_date=shift_date,
@@ -55,7 +108,7 @@ class NurseShiftRepository:
             self.session.commit()
         except IntegrityError:
             self.session.rollback()
-            raise ValueError("Cet infirmier est déjà affecté à ce créneau.")
+            raise ShiftConflictError("shift_already_assigned", "Cet infirmier est déjà affecté à ce créneau.")
         self.session.refresh(shift)
         return shift
 

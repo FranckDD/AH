@@ -17,8 +17,9 @@
       <MagnifyingGlassIcon class="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-ink-muted" aria-hidden="true" />
       <input
         id="cs-search"
-        v-model.lazy="searchQuery"
-        @keyup.enter="consultationStore.fetchConsultations()"
+        v-model="searchInput"
+        @input="onSearchInput"
+        @keyup.enter="searchNow"
         type="text"
         :placeholder="t('consultations.search_placeholder')"
         class="block w-full min-h-11 rounded-control border border-tone-neutral-border bg-white pl-10 pr-3 text-base text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand-600"
@@ -88,7 +89,8 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue';
+import { notifyText } from '@/utils/notify';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useConsultationStore } from '@/stores/consultationStore';
 import ConsultationModal from '@/components/consultations/ConsultationModal.vue';
@@ -111,10 +113,27 @@ const showModal = ref(false);
 const editingConsultation = ref(null);
 const showExportModal = ref(false);
 
-const searchQuery = computed({
-  get: () => consultationStore.filters.search,
-  set: (val) => consultationStore.setFilters({ search: val }),
+// Recherche en direct (debounce 300 ms), meme motif que StockList.vue.
+// setFilters() remet la page a 1, Entree recherche tout de suite.
+const searchInput = ref(consultationStore.filters.search || '');
+let searchDebounceTimeout = null;
+
+const onSearchInput = () => {
+  clearTimeout(searchDebounceTimeout);
+  searchDebounceTimeout = setTimeout(() => {
+    consultationStore.setFilters({ search: searchInput.value });
+  }, 300);
+};
+
+const searchNow = () => {
+  clearTimeout(searchDebounceTimeout);
+  consultationStore.setFilters({ search: searchInput.value });
+};
+
+watch(() => consultationStore.filters.search, (val) => {
+  if ((val || '') !== searchInput.value) searchInput.value = val || '';
 });
+onBeforeUnmount(() => clearTimeout(searchDebounceTimeout));
 
 function openModal(rec) {
   editingConsultation.value = rec;
@@ -130,7 +149,7 @@ async function handleSave(data) {
     }
     showModal.value = false;
   } catch (err) {
-    alert(err.response?.data?.detail || err.message);
+    notifyText(err.response?.data?.detail || err.message);
   }
 }
 
@@ -139,7 +158,7 @@ async function handleDelete(rec) {
   try {
     await consultationStore.deleteConsultation(rec.consultation_id);
   } catch (err) {
-    alert(err.response?.data?.detail || err.message);
+    notifyText(err.response?.data?.detail || err.message);
   }
 }
 

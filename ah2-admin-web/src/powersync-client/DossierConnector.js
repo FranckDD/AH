@@ -366,7 +366,7 @@ export class DossierConnector {
               external_patient_info: op.opData.external_patient_info ? JSON.parse(op.opData.external_patient_info) : null,
               origin_prescription_id: op.opData.origin_prescription_id || null,
               batch_uuid: op.opData.batch_uuid,
-              results: [{ examen_id: op.opData.examen_id, uuid: op.id }],
+              results: [{ examen_id: op.opData.examen_id, uuid: op.id, origin_caisse_item_id: op.opData.origin_caisse_item_id || null }],
             }), {
               kind: 'lab_result',
               localId: op.id,

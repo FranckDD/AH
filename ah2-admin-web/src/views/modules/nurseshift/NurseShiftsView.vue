@@ -4,9 +4,16 @@
 
     <PageHeader :title="t('nurseShift.title')" :subtitle="t('nurseShift.subtitle')" />
 
+    <p
+      v-if="nurseShiftStore.error"
+      role="alert"
+      class="rounded-card border p-4 text-base font-medium"
+      :class="toneClasses(nurseShiftStore.offline ? 'warning' : 'danger')"
+    >{{ nurseShiftStore.offline ? t('nurseShift.offline_unavailable') : t('nurseShift.load_failed') }}</p>
+
     <div class="grid grid-cols-1 items-start gap-6 lg:grid-cols-3">
       <div class="lg:col-span-2">
-        <NurseShiftCalendar :shifts="nurseShiftStore.shifts" @day-click="handleDayClick" @month-change="handleMonthChange" />
+        <NurseShiftCalendar :shifts="nurseShiftStore.shifts" :unavailable="!!nurseShiftStore.error" @day-click="handleDayClick" @month-change="handleMonthChange" />
       </div>
       <div v-if="selectedDate" class="space-y-2">
         <p v-if="actionError" role="alert" class="text-base font-medium text-tone-danger-text">{{ actionError }}</p>
@@ -14,7 +21,10 @@
           :date="selectedDate"
           :shifts="selectedDateShifts"
           :available-nurses="nurseShiftStore.activeNurses"
-          :can-manage="canManage"
+          :can-manage="canManage && !nurseShiftStore.error"
+          :unavailable="!!nurseShiftStore.error"
+          :previous-day-shifts="shiftsOn(-1)"
+          :next-day-shifts="shiftsOn(1)"
           @close="selectedDate = null"
           @add="handleAdd"
           @remove="handleRemove"
@@ -33,6 +43,9 @@ import { useAuthStore } from '@/stores/auth';
 import NurseShiftCalendar from '@/components/nurseshift/NurseShiftCalendar.vue';
 import NurseShiftDayPanel from '@/components/nurseshift/NurseShiftDayPanel.vue';
 import { PageHeader } from '@/components/ui';
+import { toneClasses } from '@/design/tones';
+import { shiftErrorMessage } from '@/utils/nurseShiftErrors';
+import dayjs from 'dayjs';
 
 const { t } = useI18n();
 const nurseShiftStore = useNurseShiftStore();
@@ -55,6 +68,14 @@ const selectedDateShifts = computed(() => {
   return nurseShiftStore.shifts.filter((s) => s.shift_date === selectedDate.value);
 });
 
+// Creneaux de la veille (-1) ou du lendemain (+1) deja charges, pour la regle de repos apres la nuit
+// (le serveur reste l'arbitre si la veille est hors de la plage affichee).
+function shiftsOn(offset) {
+  if (!selectedDate.value) return [];
+  const day = dayjs(selectedDate.value).add(offset, 'day').format('YYYY-MM-DD');
+  return nurseShiftStore.shifts.filter((s) => s.shift_date === day);
+}
+
 function handleMonthChange({ start, end }) {
   currentRange.value = { start, end };
   nurseShiftStore.fetchShifts(start, end);
@@ -71,7 +92,7 @@ async function handleAdd({ shiftType, nurseId }) {
   try {
     await nurseShiftStore.createShift(selectedDate.value, shiftType, nurseId, currentRange.value.start, currentRange.value.end);
   } catch (err) {
-    actionError.value = err.response?.data?.detail || 'Une erreur est survenue.';
+    actionError.value = shiftErrorMessage(err, t);
   }
 }
 
@@ -80,7 +101,7 @@ async function handleRemove(shiftId) {
   try {
     await nurseShiftStore.deleteShift(shiftId, currentRange.value.start, currentRange.value.end);
   } catch (err) {
-    actionError.value = err.response?.data?.detail || 'Une erreur est survenue.';
+    actionError.value = shiftErrorMessage(err, t);
   }
 }
 

@@ -51,7 +51,7 @@ check('MedicalRecordModal (règles)', modal, [
     "parseVital(form.temperature, 30, 45, 'medicalRecords.modal.temperature_range')",
     "parseVital(form.weight, 0, 1000, 'medicalRecords.modal.weight_range')",
     "parseVital(form.height, 30, 250, 'medicalRecords.modal.height_range')",
-    "alert(t('medicalRecords.modal.motif_required'))", "alert(t('medicalRecords.modal.patient_not_found'))",
+    "notifyText(t('medicalRecords.modal.motif_required'))", "notifyText(t('medicalRecords.modal.patient_not_found'))",
     'await ensureLookup();', '/doctor-dashboard/doctors', 'defaultNeedsDoctorReview', 'props.prefilledPatient',
     'setFromExisting(props.prefilledPatient)', "form.maritalStatus = rec.marital_status || 'Single'",
     'step="0.1"', 'type="date"', 'maritalOptions', 'severityOptions', 'medicalRecordStore.fetchMotifs()',
@@ -77,7 +77,7 @@ check('MedicalRecordTimeline', timeline, [
     'v-if="canManage && editable(record)"', 'v-if="!editable(record)"', "'medical.readonly.badge'",
     'record.needs_doctor_review', 'record.reviewed_at', 'record.assigned_doctor_id',
     'record.bp', 'record.weight', 'record.temperature', 'record.allergies', 'record.medical_history', 'record.treatment',
-    'record.notes || record.symptoms', 'record.created_by_name', "toLocaleDateString('fr-FR'",
+    'record.notes || record.symptoms', 'record.created_by_name', 'formatDateDMY',
 ]);
 
 check('VitalsCard', vitals, ['label: { type: String, required: true }', 'value:', 'unit:', 'date:', 'icon:', 'colorClass:', 'iconColor:']);

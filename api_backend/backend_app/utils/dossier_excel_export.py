@@ -4,6 +4,9 @@ from typing import Any, Dict
 from openpyxl import Workbook
 
 
+LAB_STATUS_FR = {"pending": "En attente", "partial": "Partiel", "analyzed": "Analysé", "completed": "Terminé"}
+
+
 def build_dossier_excel(dossier: Dict[str, Any]) -> bytes:
     """
     Un onglet par domaine PRESENT dans le dossier (dict.get, jamais un
@@ -32,11 +35,20 @@ def build_dossier_excel(dossier: Dict[str, Any]) -> bytes:
         for p in dossier["prescriptions"]:
             ws.append([p.get("medication"), p.get("dosage"), p.get("frequency"), p.get("start_date"), p.get("end_date")])
 
+    if dossier.get("hospitalisations") is not None:
+        ws = wb.create_sheet("Hospitalisations")
+        ws.append(["Admission", "Sortie", "Durée", "Motif d'admission", "Type de sortie", "Note de sortie", "Admis par", "Sortie prononcée par"])
+        for h in dossier["hospitalisations"]:
+            ws.append([
+                h.get("admitted_at"), h.get("discharged_at"), h.get("duration_label"), h.get("admission_reason"),
+                h.get("disposition_label"), h.get("discharge_note"), h.get("admitted_by_name"), h.get("discharged_by_name"),
+            ])
+
     if dossier.get("historique_labo") is not None:
         ws = wb.create_sheet("Labo")
         ws.append(["Date", "Examen", "Statut"])
         for r in dossier["historique_labo"]:
-            ws.append([r.get("test_date"), r.get("examen_name"), r.get("status")])
+            ws.append([r.get("test_date"), r.get("examen_name"), LAB_STATUS_FR.get(r.get("status"), r.get("status"))])
 
     if dossier.get("dossier_toxico") is not None:
         ws = wb.create_sheet("Toxicologie")

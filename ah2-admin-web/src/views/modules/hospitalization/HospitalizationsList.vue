@@ -29,13 +29,14 @@
         </div>
       </template>
       <template #cell-admitted="{ row: stay }"><span class="font-mono">{{ formatDate(stay.admitted_at) }}</span></template>
-      <template #cell-days="{ row: stay }">{{ daysSince(stay.admitted_at) }}</template>
+      <template #cell-days="{ row: stay }">{{ stayDuration(stay.admitted_at) }}</template>
       <template #cell-status="{ row: stay }">
         <StatusBadge
           :tone="statusTone(latestStatusOf(stay))"
           :label="latestStatusOf(stay) ? t(`hospitalization.status.${latestStatusOf(stay)}`) : t('hospitalization.no_status_yet')"
         />
       </template>
+      <template #cell-reason="{ row: stay }">{{ stay.admission_reason || '-' }}</template>
       <template #cell-admitted_by="{ row: stay }">{{ stay.admitted_by_name || t('hospitalization.unknown_user') }}</template>
 
       <template #actions="{ row: stay }">
@@ -53,6 +54,7 @@ import { computed, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import dayjs from 'dayjs';
+import { formatStayDuration } from '@/utils/stayDuration';
 import { ExclamationTriangleIcon } from '@heroicons/vue/24/outline';
 import { useHospitalizationStore } from '@/stores/hospitalizationStore';
 import { AppButton, PageHeader, StatusBadge, ResponsiveTable } from '@/components/ui';
@@ -65,6 +67,7 @@ const columns = computed(() => [
   { key: 'patient', label: t('hospitalization.table.patient') },
   { key: 'admitted', label: t('hospitalization.table.admitted_since') },
   { key: 'days', label: t('hospitalization.table.days') },
+  { key: 'reason', label: t('hospitalization.table.reason') },
   { key: 'status', label: t('hospitalization.table.current_status') },
   { key: 'admitted_by', label: t('hospitalization.table.admitted_by') },
 ]);
@@ -72,8 +75,10 @@ const columns = computed(() => [
 function formatDate(d) {
   return dayjs(d).format('DD/MM/YYYY HH:mm');
 }
-function daysSince(d) {
-  return dayjs().diff(dayjs(d), 'day');
+function stayDuration(d) {
+  return formatStayDuration(d, new Date(), {
+    days: t('hospitalization.days_count'), hours: t('hospitalization.hours_short'), minutes: t('hospitalization.minutes_short'),
+  });
 }
 function latestStatusOf(stay) {
   return stay.status_updates?.length ? stay.status_updates[0].status : null;

@@ -149,6 +149,9 @@ class PrescriptionResponse(PrescriptionBase):
     prescription_id: int
     prescribed_by: Optional[int] = None
     prescribed_by_name: Optional[str] = None
+    # active | completed | cancelled (CHECK en base) - absent de la reponse
+    # avant 2026-10-26 : l'onglet Traitements affichait 'undefined'.
+    status: Optional[str] = None
     patient: Optional[dict] = None
     
     # Champ calculé pour renvoyer une string simple au frontend si besoin

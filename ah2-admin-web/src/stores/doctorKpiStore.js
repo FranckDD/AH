@@ -1,3 +1,4 @@
+import { todayLocalISO } from '@/utils/localDate';
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { DoctorKpiGateway } from '@/services/DoctorKpiGateway';
@@ -12,8 +13,8 @@ export const useDoctorKpiStore = defineStore('doctorKpi', () => {
     const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
 
     const filters = ref({
-        startDate: monthStart.toISOString().split('T')[0],
-        endDate: today.toISOString().split('T')[0],
+        startDate: todayLocalISO(monthStart),
+        endDate: todayLocalISO(today),
     });
 
     const stats = ref({
@@ -28,13 +29,16 @@ export const useDoctorKpiStore = defineStore('doctorKpi', () => {
 
     const pendingReview = ref([]);
     const claimError = ref(null);
+    const pendingFailed = ref(false); // file non chargee : pas de "aucun patient en attente"
 
     async function fetchPendingReview() {
         try {
             const resp = await api.get('/medical_records/pending-review');
             pendingReview.value = resp.data || [];
+            pendingFailed.value = false;
         } catch (err) {
             console.error('Erreur chargement patients en attente:', err);
+            pendingFailed.value = true;
         }
     }
 
@@ -83,5 +87,5 @@ export const useDoctorKpiStore = defineStore('doctorKpi', () => {
         fetchKpiData();
     }
 
-    return { isLoading, error, filters, stats, pendingReview, claimError, fetchKpiData, setDates, fetchPendingReview, claimRecord };
+    return { isLoading, error, pendingFailed, filters, stats, pendingReview, claimError, fetchKpiData, setDates, fetchPendingReview, claimRecord };
 });

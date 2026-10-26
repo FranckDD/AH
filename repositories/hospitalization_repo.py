@@ -9,6 +9,7 @@ from models.hospitalization import (
     CLINICAL_STATUSES,
 )
 from models.patient import Patient
+from utils.business_time import business_now
 from controller.config_controller import ConfigController
 from repositories.config_repo import ConfigRepository
 from api_backend.backend_app.utils.pdf_header import get_pdf_header_context
@@ -25,6 +26,22 @@ DISPOSITION_LABELS_FR = {
     "SORTIE_CONTRE_AVIS_MEDICAL": "Sortie contre avis médical",
     "DECES": "Décès",
 }
+
+# Convention de fuseau (2026-10-26, defaut releve par les guides) : TOUTES les
+# dates d'un sejour (admitted_at, discharged_at, created_at des evolutions)
+# sont l'heure locale de Douala, naive - comme Caisse.paid_at. Avant, la
+# sortie etait ecrite en UTC (datetime.utcnow) et l'admission en heure locale
+# (server_default now()), d'ou des sorties "avant l'admission".
+
+
+def stay_duration_label(start: datetime, end: datetime) -> str:
+    """Duree lisible : minutes, heures, puis jours (jamais '0 jour(s)')."""
+    minutes = max(0, int((end - start).total_seconds() // 60))
+    if minutes < 60:
+        return f"{minutes} min"
+    if minutes < 24 * 60:
+        return f"{minutes // 60} h {minutes % 60} min"
+    return f"{minutes // (24 * 60)} jour(s) {(minutes % (24 * 60)) // 60} h"
 
 
 class HospitalizationRepository:
@@ -55,6 +72,7 @@ class HospitalizationRepository:
         hosp = Hospitalization(
             patient_id=patient_id,
             admitted_by=admitted_by_id,
+            admitted_at=business_now(),
             admission_reason=admission_reason,
         )
         self.session.add(hosp)
@@ -76,13 +94,14 @@ class HospitalizationRepository:
 
         hosp = self._get_or_raise(hospitalization_id)
         if hosp.discharged_at is not None:
-            raise ValueError("Ce séjour est déjà clos — impossible d'ajouter une évolution clinique.")
+            raise ValueError("Ce séjour est déjà clos, impossible d'ajouter une évolution clinique.")
 
         update = HospitalizationStatusUpdate(
             hospitalization_id=hospitalization_id,
             status=status,
             note=note,
             created_by=created_by_id,
+            created_at=business_now(),
         )
         self.session.add(update)
         self.session.commit()
@@ -103,7 +122,7 @@ class HospitalizationRepository:
         if hosp.discharged_at is not None:
             raise ValueError("Ce séjour est déjà clos.")
 
-        hosp.discharged_at = datetime.utcnow()
+        hosp.discharged_at = business_now()
         hosp.discharge_disposition = discharge_disposition
         hosp.discharge_note = discharge_note
         hosp.discharged_by = discharged_by_id
@@ -159,7 +178,7 @@ class HospitalizationRepository:
         if hosp is None:
             raise ValueError(f"Aucune hospitalisation trouvée pour l'ID={hospitalization_id}")
         if hosp.discharged_at is None:
-            raise ValueError("Ce séjour n'est pas encore clos — lettre de sortie indisponible.")
+            raise ValueError("Ce séjour n'est pas encore clos, lettre de sortie indisponible.")
 
         def _user_name(user):
             if not user:
@@ -186,14 +205,14 @@ class HospitalizationRepository:
 
         context = {
             **header_ctx,
-            "date_impression": datetime.now().strftime("%d/%m/%Y à %H:%M"),
+            "date_impression": business_now().strftime("%d/%m/%Y à %H:%M"),
             "stay": {
                 "patient_name": patient_name,
                 "admitted_at": hosp.admitted_at.strftime("%d/%m/%Y à %H:%M"),
                 "admitted_by_name": _user_name(hosp.admitted_by_user),
                 "admission_reason": hosp.admission_reason,
                 "discharged_at": hosp.discharged_at.strftime("%d/%m/%Y à %H:%M"),
-                "duration_days": (hosp.discharged_at.date() - hosp.admitted_at.date()).days,
+                "duration_label": stay_duration_label(hosp.admitted_at, hosp.discharged_at),
                 "disposition_label": DISPOSITION_LABELS_FR.get(hosp.discharge_disposition, hosp.discharge_disposition),
                 "discharged_by_name": _user_name(hosp.discharged_by_user),
                 "discharge_note": hosp.discharge_note,
@@ -202,6 +221,30 @@ class HospitalizationRepository:
         }
 
         return render_pdf_from_template("hospitalization_discharge_letter_template.html", context)
+
+    def get_stays_for_export(self, patient_id: int) -> List[dict]:
+        """Sejours du patient mis en forme (francais, heure locale) pour
+        l'export du dossier PDF/Excel : motif d'admission, sortie, note de
+        sortie (defaut releve par les guides 2026-10-26)."""
+        def _fmt(dt):
+            return dt.strftime("%d/%m/%Y %H:%M") if dt else ""
+
+        def _name(user):
+            return (getattr(user, "full_name", None) or getattr(user, "username", None) or "") if user else ""
+
+        stays = []
+        for h in self.get_history_for_patient(patient_id):
+            stays.append({
+                "admitted_at": _fmt(h.admitted_at),
+                "discharged_at": _fmt(h.discharged_at) or "En cours",
+                "duration_label": stay_duration_label(h.admitted_at, h.discharged_at or business_now()),
+                "admission_reason": h.admission_reason or "",
+                "disposition_label": DISPOSITION_LABELS_FR.get(h.discharge_disposition, h.discharge_disposition or ""),
+                "discharge_note": h.discharge_note or "",
+                "admitted_by_name": _name(h.admitted_by_user),
+                "discharged_by_name": _name(h.discharged_by_user),
+            })
+        return stays
 
     def count_current(self) -> int:
         return (

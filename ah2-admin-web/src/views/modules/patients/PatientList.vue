@@ -7,7 +7,7 @@
           {{ t('export.confirm') }}
         </AppButton>
         <AppButton v-if="canManagePatients" :icon="PlusIcon" @click="openCreateModal">
-          Ajouter un patient
+          {{ t('screens.patientList.add') }}
         </AppButton>
       </template>
     </PageHeader>
@@ -17,8 +17,9 @@
       <MagnifyingGlassIcon class="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-ink-muted" aria-hidden="true" />
       <input
         id="patient-search"
-        v-model.lazy="searchQuery"
-        @keyup.enter="patientStore.fetchPatients()"
+        v-model="searchInput"
+        @input="onSearchInput"
+        @keyup.enter="searchNow"
         type="text"
         :placeholder="t('patients.search_placeholder')"
         class="block w-full min-h-11 rounded-control border border-tone-neutral-border bg-white pl-10 pr-3 text-base text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand-600"
@@ -26,7 +27,7 @@
     </div>
 
     <div class="overflow-x-auto border-b border-tone-neutral-border">
-      <div class="-mb-px flex gap-2" role="tablist" aria-label="Catégories de patients">
+      <div class="-mb-px flex gap-2" role="tablist" :aria-label="t('screens.patientList.categories')">
         <button
           v-for="tab in tabs"
           :key="tab.value"
@@ -50,7 +51,8 @@
       </div>
     </div>
 
-    <p v-if="patientStore.error" role="alert" class="rounded-card border p-4 text-base font-medium" :class="toneClasses('danger')">
+    <LoadErrorState v-if="patientStore.error === 'load_failed'" @retry="patientStore.fetchPatients()" />
+    <p v-else-if="patientStore.error" role="alert" class="rounded-card border p-4 text-base font-medium" :class="toneClasses('danger')">
       {{ patientStore.error }}
     </p>
 
@@ -60,7 +62,7 @@
       :rows="patientStore.patients"
       row-key="id"
       :loading="patientStore.isLoading"
-      empty-title="Aucun patient trouvé."
+      :empty-title="t('screens.patientList.empty')"
       :empty-message="' '"
     >
       <template #cell-patient="{ row: patient }">
@@ -80,7 +82,7 @@
           v-if="!disableDetailLink"
           @click="viewPatientDossier(patient.id)"
         >
-          Voir Dossier
+          {{ t('screens.patientList.view_record') }}
         </AppButton>
         <AppButton
           v-if="canManagePatients"
@@ -88,9 +90,9 @@
           :icon="PencilSquareIcon"
           @click="openEditModal(patient)"
           :disabled="patient.pending"
-          :title="patient.pending ? 'En attente de synchronisation' : 'Modifier'"
+          :title="patient.pending ? t('screens.patientList.pending_sync') : t('screens.patientList.edit')"
         >
-          Modifier
+          {{ t('screens.patientList.edit') }}
         </AppButton>
         <AppButton
           v-if="canManagePatients"
@@ -98,9 +100,9 @@
           :icon="TrashIcon"
           @click="confirmDelete(patient)"
           :disabled="patient.pending"
-          :title="patient.pending ? 'En attente de synchronisation' : 'Supprimer'"
+          :title="patient.pending ? t('screens.patientList.pending_sync') : t('screens.patientList.delete')"
         >
-          Supprimer
+          {{ t('screens.patientList.delete') }}
         </AppButton>
       </template>
     </ResponsiveTable>
@@ -112,11 +114,11 @@
         @click="goToPage(patientStore.pagination.page - 1)"
         :disabled="patientStore.pagination.page === 1"
       >
-        Précédent
+        {{ t('screens.patientList.previous') }}
       </AppButton>
 
       <span class="text-base font-medium text-ink">
-        Page {{ patientStore.pagination.page }} sur {{ patientStore.pagination.total_pages }}
+        {{ t('screens.patientList.page_of', { page: patientStore.pagination.page, total: patientStore.pagination.total_pages }) }}
       </span>
 
       <AppButton
@@ -124,7 +126,7 @@
         @click="goToPage(patientStore.pagination.page + 1)"
         :disabled="!patientStore.pagination.hasNext"
       >
-        Suivant <ChevronRightIcon class="h-5 w-5" aria-hidden="true" />
+        {{ t('screens.patientList.next') }} <ChevronRightIcon class="h-5 w-5" aria-hidden="true" />
       </AppButton>
     </div>
 
@@ -168,7 +170,8 @@
 </template>
 
 <script setup>
-import { computed, onMounted, onBeforeUnmount, ref } from 'vue';
+import { notify } from '@/utils/notify';
+import { computed, onMounted, onBeforeUnmount, ref, watch } from 'vue';
 import { usePatientStore } from '@/stores/patientStore';
 import { useRouter, useRoute } from 'vue-router';
 import { useI18n } from 'vue-i18n';
@@ -185,7 +188,7 @@ import { useToastStore } from '@/stores/toastStore';
 import { showsCodeDialog, goesToVitalsAfterCode, shouldRefreshAfterSync, patientPrefillFromCreated } from '@/utils/newPatientFlow';
 import { db } from '@/powersync-client/client';
 import ExportModal from '@/components/common/ExportModal.vue';
-import { AppButton, PageHeader, StatusBadge, ResponsiveTable } from '@/components/ui';
+import { AppButton, PageHeader, StatusBadge, ResponsiveTable, LoadErrorState } from '@/components/ui';
 import { toneClasses } from '@/design/tones';
 import { useAuthStore } from '@/stores/auth';
 import api from '@/services/api';
@@ -211,9 +214,9 @@ const canManagePatients = computed(() =>
 
 // Colonnes du tableau (cartes empilees sous lg).
 const columns = [
-    { key: 'patient', label: 'Code / Patient' },
-    { key: 'type', label: 'Type' },
-    { key: 'phone', label: 'Téléphone' },
+    { key: 'patient', label: t('screens.patientList.col_patient') },
+    { key: 'type', label: t('screens.patientList.col_type') },
+    { key: 'phone', label: t('screens.patientList.col_phone') },
 ];
 
 const showModal = ref(false);
@@ -258,7 +261,7 @@ const openEditModal = async (patient) => {
         patientBeingEdited.value = await patientStore.getPatientById(patient.id);
         showModal.value = true;
     } catch (err) {
-        deleteError.value = "Impossible de charger les détails du patient pour modification.";
+        deleteError.value = t('screens.patientList.load_for_edit_failed');
     }
 };
 
@@ -276,17 +279,17 @@ const mapErrorToMessage = (err) => {
         if (status === 422) {
             const errors = Array.isArray(detail) ? detail : [];
             if (errors.length) {
-                return `Erreurs de validation : ${errors.map(e => e.msg).join(', ')}`;
+                return t('screens.patientList.err_validation', { list: errors.map(e => e.msg).join(', ') });
             }
-            return "Données invalides.";
+            return t('screens.patientList.err_invalid_data');
         }
-        if (status === 400) return detail || "Requête invalide.";
-        if (status === 401) return "Session expirée. Veuillez vous reconnecter.";
-        if (status === 409) return detail || "Ce patient existe peut-être déjà (identifiant en conflit).";
-        return `Erreur serveur (${status}) : ${detail || 'veuillez réessayer'}`;
+        if (status === 400) return detail || t('screens.patientList.err_bad_request');
+        if (status === 401) return t('screens.patientList.err_session');
+        if (status === 409) return detail || t('screens.patientList.err_conflict');
+        return t('screens.patientList.err_server', { status, detail: detail || t('screens.patientList.err_retry') });
     }
-    if (err.request) return "Erreur réseau. Veuillez vérifier votre connexion.";
-    return err.message || "Une erreur inattendue est survenue.";
+    if (err.request) return t('screens.patientList.err_network');
+    return err.message || t('screens.patientList.err_unexpected');
 };
 
 const handleSave = async (payload) => {
@@ -360,7 +363,7 @@ const handleRecordSave = async (data) => {
         patientStore.fetchPatients();
     } catch (err) {
         console.error('Erreur enregistrement des parametres:', err);
-        alert('Erreur lors de l\'enregistrement : ' + (err.response?.data?.detail || err.message));
+        notify('alerts.save_failed', { detail: err.response?.data?.detail || err.message });
     }
 };
 
@@ -465,11 +468,29 @@ const viewPatientDossier = (patientId) => {
     router.push(`${route.path}/${patientId}`);
 };
 
-// Getter/Setter pour la recherche
-const searchQuery = computed({
-    get: () => patientStore.filters.search,
-    set: (val) => patientStore.setFilters({ search: val })
+// Recherche en direct (debounce 300 ms), meme motif que StockList.vue.
+// Auparavant v-model.lazy : rien ne filtrait avant Entree ou la sortie du
+// champ. setFilters() remet la page a 1 ; Entree lance la recherche tout de
+// suite. Le store ignore les reponses perimees (fetchSeq).
+const searchInput = ref(patientStore.filters.search || '');
+let searchDebounceTimeout = null;
+
+const onSearchInput = () => {
+    clearTimeout(searchDebounceTimeout);
+    searchDebounceTimeout = setTimeout(() => {
+        patientStore.setFilters({ search: searchInput.value });
+    }, 300);
+};
+
+const searchNow = () => {
+    clearTimeout(searchDebounceTimeout);
+    patientStore.setFilters({ search: searchInput.value });
+};
+
+watch(() => patientStore.filters.search, (val) => {
+    if ((val || '') !== searchInput.value) searchInput.value = val || '';
 });
+onBeforeUnmount(() => clearTimeout(searchDebounceTimeout));
 
 // Getter/Setter pour les onglets
 const currentTab = computed({

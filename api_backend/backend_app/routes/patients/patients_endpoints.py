@@ -7,7 +7,7 @@ import uuid as uuid_lib
 from typing import List, Any, Optional
 from datetime import date
 
-from .mapping import normalize_patient_data
+from .mapping import normalize_patient_data, model_to_dict
 from ...exceptions import translate_integrity_error
 from .patients_schemas import (PatientCreate, PatientUpdate, PatientResponse,PatientStatusDistribution,
                                PatientAssuranceDistribution,NewPatientCount,PatientListResponse,PatientGlobalCounts)
@@ -99,6 +99,16 @@ def _safe_validate_patient(raw: Any) -> PatientResponse:
         raise HTTPException(status_code=500, detail="Erreur interne : données patient invalides")
 
 
+def _validated_list_with_flags(items, patient_ctrl):
+    """Liste de PatientResponse dont les drapeaux de domaine sont calcules a
+    la lecture (existence de dossiers), pas lus depuis les colonnes stockees."""
+    dicts = [model_to_dict(p) for p in items]
+    flags = patient_ctrl.domain_flags_for([d.get("patient_id") for d in dicts])
+    for d in dicts:
+        d.update(flags.get(d.get("patient_id"), {}))
+    return [_safe_validate_patient(d) for d in dicts]
+
+
 # --- existing CRUD endpoints (list/get/post/put/delete) ---
 @router.get("/", response_model=PatientListResponse)
 def list_patients(
@@ -110,7 +120,7 @@ def list_patients(
     resultat = patient_ctrl.list_patients(page=page, per_page=per_page, search=search)
     return {
         **resultat,
-        "data": [_safe_validate_patient(p) for p in resultat["data"]],
+        "data": _validated_list_with_flags(resultat["data"], patient_ctrl),
     }
 
 @router.get(
@@ -129,7 +139,7 @@ def list_toxicology_patients(
     result = patient_ctrl.list_toxicology_patients(page=page, per_page=per_page, search=search)
     
     # Validation Pydantic de la liste 'data'
-    validated_data = [_safe_validate_patient(p) for p in result["data"]]
+    validated_data = _validated_list_with_flags(result["data"], patient_ctrl)
     
     return {
         "data": validated_data,
@@ -148,7 +158,7 @@ def list_clinical_patients(
     patient_ctrl: PatientController = Depends(get_patient_controller)
 ):
     result = patient_ctrl.list_clinical_patients(page=page, per_page=per_page, search=search)
-    validated_data = [_safe_validate_patient(p) for p in result["data"]]
+    validated_data = _validated_list_with_flags(result["data"], patient_ctrl)
     
     return {
         "data": validated_data,
@@ -171,7 +181,7 @@ def list_spiritual_patients_paginated(
 ):
     # Attention: j'ai ajouté /list pour ne pas conflire avec votre endpoint existant /spiritual qui n'était pas paginé
     result = patient_ctrl.list_spiritual_patients_list(page=page, per_page=per_page, search=search)
-    validated_data = [_safe_validate_patient(p) for p in result["data"]]
+    validated_data = _validated_list_with_flags(result["data"], patient_ctrl)
     
     return {
         "data": validated_data,

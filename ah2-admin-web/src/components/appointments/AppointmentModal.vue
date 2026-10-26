@@ -86,7 +86,7 @@
                   v-model="form.reason"
                   rows="2"
                   :aria-describedby="describedBy"
-                  placeholder="Ex: Consultation de suivi..."
+                  :placeholder="t('screens.misc.ph_followup')"
                   :class="[inputClass, 'bg-white py-2']"
                 ></textarea>
               </FormField>
@@ -107,6 +107,7 @@
 </template>
 
 <script setup>
+import { notifyText } from '@/utils/notify';
 import { reactive, ref, computed, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useAppointmentStore } from '@/stores/appointmentStore';
@@ -251,7 +252,7 @@ async function handleSubmit() {
   }
 
   if (!patientId.value) {
-    alert(t('appointments.modal.patient_not_found'));
+    notifyText(t('appointments.modal.patient_not_found'));
     return;
   }
 

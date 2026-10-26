@@ -24,7 +24,7 @@
               :aria-describedby="describedBy"
               :aria-invalid="invalid"
               :class="[fieldClass, (isEdit || !!prefilledPatient) ? 'cursor-not-allowed bg-tone-neutral-bg text-ink-muted' : 'bg-white']"
-              placeholder="Ex: AH2-000818AQ"
+              :placeholder="patientUuid && !patientCode ? t('medicalRecords.modal.code_pending') : 'Ex: AH2-000818AQ'"
             />
           </FormField>
         </div>
@@ -136,6 +136,8 @@
 </template>
 
 <script setup>
+import { todayLocalISO } from '@/utils/localDate';
+import { notifyText } from '@/utils/notify';
 import { reactive, computed, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useMedicalRecordStore } from '@/stores/medicalRecordStore';
@@ -184,7 +186,7 @@ const {
   setFromExisting,
 } = usePatientLookup(() => t('medicalRecords.modal.patient_not_found'));
 
-const today = new Date().toISOString().substring(0, 10);
+const today = todayLocalISO();
 
 const form = reactive({
   consultationDate: today,
@@ -266,7 +268,7 @@ function parseVital(value, min, max, errorKey) {
   if (value === '' || value === null || value === undefined) return { ok: true, value: null };
   const num = Number(value);
   if (Number.isNaN(num) || num < min || num >= max) {
-    alert(t(errorKey));
+    notifyText(t(errorKey));
     return { ok: false };
   }
   return { ok: true, value: num };
@@ -276,12 +278,12 @@ async function handleSubmit() {
   await ensureLookup();
 
   if (!patientId.value && !patientUuid.value) {
-    alert(t('medicalRecords.modal.patient_not_found'));
+    notifyText(t('medicalRecords.modal.patient_not_found'));
     return;
   }
 
   if (!form.motifCode) {
-    alert(t('medicalRecords.modal.motif_required'));
+    notifyText(t('medicalRecords.modal.motif_required'));
     return;
   }
 

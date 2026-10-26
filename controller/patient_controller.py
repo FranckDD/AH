@@ -343,6 +343,9 @@ class PatientController:
     def get_patient(self, patient_id: int) -> dict:
         return self.repo.get_by_id(patient_id)
 
+    def domain_flags_for(self, patient_ids):
+        return self.repo.compute_domain_flags_bulk(patient_ids)
+
     def list_patients(self, page=1, per_page=10, search=None):
         roles = self._get_user_roles_set()
         filters = {}
@@ -353,15 +356,21 @@ class PatientController:
             # le rattachement inter-domaines (chantier 6) devient impossible :
             # un role ne peut alors trouver que des patients qui ONT DEJA un
             # dossier dans son propre domaine, jamais ceux qui en ont besoin.
-            if 'secretaire' in roles:
-                filters['is_spiritual'] = True
+            # La secretaire (accueil + caisse) enregistre tous les patients :
+            # elle voit la liste complete, sans filtre de domaine (defaut 1,
+            # 2026-10-26, decision utilisateur). Son total egale alors le
+            # compteur global /patients/counts/global de l'en-tete.
+            # Le silo medical passe en premier : un utilisateur qui porte
+            # aussi medecin/nurse reste cantonne au clinique.
+            if roles & {'medecin', 'nurse'}:
+                filters['is_clinical'] = True
+            elif 'secretaire' in roles:
+                pass
             elif 'assistant' in roles:
                 # 🟢 chantier 6, tache 3 : "assistant" est le role d'admission
                 # toxico (voir toxico_endpoint.py) - il doit retrouver les
                 # patients deja connus du volet toxicologie, pas du clinique.
                 filters['is_toxicology'] = True
-            elif roles & {'medecin', 'nurse'}:
-                filters['is_clinical'] = True
         return self.repo.list_patients(page=page, per_page=per_page, search=search, filters=filters)
     
     def list_patients_for_export(self, tab_type: str = "ALL", search: Optional[str] = None,

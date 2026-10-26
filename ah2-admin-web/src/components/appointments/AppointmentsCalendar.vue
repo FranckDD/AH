@@ -92,7 +92,7 @@ import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/vue/24/outline';
 import { AppButton } from '@/components/ui';
 import { toneClasses } from '@/design/tones';
 
-const { t, locale } = useI18n();
+const { t, tm, rt, locale } = useI18n();
 
 // dayjs n'a pas de locale globale synchronisee avec vue-i18n ailleurs dans
 // ce projet - sans ceci, monthLabel (format('MMMM YYYY')) restait toujours
@@ -122,7 +122,8 @@ const currentMonth = ref(dayjs().startOf('month'));
 
 const monthLabel = computed(() => currentMonth.value.format('MMMM YYYY'));
 
-const weekdayLabels = computed(() => t('appointments.calendar.weekdays_short'));
+// Tableau de libelles : tm() + rt(), pas t() (qui renverrait la cle brute).
+const weekdayLabels = computed(() => tm('appointments.calendar.weekdays_short').map((m) => rt(m)));
 
 function goToPreviousMonth() {
   currentMonth.value = currentMonth.value.subtract(1, 'month');

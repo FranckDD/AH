@@ -366,3 +366,118 @@ def test_amelioration_does_not_notify_team(db_session, api_client):
 
     count = db_session.query(Notification).filter(Notification.type == "hospitalization_aggravation").count()
     assert count == 0
+
+
+def test_aggravation_notifications_are_committed_and_reach_the_bell(db_session, api_client, monkeypatch):
+    """Defaut releve par les guides (2026-10-26) : NotificationRepository.create
+    ne fait qu'un flush, la diffusion n'etait jamais commitee. La fixture
+    avale les commit() (savepoint), on espionne donc commit() : le DERNIER
+    commit doit voir les lignes de notification, sinon elles seraient perdues
+    a la fermeture de la session. On verifie aussi la cloche (GET /notifications)."""
+    from models.notification import Notification
+    from api_backend.backend_app.routes.notifications import notification_endpoints
+
+    medecin = create_test_user(db_session, "hosp_ep_medecin_commit", "medecin", password=TEST_PASSWORD)
+    nurse = create_test_user(db_session, "hosp_ep_nurse_commit", "nurse", password=TEST_PASSWORD)
+    head_nurse = create_test_user(db_session, "hosp_ep_headnurse_commit", "nurse", password=TEST_PASSWORD)
+    head_nurse.is_head_nurse = True
+    db_session.flush()
+    patient_id, _ = create_test_patient(db_session, medecin, first_name="EpCommit", is_clinical=True)
+    client = api_client(auth_endpoints, hospitalization_endpoint, notification_endpoints)
+    headers = auth_headers(client, "hosp_ep_medecin_commit", TEST_PASSWORD)
+    hosp_id = client.post("/hospitalizations/", json={"patient_id": patient_id}, headers=headers).json()["id"]
+
+    seen = []
+    real_commit = db_session.commit
+
+    def spy_commit():
+        seen.append(
+            db_session.query(Notification).filter(Notification.type == "hospitalization_aggravation").count()
+        )
+        return real_commit()
+
+    monkeypatch.setattr(db_session, "commit", spy_commit)
+    resp = client.post(f"/hospitalizations/{hosp_id}/status", json={"status": "AGGRAVATION", "note": "SpO2 en baisse"}, headers=headers)
+    assert resp.status_code == 201
+    monkeypatch.setattr(db_session, "commit", real_commit)
+
+    assert seen and seen[-1] >= 2, f"notifications non commitees (counts vus par commit: {seen})"
+
+    for username in ("hosp_ep_nurse_commit", "hosp_ep_headnurse_commit"):
+        nurse_headers = auth_headers(client, username, TEST_PASSWORD)
+        bell = client.get("/notifications?status=unread", headers=nurse_headers)
+        assert bell.status_code == 200
+        assert any(
+            n["type"] == "hospitalization_aggravation" and n["payload"]["hospitalization_id"] == hosp_id
+            for n in bell.json()
+        ), username
+
+
+def test_aggravation_notification_failure_is_logged_not_silent(db_session, api_client, monkeypatch, caplog):
+    import logging
+    from repositories.notification_repo import NotificationRepository
+
+    medecin = create_test_user(db_session, "hosp_ep_medecin_fail", "medecin", password=TEST_PASSWORD)
+    create_test_user(db_session, "hosp_ep_nurse_fail", "nurse", password=TEST_PASSWORD)
+    patient_id, _ = create_test_patient(db_session, medecin, first_name="EpFail", is_clinical=True)
+    client = _client(api_client)
+    headers = auth_headers(client, "hosp_ep_medecin_fail", TEST_PASSWORD)
+    hosp_id = client.post("/hospitalizations/", json={"patient_id": patient_id}, headers=headers).json()["id"]
+
+    def boom(self, *a, **k):
+        raise RuntimeError("db down")
+
+    monkeypatch.setattr(NotificationRepository, "create", boom)
+    with caplog.at_level(logging.ERROR):
+        resp = client.post(f"/hospitalizations/{hosp_id}/status", json={"status": "AGGRAVATION"}, headers=headers)
+    # L'evolution clinique reste enregistree, l'echec d'alerte est journalise.
+    assert resp.status_code == 201
+    assert any("aggravation" in r.getMessage().lower() for r in caplog.records)
+
+
+def _letter_pdf_pages(client, headers, hosp_id):
+    import io
+    from pypdf import PdfReader
+    resp = client.get(f"/hospitalizations/{hosp_id}/discharge-letter", headers=headers)
+    assert resp.status_code == 200
+    reader = PdfReader(io.BytesIO(resp.content))
+    return reader, "\n".join(p.extract_text() or "" for p in reader.pages)
+
+
+def test_discharge_letter_short_stay_fits_one_page(db_session, api_client):
+    """Defaut releve par les guides 2026-10-26 : la signature debordait sur
+    une page 2 presque vide. Un sejour court (quelques evolutions) doit tenir
+    sur une seule page, signature comprise."""
+    medecin = create_test_user(db_session, "hosp_ep_medecin_onepage", "medecin", password=TEST_PASSWORD)
+    patient_id, _ = create_test_patient(db_session, medecin, first_name="EpOnePage", is_clinical=True)
+    client = _client(api_client)
+    headers = auth_headers(client, "hosp_ep_medecin_onepage", TEST_PASSWORD)
+
+    hosp_id = client.post("/hospitalizations/", json={"patient_id": patient_id, "admission_reason": "Fièvre persistante"}, headers=headers).json()["id"]
+    for status, note in (("STABLE", "Stable ce matin"), ("AMELIORATION", "Va mieux"), ("AMELIORATION", "Apyrétique")):
+        client.post(f"/hospitalizations/{hosp_id}/status", json={"status": status, "note": note}, headers=headers)
+    client.post(f"/hospitalizations/{hosp_id}/discharge", json={"discharge_disposition": "GUERI", "discharge_note": "Retour a domicile"}, headers=headers)
+
+    reader, text = _letter_pdf_pages(client, headers, hosp_id)
+
+    assert len(reader.pages) == 1, f"{len(reader.pages)} pages"
+    assert "Fièvre persistante" in text
+    assert "Retour a domicile" in text
+    assert "médecin référent" in text
+
+
+def test_discharge_letter_has_no_english_words(db_session, api_client):
+    medecin = create_test_user(db_session, "hosp_ep_medecin_fr", "medecin", password=TEST_PASSWORD)
+    patient_id, _ = create_test_patient(db_session, medecin, first_name="EpFrench", is_clinical=True)
+    client = _client(api_client)
+    headers = auth_headers(client, "hosp_ep_medecin_fr", TEST_PASSWORD)
+
+    hosp_id = client.post("/hospitalizations/", json={"patient_id": patient_id}, headers=headers).json()["id"]
+    client.post(f"/hospitalizations/{hosp_id}/discharge", json={"discharge_disposition": "TRANSFERE"}, headers=headers)
+
+    _, text = _letter_pdf_pages(client, headers, hosp_id)
+
+    for word in ("Unknown", "Patient:", "Discharge", "Admitted", "Page 1 of"):
+        assert word not in text, word
+    assert "Transféré" in text
+    assert "—" not in text

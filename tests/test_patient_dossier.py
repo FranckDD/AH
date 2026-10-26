@@ -181,3 +181,26 @@ def test_dossier_consolide_admin_voit_toujours_tous_les_domaines(db_session, api
     assert corps["dossier_toxico"] is not None
     assert "historique_spirituel" in corps
     assert len(corps["historique_spirituel"]) == 1
+
+
+def test_dossier_prescriptions_exposent_le_statut(db_session, api_client):
+    """Defaut releve par les guides 2026-10-26 : l'onglet Traitements
+    affichait le statut 'undefined' car PrescriptionResponse ne renvoyait
+    pas la colonne status."""
+    from datetime import date
+    from models.prescription import Prescription
+
+    medecin = create_test_user(db_session, "dossier_presc_status", "medecin", password=TEST_PASSWORD)
+    patient_id, _ = create_test_patient(db_session, medecin, first_name="PrescStatut")
+    db_session.flush()
+    db_session.add(Prescription(
+        patient_id=patient_id, medication="Paracetamol", dosage="500 mg", frequency="3x/j",
+        duration="5 j", start_date=date(2026, 10, 1), status="active",
+    ))
+    db_session.flush()
+
+    client = api_client(auth_endpoints, patient_dossier_endpoint)
+    headers = auth_headers(client, "dossier_presc_status", TEST_PASSWORD)
+    corps = client.get(f"/patients/{patient_id}/dossier", headers=headers).json()
+
+    assert corps["prescriptions"][0]["status"] == "active"

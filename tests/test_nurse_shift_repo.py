@@ -142,3 +142,60 @@ def test_list_for_range_filters_by_date(db_session):
     november_only = repo.list_for_range(date(2026, 11, 1), date(2026, 11, 30))
     assert len(november_only) == 1
     assert november_only[0].shift_date == date(2026, 11, 1)
+
+
+def test_assign_allows_matin_and_apres_midi_same_nurse_same_day(db_session):
+    """Decision du proprietaire : l'infirmier du matin reste souvent l'apres-midi."""
+    medecin = create_test_user(db_session, "nsh_repo_medecin_conf", "medecin")
+    nurse = create_test_user(db_session, "nsh_repo_nurse_conf", "nurse")
+    repo = NurseShiftRepository(db_session)
+    repo.assign(date(2026, 10, 7), "MATIN", nurse.user_id, medecin.user_id)
+    repo.assign(date(2026, 10, 7), "APRES_MIDI", nurse.user_id, medecin.user_id)
+
+    assert len(repo.list_for_range(date(2026, 10, 7), date(2026, 10, 7))) == 2
+
+
+@pytest.mark.parametrize("first,second", [("MATIN", "NUIT"), ("APRES_MIDI", "NUIT"), ("NUIT", "MATIN"), ("NUIT", "APRES_MIDI")])
+def test_assign_refuses_nuit_combined_with_another_shift(db_session, first, second):
+    """NUIT est exclusive : jamais cumulee avec un autre creneau le meme jour."""
+    medecin = create_test_user(db_session, "nsh_repo_medecin_n", "medecin")
+    nurse = create_test_user(db_session, "nsh_repo_nurse_n", "nurse")
+    repo = NurseShiftRepository(db_session)
+    repo.assign(date(2026, 10, 7), first, nurse.user_id, medecin.user_id)
+
+    with pytest.raises(ValueError, match="nuit"):
+        repo.assign(date(2026, 10, 7), second, nurse.user_id, medecin.user_id)
+
+    assert len(repo.list_for_range(date(2026, 10, 7), date(2026, 10, 7))) == 1
+
+
+def test_assign_allows_same_nurse_on_different_days(db_session):
+    medecin = create_test_user(db_session, "nsh_repo_medecin_conf2", "medecin")
+    nurse = create_test_user(db_session, "nsh_repo_nurse_conf2", "nurse")
+    repo = NurseShiftRepository(db_session)
+    repo.assign(date(2026, 10, 8), "MATIN", nurse.user_id, medecin.user_id)
+    repo.assign(date(2026, 10, 9), "NUIT", nurse.user_id, medecin.user_id)
+
+    assert len(repo.list_for_range(date(2026, 10, 8), date(2026, 10, 9))) == 2
+
+
+def test_assign_refuses_matin_after_night_before(db_session):
+    """Repos obligatoire : NUIT le jour D interdit MATIN le jour D+1 (fin de mois comprise)."""
+    medecin = create_test_user(db_session, "nsh_repo_medecin_r1", "medecin")
+    nurse = create_test_user(db_session, "nsh_repo_nurse_r1", "nurse")
+    repo = NurseShiftRepository(db_session)
+    repo.assign(date(2026, 10, 31), "NUIT", nurse.user_id, medecin.user_id)
+
+    with pytest.raises(ValueError, match="repos obligatoire"):
+        repo.assign(date(2026, 11, 1), "MATIN", nurse.user_id, medecin.user_id)
+    repo.assign(date(2026, 11, 1), "APRES_MIDI", nurse.user_id, medecin.user_id)
+
+
+def test_assign_refuses_nuit_before_a_matin_next_day(db_session):
+    medecin = create_test_user(db_session, "nsh_repo_medecin_r2", "medecin")
+    nurse = create_test_user(db_session, "nsh_repo_nurse_r2", "nurse")
+    repo = NurseShiftRepository(db_session)
+    repo.assign(date(2026, 12, 1), "MATIN", nurse.user_id, medecin.user_id)
+
+    with pytest.raises(ValueError, match="repos obligatoire"):
+        repo.assign(date(2026, 11, 30), "NUIT", nurse.user_id, medecin.user_id)

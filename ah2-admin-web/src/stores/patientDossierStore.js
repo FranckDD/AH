@@ -118,7 +118,7 @@ export const usePatientDossierStore = defineStore('patientDossier', () => {
         labHistory.value = labRows.map((r) => ({
             result_id: r.server_id,
             test_date: r.test_date,
-            examen_name: r.test_type || '—',
+            examen_name: r.test_type || '-',
             code_lab: r.code_lab_patient,
             status: r.status,
         }));
@@ -286,6 +286,38 @@ export const usePatientDossierStore = defineStore('patientDossier', () => {
         }
     }
 
+    // Apres une ecriture locale (consultation creee/modifiee par medecin/nurse), la ligne
+    // locale n'a ni l'auteur affiche ni le resume clinique (signes vitaux), qui sont
+    // calcules cote serveur : l'ecran montrait "Inconnu" et "-" jusqu'au rechargement.
+    // On relit donc le dossier serveur quelques fois, des que la synchro a abouti
+    // (le serveur doit avoir au moins autant de consultations que la liste locale).
+    // Silencieux : hors ligne ou pas encore synchronise, l'affichage local reste.
+    async function syncDossierFromServer(patientId, { delays = [2500, 7000, 15000] } = {}) {
+        if (!Number.isInteger(Number(patientId))) return false;
+        const expected = medicalHistory.value.length;
+        for (const wait of delays) {
+            await new Promise((resolve) => setTimeout(resolve, wait));
+            if (String(patientSummary.value?.patient_id) !== String(patientId)) return false;
+            try {
+                const { data } = await api.get(`/patients/${patientId}/dossier`);
+                const history = data.historique_medical || [];
+                if (history.length < expected) continue;
+                medicalHistory.value = history;
+                if (data.resume_clinique) {
+                    patientSummary.value = {
+                        ...data.resume_clinique,
+                        flags: data.flags,
+                        is_staff: !!data.patient?.is_staff,
+                    };
+                }
+                return true;
+            } catch (err) {
+                console.warn('Relecture du dossier apres synchro impossible pour le moment:', err);
+            }
+        }
+        return false;
+    }
+
     // --- GETTERS (Inchangés) ---
     const isToxicology = computed(() => patientSummary.value?.flags?.is_toxicology || false);
     const isSpiritual = computed(() => patientSummary.value?.flags?.is_spiritual || false);
@@ -320,6 +352,7 @@ export const usePatientDossierStore = defineStore('patientDossier', () => {
         refreshMedicalHistoryLocal,
         refreshPrescriptionHistoryLocal,
         refreshVitalsSummaryLocal,
+        syncDossierFromServer,
         isToxicology,
         isSpiritual,
         isClinical,

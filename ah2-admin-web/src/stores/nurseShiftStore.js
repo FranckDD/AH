@@ -12,15 +12,21 @@ export const useNurseShiftStore = defineStore('nurseShift', () => {
     const activeNurses = ref([]);
     const isLoading = ref(false);
     const error = ref(null);
+    // true = echec reseau (aucune reponse du serveur), distinct d'une erreur applicative.
+    const offline = ref(false);
 
     async function fetchShifts(start, end) {
         isLoading.value = true;
         error.value = null;
+        offline.value = false;
         try {
             const resp = await NurseShiftGateway.fetchShifts(start, end);
             shifts.value = resp.data || [];
         } catch (err) {
             console.error('Erreur chargement planning infirmiers:', err);
+            // Ne jamais laisser croire que personne n'est assigne : l'ecran montre un etat inconnu.
+            shifts.value = [];
+            offline.value = !err.response;
             error.value = "Impossible de charger le planning.";
         } finally {
             isLoading.value = false;
@@ -52,6 +58,7 @@ export const useNurseShiftStore = defineStore('nurseShift', () => {
         activeNurses,
         isLoading,
         error,
+        offline,
         fetchShifts,
         fetchActiveNurses,
         createShift,

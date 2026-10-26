@@ -128,8 +128,8 @@ export const useMedicalRecordStore = defineStore('medicalRecord', () => {
                     id, patient_id, patient_uuid, consultation_date, motif_code, appointment_id,
                     marital_status, severity, bp, temperature, weight, height,
                     medical_history, allergies, symptoms, diagnosis, treatment, notes,
-                    needs_doctor_review, assigned_doctor_id
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                    needs_doctor_review, assigned_doctor_id, created_by, created_by_name
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                 [
                     uuid, data.patientId || null, data.patientUuid || null, data.consultationDate || null, data.motifCode, data.appointmentId || null,
                     data.maritalStatus || null, data.severity || null, data.bp || null,
@@ -137,6 +137,10 @@ export const useMedicalRecordStore = defineStore('medicalRecord', () => {
                     data.medicalHistory || null, data.allergies || null, data.symptoms || null,
                     data.diagnosis || null, data.treatment || null, data.notes || null,
                     data.needsDoctorReview ? 1 : 0, data.assignedDoctorId || null,
+                    // Auteur ecrit tout de suite (le serveur le confirme a la synchro) :
+                    // sans cela la consultation s'affichait "Inconnu" jusqu'au rechargement.
+                    authStore.user?.id ?? authStore.user?.user_id ?? null,
+                    authStore.user?.full_name || authStore.user?.username || null,
                 ]
             );
             await refreshMedicalRecordsLocal();

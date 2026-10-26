@@ -5,6 +5,7 @@ from repositories.hospitalization_repo import HospitalizationRepository
 from repositories.audit_repo import AuditRepository
 from repositories.notification_repo import NotificationRepository
 from repositories.user_repo import UserRepository
+from controller.doctor_dashboard_controller import invalidate_doctor_dashboard_cache
 
 
 class HospitalizationController:
@@ -40,6 +41,7 @@ class HospitalizationController:
     def admit(self, patient_id: int, admission_reason: Optional[str]):
         hosp = self.repo.admit(patient_id, self.user.user_id, admission_reason)
         self._log_audit("ADMIT", hosp.id, details=admission_reason)
+        invalidate_doctor_dashboard_cache()
         return hosp
 
     def add_status_update(self, hospitalization_id: int, status: str, note: Optional[str]):
@@ -77,12 +79,23 @@ class HospitalizationController:
                     type="hospitalization_aggravation",
                     payload=payload,
                 )
+            # NotificationRepository.create ne fait qu'un flush : sans ce commit
+            # explicite, les alertes disparaissent a la fermeture de la session
+            # (defaut releve par les guides 2026-10-26).
+            self.notification_repo.session.commit()
         except Exception:
-            self.logger.exception("Échec de la diffusion de l'alerte d'aggravation à l'équipe")
+            # L'evolution clinique est deja enregistree : on n'echoue pas l'action
+            # metier, mais l'echec est journalise au niveau ERROR (jamais silencieux).
+            self.logger.exception("Echec de la diffusion de l'alerte d'aggravation a l'equipe (aggravation non notifiee)")
+            try:
+                self.notification_repo.session.rollback()
+            except Exception:
+                self.logger.exception("Rollback impossible apres l'echec de l'alerte d'aggravation")
 
     def discharge(self, hospitalization_id: int, discharge_disposition: str, discharge_note: Optional[str]):
         hosp = self.repo.discharge(hospitalization_id, discharge_disposition, discharge_note, self.user.user_id)
         self._log_audit("DISCHARGE", hosp.id, details=discharge_disposition)
+        invalidate_doctor_dashboard_cache()
         return hosp
 
     def list_current(self) -> List:

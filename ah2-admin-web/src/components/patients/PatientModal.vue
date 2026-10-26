@@ -1,53 +1,53 @@
 <template>
   <!-- Panneau plein ecran sur telephone et tablette, grande fenetre centree sur PC -->
-  <FullScreenPanel :title="isEditing ? 'Modifier le patient' : 'Nouveau patient'" @close="$emit('close')">
+  <FullScreenPanel :title="isEditing ? $t('screens.patientForm.edit_title') : $t('screens.patientForm.new_title')" @close="$emit('close')">
 
     <form @submit.prevent="handleSubmit" id="patientForm" class="space-y-4">
 
       <FormSection :title="$t('patients.modal.section_identity')">
-        <FormField id="patient-first-name" label="Prénom" required v-slot="{ describedBy }">
+        <FormField id="patient-first-name" :label="$t('screens.patientForm.first_name')" required v-slot="{ describedBy }">
           <input id="patient-first-name" v-model="form.firstName" type="text" required :aria-describedby="describedBy" :class="[fieldClass, 'bg-white']" />
         </FormField>
-        <FormField id="patient-last-name" label="Nom" required v-slot="{ describedBy }">
+        <FormField id="patient-last-name" :label="$t('screens.patientForm.last_name')" required v-slot="{ describedBy }">
           <input id="patient-last-name" v-model="form.lastName" type="text" required :aria-describedby="describedBy" :class="[fieldClass, 'bg-white']" />
         </FormField>
-        <FormField id="patient-birth-date" label="Date de naissance" required v-slot="{ describedBy }">
+        <FormField id="patient-birth-date" :label="$t('screens.patientForm.birth_date')" required v-slot="{ describedBy }">
           <input id="patient-birth-date" v-model="form.birthDate" type="date" required :max="today" :aria-describedby="describedBy" :class="[fieldClass, 'bg-white']" />
         </FormField>
-        <FormField id="patient-gender" label="Genre" v-slot="{ describedBy }">
+        <FormField id="patient-gender" :label="$t('screens.patientForm.gender')" v-slot="{ describedBy }">
           <select id="patient-gender" v-model="form.gender" :aria-describedby="describedBy" :class="[fieldClass, 'bg-white']">
-            <option :value="null">Non précisé</option>
-            <option value="M">Masculin</option>
-            <option value="F">Féminin</option>
-            <option value="A">Autre</option>
+            <option :value="null">{{ $t('screens.patientForm.gender_unspecified') }}</option>
+            <option value="M">{{ $t('screens.patientForm.male') }}</option>
+            <option value="F">{{ $t('screens.patientForm.female') }}</option>
+            <option value="A">{{ $t('screens.patientForm.other') }}</option>
           </select>
         </FormField>
         <div class="md:col-span-2">
-          <FormField id="patient-national-id" label="Numéro national d'identité" v-slot="{ describedBy }">
+          <FormField id="patient-national-id" :label="$t('screens.patientForm.national_id')" v-slot="{ describedBy }">
             <input id="patient-national-id" v-model="form.nationalId" type="text" :aria-describedby="describedBy" :class="[fieldClass, 'bg-white']" />
           </FormField>
         </div>
       </FormSection>
 
       <FormSection :title="$t('patients.modal.section_contact')">
-        <FormField id="patient-phone" label="Téléphone" v-slot="{ describedBy }">
+        <FormField id="patient-phone" :label="$t('screens.patientForm.phone')" v-slot="{ describedBy }">
           <input id="patient-phone" v-model="form.contactPhone" type="tel" inputmode="tel" :aria-describedby="describedBy" :class="[fieldClass, 'bg-white']" />
         </FormField>
-        <FormField id="patient-residence" label="Résidence" v-slot="{ describedBy }">
+        <FormField id="patient-residence" :label="$t('screens.patientForm.residence')" v-slot="{ describedBy }">
           <input id="patient-residence" v-model="form.residence" type="text" :aria-describedby="describedBy" :class="[fieldClass, 'bg-white']" />
         </FormField>
         <div class="md:col-span-2">
-          <FormField id="patient-assurance" label="Assurance" v-slot="{ describedBy }">
+          <FormField id="patient-assurance" :label="$t('screens.patientForm.insurance')" v-slot="{ describedBy }">
             <input id="patient-assurance" v-model="form.assurance" type="text" :aria-describedby="describedBy" :class="[fieldClass, 'bg-white']" />
           </FormField>
         </div>
       </FormSection>
 
       <FormSection :title="$t('patients.modal.section_family')">
-        <FormField id="patient-father" label="Nom du père" v-slot="{ describedBy }">
+        <FormField id="patient-father" :label="$t('screens.patientForm.father')" v-slot="{ describedBy }">
           <input id="patient-father" v-model="form.fatherName" type="text" :aria-describedby="describedBy" :class="[fieldClass, 'bg-white']" />
         </FormField>
-        <FormField id="patient-mother" label="Nom de la mère" v-slot="{ describedBy }">
+        <FormField id="patient-mother" :label="$t('screens.patientForm.mother')" v-slot="{ describedBy }">
           <input id="patient-mother" v-model="form.motherName" type="text" :aria-describedby="describedBy" :class="[fieldClass, 'bg-white']" />
         </FormField>
       </FormSection>
@@ -63,10 +63,10 @@
     <template #footer>
       <ActionBar>
         <template #secondary>
-          <AppButton variant="ghost" :disabled="isSaving" @click="$emit('close')">Annuler</AppButton>
+          <AppButton variant="ghost" :disabled="isSaving" @click="$emit('close')">{{ $t('screens.patientForm.cancel') }}</AppButton>
         </template>
         <AppButton type="submit" form="patientForm" :disabled="isSaving || !isFormValid" :loading="isSaving">
-          {{ isEditing ? 'Enregistrer' : 'Créer' }}
+          {{ isEditing ? $t('screens.patientForm.save') : $t('screens.patientForm.create') }}
         </AppButton>
       </ActionBar>
     </template>
@@ -75,6 +75,7 @@
 </template>
 
 <script setup>
+import { todayLocalISO } from '@/utils/localDate';
 import { reactive, computed, onMounted } from 'vue';
 import { ExclamationCircleIcon } from '@heroicons/vue/20/solid';
 import { AppButton, FormField, FormSection, ActionBar, FullScreenPanel } from '@/components/ui';
@@ -91,7 +92,7 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'save']);
 const isEditing = computed(() => !!props.patientToEdit);
-const today = new Date().toISOString().split('T')[0];
+const today = todayLocalISO();
 
 const form = reactive({
   firstName: '',

@@ -2,6 +2,7 @@ import { ref } from 'vue';
 import api from '@/services/api';
 import { db } from '@/powersync-client/client';
 import { useAuthStore } from '@/stores/auth';
+import { keepsResolvedPatient } from '@/utils/newPatientFlow';
 
 // Composable partage de recherche patient par code (MedicalRecordModal,
 // ConsultationModal, PrescriptionModal). Chantier 4 sous-projet 4 :
@@ -18,6 +19,8 @@ export function usePatientLookup(getNotFoundMessage) {
 
   let pendingLookup = null;
   let pendingLookupCode = null;
+  // Identite fixee par setFromExisting (fiche, edition, patient tout juste cree hors ligne sans code).
+  let locked = false;
 
   function normalizeCode(raw) {
     const trimmed = (raw || '').trim();
@@ -45,6 +48,8 @@ export function usePatientLookup(getNotFoundMessage) {
 
   async function lookupPatient() {
     const code = normalizeCode(patientCode.value);
+    if (keepsResolvedPatient({ locked, code, lockedCode: pendingLookupCode })) return;
+    locked = false;
     if (!code) {
       patientId.value = null;
       patientUuid.value = null;
@@ -104,6 +109,7 @@ export function usePatientLookup(getNotFoundMessage) {
   // marque comme resolu - ensureLookup() ne relance PAS de recherche pour ce
   // meme code (hors ligne, cette recherche echouait et effacait le patient).
   function setFromExisting({ patientId: pid, patientUuid: puuid, code, firstName, lastName }) {
+    locked = true;
     patientId.value = pid || null;
     patientUuid.value = pid ? null : (puuid || null);
     patientCode.value = code || '';

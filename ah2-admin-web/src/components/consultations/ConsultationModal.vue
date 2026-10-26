@@ -122,6 +122,7 @@
 </template>
 
 <script setup>
+import { notifyText } from '@/utils/notify';
 import { ref, reactive, computed, onMounted, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { usePatientLookup } from '@/composables/usePatientLookup.js';
@@ -205,11 +206,11 @@ async function handleSubmit() {
   await ensureLookup();
 
   if (!patientId.value) {
-    alert(t('consultations.modal.patient_not_found'));
+    notifyText(t('consultations.modal.patient_not_found'));
     return;
   }
   if (!form.typeConsultation) {
-    alert(t('consultations.modal.type_required'));
+    notifyText(t('consultations.modal.type_required'));
     return;
   }
 

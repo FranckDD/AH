@@ -7,14 +7,14 @@
         <div class="bg-white p-4 rounded-card border border-tone-neutral-border shadow-card">
             <div class="flex justify-between items-start gap-3 mb-2">
                 <div class="min-w-0">
-                    <h4 class="font-bold text-ink text-lg">{{ record.diagnosis || 'Consultation Générale' }}</h4>
+                    <h4 class="font-bold text-ink text-lg">{{ record.diagnosis || t('screens.record.default_diagnosis') }}</h4>
                     <p class="text-base text-ink-muted">
-                        {{ formatDate(record.consultation_date) }} • {{ authorLabel(record) }}
+                        {{ formatDate(record.consultation_date) }} - {{ authorLabel(record) }}
                     </p>
                     <p v-if="record.needs_doctor_review" class="mt-1">
                         <StatusBadge
                             :tone="record.reviewed_at ? 'success' : 'warning'"
-                            :label="record.reviewed_at ? 'Pris en charge' : (record.assigned_doctor_id ? 'À transmettre (assigné)' : 'À transmettre (file d\'attente)')"
+                            :label="record.reviewed_at ? t('screens.record.taken_over') : (record.assigned_doctor_id ? t('screens.record.to_forward_assigned') : t('screens.record.to_forward_queue'))"
                         />
                     </p>
                     <p v-if="!editable(record)" class="mt-1">
@@ -28,50 +28,50 @@
 
             <div class="grid grid-cols-3 gap-2 mb-3 bg-tone-neutral-bg p-2 rounded-control text-sm">
                 <div class="text-center">
-                    <span class="block text-ink-muted">Tension</span>
+                    <span class="block text-ink-muted">{{ t('screens.record.bp') }}</span>
                     <span class="font-bold text-ink">{{ record.bp || '-' }}</span>
                 </div>
                 <div class="text-center border-l border-tone-neutral-border">
-                    <span class="block text-ink-muted">Poids</span>
+                    <span class="block text-ink-muted">{{ t('screens.record.weight') }}</span>
                     <span class="font-bold text-ink">{{ record.weight ? record.weight + ' kg' : '-' }}</span>
                 </div>
                 <div class="text-center border-l border-tone-neutral-border">
-                    <span class="block text-ink-muted">Temp</span>
+                    <span class="block text-ink-muted">{{ t('screens.record.temp') }}</span>
                     <span class="font-bold text-ink">{{ record.temperature ? record.temperature + '°' : '-' }}</span>
                 </div>
             </div>
 
-            <p class="text-ink text-base whitespace-pre-line">{{ record.notes || record.symptoms || 'Aucune note' }}</p>
+            <p class="text-ink text-base whitespace-pre-line">{{ record.notes || record.symptoms || t('screens.record.no_note') }}</p>
 
             <div v-if="record.allergies || record.medical_history" class="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2 text-base">
                 <div v-if="record.allergies">
-                    <p class="text-sm font-bold text-ink-muted uppercase">Allergies</p>
+                    <p class="text-sm font-bold text-ink-muted uppercase">{{ t('screens.record.allergies') }}</p>
                     <p class="text-ink">{{ record.allergies }}</p>
                 </div>
                 <div v-if="record.medical_history">
-                    <p class="text-sm font-bold text-ink-muted uppercase">Antécédents</p>
+                    <p class="text-sm font-bold text-ink-muted uppercase">{{ t('screens.record.history') }}</p>
                     <p class="text-ink">{{ record.medical_history }}</p>
                 </div>
             </div>
 
             <div v-if="record.treatment" class="mt-3 pt-3 border-t border-tone-neutral-border">
-                <p class="text-sm font-bold text-ink-muted uppercase">Traitement prescrit</p>
+                <p class="text-sm font-bold text-ink-muted uppercase">{{ t('screens.record.treatment') }}</p>
                 <p class="text-base text-ink">{{ record.treatment }}</p>
             </div>
 
             <div v-if="canManage && editable(record)" class="mt-3 pt-3 border-t border-tone-neutral-border flex flex-col gap-2 sm:flex-row">
                 <AppButton variant="secondary" @click="$emit('edit', record)">
-                    Modifier
+                    {{ t('screens.record.edit') }}
                 </AppButton>
                 <AppButton variant="pharma" @click="$emit('prescribe', record)">
-                    Prescrire
+                    {{ t('screens.record.prescribe') }}
                 </AppButton>
             </div>
         </div>
     </div>
 
     <div v-if="records.length === 0" class="text-ink-muted text-base pl-2">
-        Aucun historique médical disponible.
+        {{ t('screens.record.none') }}
     </div>
 
   </div>
@@ -80,6 +80,7 @@
 <script setup>
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { formatDateDMY } from '@/utils/localDate';
 import { useAuthStore } from '@/stores/auth';
 import { isRecordEditable } from '@/utils/consultationLock';
 import { AppButton, StatusBadge } from '@/components/ui';
@@ -103,12 +104,7 @@ const editable = (record) => isRecordEditable(record, props.records, { samePatie
 // trompeur. On ne connait pas ici le role exact de l'auteur (pas
 // disponible sur ce record), donc on affiche juste le nom, sans titre
 // invente.
-const authorLabel = (record) => record.created_by_name || 'Inconnu';
+const authorLabel = (record) => record.created_by_name || t('screens.record.unknown_author');
 
-const formatDate = (dateString) => {
-    if (!dateString) return '';
-    return new Date(dateString).toLocaleDateString('fr-FR', {
-        year: 'numeric', month: 'long', day: 'numeric'
-    });
-};
+const formatDate = formatDateDMY;
 </script>

@@ -4,6 +4,7 @@
     :bell-roles="['medecin', 'nurse']"
     brand-fallback="AH2 Médical"
     sidebar-id="medical-sidebar"
+    :palette="paletteForRole(authStore.userRole)"
   />
 </template>
 
@@ -12,6 +13,8 @@
 // role ici, contrairement a MainLayout.vue : ce cadre n'est jamais charge par un autre role (garde deja faite
 // par le routeur, meta.roles). Tout le gabarit (menu, barre du haut, tiroir) vit dans AppShell.vue.
 import AppShell from '@/components/layout/AppShell.vue';
+import { useAuthStore } from '@/stores/auth';
+import { paletteForRole } from '@/design/navPalettes';
 import {
   CalendarIcon,
   CalendarDaysIcon,
@@ -23,6 +26,8 @@ import {
   ExclamationTriangleIcon,
   BuildingOffice2Icon
 } from '@heroicons/vue/24/outline';
+
+const authStore = useAuthStore();
 
 // Intertitres de la refonte UX : activity / medical / followup.
 const menuGroups = [

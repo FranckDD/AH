@@ -21,13 +21,13 @@ function check(name, src, needles) {
 }
 
 check('ConsultationsList', list, [
-    'consultationStore.fetchConsultations()', '@keyup.enter="consultationStore.fetchConsultations()"', 'v-model.lazy="searchQuery"',
-    'consultationStore.setFilters({ search: val })', 'consultationStore.filters.search',
+    'consultationStore.fetchConsultations()', 'v-model="searchInput"', '@input="onSearchInput"', '@keyup.enter="searchNow"', 'setTimeout(() => {', '}, 300);',
+    'consultationStore.setFilters({ search: searchInput.value })', 'consultationStore.filters.search',
     'consultationStore.setPage(consultationStore.pagination.page - 1)', 'consultationStore.setPage(consultationStore.pagination.page + 1)',
     ':disabled="consultationStore.pagination.page === 1"', ':disabled="!consultationStore.hasNextPage"',
     'consultationStore.updateConsultation(editingConsultation.value.consultation_id, data)',
     'consultationStore.createConsultation(data)', 'consultationStore.deleteConsultation(rec.consultation_id)',
-    "confirm(t('consultations.confirm_delete'))", 'alert(err.response?.data?.detail || err.message)',
+    "confirm(t('consultations.confirm_delete'))", 'notifyText(err.response?.data?.detail || err.message)',
     "api.get('/cs/export'", "responseType: format === 'pdf' ? 'blob' : 'text'", 'format,', 'search: consultationStore.filters.search || undefined',
     'date_from: dateFrom || undefined', 'date_to: dateTo || undefined', '`consultations_export.${format}`',
     "rec.type_consultation === 'Spiritual'", 'rec.patient_name || `#${rec.patient_id}`', 'rec.patient_code',
@@ -49,7 +49,7 @@ check('ConsultationModal (champs et règles)', modal, [
     "v-if=\"form.typeConsultation === 'Spiritual'\"", "v-else-if=\"form.typeConsultation === 'FamilyRestoration'\"",
     'consultationStore.fetchPrayerBookTypes()', 'v-for="pbt in consultationStore.prayerBookTypes"', 'pbt.label || pbt.type_code',
     'let isInitializing = true;', 'if (isInitializing) return;', "form.frRegisteredAt = '';", "form.mpType = '';", 'form.prescGeneric = [];',
-    'await ensureLookup();', "alert(t('consultations.modal.patient_not_found'))", "alert(t('consultations.modal.type_required'))",
+    'await ensureLookup();', "notifyText(t('consultations.modal.patient_not_found'))", "notifyText(t('consultations.modal.type_required'))",
     "emit('save', {", 'patientId: patientId.value', 'typeConsultation: form.typeConsultation', 'prescGeneric: form.prescGeneric',
     'prescMedSpirituel: form.prescMedSpirituel', 'mpType: form.mpType || null', 'psaume: form.psaume || null', 'notes: form.notes || null',
     'frRegisteredAt: form.frRegisteredAt || null', 'frAppointmentAt: form.frAppointmentAt || null',

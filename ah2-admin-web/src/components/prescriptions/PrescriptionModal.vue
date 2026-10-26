@@ -52,7 +52,7 @@
                 type="text"
                 required
                 :aria-describedby="describedBy"
-                placeholder="Ex: Paracétamol 1000mg"
+                :placeholder="t('screens.misc.ph_drug')"
                 :class="[fieldClass, 'bg-white']"
               />
             </FormField>
@@ -77,7 +77,7 @@
               type="text"
               required
               :aria-describedby="describedBy"
-              placeholder="Ex: 3x / jour"
+              :placeholder="t('screens.misc.ph_dosage')"
               :class="[fieldClass, 'bg-white']"
             />
           </FormField>
@@ -89,7 +89,7 @@
               type="text"
               required
               :aria-describedby="describedBy"
-              placeholder="Ex: 7 jours"
+              :placeholder="t('screens.misc.ph_duration')"
               :class="[fieldClass, 'bg-white']"
             />
           </FormField>
@@ -176,6 +176,8 @@
 </template>
 
 <script setup>
+import { todayLocalISO } from '@/utils/localDate';
+import { notifyText } from '@/utils/notify';
 import { reactive, ref, computed, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { usePrescriptionStore } from '@/stores/prescriptionStore';
@@ -223,7 +225,7 @@ const {
 const examFilter = ref('');
 const medicalRecordId = ref(null);
 
-const today = new Date().toISOString().substring(0, 10);
+const today = todayLocalISO();
 
 const form = reactive({
   isLabOrder: false,
@@ -282,22 +284,22 @@ async function handleSubmit() {
   await ensureLookup();
 
   if (!patientId.value && !patientUuid.value) {
-    alert(t('prescriptions.modal.patient_not_found'));
+    notifyText(t('prescriptions.modal.patient_not_found'));
     return;
   }
 
   if (!form.isLabOrder && !form.medication.trim()) {
-    alert(t('prescriptions.modal.medication_required'));
+    notifyText(t('prescriptions.modal.medication_required'));
     return;
   }
 
   if (form.isLabOrder && form.labExamsList.length === 0) {
-    alert(t('prescriptions.modal.exams_required'));
+    notifyText(t('prescriptions.modal.exams_required'));
     return;
   }
 
   if (!form.isLabOrder && form.endDate && form.startDate > form.endDate) {
-    alert(t('prescriptions.modal.date_order_error'));
+    notifyText(t('prescriptions.modal.date_order_error'));
     return;
   }
 

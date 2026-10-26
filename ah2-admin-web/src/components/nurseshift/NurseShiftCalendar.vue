@@ -74,8 +74,8 @@
             <li v-for="name in day.nursesByShift[st]" :key="name" class="text-base font-medium text-ink">{{ name }}</li>
           </ul>
           <p v-else class="text-base text-ink-muted">
-            <span aria-hidden="true">-</span>
-            <span class="sr-only">{{ t('nurseShift.no_assignment') }}</span>
+            <span aria-hidden="true">{{ unavailable ? '?' : '-' }}</span>
+            <span class="sr-only">{{ unavailable ? t('nurseShift.state_unknown') : t('nurseShift.no_assignment') }}</span>
           </p>
         </div>
       </button>
@@ -115,10 +115,10 @@
 
           <!-- Tablette et PC : une ligne par rotation -->
           <div class="hidden space-y-0.5 md:block">
-            <div v-for="st in SHIFT_TYPES" :key="st" class="truncate text-sm leading-tight">
+            <div v-for="st in SHIFT_TYPES" :key="st" class="break-words text-sm leading-tight">
               <span class="text-ink-muted">{{ t(`nurseShift.shift.${st}`) }}:</span>
               <span v-if="day.nursesByShift[st].length" class="text-ink"> {{ day.nursesByShift[st].join(', ') }}</span>
-              <span v-else class="text-ink-muted"> -</span>
+              <span v-else class="text-ink-muted"> {{ unavailable ? '?' : '-' }}</span>
             </div>
           </div>
         </button>
@@ -145,6 +145,11 @@ const props = defineProps({
   shifts: {
     type: Array,
     default: () => [],
+  },
+  // Chargement impossible (hors ligne, erreur) : jamais "aucun infirmier", un etat inconnu.
+  unavailable: {
+    type: Boolean,
+    default: false,
   },
 });
 

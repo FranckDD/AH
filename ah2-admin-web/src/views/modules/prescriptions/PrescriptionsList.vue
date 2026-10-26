@@ -147,6 +147,7 @@
 </template>
 
 <script setup>
+import { notify } from '@/utils/notify';
 import { ref, computed, onMounted } from 'vue';
 import { usePrescriptionStore } from '@/stores/prescriptionStore';
 import { useI18n } from 'vue-i18n';
@@ -250,7 +251,7 @@ async function handleSave(data) {
     closeModal();
   } catch (err) {
     console.error('Erreur enregistrement prescription:', err);
-    alert('Erreur lors de l\'enregistrement : ' + (err.response?.data?.detail || err.message));
+    notify('alerts.save_failed', { detail: err.response?.data?.detail || err.message });
   }
 }
 
@@ -260,7 +261,7 @@ async function handleDelete(presc) {
     await prescriptionStore.deletePrescription(presc.prescription_id);
   } catch (err) {
     console.error('Erreur suppression prescription:', err);
-    alert('Erreur lors de la suppression : ' + (err.response?.data?.detail || err.message));
+    notify('alerts.delete_failed', { detail: err.response?.data?.detail || err.message });
   }
 }
 </script>

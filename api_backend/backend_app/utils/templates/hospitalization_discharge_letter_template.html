@@ -2,21 +2,26 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Lettre de sortie — {{ stay.patient_name }}</title>
+    <title>Lettre de sortie - {{ stay.patient_name }}</title>
     <style>
-        @page { size: A4; margin: 2cm; @bottom-right { content: "Page " counter(page) " sur " counter(pages); font-size: 9pt; color: #666; } }
-        body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333; font-size: 11pt; line-height: 1.5; }
+        @page { size: A4; margin: 1.5cm 1.8cm; @bottom-right { content: "Page " counter(page) " sur " counter(pages); font-size: 9pt; color: #666; } }
+        body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333; font-size: 10.5pt; line-height: 1.4; }
         /* .header/.hospital-info/.logo/.logo-container : voir _pdf_header.html */
-        .doc-title { text-align: center; font-size: 16pt; font-weight: bold; margin-bottom: 20px; text-transform: uppercase; color: #2c3e50; }
-        .meta-row { display: flex; justify-content: space-between; background-color: #f8f9fa; border: 1px solid #e9ecef; padding: 15px; border-radius: 5px; margin-bottom: 20px; }
-        .section-title { font-size: 12pt; font-weight: bold; color: #2c3e50; margin: 20px 0 8px; border-bottom: 1px solid #ddd; padding-bottom: 4px; }
+        .doc-title { text-align: center; font-size: 15pt; font-weight: bold; margin: 8px 0 12px; text-transform: uppercase; color: #2c3e50; }
+        .meta-row { display: flex; justify-content: space-between; background-color: #f8f9fa; border: 1px solid #e9ecef; padding: 10px 14px; border-radius: 5px; margin-bottom: 12px; }
+        .meta-row p { margin: 2px 0; }
+        .section-title { font-size: 12pt; font-weight: bold; color: #2c3e50; margin: 12px 0 6px; border-bottom: 1px solid #ddd; padding-bottom: 4px; }
         table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
-        th { background-color: #2c3e50; color: white; text-align: left; padding: 8px; font-size: 10pt; }
-        td { padding: 8px; border-bottom: 1px solid #ddd; font-size: 10pt; vertical-align: top; }
+        th { background-color: #2c3e50; color: white; text-align: left; padding: 6px 8px; font-size: 10pt; }
+        td { padding: 6px 8px; border-bottom: 1px solid #ddd; font-size: 10pt; vertical-align: top; }
         .status-AMELIORATION { color: #1e7e34; font-weight: bold; }
         .status-STABLE { color: #555; font-weight: bold; }
         .status-AGGRAVATION { color: #d9534f; font-weight: bold; }
-        .disposition-box { margin-top: 10px; padding: 12px; border: 1px solid #e9ecef; border-radius: 5px; background-color: #f8f9fa; }
+        .disposition-box p { margin: 3px 0; }
+        /* Signature plus compacte que le gabarit partage : tient sur la page 1 d'un sejour court. */
+        .sig-block { margin-top: 14px !important; }
+        .sig-space { height: 1.2cm !important; }
+        .disposition-box { margin-top: 6px; padding: 10px; border: 1px solid #e9ecef; border-radius: 5px; background-color: #f8f9fa; }
     </style>
 </head>
 <body>
@@ -33,7 +38,7 @@
         </div>
         <div>
             <p><strong>Sorti le :</strong> {{ stay.discharged_at }}</p>
-            <p><strong>Durée du séjour :</strong> {{ stay.duration_days }} jour(s)</p>
+            <p><strong>Durée du séjour :</strong> {{ stay.duration_label }}</p>
             <p><strong>Document édité le :</strong> {{ date_impression }}</p>
         </div>
     </div>

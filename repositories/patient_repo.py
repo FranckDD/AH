@@ -339,6 +339,22 @@ class PatientRepository:
             ).scalar(),
         }
 
+    def compute_domain_flags_bulk(self, patient_ids) -> Dict[int, Dict[str, bool]]:
+        """Meme regle que compute_domain_flags pour une liste de patients, en
+        3 requetes (jamais une par ligne). Utilise par les listes : le type
+        affiche (CLINIQUE/TOXICO/...) doit venir de l'existence reelle de
+        dossiers, pas des colonnes stockees obsoletes."""
+        ids = [i for i in patient_ids if i is not None]
+        flags = {i: {"is_clinical": False, "is_toxicology": False, "is_spiritual": False} for i in ids}
+        if not ids:
+            return flags
+        for model, key in ((MedicalRecord, "is_clinical"), (Hospitalization, "is_clinical"),
+                           (ToxicoDossier, "is_toxicology"), (ConsultationSpirituel, "is_spiritual")):
+            rows = self.session.query(model.patient_id).filter(model.patient_id.in_(ids)).distinct().all()
+            for (pid,) in rows:
+                flags[pid][key] = True
+        return flags
+
     def list_patients(self, page: int = 1, per_page: int = 10, search: Optional[str] = None, filters: Dict[str, bool] = None):
         # Filtre de base : Non supprimés
         query = self.session.query(Patient).filter(Patient.is_deleted == False)
@@ -371,7 +387,7 @@ class PatientRepository:
         # dont depend deja la pagination des trois onglets typees.
         total_count = query.count()
 
-        query = query.order_by(Patient.last_updated_at.desc())
+        query = query.order_by(Patient.created_at.desc(), Patient.patient_id.desc())
         items = query.offset((page - 1) * per_page).limit(per_page).all()
 
         return {
@@ -467,7 +483,7 @@ class PatientRepository:
         total_count = query.count()
 
         # 4. Pagination
-        query = query.order_by(Patient.last_updated_at.desc())
+        query = query.order_by(Patient.created_at.desc(), Patient.patient_id.desc())
         items = query.offset((page - 1) * per_page).limit(per_page).all()
 
         return {

@@ -13,6 +13,7 @@
       </button>
     </div>
 
+    <p v-if="canManage" class="px-4 pt-3 text-sm text-ink-muted">{{ t('nurseShift.rest_after_night_hint') }}</p>
     <p v-if="!canManage" class="px-4 pt-3 text-base text-ink-muted">{{ t('nurseShift.read_only_note') }}</p>
 
     <div class="space-y-5 p-4">
@@ -20,7 +21,7 @@
         <h4 class="mb-2 text-base font-semibold text-ink">{{ t(`nurseShift.shift.${st}`) }}</h4>
 
         <p v-if="shiftsFor(st).length === 0" class="mb-2 text-base text-ink-muted">
-          {{ t('nurseShift.no_assignment') }}
+          {{ unavailable ? t('nurseShift.state_unknown') : t('nurseShift.no_assignment') }}
         </p>
         <div v-for="s in shiftsFor(st)" :key="s.id" class="flex items-center justify-between gap-2 py-1 text-base text-ink">
           <span>{{ s.nurse_name }}</span>
@@ -79,6 +80,20 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  // Creneaux de la veille et du lendemain (repos obligatoire apres une nuit).
+  previousDayShifts: {
+    type: Array,
+    default: () => [],
+  },
+  nextDayShifts: {
+    type: Array,
+    default: () => [],
+  },
+  // Planning non charge (hors ligne, erreur) : etat inconnu, pas "aucun infirmier".
+  unavailable: {
+    type: Boolean,
+    default: false,
+  },
 });
 
 const emit = defineEmits(['close', 'add', 'remove']);
@@ -91,9 +106,22 @@ function shiftsFor(shiftType) {
   return props.shifts.filter((s) => s.shift_type === shiftType);
 }
 
+// Regle serveur : MATIN + APRES_MIDI permis le meme jour, NUIT exclusive. Plusieurs
+// infirmiers par creneau possibles (aucune limite).
 function unassignedNursesFor(shiftType) {
-  const assignedIds = new Set(shiftsFor(shiftType).map((s) => s.nurse_id));
-  return props.availableNurses.filter((n) => !assignedIds.has(n.user_id));
+  const sameShift = new Set(shiftsFor(shiftType).map((s) => s.nurse_id));
+  return props.availableNurses.filter((n) => {
+    if (sameShift.has(n.user_id)) return false;
+    const mine = props.shifts.filter((s) => s.nurse_id === n.user_id).map((s) => s.shift_type);
+    if (shiftType === 'NUIT') {
+      // Pas de nuit si deja un creneau ce jour, ni si de matin le lendemain.
+      return mine.length === 0 && !props.nextDayShifts.some((s) => s.nurse_id === n.user_id && s.shift_type === 'MATIN');
+    }
+    if (mine.includes('NUIT')) return false;
+    // Pas de matin si de nuit la veille.
+    if (shiftType === 'MATIN') return !props.previousDayShifts.some((s) => s.nurse_id === n.user_id && s.shift_type === 'NUIT');
+    return true;
+  });
 }
 
 function handleAdd(shiftType) {

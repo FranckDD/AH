@@ -182,3 +182,31 @@ def test_assign_and_remove_write_audit_entries(db_session, api_client):
     actions = {e.action_performed for e in entries}
     assert "ASSIGN" in actions
     assert "REMOVE" in actions
+
+
+def _post(client, headers, nurse_id, day, shift):
+    return client.post("/nurse-shifts/", json={"shift_date": day, "shift_type": shift, "nurse_id": nurse_id}, headers=headers)
+
+
+def test_conflicts_return_409_with_stable_code_and_french_message(db_session, api_client):
+    """Le frontend traduit le code (FR/EN) ; le message francais sert de repli."""
+    create_test_user(db_session, "nsh_ep_medecin_code", "medecin", password=TEST_PASSWORD)
+    nurse = create_test_user(db_session, "nsh_ep_nurse_code", "nurse", password=TEST_PASSWORD)
+    client = _client(api_client)
+    headers = auth_headers(client, "nsh_ep_medecin_code", TEST_PASSWORD)
+
+    assert _post(client, headers, nurse.user_id, "2026-10-20", "NUIT").status_code == 201
+
+    dup = _post(client, headers, nurse.user_id, "2026-10-20", "NUIT")
+    assert dup.status_code == 409
+    assert dup.json()["detail"]["code"] == "shift_already_assigned"
+
+    excl = _post(client, headers, nurse.user_id, "2026-10-20", "MATIN")
+    assert excl.status_code == 409
+    assert excl.json()["detail"]["code"] == "shift_night_exclusive"
+    assert "nuit" in excl.json()["detail"]["message"]
+
+    rest = _post(client, headers, nurse.user_id, "2026-10-21", "MATIN")
+    assert rest.status_code == 409
+    assert rest.json()["detail"]["code"] == "shift_rest_after_night"
+    assert "repos obligatoire" in rest.json()["detail"]["message"]

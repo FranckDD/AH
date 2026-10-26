@@ -148,6 +148,7 @@
 </template>
 
 <script setup>
+import { notify } from '@/utils/notify';
 import { ref, computed, onMounted } from 'vue';
 import { useMedicalRecordStore } from '@/stores/medicalRecordStore';
 import { useI18n } from 'vue-i18n';
@@ -265,7 +266,7 @@ async function handleSave(data) {
     closeModal();
   } catch (err) {
     console.error('Erreur enregistrement dossier medical:', err);
-    alert('Erreur lors de l\'enregistrement : ' + (err.response?.data?.detail || err.message));
+    notify('alerts.save_failed', { detail: err.response?.data?.detail || err.message });
   }
 }
 
@@ -275,7 +276,7 @@ async function handleDelete(rec) {
     await medicalRecordStore.deleteMedicalRecord(rec.record_id);
   } catch (err) {
     console.error('Erreur suppression dossier medical:', err);
-    alert('Erreur lors de la suppression : ' + (err.response?.data?.detail || err.message));
+    notify('alerts.delete_failed', { detail: err.response?.data?.detail || err.message });
   }
 }
 </script>

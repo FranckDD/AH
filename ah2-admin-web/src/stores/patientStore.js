@@ -28,6 +28,7 @@ export const usePatientStore = defineStore('patient', () => {
     
     const isLoading = ref(false);
     const error = ref(null);
+    const countsFailed = ref(false); // compteurs non charges : afficher "-", jamais 0
 
     // Filtres
     const filters = ref({
@@ -74,14 +75,18 @@ export const usePatientStore = defineStore('patient', () => {
     async function localPatientList() {
         const search = (filters.value.search || '').trim();
         const like = `%${search}%`;
+        // n_records : nombre de consultations locales du patient (le type est calcule a partir
+        // des dossiers, jamais choisi). Plus recents d'abord (patient_id croissant avec la creation).
+        const base = `SELECT l.*, (SELECT COUNT(*) FROM medical_records m WHERE m.patient_id = l.patient_id) AS n_records
+                      FROM patients_lookup l`;
         const rows = search
             ? await db.getAll(
-                `SELECT * FROM patients_lookup
-                 WHERE code_patient LIKE ? OR first_name LIKE ? OR last_name LIKE ?
-                 ORDER BY last_name LIMIT 200`,
+                `${base}
+                 WHERE l.code_patient LIKE ? OR l.first_name LIKE ? OR l.last_name LIKE ?
+                 ORDER BY l.patient_id DESC LIMIT 200`,
                 [like, like, like]
             )
-            : await db.getAll('SELECT * FROM patients_lookup ORDER BY last_name LIMIT 200');
+            : await db.getAll(`${base} ORDER BY l.patient_id DESC LIMIT 200`);
         return rows.map((p) => ({
             id: p.patient_id,
             code: p.code_patient,
@@ -89,13 +94,17 @@ export const usePatientStore = defineStore('patient', () => {
             lastName: p.last_name,
             admissionDate: null,
             phone: p.contact_phone,
-            type: 'AUTRE',
-            flags: { is_clinical: false, is_toxicology: false, is_spiritual: false },
+            type: p.n_records > 0 ? 'CLINIQUE' : 'AUTRE',
+            flags: { is_clinical: p.n_records > 0, is_toxicology: false, is_spiritual: false },
         }));
     }
 
     // 1. Récupérer les patients (Liste paginée)
+    // Recherche en direct : plusieurs requetes peuvent se croiser, seule la
+    // derniere lancee a le droit d'ecrire la liste (reponses perimees ignorees).
+    let fetchSeq = 0;
     async function fetchPatients() {
+        const seq = ++fetchSeq;
         isLoading.value = true;
         error.value = null;
 
@@ -116,6 +125,7 @@ export const usePatientStore = defineStore('patient', () => {
             else if (filters.value.type === 'SPIRITUEL') endpoint = '/patients/spiritual/list'; 
 
             const response = await api.get(endpoint, { params });
+            if (seq !== fetchSeq) return;
             const resData = response.data;
 
             // Gestion réponse (structure paginée vs liste brute)
@@ -158,6 +168,7 @@ export const usePatientStore = defineStore('patient', () => {
             }
 
         } catch (err) {
+            if (seq !== fetchSeq) return;
             const authStore = useAuthStore();
             if (!err.response && authStore.hasRole(LOCAL_ROLES)) {
                 console.warn('Patients hors ligne - secours sur les tables locales PowerSync:', err);
@@ -167,12 +178,12 @@ export const usePatientStore = defineStore('patient', () => {
                 patientData.value.total_pages = 1;
             } else {
                 console.error("Erreur fetchPatients:", err);
-                error.value = "Erreur de connexion au serveur.";
+                error.value = 'load_failed';
                 patientData.value.data = [];
                 patientData.value.total = 0;
             }
         } finally {
-            isLoading.value = false;
+            if (seq === fetchSeq) isLoading.value = false;
         }
     }
 
@@ -182,8 +193,10 @@ export const usePatientStore = defineStore('patient', () => {
             // Appelle le nouvel endpoint backend
             const response = await api.get('/patients/counts/global');
             globalCounts.value = response.data;
+            countsFailed.value = false;
         } catch (err) {
             console.error("Erreur chargement des compteurs:", err);
+            countsFailed.value = true;
             // On ne bloque pas l'UI, on laisse les compteurs à 0 ou valeurs précédentes
         }
     }
@@ -316,6 +329,7 @@ export const usePatientStore = defineStore('patient', () => {
 
     // 🟢 GETTER MIS À JOUR : Utilise maintenant les vrais compteurs DB
     const counts = computed(() => {
+        if (countsFailed.value) return { ALL: '-', CLINIQUE: '-', TOXICO: '-', SPIRITUEL: '-' };
         return {
             ALL: globalCounts.value.total_all, 
             CLINIQUE: globalCounts.value.total_clinical,
@@ -325,7 +339,7 @@ export const usePatientStore = defineStore('patient', () => {
     });
 
     return {
-        patients, isLoading, error, pagination, filters,
+        patients, isLoading, error, countsFailed, pagination, filters,
         counts, globalCounts,
         fetchPatients, fetchCounts, addPatient, updatePatient, deletePatient, getPatientById, setPage, setFilters
     };

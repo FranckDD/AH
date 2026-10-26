@@ -23,8 +23,10 @@
       <AppCard :title="t('doctorKpi.pending_review_title')" :subtitle="t('doctorKpi.queue_help')">
         <p v-if="kpiStore.claimError" role="alert" class="mb-3 text-base font-medium text-tone-danger-text">{{ kpiStore.claimError }}</p>
 
+        <LoadErrorState v-if="blocks.queueState === 'error'" compact @retry="kpiStore.fetchPendingReview()" />
+
         <EmptyState
-          v-if="blocks.queueState === 'empty'"
+          v-else-if="blocks.queueState === 'empty'"
           :title="t('doctorKpi.pending_review_empty')"
           :message="t('doctorKpi.queue_empty_help')"
         />
@@ -154,7 +156,7 @@ import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import { useDoctorKpiStore } from '@/stores/doctorKpiStore';
 import { useAuthStore } from '@/stores/auth';
-import { AppButton, AppCard, PageHeader, StatusBadge, EmptyState, FormField } from '@/components/ui';
+import { AppButton, AppCard, PageHeader, StatusBadge, EmptyState, FormField, LoadErrorState } from '@/components/ui';
 import { toneClasses } from '@/design/tones';
 import { dashboardBlocks, waitingSince, waitingTone } from '@/utils/doctorDashboardLayout';
 import {
@@ -179,6 +181,7 @@ const blocks = computed(() => dashboardBlocks({
   role: authStore.userRole,
   pendingCount: kpiStore.pendingReview.length,
   error: kpiStore.error,
+  pendingFailed: kpiStore.pendingFailed,
 }));
 
 const tileDefs = computed(() => ({

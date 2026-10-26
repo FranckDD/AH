@@ -13,6 +13,19 @@ redis_client = redis.Redis.from_url(REDIS_URL, decode_responses=True)
 logger = logging.getLogger(__name__)
 
 
+def invalidate_doctor_dashboard_cache() -> None:
+    """Vide tous les caches KPI du tableau de bord medecin (cle par medecin
+    et par plage). Appele a chaque admission/sortie : sans cela, le compteur
+    de sejours en cours restait fige jusqu'a 300 s (defaut releve par les
+    guides 2026-10-26). Fail-open : Redis indisponible ne bloque rien."""
+    try:
+        keys = list(redis_client.scan_iter(match="doctor_dashboard:kpi:*", count=200))
+        if keys:
+            redis_client.delete(*keys)
+    except Exception:
+        logger.warning("Invalidation du cache du tableau de bord medecin impossible", exc_info=True)
+
+
 class DoctorDashboardController:
     """Composition pure : agrege les KPI deja exposes par les
     controllers RDV/dossiers medicaux/prescriptions/hospitalisations en

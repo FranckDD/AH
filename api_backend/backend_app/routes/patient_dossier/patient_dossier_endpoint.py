@@ -1,3 +1,4 @@
+import logging
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -27,6 +28,9 @@ from repositories.prescription_repo import PrescriptionRepository
 from repositories.lab_repo import LabRepository
 from repositories.cs_repo import ConsultationSpirituelRepository
 from repositories.toxico_repo import ToxicoRepository
+from repositories.hospitalization_repo import HospitalizationRepository
+
+logger = logging.getLogger(__name__)
 
 # Routeur separe de patients_endpoints.py : ce dernier porte une
 # dependance de ROUTEUR (role_required(...)) qui s'ET-erait avec toute
@@ -133,6 +137,19 @@ def export_patient_dossier(
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
+    # Sejours hospitaliers : meme perimetre que les routes /hospitalizations
+    # (soignants cliniques + admin + promoteur), jamais pour les autres roles
+    # autorises a exporter (toxico, spirituel, labo, assistant).
+    roles = set(getattr(ctrl.current_user, "roles", []) or [])
+    hospitalisations = None
+    if roles & {"medecin", "nurse", "admin", "promoteur"}:
+        try:
+            hospitalisations = HospitalizationRepository(db).get_stays_for_export(patient_id)
+        except Exception:
+            logger.exception("Sejours hospitaliers non ajoutes a l'export du dossier %s", patient_id)
+            db.rollback()
+    dossier["hospitalisations"] = hospitalisations
+
     if format == "excel":
         excel_bytes = build_dossier_excel(dossier)
         return Response(
@@ -152,6 +169,7 @@ def export_patient_dossier(
         "historique_labo": dossier.get("historique_labo"),
         "dossier_toxico": dossier.get("dossier_toxico"),
         "historique_spirituel": dossier.get("historique_spirituel"),
+        "hospitalisations": dossier.get("hospitalisations"),
         "date_impression": datetime.now().strftime("%d/%m/%Y à %H:%M"),
     })
     return Response(

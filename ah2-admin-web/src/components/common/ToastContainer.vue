@@ -5,11 +5,10 @@
         v-for="toast in toastStore.toasts"
         :key="toast.id"
         class="pointer-events-auto max-w-sm w-full rounded-xl shadow-lg border px-4 py-3 flex items-start gap-3"
-        :class="toast.type === 'error'
-          ? 'bg-red-50 border-red-200 text-red-800'
-          : 'bg-amber-50 border-amber-200 text-amber-800'"
+        :class="toneClasses(toast.type === 'success' ? 'success' : toast.type === 'error' ? 'danger' : 'warning')"
       >
-        <ExclamationTriangleIcon class="h-5 w-5 shrink-0 mt-0.5" />
+        <CheckCircleIcon v-if="toast.type === 'success'" class="h-5 w-5 shrink-0 mt-0.5" aria-hidden="true" />
+        <ExclamationTriangleIcon v-else class="h-5 w-5 shrink-0 mt-0.5" aria-hidden="true" />
         <p class="text-sm flex-1">{{ toast.message }}</p>
         <button
           @click="toastStore.dismiss(toast.id)"
@@ -25,7 +24,8 @@
 
 <script setup>
 import { useToastStore } from '@/stores/toastStore';
-import { ExclamationTriangleIcon, XMarkIcon } from '@heroicons/vue/24/outline';
+import { CheckCircleIcon, ExclamationTriangleIcon, XMarkIcon } from '@heroicons/vue/24/outline';
+import { toneClasses } from '@/design/tones';
 
 const toastStore = useToastStore();
 </script>

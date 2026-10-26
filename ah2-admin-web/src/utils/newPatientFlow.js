@@ -88,3 +88,10 @@ export function quarantineReason(errorText) {
     }
     return text;
 }
+
+// Recherche par code : si l'identite du patient a ete fixee par l'appelant (setFromExisting) et que le code n'a
+// pas ete modifie, on la garde. Sans cela, le patient enregistre hors ligne (code vide, uuid seul) perdait son
+// identite au premier blur du champ code en lecture seule (defaut nurse-1, 2026-10-26).
+export function keepsResolvedPatient({ locked, code, lockedCode }) {
+    return !!locked && (code || '') === (lockedCode || '');
+}

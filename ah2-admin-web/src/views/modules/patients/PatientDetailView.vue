@@ -39,7 +39,7 @@
         <div class="min-h-[500px] overflow-hidden rounded-card border border-tone-neutral-border bg-white shadow-card">
 
             <div class="overflow-x-auto border-b border-tone-neutral-border px-2 md:px-4">
-                <div class="-mb-px flex gap-1" role="tablist" aria-label="Dossier du patient">
+                <div class="-mb-px flex gap-1" role="tablist" :aria-label="t('screens.dossier.aria')">
                     <button type="button" role="tab" :aria-selected="currentTab === 'MEDICAL'" @click="currentTab = 'MEDICAL'" :class="tabClass('MEDICAL')">
                         <HeartIcon :class="['mr-2 h-5 w-5', tabIconClass('MEDICAL')]" aria-hidden="true" /> {{ t('medical.tabs.medical_record') }}
                     </button>
@@ -82,12 +82,13 @@
                 </div>
 
                 <div v-if="currentTab === 'PHARMA'">
-                    <EmptyState v-if="dossierStore.prescriptionHistory.length === 0" title="Aucune prescription enregistrée." message="Les prescriptions de ce patient apparaîtront ici." />
+                    <EmptyState v-if="dossierStore.prescriptionHistory.length === 0" :title="t('screens.dossier.no_prescription_title')" :message="t('screens.dossier.no_prescription_msg')" />
                     <ul v-else class="space-y-2">
                         <li v-for="p in dossierStore.prescriptionHistory" :key="p.prescription_id" class="flex flex-wrap items-center gap-2 rounded-card border border-tone-neutral-border bg-tone-neutral-bg p-3 text-base text-ink">
-                            <span class="font-semibold">{{ p.medication }}</span>
-                            <span>{{ p.dosage }}</span>
-                            <StatusBadge :tone="p.status === 'Active' ? 'success' : 'neutral'" :label="String(p.status)" />
+                            <span class="font-semibold">{{ p.is_lab_order ? t('medical.treatments.lab_order') : p.medication }}</span>
+                            <span v-if="p.is_lab_order && p.lab_exams_list?.length">{{ p.lab_exams_list.join(', ') }}</span>
+                            <span v-for="(d, i) in prescriptionDetails(p)" :key="i">{{ d }}</span>
+                            <StatusBadge :tone="isActivePrescription(p.status) ? 'success' : 'neutral'" :label="t(prescriptionStatusLabelKey(p.status))" />
                         </li>
                     </ul>
                 </div>
@@ -107,7 +108,7 @@
                     </div>
 
                     <p v-if="dossierStore.spirituelRestreint" class="rounded-card border border-tone-neutral-border bg-tone-neutral-bg p-4 text-base text-ink-muted">
-                        Ce domaine relève d'un autre service, non affiché ici.
+                        {{ t('screens.dossier.other_service') }}
                     </p>
                     <SpiritualTimeline v-else :records="dossierStore.spiritualHistory" />
 
@@ -120,22 +121,22 @@
                         </h3>
                     </div>
                     <p v-if="dossierStore.toxicoRestreint" class="rounded-card border border-tone-neutral-border bg-tone-neutral-bg p-4 text-base text-ink-muted">
-                        Ce domaine relève d'un autre service, non affiché ici.
+                        {{ t('screens.dossier.other_service') }}
                     </p>
                     <p v-else-if="dossierStore.isDomaineIndisponible('dossier_toxico')" class="rounded-card border border-tone-neutral-border bg-tone-neutral-bg p-4 text-base text-ink-muted">
-                        Indisponible pour le moment, réessayez plus tard.
+                        {{ t('screens.dossier.unavailable') }}
                     </p>
                     <dl v-else-if="dossierStore.toxicoDossier" class="grid gap-2 rounded-card border p-4 text-base" :class="toneClasses('warning')">
-                        <div><dt class="inline font-medium">Substance :</dt> <dd class="inline">{{ dossierStore.toxicoDossier.substance }}</dd></div>
-                        <div><dt class="inline font-medium">Phase actuelle :</dt> <dd class="inline">{{ dossierStore.toxicoDossier.currentPhase }}</dd></div>
-                        <div><dt class="inline font-medium">Psychologue :</dt> <dd class="inline">{{ dossierStore.toxicoDossier.psychologist }}</dd></div>
-                        <div><dt class="inline font-medium">Admission :</dt> <dd class="inline">{{ dossierStore.toxicoDossier.admissionDate }}</dd></div>
+                        <div><dt class="inline font-medium">{{ t('screens.dossier.substance') }}</dt> <dd class="inline">{{ dossierStore.toxicoDossier.substance }}</dd></div>
+                        <div><dt class="inline font-medium">{{ t('screens.dossier.current_phase') }}</dt> <dd class="inline">{{ dossierStore.toxicoDossier.currentPhase }}</dd></div>
+                        <div><dt class="inline font-medium">{{ t('screens.dossier.psychologist') }}</dt> <dd class="inline">{{ dossierStore.toxicoDossier.psychologist }}</dd></div>
+                        <div><dt class="inline font-medium">{{ t('screens.dossier.admission') }}</dt> <dd class="inline">{{ dossierStore.toxicoDossier.admissionDate }}</dd></div>
                     </dl>
-                    <EmptyState v-else title="Aucun dossier toxicologie pour ce patient." />
+                    <EmptyState v-else :title="t('screens.dossier.no_toxico')" />
                 </div>
 
                 <p v-if="dossierStore.domainesIndisponibles.length" class="mt-4 rounded-card border px-3 py-2 text-base" :class="toneClasses('warning')">
-                    Certaines informations sont temporairement indisponibles : {{ dossierStore.domainesIndisponibles.join(', ') }}.
+                    {{ t('screens.dossier.partial', { domains: dossierStore.domainesIndisponibles.join(', ') }) }}
                 </p>
             </div>
         </div>
@@ -177,6 +178,7 @@
 </template>
 
 <script setup>
+import { notify, notifyText } from '@/utils/notify';
 import { ref, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
@@ -198,6 +200,7 @@ import { usePrescriptionStore } from '@/stores/prescriptionStore';
 import { useAppointmentStore } from '@/stores/appointmentStore';
 import { useAuthStore } from '@/stores/auth';
 import { isRecordEditable } from '@/utils/consultationLock';
+import { prescriptionStatusLabelKey, prescriptionDetails, isActivePrescription } from '@/utils/prescriptionDisplay';
 import { AppButton, StatusBadge, EmptyState } from '@/components/ui';
 import { toneClasses } from '@/design/tones';
 
@@ -318,6 +321,9 @@ async function handleConsultationSave(data) {
             // du flux (proposition de prescription) ni le bloquer si hors
             // ligne - voir refreshVitalsSummaryLocal ci-dessus.
             dossierStore.refreshVitalsSummaryLocal(route.params.id);
+            // Relecture serveur des que la synchro a abouti : auteur et signes vitaux
+            // (resume clinique calcule cote serveur) n'existent pas dans la ligne locale.
+            dossierStore.syncDossierFromServer(route.params.id);
         } else {
             await dossierStore.refreshMedicalHistory(route.params.id);
         }
@@ -327,7 +333,7 @@ async function handleConsultationSave(data) {
                 await appointmentStore.completeAppointment(data.appointmentId);
             } catch (err) {
                 console.error('Erreur complétion RDV:', err);
-                alert(t('medical.consultation_flow.appointment_complete_failed'));
+                notifyText(t('medical.consultation_flow.appointment_complete_failed'));
             }
         }
 
@@ -339,7 +345,7 @@ async function handleConsultationSave(data) {
         }
     } catch (err) {
         console.error('Erreur enregistrement dossier medical:', err);
-        alert('Erreur lors de l\'enregistrement : ' + (err.response?.data?.detail || err.message));
+        notify('alerts.save_failed', { detail: err.response?.data?.detail || err.message });
     }
 }
 
@@ -373,7 +379,20 @@ async function handlePrescriptionSave(data) {
         prescriptionOffer.value = { visible: false, medicalRecordId: null };
     } catch (err) {
         console.error('Erreur enregistrement prescription:', err);
-        alert('Erreur lors de l\'enregistrement : ' + (err.response?.data?.detail || err.message));
+        notify('alerts.save_failed', { detail: err.response?.data?.detail || err.message });
+    }
+}
+
+// Retire ?appointmentId= / ?record= de l'adresse SANS naviguer : la vue est cle sur
+// route.fullPath (AppShell), donc un router.replace sans query la recreait et fermait le
+// formulaire qu'on venait d'ouvrir (defaut des guides, 2026-10-26).
+function clearDeepLinkQuery() {
+    try {
+        const url = new URL(window.location.href);
+        url.search = '';
+        window.history.replaceState(window.history.state, '', url.toString());
+    } catch {
+        /* sans effet : l'adresse garde simplement son parametre */
     }
 }
 
@@ -390,7 +409,7 @@ onMounted(async () => {
     const appointmentId = route.query.appointmentId ? Number(route.query.appointmentId) : null;
     if (appointmentId && canCreateConsultation.value) {
         openConsultationModal(appointmentId);
-        router.replace({ query: {} });
+        clearDeepLinkQuery();
         return;
     }
 
@@ -406,7 +425,7 @@ onMounted(async () => {
         if (target && isRecordEditable(target, dossierStore.medicalHistory, { samePatient: true })) {
             openEditConsultationModal(target);
         }
-        router.replace({ query: {} });
+        clearDeepLinkQuery();
     }
 });
 

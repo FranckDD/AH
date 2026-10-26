@@ -87,3 +87,52 @@ def test_count_current_delegates_to_repo():
     ctrl = HospitalizationController(repo=repo, current_user=MagicMock())
 
     assert ctrl.count_current() == 3
+
+
+class _FakeRedis:
+    def __init__(self, keys):
+        self.store = {k: "x" for k in keys}
+
+    def scan_iter(self, match=None, count=None):
+        import fnmatch
+        return [k for k in list(self.store) if match is None or fnmatch.fnmatch(k, match)]
+
+    def delete(self, *keys):
+        for k in keys:
+            self.store.pop(k, None)
+
+
+def test_admit_and_discharge_invalidate_doctor_dashboard_cache(monkeypatch):
+    """Defaut releve par les guides 2026-10-26 : le compteur 'Current stays'
+    du tableau de bord medecin restait fige jusqu'a 300 s apres une
+    admission ou une sortie. Chaque cle de cache KPI doit etre videe."""
+    import controller.doctor_dashboard_controller as dash
+    fake = _FakeRedis(["doctor_dashboard:kpi:7:2026-10-01:2026-10-31", "doctor_dashboard:kpi:9:2026-10-01:2026-10-31", "autre:cle"])
+    monkeypatch.setattr(dash, "redis_client", fake)
+
+    repo = MagicMock()
+    repo.admit.return_value = MagicMock(id=1)
+    repo.discharge.return_value = MagicMock(id=1)
+    ctrl = HospitalizationController(repo=repo, current_user=MagicMock(user_id=7))
+
+    ctrl.admit(patient_id=1, admission_reason="x")
+    assert list(fake.store) == ["autre:cle"]
+
+    fake.store["doctor_dashboard:kpi:7:a:b"] = "x"
+    ctrl.discharge(hospitalization_id=1, discharge_disposition="GUERI", discharge_note=None)
+    assert list(fake.store) == ["autre:cle"]
+
+
+def test_cache_invalidation_failure_never_blocks_admission(monkeypatch):
+    import controller.doctor_dashboard_controller as dash
+
+    class Boom:
+        def scan_iter(self, *a, **k):
+            raise RuntimeError("redis down")
+
+    monkeypatch.setattr(dash, "redis_client", Boom())
+    repo = MagicMock()
+    repo.admit.return_value = MagicMock(id=1)
+    ctrl = HospitalizationController(repo=repo, current_user=MagicMock(user_id=7))
+
+    assert ctrl.admit(patient_id=1, admission_reason=None) is repo.admit.return_value

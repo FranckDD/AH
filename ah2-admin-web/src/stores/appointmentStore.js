@@ -1,3 +1,4 @@
+import { todayLocalISO } from '@/utils/localDate';
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { AppointmentGateway } from '@/services/AppointmentGateway';
@@ -126,7 +127,7 @@ export const useAppointmentStore = defineStore('appointment', () => {
             items = items.filter((a) => a.status === filters.value.status);
         }
         if (filters.value.dateMode === 'TODAY') {
-            const today = new Date().toISOString().split('T')[0];
+            const today = todayLocalISO();
             items = items.filter((a) => a.appointment_date === today);
         } else if (filters.value.dateMode === 'CUSTOM' && filters.value.customDate) {
             items = items.filter((a) => a.appointment_date === filters.value.customDate);

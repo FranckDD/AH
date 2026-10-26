@@ -22,7 +22,10 @@ export const useConsultationStore = defineStore('consultation', () => {
         perPage: 20,
     });
 
+    // Recherche en direct : seule la derniere requete lancee ecrit la liste.
+    let fetchSeq = 0;
     async function fetchConsultations() {
+        const seq = ++fetchSeq;
         isLoading.value = true;
         try {
             const res = await ConsultationGateway.fetchConsultations({
@@ -30,12 +33,13 @@ export const useConsultationStore = defineStore('consultation', () => {
                 perPage: pagination.value.perPage,
                 search: filters.value.search,
             });
+            if (seq !== fetchSeq) return;
             consultations.value = res.data?.data || [];
             hasNextPage.value = consultations.value.length === pagination.value.perPage;
         } catch (error) {
             console.error('Erreur chargement consultations:', error);
         } finally {
-            isLoading.value = false;
+            if (seq === fetchSeq) isLoading.value = false;
         }
     }
 

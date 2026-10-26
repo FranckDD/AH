@@ -5,7 +5,7 @@ const DOCTOR_TILES = ['totalAppointments', 'distinctPatients', 'medicalRecords',
 const NURSE_TILES = ['medicalRecords', 'hospitalizations'];
 
 // Tout rôle autre que médecin est traité comme l'infirmière : jamais plus de droits que prévu.
-export function dashboardBlocks({ role, pendingCount, error } = {}) {
+export function dashboardBlocks({ role, pendingCount, error, pendingFailed } = {}) {
     const isDoctor = (role || '').toLowerCase() === 'medecin';
     return {
         isDoctor,
@@ -13,7 +13,7 @@ export function dashboardBlocks({ role, pendingCount, error } = {}) {
         statTiles: isDoctor ? [...DOCTOR_TILES] : [...NURSE_TILES],
         showStatusPanel: isDoctor,
         showMotifPanel: true,
-        queueState: Number(pendingCount) > 0 ? 'list' : 'empty',
+        queueState: Number(pendingCount) > 0 ? 'list' : (pendingFailed ? 'error' : 'empty'),
         showLoadError: !!error,
     };
 }

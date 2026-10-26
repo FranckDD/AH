@@ -30,8 +30,12 @@
       <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <div class="text-sm text-ink-muted">{{ t('hospitalization.admitted_since') }}</div>
-          <div class="text-base font-semibold text-ink">{{ formatDate(openStay.admitted_at) }} ({{ daysSince(openStay.admitted_at) }} {{ t('hospitalization.days_count') }})</div>
+          <div class="text-base font-semibold text-ink">{{ formatDate(openStay.admitted_at) }} ({{ stayDuration(openStay.admitted_at) }})</div>
           <div class="text-sm text-ink-muted">{{ t('hospitalization.admitted_by') }} {{ openStay.admitted_by_name || t('hospitalization.unknown_user') }}</div>
+          <div v-if="openStay.admission_reason" class="mt-1 text-base text-ink">
+            <span class="text-sm text-ink-muted">{{ t('hospitalization.admission_reason_label') }} :</span>
+            {{ openStay.admission_reason }}
+          </div>
         </div>
         <div class="sm:text-right">
           <div class="text-sm text-ink-muted">{{ t('hospitalization.current_status') }}</div>
@@ -128,8 +132,14 @@
               </AppButton>
             </div>
           </div>
+          <div v-if="stay.admission_reason" class="text-sm text-ink">
+            <span class="text-ink-muted">{{ t('hospitalization.admission_reason_label') }} :</span> {{ stay.admission_reason }}
+          </div>
           <div v-if="stay.discharge_disposition" class="text-sm text-ink-muted">
             {{ t('hospitalization.discharged_by') }} {{ stay.discharged_by_name || t('hospitalization.unknown_user') }}
+          </div>
+          <div v-if="stay.discharge_note" class="text-sm text-ink">
+            <span class="text-ink-muted">{{ t('hospitalization.discharge_note_label') }} :</span> {{ stay.discharge_note }}
           </div>
           <ul v-if="stay.status_updates?.length" class="mt-2 space-y-2 border-l-2 border-tone-neutral-border pl-3">
             <li v-for="u in stay.status_updates" :key="u.id" class="flex flex-col gap-1 sm:flex-row sm:flex-wrap sm:items-center sm:gap-2">
@@ -148,6 +158,7 @@
 import { ref, computed, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import dayjs from 'dayjs';
+import { formatStayDuration } from '@/utils/stayDuration';
 import { ExclamationTriangleIcon } from '@heroicons/vue/24/outline';
 import { useHospitalizationStore, DISCHARGE_DISPOSITIONS, CLINICAL_STATUSES } from '@/stores/hospitalizationStore';
 import { HospitalizationGateway } from '@/services/HospitalizationGateway';
@@ -186,8 +197,10 @@ const latestStatus = computed(() => {
 function formatDate(d) {
   return dayjs(d).format('DD/MM/YYYY HH:mm');
 }
-function daysSince(d) {
-  return dayjs().diff(dayjs(d), 'day');
+function stayDuration(d) {
+  return formatStayDuration(d, new Date(), {
+    days: t('hospitalization.days_count'), hours: t('hospitalization.hours_short'), minutes: t('hospitalization.minutes_short'),
+  });
 }
 // Vert = amelioration, rouge = aggravation (alerte), neutre sinon.
 function statusTone(status) {

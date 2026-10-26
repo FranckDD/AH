@@ -135,7 +135,7 @@
           <AppButton
             v-if="appt.status === 'pending'"
             variant="danger"
-            @click="appointmentStore.cancelAppointment(appt.server_id)"
+            @click="confirmCancel(appt)"
             :disabled="!appt.server_id"
             :title="!appt.server_id ? t('appointments.pending_sync') : ''"
           >
@@ -159,7 +159,7 @@
         :appointments="selectedDateAppointments"
         @close="selectedDate = null"
         @edit="openEditModal"
-        @cancel="(appt) => appointmentStore.cancelAppointment(appt.server_id)"
+        @cancel="confirmCancel"
         @complete="(appt) => appointmentStore.completeAppointment(appt.server_id)"
         @view-dossier="voirDossier"
         @start-consultation="demarrerConsultation"
@@ -178,6 +178,7 @@
 </template>
 
 <script setup>
+import { notify } from '@/utils/notify';
 import { ref, computed, onMounted } from 'vue';
 import { useAppointmentStore, APPOINTMENT_STATUSES } from '@/stores/appointmentStore';
 import { useI18n } from 'vue-i18n';
@@ -208,6 +209,12 @@ const columns = computed(() => [
   { key: 'status', label: t('appointments.table.status') },
 ]);
 const fieldClass = 'block w-full min-h-11 rounded-control border border-tone-neutral-border px-3 text-base text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand-600';
+
+// Refuser un rendez-vous est irreversible : confirmation avant d'appeler le serveur.
+function confirmCancel(appt) {
+  if (!confirm(t('appointments.confirm_cancel'))) return;
+  appointmentStore.cancelAppointment(appt.server_id);
+}
 
 function voirDossier(appt) {
   router.push(`/medical/patients/${appt.patient_id}`);
@@ -305,7 +312,7 @@ async function handleSave(data) {
     closeModal();
   } catch (err) {
     console.error('Erreur enregistrement rendez-vous:', err);
-    alert('Erreur lors de l\'enregistrement : ' + (err.response?.data?.detail || err.message));
+    notify('alerts.save_failed', { detail: err.response?.data?.detail || err.message });
   }
 }
 </script>

@@ -73,10 +73,17 @@ def create_shift(data: NurseShiftCreate, ctrl: NurseShiftController = Depends(ge
     except ValueError as ve:
         if "introuvable" in str(ve):
             raise HTTPException(status_code=404, detail=str(ve))
+        code = getattr(ve, "code", None)
+        if code:
+            # Code stable traduit par le frontend (FR/EN) + message francais de repli.
+            raise HTTPException(status_code=409, detail={"code": code, "message": str(ve)})
         raise HTTPException(status_code=409, detail=str(ve))
     except IntegrityError:
         logger.exception("Conflit base de donnees a l'affectation")
-        raise HTTPException(status_code=409, detail="Cet infirmier est déjà affecté à ce créneau.")
+        raise HTTPException(status_code=409, detail={
+            "code": "shift_already_assigned",
+            "message": "Cet infirmier est déjà affecté à ce créneau.",
+        })
 
 
 @router.delete(
