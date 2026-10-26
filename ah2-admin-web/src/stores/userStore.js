@@ -54,8 +54,8 @@ export const useUserStore = defineStore('user', () => {
                     phone: u.contact || '',
                     
                     // Pour l'affichage dans le tableau
-                    roleName: roleObj.role_name || u.postgres_role || 'N/A',
-                    specialtyName: specObj.name || '-',
+                    roleName: u.role_name || roleObj.role_name || u.postgres_role || 'N/A',
+                    specialtyName: u.specialty_name || specObj.name || '-',
 
                     // Pour le formulaire d'édition (IDs)
                     postgres_role: u.postgres_role,

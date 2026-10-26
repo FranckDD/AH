@@ -9,6 +9,7 @@ from api_backend.backend_app.database import SessionLocal
 from controller.user_controller import UserController
 from repositories.user_repo import UserRepository
 from repositories.role_repo import RoleRepository
+from repositories.audit_repo import AuditRepository
 from api_backend.backend_app.routes.auth.auth_endpoints import get_current_user, role_required, deny_roles
 from api_backend.backend_app.exceptions import translate_integrity_error
 from .users_schemas import RoleOut, SpecialtyOut, UserCreate, UserUpdate, UserOut, UserListResponse
@@ -36,6 +37,30 @@ def get_user_controller(
     user_repo = UserRepository(session=db)
     role_repo = RoleRepository(session=db)
     return UserController(user_repo=user_repo, role_repo=role_repo)
+
+
+_USER_AUDIT_FIELDS = ("username", "full_name", "email", "contact", "postgres_role", "is_active", "is_head_nurse", "role_id", "specialty_id")
+
+
+def _audit_user(db: Session, actor, action: str, user_id, old: dict, new: dict):
+    """Trace creation / modification / suppression d'un compte (jamais le mot de passe). Ne bloque jamais l'operation."""
+    try:
+        repo = AuditRepository(db)
+        new = dict(new)
+        details = repo.summarize_changes(old, new)
+        repo.log_user_action(current_user=actor, resource_type="User", action_performed=action,
+                             resource_id=user_id, old_values=old or None, new_values=new or None, details=details or None)
+        db.commit()
+    except Exception:
+        logger.exception("Échec de l'écriture d'audit (User)")
+        try:
+            db.rollback()
+        except Exception:
+            pass
+
+
+def _user_snapshot(u) -> dict:
+    return {k: getattr(u, k, None) for k in _USER_AUDIT_FIELDS}
 
 
 def _safe_validate_user(raw: Any) -> UserOut:
@@ -143,10 +168,11 @@ def get_user(user_id: int, user_ctrl: UserController = Depends(get_user_controll
 
 # 🟢 MODIFICATION 2 : On applique la sécurité stricte ici
 @router.post("/", response_model=UserOut, status_code=status.HTTP_201_CREATED, dependencies=[Depends(role_required("admin", "manager"))])
-def create_user(data: UserCreate, user_ctrl: UserController = Depends(get_user_controller)):
+def create_user(data: UserCreate, user_ctrl: UserController = Depends(get_user_controller), actor=Depends(get_current_user)):
     try:
         payload = data.model_dump()
         user = user_ctrl.create_user(payload)
+        _audit_user(user_ctrl.user_repo.session, actor, "CREATE", user.user_id, {}, _user_snapshot(user))
         return _safe_validate_user(user)
     except IntegrityError as ie:
         try:
@@ -164,10 +190,21 @@ def create_user(data: UserCreate, user_ctrl: UserController = Depends(get_user_c
 
 
 @router.put("/{user_id}", response_model=UserOut, dependencies=[Depends(role_required("admin", "manager"))])
-def update_user(user_id: int, data: UserUpdate, user_ctrl: UserController = Depends(get_user_controller)):
+def update_user(user_id: int, data: UserUpdate, user_ctrl: UserController = Depends(get_user_controller), actor=Depends(get_current_user)):
     try:
         payload = data.model_dump(exclude_unset=True)
+        before = None
+        existing = user_ctrl.user_repo.get_user_by_id(user_id)
+        if existing is not None:
+            before = _user_snapshot(existing)
         updated = user_ctrl.update_user(user_id, payload)
+        if before is not None:
+            after = _user_snapshot(updated)
+            changed_old = {k: v for k, v in before.items() if str(v) != str(after.get(k))}
+            changed_new = {k: after.get(k) for k in changed_old}
+            if payload.get("password"):
+                changed_new["password_changed"] = True
+            _audit_user(user_ctrl.user_repo.session, actor, "UPDATE", user_id, changed_old, changed_new)
         return _safe_validate_user(updated)
     except ValueError as ve:
         raise HTTPException(status_code=404, detail=str(ve))
@@ -187,9 +224,13 @@ def update_user(user_id: int, data: UserUpdate, user_ctrl: UserController = Depe
 
 
 @router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(role_required("admin", "manager"))])
-def delete_user(user_id: int, user_ctrl: UserController = Depends(get_user_controller)):
+def delete_user(user_id: int, user_ctrl: UserController = Depends(get_user_controller), actor=Depends(get_current_user)):
     try:
+        existing = user_ctrl.user_repo.get_user_by_id(user_id)
+        before = _user_snapshot(existing) if existing is not None else None
         ok = user_ctrl.delete_user(user_id)
+        if ok and before is not None:
+            _audit_user(user_ctrl.user_repo.session, actor, "DELETE", user_id, before, {})
         if not ok:
             raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
         return None

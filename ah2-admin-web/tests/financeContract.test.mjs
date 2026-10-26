@@ -52,7 +52,7 @@ check('FinanceModal', modal, [
     "defineEmits(['close', 'save'])", "emit('save', { ...form });", "const today = todayLocalISO();",
     "type: 'INCOME'", "amount: ''", 'date: today', "category: ''", "paymentMethod: ''","description: ''",
     "form.type = type;", "form.category = '';", "setTransactionType('INCOME')", "setTransactionType('EXPENSE')",
-    'if (form.amount <= 0) {', 'alert("Le montant doit être supérieur à 0");', 'if (!form.category) {', 'alert("Veuillez sélectionner une catégorie");',
+    'if (form.amount <= 0) {', "notify('alerts.amount_positive');", 'if (!form.category) {', "notify('alerts.category_required');",
     "key: 'CONSULTATION'", "key: 'PHARMACY'", "key: 'HOSPITALIZATION'", "key: 'LAB'", "key: 'DETOX'", "key: 'SUPPLIES'", "key: 'SALARY'", "key: 'MAINTENANCE'", "key: 'BILLS'", "key: 'OTHER'",
     'v-model.number="form.amount"', 'min="1"', 'v-model="form.date"', 'v-model="form.category"', 'v-model="form.paymentMethod"', 'v-model="form.description"', 'required',
     'v-for="cat in availableCategories"', ':value="cat.key"', '{{ cat.label }}',

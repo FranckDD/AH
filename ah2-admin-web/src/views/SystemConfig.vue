@@ -201,27 +201,8 @@
                 <ArrowDownTrayIcon class="h-5 w-5 shrink-0 text-brand-700" aria-hidden="true" />
                 {{ t('config.db_backup') }}
               </h3>
-              <p class="text-base text-ink-muted">{{ t('config.db_backup_subtitle') }}</p>
+              <p class="text-base text-ink-muted">{{ t('config.backup_server_info') }}</p>
             </div>
-            <AppButton @click="handleBackup" :disabled="isBackupRunning" :loading="isBackupRunning">
-              {{ isBackupRunning ? t('common.loading') : t('config.launch_backup') }}
-            </AppButton>
-          </div>
-
-          <div class="grid gap-3 rounded-card border border-tone-neutral-border p-4 sm:grid-cols-[1fr_auto] sm:items-center">
-            <div class="min-w-0">
-              <h3 class="flex flex-wrap items-center gap-2 text-base font-semibold text-ink">
-                <WrenchScrewdriverIcon class="h-5 w-5 shrink-0 text-brand-700" aria-hidden="true" />
-                {{ t('config.maintenance_mode') }}
-                <StatusBadge :tone="isMaintenanceMode ? 'danger' : 'success'" :label="isMaintenanceMode ? t('configScreens.maintenance_state_on') : t('configScreens.maintenance_state_off')" />
-              </h3>
-              <p class="text-base" :class="isMaintenanceMode ? 'font-bold text-tone-danger-text' : 'text-ink-muted'">
-                {{ isMaintenanceMode ? t('config.maintenance_active') : t('config.maintenance_mode_subtitle') }}
-              </p>
-            </div>
-            <AppButton :variant="isMaintenanceMode ? 'danger' : 'primary'" @click="toggleMaintenanceMode">
-              {{ isMaintenanceMode ? t('config.deactivate') : t('config.activate') }}
-            </AppButton>
           </div>
         </div>
       </section>
@@ -238,6 +219,7 @@
 </template>
 
 <script setup>
+import { notify } from '@/utils/notify';
 import { ref, computed, onMounted, watch, reactive } from 'vue';
 import { useConfigStore } from '@/stores/configStore';
 import { resolveAssetUrl } from '@/services/api';
@@ -246,7 +228,6 @@ import {
   PlusCircleIcon, 
   PencilSquareIcon, 
   MagnifyingGlassIcon,
-  WrenchScrewdriverIcon, 
   ArrowDownTrayIcon,
   TrashIcon,
   BuildingOfficeIcon,
@@ -302,8 +283,6 @@ const previewTicketLogo = ref(null);
 const showExamModal = ref(false);
 const selectedExam = ref(null);
 const searchQuery = ref('');
-const isMaintenanceMode = ref(false);
-const isBackupRunning = ref(false);
 
 
 // --- CYCLE DE VIE ---
@@ -358,10 +337,10 @@ const saveStructureConfig = async () => {
             formData.append('ticket_logo', ticketLogoFile.value);
         }
         await configStore.saveStructureInfo(formData);
-        alert("Configuration de la structure enregistrée avec succès !");
+        notify('alerts.config_saved', {}, 'success');
     } catch (error) {
         console.error("Erreur save:", error);
-        alert("Erreur lors de l'enregistrement: " + error.message);
+        notify('alerts.save_failed', { detail: error.message });
     } finally {
         isSaving.value = false;
     }
@@ -390,22 +369,9 @@ const onExamSaved = () => {
 };
 
 const handleDeleteExam = async (id) => {
-    if(confirm(t('config.delete_confirmation') || "Supprimer cet élément ?")) {
+    if(confirm(t('config.delete_confirmation'))) {
         await configStore.deleteExamen(id);
     }
-};
-
-// --- LOGIQUE SYSTEME ---
-const handleBackup = async () => {
-  if (isBackupRunning.value) return;
-  isBackupRunning.value = true;
-  await new Promise(resolve => setTimeout(resolve, 3000)); 
-  isBackupRunning.value = false;
-  alert(t('config.db_backup') + " terminée.");
-};
-
-const toggleMaintenanceMode = async () => {
-  isMaintenanceMode.value = !isMaintenanceMode.value;
 };
 
 const formatPrice = (price) => {

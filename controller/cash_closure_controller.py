@@ -401,6 +401,26 @@ class CashClosureController:
                 "last_closed_at": last.period_end if last is not None else None,
                 "overdue_days": self._due_days(last, t0, self._now()), "modes": modes}
 
+    def cash_in_till(self) -> Optional[Decimal]:
+        """Especes qui devraient etre en caisse maintenant (depart ou comptage de la derniere cloture, plus les
+        entrees et moins les sorties en especes depuis). None si la caisse n'a pas de depart. Lecture seule :
+        sert uniquement a refuser un retrait impossible, jamais a l'affichage d'une secretaire."""
+        start = self.repo.start_row()
+        if start is None:
+            return None
+        last = self.repo.last_closure()
+        t0 = last.period_end if last is not None else start.started_at
+        t1 = self._now()
+        flows = self.repo.flows(t0, t1)
+        for corr in self.repo.approved_corrections(t0, t1):
+            if corr.mode_code == CASH:
+                delta = Decimal(corr.amount_delta)
+                f = flows[CASH]
+                f["entries" if delta > 0 else "exits"] = f["entries" if delta > 0 else "exits"] + abs(delta)
+        opening, _ = self._opening(start, last)
+        f = flows[CASH]
+        return opening + f["entries"] - f["exits"]
+
     def set_start(self, opening_cash, started_at: Optional[datetime] = None) -> Dict[str, Any]:
         if "admin" not in (getattr(self.user, "roles", None) or []):
             raise PermissionError("Seul l'administrateur initialise la caisse.")
@@ -550,6 +570,13 @@ class CashClosureController:
             self._audit("CashClosureCorrection", "REQUEST", corr.id,
                         {"closure_id": c.id, "mode_code": mode, "amount_delta": str(amount),
                          "reason": reason})
+            # Le promoteur et les admins decident : ils sont prevenus (avant, la demande restait invisible).
+            payload = {"correction_id": corr.id, "closure_id": c.id,
+                       "business_date": c.business_date.isoformat(), "mode_code": mode,
+                       "amount_delta": str(amount)}
+            for uid in self.repo.recipient_user_ids():
+                if uid != self.user.user_id:
+                    self.notification_repo.create(uid, "cash_correction_requested", payload)
             return out
         return self._tx(run)
 
@@ -581,6 +608,11 @@ class CashClosureController:
             out = _corr_out(corr)
             self._audit("CashClosureCorrection", "APPROVE" if approve else "REJECT", corr.id,
                         {"closure_id": corr.closure_id, "status": corr.status})
+            # Retour a la secretaire qui a demande l'ajustement.
+            if corr.requested_by is not None and corr.requested_by != self.user.user_id:
+                self.notification_repo.create(corr.requested_by, "cash_correction_decided", {
+                    "correction_id": corr.id, "closure_id": corr.closure_id, "status": corr.status,
+                    "mode_code": corr.mode_code, "amount_delta": str(corr.amount_delta)})
             return out
         return self._tx(run)
 

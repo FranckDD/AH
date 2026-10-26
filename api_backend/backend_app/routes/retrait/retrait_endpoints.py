@@ -7,7 +7,7 @@ from datetime import datetime
 from math import ceil
 
 from api_backend.backend_app.database import SessionLocal
-from controller.caisse_retrait_controller import CaisseRetraitController
+from controller.caisse_retrait_controller import CaisseRetraitController, CashShortageError
 from repositories.caisse_retrait_repo import CaisseRetraitRepository
 from api_backend.backend_app.routes.auth.auth_endpoints import get_current_user, role_required
 from api_backend.backend_app.exceptions import translate_integrity_error
@@ -116,6 +116,16 @@ def search_retraits_paginated(
 # 2. ROUTES DYNAMIQUES (EN DERNIER)
 # ==========================================
 
+@router.get("/cash-check")
+def cash_check(
+    amount: float = Query(..., gt=0),
+    payment_method: Optional[str] = Query(None),
+    retrait_ctrl: CaisseRetraitController = Depends(get_retrait_controller),
+):
+    """Avant de saisir un retrait : depasse-t-il les especes de la caisse ? Reponse booleenne seulement
+    (le montant de la caisse n'est jamais donne : comptage a l'aveugle)."""
+    return {"over_cash": retrait_ctrl.exceeds_cash_in_till(amount, payment_method)}
+
 @router.get("/{retrait_id}", response_model=Any)
 def get_retrait(retrait_id: int, retrait_ctrl: CaisseRetraitController = Depends(get_retrait_controller)):
     try:
@@ -146,6 +156,8 @@ def create_retrait(
         return normalize_retrait_data(retrait)
     except PaymentModeError as pe:
         raise HTTPException(status_code=422, detail=str(pe))
+    except CashShortageError as cs:
+        raise HTTPException(status_code=422, detail=str(cs))
     except ValueError as ve:
         raise HTTPException(status_code=400, detail=str(ve))
     except IntegrityError as ie:

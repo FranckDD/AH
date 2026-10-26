@@ -143,6 +143,11 @@ export const CaisseGateway = {
         return api.post('/retrait/', payload);
     },
 
+    // Le retrait depasse-t-il les especes de la caisse ? Reponse booleenne (jamais le montant de la caisse).
+    async checkRetraitCash(amount, paymentMethod) {
+        return api.get('/retrait/cash-check', { params: { amount, payment_method: paymentMethod } });
+    },
+
     async cancelRetrait(retraitId, justification) {
         return api.post(`/retrait/${retraitId}/cancel`, { cancel_justification: justification });
     },

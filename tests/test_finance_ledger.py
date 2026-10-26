@@ -104,17 +104,17 @@ def test_journal_recherche_par_nom_patient(db_session, api_client):
 
     create_test_transaction(db_session, admin, amount=150.0, advance_amount=150.0,
                             patient_label="Nom Unique Test",
-                            paid_at=datetime(2025, 6, 10, 9, 0))
+                            paid_at=datetime(2031, 6, 10, 9, 0))
     create_test_transaction(db_session, admin, amount=150.0, advance_amount=150.0,
                             patient_label="Autre Personne",
-                            paid_at=datetime(2025, 6, 11, 9, 0))
+                            paid_at=datetime(2031, 6, 11, 9, 0))
     db_session.flush()
 
     client = api_client(finance_endpoints, auth_endpoints)
     headers = auth_headers(client, "journal_admin4", "TestPass123!")
 
     corps = client.get(
-        "/finance/mouvements?date_from=2025-06-10&date_to=2025-06-11&search=Nom+Unique+Test",
+        "/finance/mouvements?date_from=2031-06-10&date_to=2031-06-11&search=Nom+Unique+Test",
         headers=headers,
     ).json()
 
@@ -149,3 +149,21 @@ def test_totaux_kpi_respectent_le_filtre_categorie(db_session, api_client):
 
     assert corps["income"] == 100.0, "le total ne doit compter que la transaction Consultation"
     assert corps["expense"] == 0.0
+
+
+def test_journal_masque_les_recettes_a_zero(db_session, api_client):
+    """Une facture liberee par une decision de reduction n'encaisse rien (advance_amount = 0) :
+    elle apparaissait '+0 FCFA' dans le journal. Un mouvement a zero n'est pas un mouvement d'argent."""
+    admin = create_test_user(db_session, "journal_admin_zero", "admin")
+    db_session.flush()
+    create_test_transaction(db_session, admin, amount=300.0, advance_amount=0.0,
+                            paid_at=datetime(2031, 6, 10, 9, 0))
+    create_test_transaction(db_session, admin, amount=200.0, advance_amount=200.0,
+                            paid_at=datetime(2031, 6, 11, 9, 0))
+    db_session.flush()
+
+    client = api_client(finance_endpoints, auth_endpoints)
+    headers = auth_headers(client, "journal_admin_zero", "TestPass123!")
+    corps = client.get("/finance/mouvements?date_from=2031-06-10&date_to=2031-06-11&per_page=10", headers=headers).json()
+    assert corps["total"] == 1
+    assert [m["amount"] for m in corps["data"]] == [200.0]

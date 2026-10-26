@@ -6,7 +6,7 @@ import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import { AppButton, StatusBadge } from '@/components/ui';
 import { useAuthStore } from '@/stores/auth';
-import { controlState, formatLocalDate, linkAllowed } from '@/utils/reports';
+import { controlState, formatLocalDate, linkAllowed, anomalyLabel } from '@/utils/reports';
 
 const props = defineProps({
     control: { type: Object, default: null },
@@ -50,7 +50,7 @@ function open(item) {
             <li v-for="item in items" :key="item.key"
                 class="flex flex-col gap-2 rounded-control border border-tone-neutral-border p-3 sm:flex-row sm:items-center sm:justify-between">
                 <div class="grid min-w-0 gap-1">
-                    <p class="text-base font-medium text-ink">{{ item.label }}</p>
+                    <p class="text-base font-medium text-ink">{{ anomalyLabel(item, t, te) }}</p>
                     <div class="flex flex-wrap items-center gap-2 text-sm text-ink-muted">
                         <StatusBadge tone="warning" :label="kindLabel(item.kind)" />
                         <span>{{ t('reports.control.first_seen', { date: formatLocalDate(item.first_seen, locale) }) }}</span>

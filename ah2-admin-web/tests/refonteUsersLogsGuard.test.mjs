@@ -117,7 +117,7 @@ test('(d) données, routeur, cadre et écrans des autres lots : intacts', (t) =>
 // --- (e) les gestes qui comptent ---
 test('(e) la suppression d’un compte reste confirmée et la modification ouvre une copie du compte', () => {
     const src = read('src/views/modules/users/UserManagement.vue');
-    assert.match(src, /if \(confirm\(`Voulez-vous vraiment supprimer/);
+    assert.match(src, /if \(confirm\(t\('usersScreens\.delete_confirm'/);
     assert.match(src, /selectedUser\.value = \{ \.\.\.user \}/);
 });
 

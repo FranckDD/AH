@@ -33,7 +33,7 @@ check('SystemConfig', view, [
     'v-model="formStructure.website"', 'v-model="formStructure.address"', 'v-model="formStructure.city"', 'v-model="formStructure.po_box"', 'v-model="formStructure.niu"', 'v-model="formStructure.rccm"',
     'type="tel"', 'type="email"', 'required', '@submit.prevent="saveStructureConfig"', ':disabled="isSaving"',
     'const formData = new FormData();', "formData.append(key, formStructure.value[key] || '');", "formData.append('logo', logoFile.value);", "formData.append('ticket_logo', ticketLogoFile.value);",
-    'await configStore.saveStructureInfo(formData);', 'alert("Configuration de la structure enregistrée avec succès !");', 'alert("Erreur lors de l\'enregistrement: " + error.message);',
+    'await configStore.saveStructureInfo(formData);', "notify('alerts.config_saved', {}, 'success');", "notify('alerts.save_failed', { detail: error.message });",
     // logos
     'type="file"', 'accept="image/*"', '@change="handleLogoUpload"', '@change="handleTicketLogoUpload"', 'URL.createObjectURL(file)',
     'previewLogo || resolveAssetUrl(configStore.structureInfo.logo_url)', 'previewTicketLogo || resolveAssetUrl(configStore.structureInfo.ticket_logo_url)', "'/placeholder-logo.png'",
@@ -42,25 +42,23 @@ check('SystemConfig', view, [
     // examens
     'configStore.examens', 'configStore.isLoading && configStore.examens.length === 0', 'v-model="searchQuery"', 'v-for="exam in filteredExamens"'.replace('v-for="exam in filteredExamens"', ':rows="filteredExamens"'),
     'exam.nom.toLowerCase().includes(query)', 'exam.code.toLowerCase().includes(query)', 'exam.categorie.toLowerCase().includes(query)', 'exam.code', 'exam.nom', 'exam.categorie', 'formatPrice(exam.prix)',
-    'openExamModal(null)', 'openExamModal(exam)', 'handleDeleteExam(exam.id)', 'if(confirm(t(\'config.delete_confirmation\') || "Supprimer cet élément ?")) {', 'await configStore.deleteExamen(id);',
+    'openExamModal(null)', 'openExamModal(exam)', 'handleDeleteExam(exam.id)', 'if(confirm(t(\'config.delete_confirmation\'))) {', 'await configStore.deleteExamen(id);',
     'selectedExam.value = exam;', 'showExamModal.value = true;', 'showExamModal.value = false;', 'configStore.fetchExamens();',
     '<ExamFormModal', ':examen="selectedExam"', '@close="showExamModal = false"', '@saved="onExamSaved"',
     // prières
     'configStore.prayerBookTypes', 'type.type_code', 'type.label',
     // système
-    '@click="handleBackup"', ':disabled="isBackupRunning"', 'setTimeout(resolve, 3000)', '@click="toggleMaintenanceMode"', 'isMaintenanceMode.value = !isMaintenanceMode.value;',
-    "t('config.maintenance_active')", "t('config.maintenance_mode_subtitle')", "t('config.deactivate')", "t('config.activate')", "t('config.launch_backup')",
+    "t('config.backup_server_info')", "t('config.delete_confirmation')",
     "style: 'currency', currency: 'XOF', minimumFractionDigits: 0", ".replace('XOF', 'FCFA')",
     // clés
     "t('config.title')", "t('config.subtitle')", "t('config.exams_title')", "t('config.add_exam')", "t('config.table_code')", "t('config.table_name')", "t('config.table_category')",
     "t('config.table_price')", "t('config.edit')", "t('common.delete')", "t('config.prayers_title')", "t('config.prayers_subtitle')",
-    "t('config.table_type_code')", "t('config.table_label')", "t('config.general_title')", "t('config.general_subtitle')", "t('config.db_backup')", "t('config.db_backup_subtitle')", "t('config.maintenance_mode')",
+    "t('config.table_type_code')", "t('config.table_label')", "t('config.general_title')", "t('config.general_subtitle')", "t('config.db_backup')",
 ]);
 
 test('toutes les clés config.*, common.*, users.* et configScreens.* citées existent en FR et EN', () => {
     const used = new Set();
     for (const m of view.matchAll(/['"`(]((?:config|common|users|configScreens)\.[a-zA-Z_.]+)['"`)]/g)) used.add(m[1]);
-    used.delete('config.delete_confirmation'); // repli codé en dur dans le script (« || "Supprimer cet élément ?" »)
     assert.ok(used.size >= 20);
     for (const k of used) {
         for (const locale of ['fr', 'en']) {
@@ -119,4 +117,12 @@ test('jeton d’impression : rappel visible, case à cocher obligatoire avant «
     assert.match(view, /await configStore\.regenerateTicketPrintToken\(\);\s+confirmRegenerate\.value = false;/);
     // la confirmation du navigateur reste en plus (contrat d'origine)
     assert.match(view, /Régénérer le jeton invalidera l'ancien pour tous les services pont locaux déjà configurés\. Continuer \?/);
+});
+
+test('sauvegarde et maintenance : plus de faux bouton ni d interrupteur local', () => {
+    const src = readFileSync(new URL('../src/views/SystemConfig.vue', import.meta.url), 'utf8');
+    for (const gone of ['handleBackup', 'setTimeout(resolve, 3000)', 'toggleMaintenanceMode', 'isMaintenanceMode']) {
+        assert.ok(!src.includes(gone), `${gone} ne doit plus exister`);
+    }
+    assert.ok(src.includes("t('config.backup_server_info')"));
 });

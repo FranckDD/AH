@@ -75,7 +75,10 @@ for (const f of FORMS) {
         assert.match(src, /:value="m\.code"/);
         assert.doesNotMatch(src, /Virement|Chèque|Cheque|payment_methods\.(transfer|check)/);
         assert.doesNotMatch(src, /value="Espèces"|value="Mobile Money"/);
-        if (!f.includes('RetraitModal')) assert.match(src, /ref\('especes'\)/, 'especes par defaut');
+        // Defaut 3 (2026-10-26) : le panneau de versement reprend le mode de la facture (Solder), avec
+        // repli sur especes quand ce mode n'est pas un code officiel.
+        if (f.includes('CaisseInstallmentModal')) assert.match(src, /: 'especes';/, 'especes par defaut');
+        else if (!f.includes('RetraitModal')) assert.match(src, /ref\('especes'\)/, 'especes par defaut');
     });
 }
 

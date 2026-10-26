@@ -37,6 +37,23 @@ load_dotenv()
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 redis_client = redis.Redis.from_url(REDIS_URL, decode_responses=True)
 
+
+def invalidate_caisse_kpi_cache() -> None:
+    """Vide le cache des tuiles caisse apres toute ecriture (defaut 6b,
+    2026-10-26) : total du jour, toutes les plages caisse:kpis:* et
+    caisse:distrib:*. Avant, seules les cles daily_total etaient videes et
+    les KPI restaient figes jusqu'a 5 minutes apres une vente. Fail-open :
+    Redis indisponible ne bloque jamais une vente."""
+    try:
+        client = redis_client
+        client.delete(f"caisse:daily_total:{business_today()}")
+        for pattern in ("caisse:kpis:*", "caisse:distrib:*"):
+            keys = list(client.scan_iter(match=pattern, count=200))
+            if keys:
+                client.delete(*keys)
+    except Exception as e:
+        print(f"[REDIS] Erreur invalidation KPI caisse: {e}")
+
 logger = logging.getLogger(__name__)
 
 
@@ -317,14 +334,7 @@ class CaisseController:
                                 self.user, tx, price_mismatches)
 
         # 3. 🟢 Invalidation Cache (Le total du jour a changé)
-        try:
-            today = business_today()
-            # On supprime la clé du total journalier pour forcer le recalcul
-            redis_client.delete(f"caisse:daily_total:{today}")
-            # Note: Invalider les KPIs par range de date est complexe, on laisse le TTL (5min) expirer
-            # ou on pourrait supprimer toutes les clés correspondantes si nécessaire.
-        except Exception as e:
-            print(f"⚠️ [REDIS] Erreur invalidation: {e}")
+        invalidate_caisse_kpi_cache()
 
         # 4. 🟢 Tâche Async (Notification / Facture)
         if task_process_payment_notification:
@@ -349,6 +359,15 @@ class CaisseController:
         """
         tx = self.repo.get_by_id(transaction_id)
         if not tx: raise ValueError("Transaction introuvable")
+        # Rejeu idempotent (meme motif que medical_controller.create) : la file
+        # PowerSync rejoue un versement deja commite (reponse perdue). Meme
+        # uuid sur la meme facture = on renvoie l'existant, sans nouvelle ligne
+        # ni changement de l'avance, avant le controle "Montant trop eleve".
+        # Meme uuid sur une autre facture : comportement inchange (conflit).
+        existing = self.repo.find_payment_by_uuid(data.get("uuid"))
+        if existing is not None and existing.transaction_id == transaction_id:
+            invalidate_caisse_kpi_cache()
+            return existing
         if tx.status == "pending_approval":
             raise ValueError("Facture en attente de validation d'une réduction - action impossible.")
 
@@ -363,10 +382,7 @@ class CaisseController:
         result = self.repo.add_payment_installment(transaction_id, data, self.user)
 
         # 🟢 Invalidation Cache
-        try:
-            today = business_today()
-            redis_client.delete(f"caisse:daily_total:{today}")
-        except Exception: pass
+        invalidate_caisse_kpi_cache()
 
         # 🟢 Tâche Async
         if task_process_payment_notification:
@@ -470,9 +486,7 @@ class CaisseController:
         updated_tx = self.repo.update_transaction(transaction_id, data, self.user)
         
         # Invalidation cache simple (on suppose que le montant a pu changer)
-        try:
-            redis_client.delete(f"caisse:daily_total:{business_today()}")
-        except Exception: pass
+        invalidate_caisse_kpi_cache()
 
         return updated_tx
 
@@ -496,9 +510,7 @@ class CaisseController:
                 logger.exception("Échec de l'écriture d'audit")
             
         # Invalidation Cache
-        try:
-            redis_client.delete(f"caisse:daily_total:{business_today()}")
-        except Exception: pass
+        invalidate_caisse_kpi_cache()
 
         return tx
 
@@ -507,9 +519,7 @@ class CaisseController:
         if tx and tx.status == "pending_approval":
             raise ValueError("Facture en attente de validation d'une réduction - action impossible.")
         # Action destructrice, on invalide tout ce qu'on peut
-        try:
-            redis_client.delete(f"caisse:daily_total:{business_today()}")
-        except Exception: pass
+        invalidate_caisse_kpi_cache()
         return self.repo.delete_transaction(transaction_id)
 
     def settle_transaction(self, transaction_id: int):
@@ -519,9 +529,7 @@ class CaisseController:
         # Mode de la ligne SOLDE : celui de la vente, normalise (valeur ancienne -> code officiel)
         mode = resolve_payment_mode(self.repo.session, getattr(tx, "payment_method", None), required=False)
         res = self.repo.settle_transaction(transaction_id, self.user, mode)
-        try:
-            redis_client.delete(f"caisse:daily_total:{business_today()}")
-        except Exception: pass
+        invalidate_caisse_kpi_cache()
         return res
     
     def generate_invoice_pdf(self, transaction_id: int):

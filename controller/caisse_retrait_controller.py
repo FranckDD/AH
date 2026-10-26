@@ -7,6 +7,13 @@ from repositories.caisse_retrait_repo import CaisseRetraitRepository
 from utils.payment_mode_guard import resolve_payment_mode
 
 
+class CashShortageError(ValueError):
+    """Retrait en especes superieur aux especes presentes en caisse (impossible)."""
+
+
+CASH_MODE = "especes"
+
+
 class CaisseRetraitController:
     """
     Controller pour la logique métier des retraits de caisse.
@@ -63,6 +70,16 @@ class CaisseRetraitController:
             date_to=date_to
         )
 
+    def exceeds_cash_in_till(self, amount, payment_method) -> bool:
+        """Vrai si un retrait EN ESPECES depasse les especes qui devraient etre en caisse. Faux pour un autre
+        mode, ou si la caisse n'a pas de depart (rien a comparer). Ne revele jamais le montant de la caisse."""
+        from decimal import Decimal
+        from controller.cash_closure_controller import get_cash_closure_controller
+        if str(payment_method or "").lower() != CASH_MODE:
+            return False
+        till = get_cash_closure_controller(self.repo.session, self.user).cash_in_till()
+        return till is not None and Decimal(str(amount)) > till
+
     def effectuer_retrait(self, amount: float, justification: str,
                           category: str = None, payment_method: str = None, uuid: str = None) -> CaisseRetrait:
         """
@@ -74,6 +91,11 @@ class CaisseRetraitController:
         # uuid client = operation venue de la file hors ligne : jamais refusee pour le mode.
         payment_method = resolve_payment_mode(self.repo.session, payment_method, required=True,
                                               replay=bool(uuid))
+
+        # Retrait saisi en ligne : on refuse ce qui est impossible. Un rejeu hors ligne (uuid client) est deja
+        # fait et n'est jamais refuse ; l'ecart apparaitra a la cloture.
+        if not uuid and self.exceeds_cash_in_till(amount, payment_method):
+            raise CashShortageError("Retrait refuse : le montant depasse les especes presentes en caisse.")
 
         return self.repo.create(
             amount=amount,

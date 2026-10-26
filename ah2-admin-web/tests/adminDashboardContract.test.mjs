@@ -21,11 +21,11 @@ function check(name, src, needles) {
 // --- Contrat : ce que l'écran fait aujourd'hui (aucun changement de chiffre ni de comportement) ---
 check('DashboardOverview', view, [
     // chargement, filtres, rafraîchissement
-    'dashboardStore.fetchDashboardData()', 'dashboardStore.setDates(today, today)', "new Date().toISOString().substring(0, 10)",
+    'dashboardStore.fetchDashboardData()', 'dashboardStore.setDates(today, today)', "todayLocalISO()",
     'v-model="dashboardStore.filters.startDate"', 'v-model="dashboardStore.filters.endDate"', '@click="resetToToday"', '@click="applyFilters"',
     'configStore.fetchStructureInfo()',
     // tolérance aux pannes : jamais 0 à la place d'un bloc en échec
-    "dashboardStore.indisponibles.includes(nomBloc) ? 'Indisponible' : valeur",
+    "dashboardStore.indisponibles.includes(nomBloc) ? t('loadError.unavailable') : valeur",
     "dashboardStore.indisponibles.includes('income') || dashboardStore.indisponibles.includes('expense')",
     'dashboardStore.stats.income - dashboardStore.stats.withdrawals',
     "valeurAffichee('income', formatCurrency(dashboardStore.stats.income))", "valeurAffichee('expense', formatCurrency(dashboardStore.stats.withdrawals))",
@@ -35,14 +35,14 @@ check('DashboardOverview', view, [
     // activités récentes
     'dashboardStore.recentActivities', 'dashboardStore.isLoading', 'item.label', 'item.description && item.description !== item.label', 'formatDate(item.date)',
     'formatCurrency(item.amount)', "item.type === 'INCOME'", "item.status === 'active' || item.status === 'Validé'", 'item.status',
-    "dashboardStore.indisponibles.includes('activites')", 'Activités indisponibles (erreur de chargement).', 'Aucune activité récente.',
+    "dashboardStore.indisponibles.includes('activites')", "loadError.activities_unavailable", "loadError.no_recent_activity",
     // navigation et actions rapides
     "$router.push('/dashboard/finance')", "$router.push('/dashboard/users')", "$router.push('/dashboard/toxico')",
-    '@click="showAdmissionModal = true"', '@click="showFinanceModal = true"', 'Support technique : 674 69 79 08',
+    '@click="showAdmissionModal = true"', '@click="showFinanceModal = true"', "$t('screens.misc.support'",
     // modales et leur enregistrement
     '<ToxicoAdmissionModal', '@close="showAdmissionModal = false"', '@save="handleAdmissionSaved"', '<FinanceModal', '@close="showFinanceModal = false"', '@save="handleFinanceSaved"',
-    'await financialStore.addTransaction(transactionData);', "alert(\"Échec de l'enregistrement : la transaction n'a pas été enregistrée.\");",
-    'showFinanceModal.value = false;', 'alert("Transaction enregistrée !");', 'alert("Admission enregistrée !");',
+    'await financialStore.addTransaction(transactionData);', "notify('alerts.transaction_failed');",
+    'showFinanceModal.value = false;', "notify('alerts.transaction_saved', {}, 'success');", "notify('alerts.admission_saved', {}, 'success');",
     "new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XAF' }).format(value)",
     // clés
     "$t('dashboard.title')", "$t('dashboard.subtitle')", "$t('dashboard.filters.start_date')", "$t('dashboard.filters.end_date')", "$t('dashboard.filters.apply')",

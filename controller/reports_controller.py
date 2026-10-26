@@ -618,9 +618,15 @@ class ReportsController:
         fab = FabricationController(FabricationRepository(self.session),
                                     AuditRepository(self.session), self.user)
         for a in fab.list_anomalies():
+            if a["kind"] == "intrant_sous_seuil":
+                det = a["detail"]
+                out.append({"kind": "intrant_sous_seuil", "ref": a["ref"], "link": LINK_FAB_INTRANTS,
+                            "label": f"Intrant {a['ref']} sous le seuil d'alerte",
+                            "detail": dict(det, intrant_name=a["ref"])})
+                continue
             spec = FAB_KINDS.get(a["kind"])
             if spec is None:
-                continue  # intrant_sous_seuil : hors du perimetre du controle
+                continue
             kind, label = spec
             det = a["detail"]
             out.append({"kind": kind, "ref": a["ref"], "link": f"{LINK_FAB}/{det['batch_id']}",
@@ -656,6 +662,19 @@ class ReportsController:
                         "detail": {"request_id": r.id, "product_id": r.product_id,
                                    "kind": r.kind, "quantity": r.quantity,
                                    "requested_at": r.requested_at, "days": days}})
+        # (4b) ajustements de caisse (corrections de cloture) en attente depuis plus que ce meme reglage
+        cutoff = now - timedelta(days=wait)
+        for c in self.cash_repo.list_corrections("pending"):
+            req = c.requested_at
+            if req is not None and req.tzinfo is not None:
+                req = req.astimezone(timezone.utc).replace(tzinfo=None)
+            if req is not None and req < cutoff:
+                days = (now - req).days
+                out.append({"kind": "ajustement_caisse_en_attente", "ref": c.id, "link": LINK_CASH,
+                            "label": f"Ajustement de caisse n. {c.id} en attente depuis {days} jours",
+                            "detail": {"correction_id": c.id, "closure_id": c.closure_id, "mode": c.mode_code,
+                                       "amount_delta": _m(c.amount_delta), "requested_at": c.requested_at,
+                                       "days": days}})
         for a in out:  # etat courant : lu maintenant, meme pour un jour passe
             a["detail"]["current_state"] = True
         return out
@@ -897,6 +916,7 @@ CONTROL_TIME = time(23, 30)
 LINK_CASH = "/dashboard/cash-closures"
 LINK_PRICE = "/dashboard/finance"
 LINK_FAB = "/dashboard/fabrication-lots"
+LINK_FAB_INTRANTS = "/dashboard/fabrication-intrants"
 LINK_COUNT = "/dashboard/stock-count"
 LINK_ADJUST = "/dashboard/stock-adjustment-requests"
 FAB_KINDS = {

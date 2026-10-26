@@ -25,7 +25,7 @@ check('DiscountReview', review, [
     'api.post(`/discount-requests/${req.id}/decide`, {', "password: passwordInput[req.id] || '',", 'refuse,',
     'decision_percent: refuse ? null : (selectedPercent[req.id] || null),', 'decision_echelonne_deadline: refuse ? null : (selectedDeadline[req.id] || null),',
     'pending.value = pending.value.filter((r) => r.id !== req.id);', "errorFor[req.id] = '';",
-    "errorFor[req.id] = err.response?.data?.detail || 'Erreur lors de la décision.';",
+    "errorFor[req.id] = describeServerError(err, 'Erreur lors de la décision.');",
     'v-for="pct in [10, 20, 50, 100]"', '@click="selectedPercent[req.id] = pct"', 'selectedPercent[req.id] === pct',
     'v-model="selectedDeadline[req.id]"', 'type="date"', 'v-model="passwordInput[req.id]"', 'type="password"',
     '@click="submitDecision(req, false)"', '@click="submitDecision(req, true)"',

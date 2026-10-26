@@ -66,24 +66,39 @@ class AuthController:
         
 
 
+    def _record_access(self, user, action_type: str, details: str):
+        """Ecrit ET valide la ligne d'audit de connexion (sans commit elle etait perdue a la fermeture
+        de la session de la requete : l'historique des connexions s'etait arrete). Ne leve jamais."""
+        try:
+            self.audit_repo.log_access(user, action_type, details=details)
+            self.session.commit()
+        except Exception:
+            logger.exception("Échec de l'écriture d'audit")
+            try:
+                self.session.rollback()
+            except Exception:
+                pass
+
     def authenticate(self, username: str, password: str):
         try:
             user = self.user_repo.get_user_by_username(username)
+            # Le message renvoye au client reste generique (401 Identifiants invalides) ; la vraie raison
+            # n'est tracee que dans l'audit cote serveur.
             if not user:
                 print(f"Utilisateur {username} non trouvé")
+                self._record_access(None, "LOGIN_FAILURE", f"Utilisateur inconnu : {username}")
                 return None
             if  user.is_active is not True:
                 print(f"Compte {username} désactivé")
+                self._record_access(user, "LOGIN_FAILURE", f"Compte desactive : {username}")
                 return None
             if not pwd_context.verify(password, str(user.password_hash)):
                 print(f"Échec de vérification du mot de passe pour {username}")
+                self._record_access(user, "LOGIN_FAILURE", f"Mot de passe incorrect : {username}")
                 return None
 
             self.current_user = user
-            try:
-                self.audit_repo.log_access(user, "LOGIN_SUCCESS", details="Connexion via API")
-            except Exception:
-                logger.exception("Échec de l'écriture d'audit")
+            self._record_access(user, "LOGIN_SUCCESS", "Connexion via API")
             
 
             # instanciation des sous-contrôleurs
@@ -151,9 +166,10 @@ class AuthController:
 
         except Exception as e:
             try:
-                self.audit_repo.log_access(None, "LOGIN_FAILURE", details=f"User: {username}. Erreur: {str(e)}")
+                self.session.rollback()
             except Exception:
-                logger.exception("Échec de l'écriture d'audit")
+                pass
+            self._record_access(None, "LOGIN_FAILURE", f"User: {username}. Erreur: {str(e)}")
 
             print(f"Erreur d'authentification pour {username}: {e}")
             import traceback; traceback.print_exc()

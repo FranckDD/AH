@@ -14,6 +14,7 @@ from controller.auth_controller import AuthController
 from controller.user_controller import UserController
 from repositories.user_repo import UserRepository
 from repositories.role_repo import RoleRepository
+from repositories.audit_repo import AuditRepository
 from .schemas import Token
 from .schemas import UserPasswordUpdate
 from .schemas import SelfProfileUpdate
@@ -257,6 +258,10 @@ def logout(db: Session = Depends(get_db), current_user = Depends(get_current_use
     """Révoque tous les tokens actuellement émis pour l'utilisateur courant."""
     current_user.token_version = (getattr(current_user, "token_version", 0) or 0) + 1
     db.add(current_user)
+    try:
+        AuditRepository(db).log_access(current_user, "LOGOUT", details="Deconnexion")
+    except Exception:
+        logger.exception("Échec de l'écriture d'audit (LOGOUT)")
     db.commit()
     return {"message": "Déconnexion effectuée"}
 

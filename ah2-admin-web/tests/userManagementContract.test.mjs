@@ -35,7 +35,7 @@ check('UserManagement', view, [
     // actions : création, modification (copie), suppression confirmée
     '@click="openAddModal"', 'openEditModal(user)', 'confirmDelete(user)', 'selectedUser.value = { ...user };', 'selectedUser.value = null;', 'showModal.value = true;', 'showModal.value = false;',
     'if (userData.id) {', 'await userStore.updateUser(userData);', 'await userStore.addUser(userData);',
-    'if (confirm(`Voulez-vous vraiment supprimer ${user.firstName} ${user.lastName} ?`)) {', 'await userStore.deleteUser(user.id);',
+    "if (confirm(t('usersScreens.delete_confirm', { name: `${user.firstName} ${user.lastName}` }))) {", 'await userStore.deleteUser(user.id);',
     // modale
     '<UserModal', ':userToEdit="selectedUser"', ':application-roles="applicationRoles"', ':medical-specialties="medicalSpecialties"', '@close="closeModal"', '@save="handleSaveUser"',
     // clés (la colonne des actions est désormais l'en-tête masqué ui.actions du tableau commun)

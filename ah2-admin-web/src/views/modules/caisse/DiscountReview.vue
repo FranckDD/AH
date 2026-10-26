@@ -42,7 +42,11 @@
 
         <div class="grid gap-2 sm:grid-cols-2">
           <AppButton variant="success" @click="submitDecision(req, false)">{{ $t('discount_review.approve') }}</AppButton>
-          <AppButton variant="danger" @click="submitDecision(req, true)">{{ $t('discount_review.refuse') }}</AppButton>
+          <AppButton variant="danger" :disabled="hasApprovalChoice(req)" @click="submitDecision(req, true)">{{ $t('discount_review.refuse') }}</AppButton>
+        </div>
+        <div v-if="hasApprovalChoice(req)" class="flex flex-wrap items-center gap-3">
+          <p class="text-base text-ink-muted">{{ $t('discountReviewScreens.refuse_needs_clear') }}</p>
+          <AppButton variant="ghost" @click="clearChoice(req)">{{ $t('discountReviewScreens.clear_choice') }}</AppButton>
         </div>
       </div>
     </AppCard>
@@ -72,6 +76,11 @@ const fetchPending = async () => {
   pending.value = res.data || [];
 };
 
+// Un refus n'accorde ni pourcentage ni echeance (le serveur refuse cette combinaison, 422) : on bloque le bouton
+// plutot que d'ignorer en silence le choix fait a l'ecran.
+const hasApprovalChoice = (req) => !!(selectedPercent[req.id] || selectedDeadline[req.id]);
+const clearChoice = (req) => { selectedPercent[req.id] = null; selectedDeadline[req.id] = ''; };
+
 const submitDecision = async (req, refuse) => {
   errorFor[req.id] = '';
   try {
@@ -83,7 +92,7 @@ const submitDecision = async (req, refuse) => {
     });
     pending.value = pending.value.filter((r) => r.id !== req.id);
   } catch (err) {
-    errorFor[req.id] = err.response?.data?.detail || 'Erreur lors de la décision.';
+    errorFor[req.id] = describeServerError(err, 'Erreur lors de la décision.');
   }
 };
 

@@ -80,7 +80,10 @@
       <p v-else-if="!visibleClosures.length" class="mt-4 text-base text-ink-muted">{{ t('cashClosure.review_empty') }}</p>
       <div v-else class="mt-4">
         <ResponsiveTable :columns="listColumns" :rows="visibleClosures" row-key="id" striped>
-          <template #cell-date="{ row }"><span class="font-semibold">{{ fmtDay(row.business_date) }}</span></template>
+          <template #cell-date="{ row }">
+            <span class="font-semibold">{{ fmtDay(row.business_date) }}</span>
+            <span class="block text-sm text-ink-muted">{{ fmtDateTime(row.closed_at) }}</span>
+          </template>
           <template #cell-kind="{ row }">
             <StatusBadge v-if="closureFlags(row).undeclared" tone="warning" :label="t('cashClosure.review_badge_undeclared')" />
             <StatusBadge v-else tone="info" :label="t('cashClosure.review_badge_manual')" />

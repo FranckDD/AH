@@ -167,9 +167,9 @@ test('(e) chaque rôle du cadre partagé a une palette de menu valide, un espace
         assert.notEqual(name, 'night', `${role} doit avoir sa propre palette`);
         assert.ok(NAV_PALETTES[name], `${role} : palette ${name} inconnue`);
     }
-    assert.equal(paletteForRole('admin'), paletteForRole('promoteur'));
-    const espaces = new Set(['admin', 'laborantin', 'ToxicoManager', 'StockController'].map(paletteForRole));
-    assert.equal(espaces.size, 4, 'admin, labo, toxico et stock-control ont chacun leur couleur');
+    assert.notEqual(paletteForRole('admin'), paletteForRole('promoteur'), 'chaque rôle a sa propre couleur');
+    const espaces = new Set(['admin', 'promoteur', 'laborantin', 'ToxicoManager', 'Psychologist', 'SpiritualCounsellor', 'Assistant', 'StockController', 'ProductionManager'].map(paletteForRole));
+    assert.equal(espaces.size, 9, 'chaque rôle du cadre partagé a sa couleur');
     assert.equal(paletteForRole('medecin'), 'night');
 });
 

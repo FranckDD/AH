@@ -126,6 +126,21 @@ class AuditRepository:
             specific_filter_value=resource_type
         )
     
+    @staticmethod
+    def summarize_changes(old: Optional[Dict[str, Any]], new: Optional[Dict[str, Any]]) -> str:
+        """Resume lisible "champ : avant -> apres" des seules valeurs qui changent (mots de passe exclus)."""
+        old = old or {}
+        new = new or {}
+        parts = []
+        for key, value in new.items():
+            if "password" in key.lower() or key == "details":
+                continue
+            before = old.get(key)
+            if key in old and str(before) == str(value):
+                continue
+            parts.append(f"{key} : {before} -> {value}" if key in old else f"{key} : {value}")
+        return " ; ".join(parts)
+
     # --- Log d'Accès (Fonction d'écriture) ---
     def log_access(self, current_user: Optional[User], action_type: str, ip_address: Optional[str] = None, user_agent: Optional[str] = None, details: Optional[str] = None):
         """ Enregistre un événement de connexion/déconnexion/échec. """
@@ -152,6 +167,10 @@ class AuditRepository:
         # On convertit les dates en string pour éviter "TypeError: Object of type date is not JSON serializable"
         safe_old_values = self._serialize_data(old_values) if old_values else None
         safe_new_values = self._serialize_data(new_values) if new_values else None
+        # Pas de colonne "details" : le texte court est range dans new_values["details"], que l'ecran
+        # d'audit affiche (avant, il etait silencieusement perdu et la colonne restait vide).
+        if details:
+            safe_new_values = {**(safe_new_values or {}), "details": details}
 
         log = AuditUserAction(
             user_id=current_user.user_id,
@@ -162,7 +181,6 @@ class AuditRepository:
             old_values=safe_old_values, # Utiliser la version "safe"
             new_values=safe_new_values, # Utiliser la version "safe"
             ip_address=ip_address
-            # details=details 
         )
         # 🟢 AJOUT à la session. PAS de commit isolé.
         self.session.add(log)

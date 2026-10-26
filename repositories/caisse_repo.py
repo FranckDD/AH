@@ -326,6 +326,17 @@ class CaisseRepository:
             self.session.rollback()
             raise e
     
+    def find_payment_by_uuid(self, client_uuid):
+        """Versement deja enregistre pour cet uuid client (rejeu PowerSync), ou None."""
+        if not client_uuid:
+            return None
+        import uuid
+        try:
+            key = uuid.UUID(str(client_uuid))
+        except (ValueError, TypeError):
+            return None
+        return self.session.query(PaiementEchelonne).filter(PaiementEchelonne.uuid == key).first()
+
     def add_payment_installment(self, transaction_id: int, data: dict, current_user, commit=True) -> PaiementEchelonne:
         """
         Enregistre un versement (Avance, Solde, etc.) pour une transaction.

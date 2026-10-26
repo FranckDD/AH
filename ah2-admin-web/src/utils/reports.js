@@ -16,7 +16,7 @@ export const CARD_BLOCKS = Object.freeze([
 export const ANOMALY_KINDS = Object.freeze([
     'cloture_auto', 'ecart_caisse', 'commentaire_manquant', 'ventes_annulees', 'prix_different', 'sortie_autre',
     'lot_hors_tolerance', 'lot_trop_long', 'ecart_expedie_recu', 'comptage_retard', 'comptage_jamais',
-    'ajustement_en_attente',
+    'ajustement_en_attente', 'ajustement_caisse_en_attente', 'intrant_sous_seuil',
 ]);
 
 const pad = (n) => String(n).padStart(2, '0');
@@ -145,4 +145,23 @@ export function linkAllowed(resolved, userRole) {
     const role = String(userRole || '').toLowerCase();
     if (!role) return false;
     return role === 'admin' || roles.map((r) => String(r).toLowerCase()).includes(role);
+}
+
+// Libelle d'un point du controle quotidien dans la langue courante : construit a partir du type et du detail
+// stockes (le texte francais du serveur ne sert que de repli pour un type inconnu).
+export function anomalyLabel(item, t, te) {
+    const kind = item?.kind;
+    if (!kind || !te(`reports.anomalies.${kind}`)) return item?.label || '';
+    const d = item.detail || {};
+    const params = {
+        mode: d.mode ?? '', difference: d.difference ?? '', count: d.count ?? d.total ?? '', threshold: d.threshold ?? '',
+        id: d.transaction_id ?? d.request_id ?? d.correction_id ?? item.ref ?? '', quantity: d.quantity ?? '',
+        batch: d.batch_number ?? item.ref ?? '', days: d.days ?? '', name: d.intrant_name ?? item.ref ?? '',
+    };
+    return t(`reports.anomalies.${kind}`, params, Number(params.quantity) || 1);
+}
+
+// Source d'une carte : traduite par identifiant de carte, texte serveur en repli.
+export function cardSource(cardId, card, t, te) {
+    return te(`reports.sources.${cardId}`) ? t(`reports.sources.${cardId}`) : (card?.source || '');
 }

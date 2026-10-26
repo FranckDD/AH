@@ -1,5 +1,6 @@
 // Fichier : src/services/AuditGateway.js
 
+import { todayLocalISO } from '@/utils/localDate';
 import api from '@/services/api'; // Votre client axios configuré
 
 const cleanParams = (params) => {
@@ -9,7 +10,7 @@ const cleanParams = (params) => {
         if (params[key] !== null && params[key] !== '' && params[key] !== undefined) {
             // Pour les dates, on s'assure qu'elles sont dans un format string ISO standard
             if (params[key] instanceof Date) {
-                 cleaned[key] = params[key].toISOString().split('T')[0]; // YYYY-MM-DD
+                 cleaned[key] = todayLocalISO(params[key]); // YYYY-MM-DD
             } else {
                  cleaned[key] = params[key];
             }

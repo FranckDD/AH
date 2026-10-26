@@ -1,8 +1,8 @@
 <template>
-  <FullScreenPanel :title="t('caisse.cancel_modal.title')" @close="$emit('close')">
+  <FullScreenPanel :title="title || t('caisse.cancel_modal.title')" @close="$emit('close')">
     <form id="cancel-form" @submit.prevent="handleSubmit" class="space-y-4">
       <p class="text-base font-semibold text-ink">{{ label }}</p>
-      <p class="text-base text-ink-muted">{{ t('caisseScreens.cancel_help') }}</p>
+      <p class="text-base text-ink-muted">{{ help || t('caisseScreens.cancel_help') }}</p>
 
       <FormField id="cancel-justification" :label="t('caisse.cancel_modal.justification')" required v-slot="{ describedBy }">
         <textarea
@@ -44,6 +44,8 @@ import { toneClasses } from '@/design/tones';
 
 const props = defineProps({
   label: { type: String, default: '' },
+  title: { type: String, default: '' },
+  help: { type: String, default: '' },
   isSaving: { type: Boolean, default: false },
   errorMessage: { type: String, default: '' },
 });

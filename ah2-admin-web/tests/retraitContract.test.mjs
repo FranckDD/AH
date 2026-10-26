@@ -32,7 +32,7 @@ check('RetraitList', list, [
     'goToPage(retraitStore.pagination.page - 1)', 'goToPage(retraitStore.pagination.page + 1)', 'retraitStore.setPage(page)',
     '@click="showCreateModal = true"', ':isSaving="isSavingCreate"', ':errorMessage="createError"', '@save="handleCreate"', '@confirm="handleCancel"',
     'showCreateModal.value = false;', 'cancellingRetrait.value = null;', 'cancellingRetrait = null',
-    'if (status === 422) return "Données invalides.";', 'if (status === 400) return detail || "Requête invalide.";',
+    "if (status === 422) return typeof detail === 'string' && detail ? detail : \"Données invalides.\";", 'if (status === 400) return detail || "Requête invalide.";',
     "Erreur réseau. Veuillez vérifier votre connexion.", "t('caisse.status.active')", "t('caisse.status.cancelled')", "t('caisse.status.all')",
     "t('retrait.title')", "t('retrait.new_retrait')", "t('retrait.search_placeholder')", "t('retrait.table.date')", "t('retrait.table.justification')",
     "t('retrait.table.category')", "t('retrait.table.method')", "t('retrait.table.amount')", "t('retrait.table.status')", "t('caisse.actions.cancel')",

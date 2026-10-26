@@ -17,6 +17,7 @@ from sqlalchemy import text
 from controller.cash_closure_controller import CashClosureController
 from controller.reports_controller import ReportsController, get_reports_controller
 from models.audit import AuditUserAction
+from models.cash_closure import CashClosure
 from models.fabrication import FabBatch, FabBatchOutput
 from models.notification import Notification
 from models.pharmacy import Pharmacy
@@ -598,3 +599,28 @@ def test_get_control_no_cap_fields_when_covered(env):
     db, u, clock = env
     out = _ctrl(db, u["promo"], Clock(_at(D1, 9)), []).get_control(D1, D1)
     assert out["uncontrolled_days"] == 0 and out["uncontrolled_range"] is None
+
+
+@pytest.mark.parametrize("age_h,expected", [(72, False), (96, True)])
+def test_pending_cash_correction_strictly_older_than_setting(env, age_h, expected):
+    from tests.cash_closure_isolation import reset_register
+    from models.cash_closure import CashClosureCorrection
+    db, u, clock = env
+    reset_register(db)
+    _ctrl(db, u["admin"], clock).set_settings(3, 3)
+    start = datetime(2033, 4, 4, 8, 0, tzinfo=DLA)
+    cc = CashClosureController(CashClosureRepository(db), AuditRepository(db),
+                               NotificationRepository(db), u["admin"], clock=lambda: start)
+    cc.set_start(Decimal(0))
+    CashClosureController(CashClosureRepository(db), AuditRepository(db), NotificationRepository(db),
+                          u["admin"], clock=lambda: _at(D1 + timedelta(days=1), 9, 0)).auto_close_overdue(_at(D1 + timedelta(days=1), 9, 0))
+    closure = db.query(CashClosure).first()
+    corr = CashClosureCorrection(closure_id=closure.id, mode_code="especes", amount_delta=Decimal("5"), reason="t",
+                                 status="pending", requested_by=u["secr"].user_id,
+                                 requested_at=clock() - timedelta(hours=age_h))
+    db.add(corr)
+    db.flush()
+    k = _keys(_ctrl(db, u["promo"], clock), D1)
+    assert (f"ajustement_caisse_en_attente:{corr.id}" in k) is expected
+    if expected:
+        assert k[f"ajustement_caisse_en_attente:{corr.id}"]["link"] == "/dashboard/cash-closures"

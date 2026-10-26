@@ -67,7 +67,26 @@ export const useRetraitStore = defineStore('retrait', () => {
         fetchRetraits();
     }
 
+    // En ligne, un retrait en especes superieur a la caisse est refuse avant la saisie. Hors ligne ou si la
+    // verification echoue, on ne bloque pas : le serveur ne refuse jamais un rejeu, l'ecart se verra a la cloture.
+    async function assertWithinCash(payload) {
+        if (typeof navigator !== 'undefined' && navigator.onLine === false) return;
+        let over = false;
+        try {
+            const r = await CaisseGateway.checkRetraitCash(payload.amount, payload.payment_method);
+            over = !!r?.data?.over_cash;
+        } catch (_e) {
+            return;
+        }
+        if (over) {
+            const err = new Error('over cash');
+            err.code = 'OVER_CASH';
+            throw err;
+        }
+    }
+
     async function createRetrait(payload) {
+        await assertWithinCash(payload);
         const authStore = useAuthStore();
         if (authStore.hasRole(['secretaire'])) {
             const uuid = crypto.randomUUID();

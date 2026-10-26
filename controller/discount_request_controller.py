@@ -4,7 +4,7 @@ import redis
 from decimal import Decimal, ROUND_HALF_UP
 from typing import Dict, Any
 from dotenv import load_dotenv
-from controller.caisse_controller import check_invoice_amounts, validate_staff_discount
+from controller.caisse_controller import check_invoice_amounts, validate_staff_discount, invalidate_caisse_kpi_cache
 from repositories.discount_request_repo import DiscountRequestRepository
 from repositories.caisse_repo import CaisseRepository
 from repositories.notification_repo import NotificationRepository
@@ -111,6 +111,8 @@ class DiscountRequestController:
             },
         )
         self.repo.session.commit()
+        # Facture creee/modifiee : les tuiles KPI caisse doivent se recalculer (defaut 6b).
+        invalidate_caisse_kpi_cache()
         return req
 
     def _patient_label_for(self, transaction_id: int):
@@ -241,4 +243,6 @@ class DiscountRequestController:
             },
         )
         self.repo.session.commit()
+        # Facture creee/modifiee : les tuiles KPI caisse doivent se recalculer (defaut 6b).
+        invalidate_caisse_kpi_cache()
         return req

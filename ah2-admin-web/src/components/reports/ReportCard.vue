@@ -4,13 +4,13 @@
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { StatusBadge } from '@/components/ui';
-import { currentStateOf, formatLocalDate, formatInstant } from '@/utils/reports';
+import { currentStateOf, formatLocalDate, formatInstant, cardSource } from '@/utils/reports';
 
 const props = defineProps({
     cardId: { type: String, required: true },
     card: { type: Object, default: null },
 });
-const { t, locale } = useI18n();
+const { t, te, locale } = useI18n();
 const state = computed(() => currentStateOf(props.card));
 const periodText = computed(() => {
     const p = props.card?.period || {};
@@ -33,7 +33,7 @@ const periodText = computed(() => {
         <footer class="grid gap-0.5 border-t border-tone-neutral-border pt-2 text-sm text-ink-muted">
             <p v-if="!state.current && periodText">{{ t('reports.card.period', { period: periodText }) }}</p>
             <p v-else-if="state.current">{{ t('reports.card.period_current') }}</p>
-            <p>{{ t('reports.card.source', { source: card?.source || '' }) }}</p>
+            <p>{{ t('reports.card.source', { source: cardSource(cardId, card, t, te) }) }}</p>
         </footer>
     </article>
 </template>

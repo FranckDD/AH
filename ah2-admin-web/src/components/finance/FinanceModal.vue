@@ -1,6 +1,7 @@
 <template>
   <FullScreenPanel :title="t('finance.modal.title_new')" @close="$emit('close')">
     <form id="finance-form" @submit.prevent="handleSubmit" class="grid gap-4">
+      <p role="note" class="rounded-control border p-3 text-base" :class="toneClasses('warning')">{{ t('financeScreens.real_money_warning') }}</p>
 
       <!-- Type : Recette ou Depense (etat ecrit, pas seulement la couleur) -->
       <div class="grid gap-1.5">
@@ -61,10 +62,12 @@
 </template>
 
 <script setup>
+import { notify, notifyText } from '@/utils/notify';
 import { reactive, computed, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { BanknotesIcon, ArrowTrendingDownIcon } from '@heroicons/vue/24/outline';
 import { AppButton, FormField, ActionBar, FullScreenPanel } from '@/components/ui';
+import { toneClasses } from '@/design/tones';
 import { usePaymentModes } from '@/utils/paymentModes';
 import { todayLocalISO } from '@/utils/localDate';
 
@@ -120,15 +123,15 @@ const availableCategories = computed(() => {
 const handleSubmit = () => {
     // Validation basique
     if (form.amount <= 0) {
-        alert("Le montant doit être supérieur à 0");
+        notify('alerts.amount_positive');
         return;
     }
     if (!form.category) {
-        alert("Veuillez sélectionner une catégorie");
+        notify('alerts.category_required');
         return;
     }
     if (!form.paymentMethod) {
-        alert(t('paymentModeChoice.placeholder'));
+        notifyText(t('paymentModeChoice.placeholder'));
         return;
     }
 

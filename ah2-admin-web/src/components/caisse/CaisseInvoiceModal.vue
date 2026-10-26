@@ -433,7 +433,7 @@ const selectProductLine = (line, product) => {
 
 const selectConsultationLine = (line, consultation) => {
   line.refId = consultation.consultation_id;
-  line.refLabel = `#${consultation.consultation_id} — ${consultation.type_consultation || ''}`.trim();
+  line.refLabel = `#${consultation.consultation_id} - ${consultation.type_consultation || ''}`.trim();
   line.quantity = 1;
   line.catalogLine = consultation.type_consultation === 'FamilyRestoration';
   line.unitPrice = Number(consultation.fr_amount_paid) || 0;
@@ -552,7 +552,7 @@ const handleRequestDiscount = async () => {
     pendingDiscountRequest.value = { id: res.data.id, managerId: selectedManagerId.value, managerName: manager?.full_name || manager?.username };
     emit('discount-requested');
   } catch (err) {
-    discountRequestError.value = err.response?.data?.detail || "Impossible d'envoyer la demande de réduction.";
+    discountRequestError.value = describeServerError(err, "Impossible d'envoyer la demande de réduction.");
     console.error('Erreur demande de réduction:', err);
   } finally {
     isRequestingDiscount.value = false;
@@ -577,7 +577,7 @@ const cancelAndReassign = async () => {
     pendingDiscountRequest.value = { id: res.data.id, managerId: newManagerId, managerName: manager?.full_name || manager?.username };
     emit('discount-requested');
   } catch (err) {
-    discountRequestError.value = err.response?.data?.detail || "Impossible de réassigner la demande de réduction.";
+    discountRequestError.value = describeServerError(err, "Impossible de réassigner la demande de réduction.");
     console.error('Erreur réassignation demande de réduction:', err);
   } finally {
     isReassigning.value = false;

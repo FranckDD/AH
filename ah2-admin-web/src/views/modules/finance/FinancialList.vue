@@ -76,7 +76,7 @@
           </span>
         </template>
         <template #cell-status="{ row: tx }">
-          <StatusBadge v-if="tx.status === 'Validé'" tone="success" label="Validé" />
+          <StatusBadge v-if="tx.status === 'Validé'" tone="success" :label="$t('screens.misc.validated')" />
           <StatusBadge v-else tone="warning" :label="String(tx.status ?? '-')" />
         </template>
       </ResponsiveTable>

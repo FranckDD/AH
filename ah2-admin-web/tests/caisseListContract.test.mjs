@@ -51,7 +51,7 @@ check('CaisseList', list, [
     'viewingTx', 'viewingItems', 'viewLoading', 'viewError', 'row-key="item_id"','formatCurrency(item.unit_price)', 'formatCurrency(item.line_total)',
     // script : logique conservée
     'caisseStore.fetchTransactions()', 'caisseStore.createInvoice(payload)', 'caisseStore.addPayment(installmentTx.value.transaction_id, data)',
-    'caisseStore.settleTransaction(tx)', 'caisseStore.cancelTransaction(cancellingTx.value.transaction_id, justification)',
+    "openInstallmentModal(tx, 'settle')", ':mode="installmentMode"', ':defaultMethod="installmentTx.payment_method"', 'caisseStore.cancelTransaction(cancellingTx.value.transaction_id, justification)',
     'CaisseGateway.getTransaction(tx.transaction_id)', 'CaisseGateway.getTicket(transactionId)', 'waitForSyncedTransactionId(localUuid)',
     'const AUTO_REFRESH_MS = 30000;', 'showInvoiceModal.value || !!cancellingTx.value || !!installmentTx.value || !!viewingTx.value',
     "Jeton d'impression non configuré.", 'Ticket non imprimé',
@@ -66,8 +66,9 @@ check('CaisseCancelModal', cancel, [
 ]);
 
 check('CaisseInstallmentModal', installment, [
-    `emit('confirm', { paid_amount: Number(paidAmount.value), payment_method: paymentMethod.value, note: null })`,
-    'const paidAmount = ref(props.remainingDue);', "const paymentMethod = ref('especes');", 'v-model.number="paidAmount"', 'v-model="paymentMethod"',
+    `emit('confirm', { paid_amount: Number(paidAmount.value), payment_method: paymentMethod.value, payment_type: paymentType(), note: null })`,
+    'const paidAmount = ref(props.remainingDue);', 'const paymentMethod = ref(initialMethod(props.defaultMethod));',
+    "props.mode === 'settle' && round2(paidAmount.value) >= round2(props.remainingDue)", "import { round2 } from '@/utils/invoiceTotals';", "'SOLDE'", "'VERSEMENT_ECHEANCE'", "t('caisse.installment_modal.settle_title')", "t('caisse.installment_modal.settle_confirm')", 'v-model.number="paidAmount"', 'v-model="paymentMethod"',
     ':max="remainingDue"', 'min="0.01"', 'step="0.01"', '!(paidAmount > 0)',
     'v-for="m in paymentModes"', ':value="m.code"', 'usePaymentModes()',
     "t('caisse.installment_modal.title')", "t('caisse.installment_modal.remaining_due')", "t('finance.modal.amount')", "t('finance.modal.method')",
@@ -99,6 +100,26 @@ test('CaisseList : composants ui/ et lecture de ?nouveau=1', () => {
     assert.match(list, /window\.history\.replaceState\(/);
 });
 
+test('CaisseList : le tableau defile dans son cadre, pas la page (defaut 4)', () => {
+    assert.match(list, /<div class="grid w-full grid-cols-\[minmax\(0,1fr\)\] gap-6">/);
+    assert.match(list, /<section class="grid min-w-0 grid-cols-\[minmax\(0,1fr\)\] gap-3">/);
+    const table = readFileSync(new URL('../src/components/ui/ResponsiveTable.vue', import.meta.url), 'utf8');
+    assert.match(table, /<div class="relative hidden max-h-\[70vh\] overflow-auto lg:block">/);
+});
+
+test('CaisseList : un seul compteur, celui des lignes affichees, et la portee des tuiles ecrite (defaut 6a)', () => {
+    assert.match(list, /t\('caisseScreens\.invoices_shown', \{ n: caisseStore\.transactions\.length \}\)/);
+    assert.doesNotMatch(list, /transactions_count', \{ n: caisseStore\.pagination\.total/);
+    assert.match(list, /kpiScope/);
+    assert.match(list, /caisseScreens\.kpi_scope_today/);
+});
+
+test('caisseStore : la table locale applique le filtre de statut et de dates comme le serveur (defaut 6a)', () => {
+    const store = readFileSync(new URL('../src/stores/caisseStore.js', import.meta.url), 'utf8');
+    assert.match(store, /matchesLocalFilters/);
+    assert.match(store, /totalItems\.value = visible\.length;/);
+});
+
 test('CaisseList : montants alignés à droite et statuts écrits (badge avec texte)', () => {
     assert.match(list, /align: 'right'/);
     assert.match(list, /<StatusBadge/);
@@ -122,7 +143,7 @@ test('écrans caisse : jetons du thème, texte >= 13 px, aucun caractère typogr
 });
 
 test('clés caisseScreens.* en FR et EN', () => {
-    const keys = ['kpi_transactions', 'transactions_count', 'search_label', 'from', 'to', 'load_error', 'empty', 'page_label', 'prev_page', 'next_page',
+    const keys = ['kpi_transactions', 'transactions_count', 'invoices_shown', 'kpi_scope_today', 'kpi_scope_period', 'search_label', 'from', 'to', 'load_error', 'empty', 'page_label', 'prev_page', 'next_page',
         'action_settle', 'action_download', 'pending_sync', 'sync_failed', 'view_title', 'amount_label', 'installment_help', 'cancel_help'];
     for (const locale of ['fr', 'en']) {
         for (const k of keys) {

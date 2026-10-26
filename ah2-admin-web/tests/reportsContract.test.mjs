@@ -168,7 +168,7 @@ test('controle du jour : etat en mots', () => {
 
 test('chaque nature d anomalie a un libelle FR et EN', () => {
     const kinds = ['cloture_auto', 'ecart_caisse', 'commentaire_manquant', 'ventes_annulees', 'prix_different', 'sortie_autre',
-        'lot_hors_tolerance', 'lot_trop_long', 'ecart_expedie_recu', 'comptage_retard', 'comptage_jamais', 'ajustement_en_attente'];
+        'lot_hors_tolerance', 'lot_trop_long', 'ecart_expedie_recu', 'comptage_retard', 'comptage_jamais', 'ajustement_en_attente', 'ajustement_caisse_en_attente', 'intrant_sous_seuil'];
     assert.deepEqual([...R.ANOMALY_KINDS].sort(), [...kinds].sort());
     const ctrl = root('controller/reports_controller.py');
     for (const m of ctrl.matchAll(/"kind": "([a-z_]+)"/g)) {

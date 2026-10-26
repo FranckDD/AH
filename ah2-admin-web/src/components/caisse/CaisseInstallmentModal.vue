@@ -1,5 +1,5 @@
 <template>
-  <FullScreenPanel :title="t('caisse.installment_modal.title')" @close="$emit('close')">
+  <FullScreenPanel :title="mode === 'settle' ? t('caisse.installment_modal.settle_title') : t('caisse.installment_modal.title')" @close="$emit('close')">
     <form id="installment-form" @submit.prevent="handleSubmit" class="space-y-4">
       <p class="text-base text-ink">
         {{ t('caisse.installment_modal.remaining_due') }} : <span class="font-bold">{{ formatCurrency(remainingDue) }}</span>
@@ -28,7 +28,7 @@
           <AppButton variant="ghost" :disabled="isSaving" @click="$emit('close')">{{ t('finance.modal.cancel') }}</AppButton>
         </template>
         <AppButton type="submit" form="installment-form" :disabled="isSaving || !(paidAmount > 0)" :loading="isSaving">
-          {{ isSaving ? t('caisse.cancel_modal.saving') : t('finance.modal.save') }}
+          {{ isSaving ? t('caisse.cancel_modal.saving') : (mode === 'settle' ? t('caisse.installment_modal.settle_confirm') : t('finance.modal.save')) }}
         </AppButton>
       </ActionBar>
     </template>
@@ -41,12 +41,18 @@ import { useI18n } from 'vue-i18n';
 import { ExclamationCircleIcon } from '@heroicons/vue/20/solid';
 import { AppButton, FormField, ActionBar, FullScreenPanel } from '@/components/ui';
 import { toneClasses } from '@/design/tones';
-import { usePaymentModes } from '@/utils/paymentModes';
+import { usePaymentModes, normalizeMode, FALLBACK_PAYMENT_MODES } from '@/utils/paymentModes';
+import { round2 } from '@/utils/invoiceTotals';
 
 const props = defineProps({
   remainingDue: { type: Number, required: true },
   isSaving: { type: Boolean, default: false },
   errorMessage: { type: String, default: '' },
+  // 'settle' = bouton "Solder" : meme panneau, pre-rempli avec le reste du et
+  // le mode de la facture, la secretaire confirme (et peut changer le mode ou
+  // le montant). Plus aucun paiement en un seul clic (defaut 3, 2026-10-26).
+  mode: { type: String, default: 'installment' },
+  defaultMethod: { type: String, default: '' },
 });
 const emit = defineEmits(['close', 'confirm']);
 const { t } = useI18n();
@@ -57,12 +63,23 @@ const fieldClass = 'block w-full min-h-11 rounded-control border border-tone-neu
 const paidAmount = ref(props.remainingDue);
 // Liste officielle des modes (codes stables, GET /payment-modes, repli hors ligne).
 const paymentModes = usePaymentModes();
-const paymentMethod = ref('especes');
+// Mode de la facture ramene a un code officiel ; sinon especes (le serveur
+// refuse un mode hors liste).
+const initialMethod = (raw) => {
+  const code = normalizeMode(raw);
+  return FALLBACK_PAYMENT_MODES.some((m) => m.code === code) ? code : 'especes';
+};
+const paymentMethod = ref(initialMethod(props.defaultMethod));
+// SOLDE seulement si le versement couvre tout le reste du ; un montant reduit
+// reste un versement ordinaire.
+// Comparaison au centime (round2) : evite qu'un bruit binaire (ex. 1999.9999)
+// transforme un solde complet en simple versement.
+const paymentType = () => (props.mode === 'settle' && round2(paidAmount.value) >= round2(props.remainingDue) ? 'SOLDE' : 'VERSEMENT_ECHEANCE');
 
 const formatCurrency = (value) => new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XAF' }).format(value || 0).replace('XOF', 'FCFA');
 
 const handleSubmit = () => {
   if (!(paidAmount.value > 0)) return;
-  emit('confirm', { paid_amount: Number(paidAmount.value), payment_method: paymentMethod.value, note: null });
+  emit('confirm', { paid_amount: Number(paidAmount.value), payment_method: paymentMethod.value, payment_type: paymentType(), note: null });
 };
 </script>

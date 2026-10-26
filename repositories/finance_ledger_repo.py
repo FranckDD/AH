@@ -41,7 +41,9 @@ class FinanceLedgerRepository:
             Caisse.patient_label.label("patient_label"),
             Caisse.created_by_name.label("created_by_name"),
             Caisse.status.label("status"),
-        )
+            # Une facture liberee par une decision de reduction n'encaisse rien : '+0 FCFA' n'est pas un
+            # mouvement d'argent, on ne l'affiche pas (ni dans la liste, ni dans le total de pages).
+        ).where(Caisse.advance_amount > 0)
 
         depenses = select(
             CaisseRetrait.retrait_id.label("id"),

@@ -42,6 +42,7 @@
           <StatusBadge :tone="getRoleColor(user.roleName)" :label="String(user.roleName ?? '-')" />
           <p v-if="user.specialtyName && user.specialtyName !== '-'" class="mt-1.5 text-sm text-ink-muted">{{ user.specialtyName }}</p>
           <p v-else class="mt-1.5 text-sm uppercase text-ink-muted">{{ user.postgres_role }}</p>
+          <p v-if="user.isHeadNurse" class="mt-1.5 text-sm font-semibold text-ink">{{ t('users.modal.is_head_nurse') }}</p>
         </template>
 
         <template #cell-contact="{ row: user }">
@@ -91,12 +92,15 @@ import { useUserStore } from '@/stores/userStore';
 import api from '@/services/api'; 
 import UserModal from '@/components/users/UserModal.vue'; 
 import { useI18n } from 'vue-i18n'; 
+import { useToastStore } from '@/stores/toastStore';
+import { describeServerError } from '@/utils/serverError';
 import { AppButton, PageHeader, FormField, StatusBadge, ResponsiveTable } from '@/components/ui';
 import { 
     PlusIcon, PencilSquareIcon, TrashIcon, MagnifyingGlassIcon, ChevronLeftIcon, ChevronRightIcon 
 } from '@heroicons/vue/24/outline';
 
 const userStore = useUserStore();
+const toastStore = useToastStore();
 const { t } = useI18n();
 
 // Colonnes du tableau (cartes empilees sous lg) et style commun des champs.
@@ -191,13 +195,18 @@ const handleSaveUser = async (userData) => {
         }
         closeModal();
     } catch(error) {
-       // Erreur déjà gérée dans le store
+        // Le formulaire reste ouvert : on dit pourquoi le serveur a refuse (identifiant deja pris, etc.)
+        toastStore.push(describeServerError(error, t('usersScreens.save_failed')), 'error');
     }
 };
 
 const confirmDelete = async (user) => {
-    if (confirm(`Voulez-vous vraiment supprimer ${user.firstName} ${user.lastName} ?`)) {
-        await userStore.deleteUser(user.id);
+    if (confirm(t('usersScreens.delete_confirm', { name: `${user.firstName} ${user.lastName}` }))) {
+        try {
+            await userStore.deleteUser(user.id);
+        } catch (error) {
+            toastStore.push(describeServerError(error, t('usersScreens.delete_failed')), 'error');
+        }
     }
 };
 </script>

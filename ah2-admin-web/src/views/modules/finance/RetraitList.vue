@@ -49,7 +49,7 @@
       >
         <template #cell-date="{ row: r }"><span class="font-mono">{{ formatDate(r.retrait_at) }}</span></template>
         <template #cell-justification="{ row: r }">{{ r.justification }}</template>
-        <template #cell-category="{ row: r }">{{ r.category }}</template>
+        <template #cell-category="{ row: r }">{{ categoryLabel(r.category) }}</template>
         <template #cell-method="{ row: r }">{{ modeLabel(r.payment_method) }}</template>
         <template #cell-amount="{ row: r }">
           <span class="font-bold" :class="r.status === 'active' ? 'text-tone-danger-text' : 'text-ink-muted line-through'">- {{ formatCurrency(r.amount) }}</span>
@@ -79,6 +79,7 @@
                   @close="showCreateModal = false" @save="handleCreate" />
 
     <CaisseCancelModal v-if="cancellingRetrait" :isSaving="isCancelling" :errorMessage="cancelError"
+                        :title="t('retraitScreens.cancel_title')" :help="t('retraitScreens.cancel_help')"
                         :label="t('retraitScreens.cancel_label', { amount: formatCurrency(cancellingRetrait.amount), date: formatDate(cancellingRetrait.retrait_at) })"
                         @close="cancellingRetrait = null" @confirm="handleCancel" />
   </div>
@@ -98,7 +99,7 @@ import { AppButton, PageHeader, FormField, StatusBadge, ResponsiveTable } from '
 import { toneClasses } from '@/design/tones';
 import { modeLabel } from '@/utils/paymentModes';
 
-const { t } = useI18n();
+const { t, te } = useI18n();
 const retraitStore = useRetraitStore();
 const route = useRoute();
 
@@ -150,10 +151,11 @@ const isSavingCreate = ref(false);
 const createError = ref('');
 
 const mapErrorToMessage = (err) => {
+  if (err.code === 'OVER_CASH') return t('retraitScreens.over_cash');
   if (err.response) {
     const status = err.response.status;
     const detail = err.response.data?.detail;
-    if (status === 422) return "Données invalides.";
+    if (status === 422) return typeof detail === 'string' && detail ? detail : "Données invalides.";
     if (status === 400) return detail || "Requête invalide.";
     return `Erreur serveur (${status}) : ${detail || 'veuillez réessayer'}`;
   }
@@ -172,6 +174,13 @@ const handleCreate = async (payload) => {
   } finally {
     isSavingCreate.value = false;
   }
+};
+
+// Les categories sont stockees en codes (SUPPLIES, BILLS...) : libelle traduit, ou le code tel quel s'il est inconnu.
+const categoryLabel = (code) => {
+  if (!code) return '-';
+  const key = `finance.categories.${String(code).toLowerCase()}`;
+  return te(key) ? t(key) : code;
 };
 
 const cancellingRetrait = ref(null);

@@ -82,7 +82,7 @@ export const useCaisseStore = defineStore('caisse', () => {
         } catch (e) {
             console.warn('patients_lookup indisponible pour les noms de factures', e);
         }
-        transactions.value = rows.map((r) => ({
+        const mapped = rows.map((r) => ({
             ...r,
             transaction_id: r.server_id,
             amount: Number(r.amount),
@@ -93,7 +93,13 @@ export const useCaisseStore = defineStore('caisse', () => {
             patient_name: resolvePatientName(r, lookup.get(r.patient_id)),
             items: r.items ? JSON.parse(r.items) : [],
         }));
-        totalItems.value = rows.length;
+        // Defaut 6a (2026-10-26) : la table locale contient TOUTES les
+        // factures synchronisees (annulees, en attente comprises). Sans ce
+        // filtre, la liste et son compteur passaient de 30 (serveur, actives)
+        // a 44 (local, tout) apres chaque saisie, puis revenaient a 30.
+        const visible = mapped.filter((tx) => matchesLocalFilters(tx, filters.value));
+        transactions.value = visible;
+        totalItems.value = visible.length;
         // Retour terrain 2026-09-28 : les KPI (recette, reste du) ne se
         // rafraichissaient qu'au chargement initial ou a un changement de
         // filtre/page (seul fetchTransactions() appelait updateKpis()) -
@@ -102,6 +108,25 @@ export const useCaisseStore = defineStore('caisse', () => {
         // createInvoice/addPayment plus haut). updateKpis() reste safe hors
         // ligne (deja try/catch, degrade vers kpiError="Indisponible").
         await updateKpis();
+    }
+
+    // Memes filtres que la requete serveur (statut, dates du jour local,
+    // recherche sur le nom), appliques aux lignes de la table locale.
+    function localDay(value) {
+        const d = new Date(value);
+        if (Number.isNaN(d.getTime())) return '';
+        const pad = (n) => String(n).padStart(2, '0');
+        return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    }
+
+    function matchesLocalFilters(tx, f) {
+        if (f.status && (tx.status || 'active') !== f.status) return false;
+        const day = localDay(tx.paid_at);
+        if (f.startDate && day && day < f.startDate) return false;
+        if (f.endDate && day && day > f.endDate) return false;
+        const q = (f.searchQuery || '').trim().toLowerCase();
+        if (q && !`${tx.patient_name || ''} ${tx.patient_label || ''}`.toLowerCase().includes(q)) return false;
+        return true;
     }
 
     async function updateKpis() {

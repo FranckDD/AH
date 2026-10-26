@@ -1,15 +1,15 @@
 <template>
-  <div class="grid w-full gap-6">
-    <PageHeader :title="t('caisse.title')" :subtitle="t('caisseScreens.transactions_count', { n: caisseStore.pagination.total })">
+  <div class="grid w-full grid-cols-[minmax(0,1fr)] gap-6">
+    <PageHeader :title="t('caisse.title')" :subtitle="t('caisseScreens.invoices_shown', { n: caisseStore.transactions.length })">
       <template #actions>
         <AppButton :icon="PlusCircleIcon" @click="showInvoiceModal = true">{{ t('caisse.new_invoice') }}</AppButton>
       </template>
     </PageHeader>
 
     <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
-      <StatTile :title="t('finance.income')" :value="kpiAffiche(formatCurrency(caisseStore.kpi.total_paid))" :icon="ArrowTrendingUpIcon" tone="success" />
-      <StatTile :title="t('caisse.table.due')" :value="kpiAffiche(formatCurrency(caisseStore.kpi.remaining_due))" :icon="ClockIcon" tone="danger" alert />
-      <StatTile :title="t('caisseScreens.kpi_transactions')" :value="kpiAffiche(caisseStore.kpi.total_transactions)" :icon="BanknotesIcon" />
+      <StatTile :title="`${t('finance.income')} (${kpiScope})`" :value="kpiAffiche(formatCurrency(caisseStore.kpi.total_paid))" :icon="ArrowTrendingUpIcon" tone="success" />
+      <StatTile :title="`${t('caisse.table.due')} (${kpiScope})`" :value="kpiAffiche(formatCurrency(caisseStore.kpi.remaining_due))" :icon="ClockIcon" tone="danger" alert />
+      <StatTile :title="`${t('caisseScreens.kpi_transactions')} (${kpiScope})`" :value="kpiAffiche(caisseStore.kpi.total_transactions)" :icon="BanknotesIcon" />
     </div>
 
     <button v-if="pendingApprovalCount > 0 && statusFilter !== 'pending_approval'" type="button"
@@ -49,7 +49,7 @@
       </div>
     </section>
 
-    <section class="grid gap-3">
+    <section class="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-3">
       <p v-if="caisseStore.loadError" role="alert" class="rounded-card border p-4 text-center text-base font-medium" :class="toneClasses('danger')">
         {{ t('caisseScreens.load_error') }}
       </p>
@@ -131,6 +131,7 @@
                          @discount-requested="() => { caisseStore.fetchTransactions(); fetchPendingApprovalCount(); }" />
 
     <CaisseInstallmentModal v-if="installmentTx" :remainingDue="Number(installmentTx.amount_due)"
+                             :mode="installmentMode" :defaultMethod="installmentTx.payment_method"
                              :isSaving="isSavingInstallment" :errorMessage="installmentError"
                              @close="installmentTx = null" @confirm="handleAddPayment" />
 
@@ -363,7 +364,7 @@ const printTicketForTransaction = async (transactionId) => {
 //   comme optionnel (en-tete texte seul).
 const buildLocalTicketData = (localTransactionId, payload, patientDisplayName) => ({
   transaction_id: localTransactionId,
-  patient_name: payload.patient_label || patientDisplayName || '—',
+  patient_name: payload.patient_label || patientDisplayName || '-',
   user_name: authStore.user?.full_name || authStore.user?.username || '',
   paid_at: new Date().toISOString(),
   amount: payload.amount,
@@ -468,12 +469,22 @@ const printEventualTicket = async (localUuid, payload, patientDisplayName) => {
   await printLocallyBuiltTicket(localUuid, payload, patientDisplayName);
 };
 
+// Portee des tuiles KPI : le jour meme (local) sans dates choisies, sinon la
+// periode choisie (meme regle que caisseStore.updateKpis). Le sous-titre, lui,
+// compte les lignes du tableau affiche (defaut 6a).
+const kpiScope = computed(() => (caisseStore.filters.startDate || caisseStore.filters.endDate
+  ? t('caisseScreens.kpi_scope_period')
+  : t('caisseScreens.kpi_scope_today')));
+
 // --- Versement ---
 const installmentTx = ref(null);
 const isSavingInstallment = ref(false);
 const installmentError = ref('');
 
-const openInstallmentModal = (tx) => {
+const installmentMode = ref('installment');
+
+const openInstallmentModal = (tx, mode = 'installment') => {
+  installmentMode.value = mode;
   installmentTx.value = tx;
   installmentError.value = '';
 };
@@ -492,13 +503,13 @@ const handleAddPayment = async (data) => {
 };
 
 // --- Solde ---
-const handleSettle = async (tx) => {
+// Ouvre le panneau de versement pre-rempli (reste du, mode de la facture) :
+// la secretaire confirme avant tout encaissement (defaut 3, 2026-10-26).
+// Le paiement passe ensuite par caisseStore.addPayment (ecriture locale
+// PowerSync pour la secretaire, type SOLDE si tout le reste est verse).
+const handleSettle = (tx) => {
   actionError.value = '';
-  try {
-    await caisseStore.settleTransaction(tx);
-  } catch (err) {
-    actionError.value = mapErrorToMessage(err);
-  }
+  openInstallmentModal(tx, 'settle');
 };
 
 // --- Annulation ---

@@ -10,7 +10,7 @@
           <input id="user-lastname" v-model="form.lastName" type="text" required :aria-describedby="describedBy" :class="fieldClass" />
         </FormField>
         <FormField id="user-username" :label="t('usersScreens.username')" required v-slot="{ describedBy }">
-          <input id="user-username" v-model="form.username" type="text" required autocomplete="off" :aria-describedby="describedBy" :class="fieldClass" />
+          <input id="user-username" v-model="form.username" type="text" required autocomplete="off" :readonly="isEditing" :aria-describedby="describedBy" :class="fieldClass" />
         </FormField>
         <FormField id="user-email" :label="t('users.modal.email')" required v-slot="{ describedBy }">
           <input id="user-email" v-model="form.email" type="email" required :aria-describedby="describedBy" :class="fieldClass" />

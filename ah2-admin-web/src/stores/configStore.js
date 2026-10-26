@@ -1,4 +1,6 @@
 // src/stores/configStore.js
+import { notify } from '@/utils/notify';
+import { describeServerError } from '@/utils/serverError';
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import api from '@/services/api'; // Import de votre instance Axios configurée
@@ -270,7 +272,7 @@ export const useConfigStore = defineStore('config', () => {
 
         } catch (err) {
             console.error("Erreur saveExamen:", err);
-            throw new Error(err.response?.data?.detail || "Erreur lors de la sauvegarde.");
+            throw new Error(describeServerError(err, "Erreur lors de la sauvegarde."));
         } finally {
             isLoading.value = false;
         }
@@ -285,7 +287,7 @@ export const useConfigStore = defineStore('config', () => {
             examens.value = examens.value.filter(e => e.id !== id);
         } catch (err) {
             console.error("Erreur deleteExamen:", err);
-            alert("Erreur suppression: " + (err.response?.data?.detail || err.message));
+            notify('alerts.delete_failed', { detail: describeServerError(err, err.message) });
         } finally {
             isLoading.value = false;
         }
