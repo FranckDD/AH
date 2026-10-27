@@ -25,7 +25,7 @@ import {
   ExclamationCircleIcon,
   CheckBadgeIcon, ClockIcon, ReceiptPercentIcon,
   ClipboardDocumentCheckIcon, ArrowsRightLeftIcon, AdjustmentsHorizontalIcon,
-  ShoppingCartIcon, LockClosedIcon, PresentationChartLineIcon
+  ShoppingCartIcon, LockClosedIcon, PresentationChartLineIcon, BookOpenIcon
 } from '@heroicons/vue/24/outline';
 
 const authStore = useAuthStore();
@@ -64,6 +64,12 @@ const menuItems = [
     icon: ExclamationCircleIcon, // 🔄 Changement d'icône pour éviter doublon avec Labo
     // promoteur (2026-10-22) : lecture + validation de sortie uniquement
     roles: [ROLES.PSYCHOLOGIST, ROLES.SPIRITUAL, ROLES.TOXICO_MANAGER, ROLES.ASSISTANT, ROLES.PROMOTEUR]
+  },
+  {
+    path: '/dashboard/spiritual-notes',
+    labelKey: 'spiritualNotes.menu',
+    icon: BookOpenIcon,
+    roles: [ROLES.SPIRITUAL, ROLES.PROMOTEUR, ROLES.ADMIN]
   },
   // 🟢 AJOUT MODULE LABORATOIRE 🟢
   {

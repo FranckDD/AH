@@ -246,6 +246,13 @@ const routes = [
         component: () => import('@/views/modules/stock/StockCount.vue'),
         meta: { requiresAuth: true, roles: [ROLES.STOCK_CONTROLLER, ROLES.ADMIN, ROLES.PROMOTEUR] }
       },
+      // Notes du conseiller spirituel : ecriture SpiritualCounsellor, lecture promoteur et admin (garde du serveur)
+      {
+        path: 'spiritual-notes',
+        name: 'spiritual-notes',
+        component: () => import('@/views/modules/spiritual/SpiritualNotes.vue'),
+        meta: { requiresAuth: true, roles: [ROLES.SPIRITUAL, ROLES.PROMOTEUR, ROLES.ADMIN] }
+      },
       // Stock du laboratoire : lecture = READERS du routeur /lab-stock (admin passe toujours)
       {
         path: 'lab-stock-products',
