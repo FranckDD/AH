@@ -1,22 +1,22 @@
 ---
-title: Patients and sessions
+title: Patients and spiritual notes
 role: Spiritual counsellor
-subtitle: Reading the toxicology follow-up, opening a patient file, finding discharged patients and understanding what the role does not do in the application.
-version: 26 October 2026
+subtitle: Reading the toxicology follow-up, opening a patient file, finding discharged patients and writing your own spiritual notes.
+version: 28 October 2026
 output: spiritual-1-patients-sessions
 ---
 
 ## Before you start {.unnumbered}
 
-This guide is for the spiritual counsellor of the centre. In Glostone-Care your account is a reading account inside the toxicology follow-up. You see the patients who are followed for a substance, you open their files, and you read what the psychologist and the toxicology manager have written about them. Your own sessions and notes are not recorded in the application: you keep them in your own paper register, and this guide does not describe a screen for them because none exists for your role.
+This guide is for the spiritual counsellor of the centre. In Glostone-Care your account has two parts. The first is a reading account inside the toxicology follow-up: you see the patients who are followed for a substance, you open their files, and you read what the psychologist and the toxicology manager have written about them. The second is a notebook of your own, **Spiritual notes**, where you can record your meetings if you wish (chapter 5).
 
 The screenshots come from a demonstration installation. The patients in the figures are invented. Numbers in red discs, such as {3}, match the numbered markers drawn on the figures.
 
 ### What the spiritual counsellor can see and do
 
-Your menu has two entries: **Toxicology Dashboard** and **Toxicology Monitoring**. Nothing else is open to your role. If you type the address of another screen, such as the patient register of the clinic, the user list or the appointments, the application shows an "Accès Interdit" page (access denied) with a button back to your dashboard.
+Your menu has three entries: **Toxicology Dashboard**, **Toxicology Monitoring** and **Spiritual notes**. Nothing else is open to your role. If you type the address of another screen, such as the patient register of the clinic, the user list or the appointments, the application shows an "Accès Interdit" page (access denied) with a button back to your dashboard.
 
-You can read every active patient and every discharged patient of the toxicology service, not only the patients you meet. You can open the details and the file of each of them. You cannot record an evaluation, admit a patient, discharge one or readmit one. You cannot print a patient file. You see no invoice, no cash register, no laboratory result, no consultation and no appointment, and the application shows no notification bell to your role.
+You can read every active patient and every discharged patient of the toxicology service, not only the patients you meet. You can open the details and the file of each of them. You cannot record an evaluation, admit a patient, discharge one or readmit one. Your notes are not attached to any patient file. You cannot print a patient file. You see no invoice, no cash register, no laboratory result, no consultation and no appointment, and the application shows no notification bell to your role.
 
 ### Spiritual consultations and the notebook
 
@@ -109,15 +109,53 @@ Filter the list by name or code {1}, by reason {2} (Recovery, Dropout, Exclusion
 
 There is no per-row PDF button on the discharged list for your role, because the printed file contains the clinical evaluations.
 
+## Spiritual notes
+
+The **Spiritual notes** entry {1} sits under the two toxicology entries. It opens your notebook. Writing a note is optional: nobody asks you to write one, the application sends no reminder and it counts nothing.
+
+![The Spiritual notes entry in the menu](figures/notes-menu.png "small")
+
+### Writing a note
+
+The notes are not linked to a patient. One note records one meeting day, however many people you met. It takes less than a minute.
+
+![The new note form](figures/notes-form.png)
+
+1. Select [[New note]]. A form opens.
+2. Check the **Meeting date** {1}. It shows today. Change it if you write the note later. The date cannot be in the future or more than one year in the past. This is the only required field.
+3. Under **What was done** {2}, tick what applies: **Counsel**, **Prayer**, **Verse read**, **Discussion**, **Text given** and **Questions and answers**. Tick none, one or several.
+4. If you ticked **Verse read**, type the verse in **Verse reference** {3}, for example "John 3:16".
+5. If people did not wish to speak, tick **People did not want to talk** {4}. This is a normal outcome, not a failure.
+6. Add free text in **Notes** {5} if you want to. The text is limited to 5000 characters.
+7. Select [[Save]] {6}. The message "Note saved." confirms it.
+
+A note with only a date is accepted.
+
+### Reading, editing and deleting
+
+The list shows the most recent meeting first. Each card gives the date, the name of the author and the ticks as small labels. The label **Last note** marks the most recent one.
+
+![The list of notes](figures/notes-list.png)
+
+[[New note]] {1} opens the form. The newest card carries **Last note** {2}. The ticks {3} appear as labels, and the verse reference appears beside **Verse read**. A meeting where nobody wished to talk shows its own label {6}. The buttons [[Edit]] {4} and [[Delete]] {5} appear only on the notes you wrote. [[Edit]] opens the same form. [[Delete]] asks "Delete the note of" followed by the date, and the deletion cannot be undone.
+
+> Note: All the spiritual counsellor accounts read all the notes of the role, so a successor finds the history. Only the author can edit or delete a note.
+
+### Who reads your notes
+
+The promoter and the administrator can read all notes, with the name of the author, in read-only mode. They see the same list without any button to write. Nobody else can open the screen: the secretary, the doctor, the nurses, the psychologist and the toxicology manager do not see the entry, and the application refuses the address. The notes never appear in a patient file, in an export or in the statistics. Do not write anything in a note that you would not want the promoter or the administrator to read.
+
+> Important: The notes are saved online only. If the connection to the server is lost, the form stays open with the message "No connection to the server. The note is not saved: your entries are kept, try again when the connection is back." Keep the window open and select [[Save]] again when the network is back. If you close the window, the entries are lost.
+
 ## Working without a connection
 
-The toxicology screens read their data from the server. They have no copy on the computer.
+The toxicology screens and your notes read their data from the server. They have no copy on the computer.
 
 ![The list while the computer is offline](figures/offline.png)
 
 Your screen shows a yellow badge {1} reading "Offline (your entries are saved)". This badge stays yellow for your role even when the connection is good, so it does not tell you the state of the network. What does tell you is the content of the screen. When the computer cannot reach the server, the list shows "0 patients followed" {2} and "No patient found." {3}, and the tiles fall to zero. That is not the real situation: the patients are simply not readable.
 
-When you see an empty list, check the network cable or the Wi-Fi, reload the page and wait for the patients to come back. Since you enter nothing in the application, you lose no data, but you cannot read the files until the connection returns.
+When you see an empty list, check the network cable or the Wi-Fi, reload the page and wait for the patients to come back. The toxicology screens save nothing from you, so you lose no data there, but you cannot read the files until the connection returns. A note cannot be saved without the network (see chapter 5).
 
 ## Your profile and password
 
@@ -133,7 +171,11 @@ The user name and the role cannot be changed here. To change your password, open
 
 ## Common mistakes
 
-**Looking for a session or prayer screen.** There is none for your role. Keep your register on paper, and ask the toxicology manager how the centre wants spiritual visits reported to the team.
+**Thinking that a note is compulsory.** It is not. Write one when it helps you.
+
+**Looking for a note inside a patient file.** The notes are not linked to patients. They are in the **Spiritual notes** entry.
+
+**Closing the form while the network is down.** The entries are lost. Wait for the connection and save first.
 
 **Trusting the tiles after a search.** They follow the filtered list. Clear the search box first.
 
@@ -154,6 +196,8 @@ The user name and the role cannot be changed here. To change your password, open
 | Tiles show 1 patient and 100% | A search is still typed in the box | Clear the search box. |
 | The same evaluation twice in a history | A known duplicate of the demonstration version | Read it once. Tell the administrator. |
 | The PDF of the list does not arrive | The browser did not save the document | Try again once. If a download manager is installed, exclude the application from it. |
+| "No connection to the server" in the note form | The note is not saved yet | Keep the window open and select Save again when the network is back. |
+| No Edit or Delete on a note | The note was written by another counsellor | Only the author can change it. |
 | Sign-in refused several times | Wrong password, or too many attempts | Wait a minute, then try again. Ask an administrator to reset the password. |
 
 ## Glossary {.unnumbered}
@@ -172,6 +216,9 @@ Relapse
 
 Legal guardian
 : The person to contact in an emergency for a patient, recorded at admission.
+
+Note
+: One record of a meeting day in **Spiritual notes**: date, optional ticks, optional text. Not linked to a patient.
 
 Notebook (carnet)
 : The booklet sold to the patient at the secretariat. It is the only invoiced item of a spiritual consultation.

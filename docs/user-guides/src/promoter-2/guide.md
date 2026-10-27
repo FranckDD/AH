@@ -2,7 +2,7 @@
 title: Approvals and follow-up
 role: Promoter
 subtitle: Deciding discount requests and cash adjustments, setting the staff discount rules, reading the notifications, and following the laboratory stock, the production and the toxicology programme.
-version: 27 October 2026
+version: 28 October 2026
 output: promoter-2-approvals-follow-up
 ---
 
@@ -18,7 +18,9 @@ After you sign in, the application opens on the Overview page and the menu lists
 
 ![The promoter menu, the bell and the account icon](figures/home.png)
 
-Two entries are decisions: [[Pending discount requests]] {1} and [[Cash closings]] {2}. [[Staff discounts]] {3} holds a setting. The others are follow-up screens: [[Stock count]] {4}, [[Lab stock]] {5} and [[Production]] {6}. [[Discount history]], [[Reports]] and Toxicology Monitoring complete the menu. The bell {7} holds your notifications and the account icon {8} opens your profile and password.
+Two entries are decisions: [[Pending discount requests]] {1} and [[Cash closings]] {2}. [[Staff discounts]] {3} holds a setting. The others are follow-up screens: [[Stock count]] {4}, [[Lab stock]] {5} and [[Production]] {6}. [[Discount history]], [[Reports]], Toxicology Monitoring and [[Spiritual notes]] complete the menu. The bell {7} holds your notifications and the account icon {8} opens your profile and password.
+
+[[Spiritual notes]] is a read-only screen: it lists the meeting notes written by the spiritual counsellors, newest first, with the name of the author. The note cards have no New note, Edit or Delete button for you, and a request to change a note is refused. The notes are confidential and optional: a counsellor who writes none is not reported.
 
 The Overview page is adapted to the promoter. It shows the toxicology, alerts and bed occupancy tiles, and three quick actions: **Open the reports**, **Review cash closings** and **Decide on discounts**. The money tiles and the staff accounts belong to the administrator and do not appear. The connection indicator at the top reads **Connected** while the server answers and **Offline** when the network is lost. The words "(your entries are saved)" that follow do not apply to your role: nothing is kept on the computer.
 

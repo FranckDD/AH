@@ -14,7 +14,9 @@ The screenshots come from a demonstration account. Your screens show your own na
 
 ### What the administrator can do
 
-The administrator account opens every screen of the application. The menu on the left lists them: Dashboard, Toxicology, Laboratory, Financial Management, discount screens, Cash closings, Reports, Users, Patients, Stock management, Lab stock, Production, Audit and Security, and System Configuration. A few entries that belong to other roles' daily work, such as the stock reception queue, are hidden from your menu on purpose.
+The administrator account opens every screen of the application. The menu on the left lists them: Dashboard, Toxicology, Laboratory, Financial Management, discount screens, Cash closings, Reports, Spiritual notes, Users, Patients, Stock management, Lab stock, Production, Audit and Security, and System Configuration. A few entries that belong to other roles' daily work, such as the stock reception queue, are hidden from your menu on purpose.
+
+**Spiritual notes** is a read-only screen: it lists the meeting notes of the spiritual counsellors, newest first, with the name of the author. You cannot add, edit or delete a note there. The notes are confidential, so open them only when your work requires it.
 
 This guide uses three of them: **Users**, **System Configuration** and **Stock management**, plus the **Config** tab of the **Laboratory** screen. For the others, see the second guide.
 

@@ -2,7 +2,7 @@
 title: Oversight, approvals, cash register and settings
 role: Administrator
 subtitle: Deciding discount and stock requests, supervising the cash closings, reading the reports and logs, and keeping the centre's settings right.
-version: 27 October 2026
+version: 28 October 2026
 output: admin-2-oversight-approvals-settings
 ---
 
@@ -27,6 +27,7 @@ Some screens wait for a decision from you. Others are read-only, and a few hold 
 | Reports | Read the daily check and the figures, export a PDF, set two thresholds |
 | Production, Production tracking | Set the loss tolerance and the delay of the batch alert |
 | Financial Management | Read the ledger and record a manual income or expense |
+| Spiritual notes | Read the meeting notes of the spiritual counsellors, with the author (read only) |
 | Audit & Security | Read the action log and the connection history |
 | System Configuration | Identity of the centre, print token, and two reference lists |
 
