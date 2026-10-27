@@ -248,7 +248,7 @@ Pharmacy and natural products, and medical supplies, are managed in **Stock mana
 
 ![The product list in Stock management](figures/stock-list.png)
 
-Select [[Stock management]] in the menu, then the entry of the same name in the sub-menu. The search box {1} and the category filter {2} narrow the list. The **Unit Price** column {4} holds the selling price that the cash desk uses. [[New Product]] {3} adds a product. For each row, [[Edit]] {5} changes the product and [[Delete]] {6} removes it.
+Select [[Stock management]] in the menu, then the entry of the same name in the sub-menu. The search box {1} and the category filter {2} narrow the list. The **Unit Price** column {4} holds the selling price that the cash desk uses. [[New Product]] {3} adds a product. For each row, [[Edit]] {5} changes the product, [[Label]] {8} prints the label of that product and [[Delete]] {6} removes it. [[Print labels]] {7} prints labels for several products at once (see the section on product labels below).
 
 To add a product:
 
@@ -275,6 +275,28 @@ Type the new price {1} and select the confirmation button {3}, which reads "Upda
 The red [[Delete]] button removes a product after a confirmation. For a product that is no longer sold, a price of 0 stops sales, because the cash desk then refuses it as "Price not defined", while the history stays intact.
 
 > Tip: A product or an exam with a price of 0 is the standard way to take an item out of sale without losing its history.
+
+### Product code, photo and labels
+
+Every product has an 8-digit code that the application gives it by itself, for example 10000006. The code cannot be changed. It is printed as a barcode on a label that the centre sticks on the product, and the cash desk reads it with a scanner.
+
+To see the code and add a photo, select [[Edit]] on the row of the product. The section **Photo and code** is at the bottom of the form. It appears only when you open an existing product, not in the new product form.
+
+![The Photo and code section of a product](figures/product-photo.png "small")
+
+The product code {1} is shown in large digits with its barcode underneath. In the **Product photo** area {2}, [[Add a photo]] {3} opens a file chooser. Choose a JPEG, PNG or WebP image of up to 5 MB. The application reduces the picture by itself, and the secretary then sees it in the product panel of the invoice. Once a photo exists, the button reads [[Replace the photo]] and a second button, [[Remove the photo]], deletes it. The photo is optional.
+
+To print labels, select [[Print labels]] above the list. The window opens in three parts.
+
+![The window to print labels](figures/labels-modal.png "small")
+
+1. In **Products**, search for a product {1} and tick each product to print. A **Labels** box appears next to a ticked product: type the number of labels you need. A line under the list counts the products and the labels chosen.
+2. In **Format**, choose [[Label roll (one label per page)]] {2} for a label printer, or [[A4 sheet (grid with cut marks)]] for a normal printer, to cut the labels by hand along the marks. The line under the choice states the label size, which the administrator sets in System Configuration.
+3. Check the **Preview** {3}, then select [[Print]] {4}.
+
+The number of labels must be a whole number between 1 and 200. To print the label of a single product, select [[Label]] on its row: the window opens with that product already ticked.
+
+> Note: Labels are stuck on every product, so print them when a new product arrives, before it goes to the shelf. When a printer for labels is not available yet, the A4 sheet is the fallback.
 
 ### What to check when prices change
 

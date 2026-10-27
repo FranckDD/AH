@@ -184,6 +184,8 @@ The controller validates or rejects the report. On validation, the quantity is t
 
 [[Edit]] opens a product. You can change the name, the category, the selling price, the alert threshold ("Alert Threshold (Min)") and the expiry date, and confirm with [[Update]]. The quantity is shown but cannot be typed: the window says "Quantity only changes through a checked receipt, a damage report or an adjustment request." When the stock list cannot be loaded, the tiles show a dash and a message with a **Retry** button, instead of zeros.
 
+Two buttons of the list concern the barcode labels that are stuck on every product. [[Print labels]] opens a window where you tick the products, type the number of labels, choose a label roll or an A4 sheet with cut marks, check the preview and print. [[Label]] on a row prints the label of that product alone. In the product window, the section **Photo and code** shows the 8-digit code of the product and lets you add, replace or remove its photo (JPEG, PNG or WebP, up to 5 MB). The first guide of the administrator describes these screens with figures.
+
 ### The history of movements
 
 **Movements** is the journal of the stock. It answers the question "why does this product show this number?"

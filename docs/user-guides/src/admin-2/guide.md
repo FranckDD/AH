@@ -271,6 +271,10 @@ In the menu group Production, [[Production tracking]] shows the status of the ba
 
 The first, Organisation identity and document header, holds the logos, the name and the contact lines that are printed on invoices, prescriptions and reports, and the legal numbers (NIU and RCCM). Edit the fields and select [[Save the organisation settings]]. A message confirms "Structure settings saved successfully." The legal name is required.
 
+The same section ends with the size of the barcode labels, under the title **Barcode labels**. Type the label width {1} and the label height {2} in millimetres, between 20 and 120, then select [[Save the organisation settings]] {3}. The default size is 50 x 30 mm, which fits the usual label rolls. The size set here is the one that the **Print labels** window of Stock management uses, so change it only when the centre buys a printer with another roll size. The browser refuses a value outside the range.
+
+![The label size fields](figures/config-label-size.png)
+
 Inside the same section the Ticket print token is the secret that the receipt printer bridge uses. Do not regenerate it without reason. A regeneration is possible only after ticking the confirmation box, and the printers stop until the new token is copied into the configuration file of the bridge on every workstation. A new token is meant to be generated only at installation.
 
 The second section is Exam Pricing, described in the first guide. The third, Prayer Book Types, is a read-only list of codes and labels. The fourth, General Settings & Maintenance, holds one card, Database Backup. It only states that "Backups are handled by the server (see operations manual)." The backups of the database belong to the technical team; nothing on this screen starts or changes a backup.

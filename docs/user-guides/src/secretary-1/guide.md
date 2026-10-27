@@ -115,7 +115,27 @@ An invoice records what the patient owes and what the patient has paid. One invo
 
 ![Choosing the patient of the invoice](figures/invoice-patient.png "small")
 
-The selected patient appears in a green band with a [[Change]] button, and again in the summary on the right.
+The selected patient appears in a green band with a [[Change]] button, and again in the summary on the right. The cursor then moves by itself to the scan field described in the next section.
+
+### Scanning products
+
+Every product of the pharmacy carries a label with an 8-digit barcode. When the patient buys a labelled product, scan the label instead of searching for the product by name.
+
+![A scanned product: the scan field, the locked price and the product panel](figures/invoice-scan.png)
+
+1. Select the patient. The cursor goes to the **Scan a barcode** field {1} by itself.
+2. Point the scanner at the label and pull the trigger. The scanner types the code and presses Enter for you.
+3. The product is added as a [[Pharmacy]] line at the catalogue price {2}. The **Selected product** panel {3} shows the photo of the product when one exists, then its name, form, dosage, price and the quantity in stock.
+4. Scan the same product again to add 1 to the quantity of its line. No second line is created.
+5. Scan the next product. The cursor returns to the scan field after each scan, after you add or remove a line, and after you press Enter in a quantity or price field.
+
+If the code is not known, the window shows the message "Unknown barcode: no product matches." and no line is added. Check that the label belongs to a product of the centre, or search for the product by name. A label that cannot be read by the scanner can also be typed by hand in the same field, followed by Enter.
+
+The panel also follows your other actions: it shows the product you have just chosen by name, and it changes to another product when you select its Pharmacy line.
+
+The button at the top right of the window header {4} enlarges the window to the full screen, and the same button restores it. It is shown only on wide screens.
+
+> Note: Scanning does not change prices. The scanned line carries the locked catalogue price, like a line added by name. Searching a medicine by name with the [[Pharmacy]] button still works as before.
 
 ### Adding the lines
 
