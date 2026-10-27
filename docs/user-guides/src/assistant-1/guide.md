@@ -200,11 +200,11 @@ The bell at the top right keeps your notices. The red number is the count of unr
 
 ![The bell with four decisions](figures/bell.png "small")
 
-The bell {1} lists the decisions on your entries {2}: "Receipt REC-20261026-001 validated", "Receipt REC-20261026-002 rejected (reason: ...)" and "Damage report AVA-1307 validated". A notice for a rejection carries the reason, so you do not need to open the receipt to read it. You are not told when you cancel your own entry.
+The bell {1} lists the decisions on your entries {2}: "Receipt REC-20261026-012 validated", "Receipt REC-20261026-011 rejected (reason: ...)" and "Receipt REC-20261026-009 validated". A damage report decision reads "Damage report AVA-1307 validated" in the same way. A notice for a rejection carries the reason, so you do not need to open the receipt to read it. You are not told when you cancel your own entry.
 
 ## Working without a connection
 
-The screens of this guide read and write on the server. They keep no copy on the computer. The indicator at the top reads **Connected** while the server answers and **Offline** when the network is lost. For your role it checks the server about every 15 seconds. When it reads **Offline** it adds "(your entries are saved)" on a wide screen. That sentence is true for other roles and not for yours: nothing you type is kept on the computer.
+The screens of this guide read and write on the server. They keep no copy on the computer. The indicator at the top reads **Connected** while the server answers and **Offline** when the network is lost. For your role it checks the server about every 15 seconds. When it reads **Offline** {1}, it says nothing more: unlike the roles that keep a copy, nothing you type is kept on the computer.
 
 ![Production lots without a connection](figures/offline-lots.png)
 

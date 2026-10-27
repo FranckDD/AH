@@ -141,11 +141,13 @@ The overdue status was not seen on the screen during the preparation of this gui
 
 The tab **History** lists the validated counts, the most recent first.
 
-![The history and the detail of a count](figures/history.png)
+![The history of the counts](figures/history.png)
 
-The dates **From** and **To** {1} limit the list, and [[Filter]] applies them. [[Clear filters]] removes them. Each row gives the validation date, who counted, and the summary {2}, for example "5 product(s), 4 gap(s)". Select [[View details]] {3} to open the table of that count under the list, with the columns **System** {4}, **Gap** {5}, **Movements after counting** {6} and **Adjustment request** {7}. Select [[Close]] to hide it. The list shows 50 counts per page.
+The dates **From** and **To** {1} limit the list, and [[Filter]] applies them. [[Clear filters]] removes them. Each row gives the validation date, who counted, and the summary {2}, for example "5 product(s), 4 gap(s)". The card **My adjustment requests** {4}, under the list of counts, gathers the requests of all your counts, with their outcome. Select [[View details]] {3} to open the table of that count at the bottom of the page. Select [[Close]] to hide it. The list shows 50 counts per page.
 
-In the detail of a count, the column **Adjustment request** gives the request number, for example "Request no. 2193 created", with a label that shows the outcome of that request: Pending, Approved, Refused or Replaced by a more recent count. The card **My adjustment requests**, under the list of counts, gathers the requests of all your counts. For an approved correction, **Movements** shows the line.
+![The detail of a count](figures/history-detail.png)
+
+The table has the columns **System** {1}, **Gap** {2}, **Movements after counting** {3} and **Adjustment request** {4}. In the column **Adjustment request**, each line gives the request number, for example "Request no. 2193 created", with a label that shows the outcome of that request: Pending, Approved, Refused or Replaced by a more recent count. For an approved correction, **Movements** shows the line.
 
 ## Working without a connection
 

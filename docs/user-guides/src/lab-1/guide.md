@@ -79,7 +79,7 @@ A message "Record saved successfully." appears for a few seconds. A green line u
 
 ### A patient invoiced at the cash desk
 
-A patient who has a file may have paid for a laboratory exam at the cash desk without any doctor's order. The search at **Reception** then offers that patient too, with the line "2 exams invoiced at the cash desk" in place of the prescription. Select the line: the invoiced exams are put in the list with the green label **Invoiced**, and the card says "2 invoiced exams imported from the cash desk". Choose the prescriber and select [[Create request]] as above. An invoiced exam is received once: after that it is no longer offered, and the server refuses a second reception of the same invoice line.
+A patient who has a file may have paid for a laboratory exam at the cash desk without any doctor's order. The search at **Reception** then offers that patient too, with the line "2 exams invoiced at the cash desk" in place of the prescription (the number is that of the invoice lines). Select the line: the invoiced exams are put in the list with the green label **Invoiced**, and the card says how many invoiced exams were imported from the cash desk. Choose the prescriber and select [[Create request]] as above. An invoiced exam is received once: after that it is no longer offered, and the server refuses a second reception of the same invoice line.
 
 ### A patient without a file, or with neither an order nor an invoice
 
@@ -156,7 +156,9 @@ The parameters keep the order set by the administrator, before and after a save,
 
 ### Correcting a validated result
 
-A validated result is read-only. While its case is still on the bench, because another exam of the same visit is not finished, the green pill of the validated exam opens it with the notice "This result is validated: it is read-only. To change it, use the correction with a reason." The boxes are grey and the three buttons are replaced by [[Correct this result]].
+A validated result is read-only. While its case is still on the bench, because another exam of the same visit is not finished, the green pill {1} of the validated exam opens it with the notice {2} "This result is validated: it is read-only. To change it, use the correction with a reason." The boxes are grey and the three buttons are replaced by [[Correct this result]] {3}. Once every exam of the visit is validated, the case leaves the bench: use the same button in the History, described in the History chapter.
+
+![A validated exam opened from its pill](figures/bench-validated.png)
 
 1. Select [[Correct this result]]. The boxes open.
 2. Change the values, the flags or the conclusion.
@@ -195,11 +197,11 @@ The list shows fifteen cases per page, with [[Previous]] and [[Next]] at the bot
 
 ![A visit with its exams opened](figures/history-open.png)
 
-[[Show exams]] changes to [[Hide exams]] {1} and lists each exam with its code and its own buttons. [[View details]] {2} opens the result on screen, and [[Download PDF]] {3} downloads the sheet of this exam only.
+[[Show exams]] changes to [[Hide exams]] {1} and lists each exam with its code and its own buttons. [[View details]] {2} opens the result on screen, and [[Download PDF]] {3} downloads the sheet of this exam only. [[Correct this result]] {4} opens the bench on that exam with the correction form already open, so you can correct a result even when every exam of the visit is validated. Write the reason and select [[Save the correction]] as described at the bench.
 
 ![The result of one exam on screen](figures/result-modal.png)
 
-The window gives the state, the file number and the batch code, the patient and the prescriber, then the table {1} of the biological results with the value, the unit, the reference values {2} and the interpretation {3}. The conclusion {4} is at the bottom. [[Print]] {5} asks for the PDF. [[Close]] closes the window.
+The window gives the state, the file number and the batch code, the patient and the prescriber, then the table {1} of the biological results with the value, the unit, the reference values {2} and the interpretation {3}. The conclusion {4} is at the bottom. [[Print]] {5} asks for the PDF, and [[Correct this result]] {6} opens the correction at the bench. [[Close]] closes the window.
 
 Values flagged by you appear in red with a label next to the value: Low, High or Abnormal. The interpretation column repeats the remark. A parameter that you flagged High or Low by hand shows that label, with an arrow; a value flagged Abnormal shows the label Abnormal. When the exam was corrected after validation, a blue block at the top of the window gives, for each correction, the name, the date, the reason and the value before the correction.
 
@@ -267,7 +269,6 @@ The user name and the role cannot be changed here. To change your password, open
 | A validated exam is grey and read-only | A validated result is locked | Use Correct this result and give a reason. |
 | Correct this result fails | The connection to the server is down | Wait for "Connected", then try again. |
 | A result cannot be found in History | The case is In progress, or the search is too short | Type at least two letters, or search by the code. |
-| A PDF button gives no file | The server cannot be reached | Wait for "Connected" and select the button again. Read the result on screen meanwhile. |
 | A case under Sync failures | The server refused an entry typed offline | Open it, read the reason, enter the data again. |
 | Sign-in refused several times | Wrong password, or too many attempts | Wait a minute, then try again. Ask an administrator to reset the password. |
 

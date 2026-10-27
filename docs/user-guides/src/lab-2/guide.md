@@ -125,7 +125,7 @@ The count brings the stock held by the application back to what is on the shelve
 
 ![The count screen before anything is typed](figures/count-empty.png "small")
 
-The title {1} gives the date of the last count in brackets. The band {2} is the reminder. The search box {3} filters the products when the list is long. **Last stock** {4} is the quantity that the application holds now, and **Counted quantity** {5} is the column you fill.
+The title {1} gives the date of the last count in brackets. The yellow reminder band described above shows under the title when a count is due, so it is absent here, one day after a count. The search box {2} filters the products when the list is long. **Last stock** {3} is the quantity that the application holds now, and **Counted quantity** {4} is the column you fill.
 
 This screen shows the application stock, unlike the physical count of the pharmacy, which hides it. You see both numbers side by side. Count the shelf first, then type the number, and do not copy the application figure.
 

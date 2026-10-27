@@ -159,6 +159,10 @@ The **Toxicology Follow-up** tab {1} of that clinical file gives only the substa
 
 The clinic can hospitalise a patient who is also in the programme. The two stays stay separate, but the discharge window checks for you. When the patient has a hospital stay still open, a red block appears: "This patient has a hospital stay open since" followed by the date and time, "Toxicology discharge does not close it: the medical team will have to close it." You must tick "I understand, keep the hospital stay open" before [[Confirm discharge]] works. Without the tick the window answers "Confirm that the hospital stay stays open to continue." You cannot see the hospitalisations yourself: the menu of your role has no entry for them. Tell the doctor or the nurse that the patient left the programme, so that the hospital stay is handled, and write it in the note.
 
+![The discharge window of a patient with a hospital stay still open](figures/discharge-hospital.png "small")
+
+The red block carries the box {1}. [[Confirm discharge]] {2} works only once the box is ticked.
+
 ### A patient who relapses after a discharge
 
 A patient discharged as **Recovery** who comes back after a relapse is readmitted like any other. Choose the reason of the return in the admission note, keep the earlier stay as it is, and tell the psychologist that the count of relapses continues from the previous stay.

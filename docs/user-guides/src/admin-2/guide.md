@@ -52,7 +52,7 @@ You only see the requests addressed to you. A request sent to the promoter does 
 
 Select [[Pending discount requests]] in the menu. Each request is a card with the invoice amount at the top, the patient, a short summary of the lines and the name of the secretary.
 
-![One request, ready to be approved at 20 percent](figures/discount-card.png "small")
+![One request with 20 percent chosen: Refuse is greyed and Clear my choice is offered](figures/discount-card.png "small")
 
 1. Read the card. The amount is the full price before any reduction.
 2. To grant a percentage, select one of the four buttons {1}: 10%, 20%, 50% or 100%. No other percentage exists.
@@ -70,7 +70,7 @@ The card disappears and the secretary is notified. Three outcomes were checked o
 
 An approval must grant a percentage or a deadline, and a refusal must carry neither. If you select nothing, the card answers "An approval must grant a percentage and/or a due date." A wrong password gives "The password you entered is incorrect." in red under the fields. After five wrong passwords within a minute the card refuses further tries for a minute.
 
-A refusal must carry neither a percentage nor a deadline. When you have selected one of them, the [[Refuse]] button is greyed and the card says "To refuse, first clear the percentage and deadline you picked." with a button **Clear my choice**. Select it, then refuse.
+A refusal must carry neither a percentage nor a deadline. When you have selected one of them, the [[Refuse]] button is greyed and the card says "To refuse, first clear the percentage and deadline you picked." with a button **Clear my choice** {6}. Select it, then refuse.
 
 > Caution: A refusal does not cancel the invoice. It releases the invoice at the full price, and the secretary then collects the money or cancels the invoice. The percentage always applies to the full price, not to a price already reduced by a staff discount, and an approved percentage replaces any automatic staff discount on that invoice.
 

@@ -174,7 +174,7 @@ The card **Weekly count** {1} says how long ago the last count was made. **Low s
 
 ## Working without a connection
 
-The screens of this guide read and write on the server. They keep no copy on the computer. The indicator at the top reads **Connected** while the server answers and **Offline** when the network is lost; for your role it checks the server about every 15 seconds. When it reads **Offline** it adds "(your entries are saved)" on a wide screen. That sentence is true for other roles and not for yours: nothing you type is kept on the computer.
+The screens of this guide read and write on the server. They keep no copy on the computer. The indicator at the top reads **Connected** while the server answers and **Offline** when the network is lost; for your role it checks the server about every 15 seconds. When it reads **Offline** {1}, it says nothing more: unlike the roles that keep a copy, nothing you type is kept on the computer.
 
 ![To check without a connection](figures/offline.png "small")
 

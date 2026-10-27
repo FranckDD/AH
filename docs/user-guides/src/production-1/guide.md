@@ -39,13 +39,17 @@ After several failed attempts in a short time, the server refuses new tries for 
 
 The top bar shows an indicator that reads "Connected" while the server answers and "Offline" when it does not. Next to it come the bell, the language switch, the account icon and **Logout**. The bell holds your notices. For your role, the only notice is the one that tells you an input fell under its alert threshold; the chapter on the alert threshold describes it.
 
+![The bell with the notice of an input under its threshold](figures/bell.png "small")
+
+The bell {1} shows the number of unread notices. The notice {2} names the input, its stock and its threshold, for example "Input Guide demo glass bottles is below its alert threshold: 70.000 bottle (threshold 100.000)."
+
 ## The inputs and purchases screen
 
 ![The screen Inputs and purchases](figures/screen.png)
 
 The screen has two parts. The card **Input stock** lists every active input with its unit, the **Remaining stock** {3}, the **Alert threshold** {4} and the **State** {5}. The checkbox **Show deactivated** {2} adds the inputs that were put aside. A container carries a blue **Container** tag next to its name. The button **New purchase** {1} opens the purchase form.
 
-The card **Input purchases** {7} lists every purchase with its supplier, delivery reference, date, quantity, unit cost, the quantity that remains and its status. The newest purchases come first. Active purchases carry the button **Cancel purchase** {8}. The buttons at the end of an input row, such as **Deactivate** {6}, are explained further on.
+The card **Input purchases** {7} lists every purchase with its supplier, delivery reference, date, quantity, unit cost, the quantity that remains and its status. The newest purchases come first. Active purchases carry the button **Cancel purchase** {8}, and the button **Edit purchase** {9} as long as no batch has taken part of them. The buttons at the end of an input row, such as **Deactivate** {6}, are explained further on.
 
 The stock of an input is the sum of the **Remaining** quantities of its active purchases. The remaining quantity of a purchase is what no batch has taken yet. With 50 jars of honey bought and none used, the purchase shows 50 remaining. When a batch takes 30 of them, it shows 20, and the stock of the input falls by 30.
 
@@ -65,7 +69,7 @@ A purchase is one delivery of one input from one supplier at one price. Record i
 
 ![The purchase form](figures/buy-form.png)
 
-The message "Purchase saved." appears for a few seconds. The stock of the input rises by the quantity bought {1}, and the purchase takes the first row of the list, with its delivery reference {2} and its unit cost {3}. In the example, the stock of honey jars went from 170 to 220 after a purchase of 50.
+The message "Purchase saved." appears for a few seconds. The stock of the input rises by the quantity bought {1}, and the purchase takes the first row of the list, with its delivery reference {2} and its unit cost {3}. The buttons **Edit purchase** {4} and **Cancel purchase** appear on the new line. In the example, the stock of honey jars went from 204 to 254 after a purchase of 50.
 
 ![After the purchase](figures/buy-saved.png)
 
@@ -101,7 +105,9 @@ Two corrections exist. A purchase that no batch has taken can be edited: the sup
 2. Change the supplier, the delivery reference or the unit cost in the form **Edit a purchase**. The unit cost is required.
 3. Select [[Save]].
 
-The message "Purchase updated." appears. If a batch took part of the purchase in the meantime, the server refuses the change and shows its message in the form.
+![The form to edit a purchase](figures/edit-purchase.png "small")
+
+The form shows the input and the date of the purchase, then the supplier {1}, the delivery reference {2} and the unit cost {3}. Select [[Save]] {4} to keep the change. The message "Purchase updated." appears. If a batch took part of the purchase in the meantime, the server refuses the change and shows its message in the form.
 
 ### Cancelling a purchase
 
@@ -111,7 +117,9 @@ The message "Purchase updated." appears. If a batch took part of the purchase in
 
 ![The cancellation form](figures/cancel-form.png "small")
 
-The message "Purchase cancelled." appears, the line shows the status **Cancelled** and has no button left, and the stock of the input falls by what that purchase held. An input that then has no active purchase shows the button **Edit** again. A cancelled line keeps its original quantity and shows 0 in the **Remaining** column.
+The message "Purchase cancelled." appears, the line shows the status **Cancelled** and has no button left, and the stock of the input falls by what that purchase held. An input that then has no active purchase shows the button **Edit** again. A cancelled line keeps its original quantity and shows 0 in the **Remaining** column {1}, with the status **Cancelled** {2}.
+
+![A cancelled purchase](figures/cancel-done.png)
 
 When a batch has already taken part of a purchase, the cancellation is refused with a red message {2} in the form.
 

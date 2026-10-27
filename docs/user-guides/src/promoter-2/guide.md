@@ -148,7 +148,7 @@ Select the bell {1} and read the entries from the top, most recent first. Select
 | "Cash closing of 2026-10-26: cash expected ..., counted ..., No difference" | A closing was saved and matches | Opens Cash closings | Nothing, unless you want to read it |
 | "Anomaly: Cash closing of 2026-10-26: ..., Difference of 1000.00 short" | A closing was saved with a difference | Opens Cash closings | Open the detail and read the comment |
 | "Daily check of 2026-10-25: 2 new point(s), 0 still open" | The nightly check found points to look at | Opens Reports | Read the daily check |
-| "Lab: produis test almost out" {2} | The technician reported a low product | Opens To order | Order the product |
+| "Lab: Glucose reagent kit almost out" {2} | The technician reported a low product | Opens To order | Order the product |
 | "Lab: produis test (lot 1) expires in 5 day(s)" | A lot is close to its expiry date | Opens Lab alerts | Check the lot and use it first |
 
 When the technician reports a product as out, the entry reads "out" instead of "almost out". The application also has entries for the weekly count reminder of the laboratory and for a product that was received.

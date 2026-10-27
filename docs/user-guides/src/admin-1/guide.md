@@ -217,12 +217,14 @@ An exam is made of parameters, the lines the laboratory technician fills in when
 
 You manage the parameters yourself. In the **Exam Catalog**, select **Parameters** on the row of the exam. A panel titled "Parameters of exam" followed by the exam name opens. If the exam has none yet, it reads "No parameter for this exam."
 
-1. To add a parameter, fill the block at the bottom of the panel: **Parameter name**, **Unit** and **Result type** (**Number** or **Text**), then select [[Save]].
+![The parameters panel of an exam, with a normal range and the order arrows](figures/exam-parameters.png)
+
+1. To add a parameter, fill the block at the bottom of the panel: **Parameter name**, **Unit** and **Result type** (**Number** or **Text**), then select [[Save]]. The name field is {1} and the button is {2}.
 2. To change a parameter, select **Edit** on its card. The block at the bottom is filled with its values; change them and select [[Save]].
-3. To add a normal range to a parameter, use the line under **Reference ranges** on its card. Choose **Any**, **Male** or **Female**, type **Min age** and **Max age**, then **Min value** and **Max value**, and select **Add range**. A range can be removed with its small red bin. The laboratory judges a value against the range of the patient's sex, so give separate ranges for men and women when they differ.
+3. To add a normal range to a parameter, use the line under **Reference ranges** on its card. Choose **Any**, **Male** or **Female** {3}, type **Min age** and **Max age**, then **Min value** and **Max value**, and select **Add range** {4}. A range can be removed with its small red bin. The laboratory judges a value against the range of the patient's sex, so give separate ranges for men and women when they differ.
 4. To delete a parameter, select the red **Delete** button of its card and confirm "Delete this parameter?".
 
-The up and down arrows on each card set the order in which the parameters appear on the bench, in the result and on the printed sheet. Select the arrow to move a parameter one place. The order is kept for everyone.
+The up and down arrows {5} on each card set the order in which the parameters appear on the bench, in the result and on the printed sheet. Select the arrow to move a parameter one place. The order is kept for everyone.
 
 > Caution: Deleting an exam that already has parameters can be refused by the server with an error message. If that happens, delete its parameters first, one by one.
 

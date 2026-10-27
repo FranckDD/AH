@@ -63,7 +63,7 @@ The card **Consumptions** {1} lists what the batch takes, and the cost of each l
 ![A draft with two lines](figures/draft.png)
 
 1. Select [[Add a line]] {5}.
-2. Choose the purchase in [[Purchase]] {2}. Each choice names the input, the supplier, the delivery reference when there is one, the date and the quantity that remains, for example "Guide demo honey jars | Demo Farm Supplies | Delivery ref. BL-0412 | 26/10/2026 | Remaining 50". Only active purchases with something left are offered.
+2. Choose the purchase in [[Purchase]] {2}. Each choice names the input, the supplier, the delivery reference when there is one, the date and the quantity that remains, for example "Guide demo honey jars | Demo Farm Supplies | Delivery reference GD-P1-BUY-1 | 26/10/2026 | Remaining 45". Only active purchases with something left are offered.
 3. Type the quantity taken in [[Quantity]] {3}, in the unit of the input.
 4. Repeat for every input. Select **Remove** {4} to delete a line.
 5. Select [[Save]] {7}. The message "Draft saved." appears and the table of consumptions above shows the lines and the cost of the consumptions.
