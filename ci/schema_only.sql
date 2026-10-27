@@ -5528,6 +5528,28 @@ ALTER TABLE public.pharmacy ADD COLUMN photo_version integer NOT NULL DEFAULT 0;
 ALTER TABLE public.organization_config ADD COLUMN label_width_mm integer NOT NULL DEFAULT 50;
 ALTER TABLE public.organization_config ADD COLUMN label_height_mm integer NOT NULL DEFAULT 30;
 
+CREATE TABLE public.spiritual_notes (
+    id serial PRIMARY KEY,
+    author_id integer NOT NULL REFERENCES public.users(user_id),
+    meeting_date date NOT NULL,
+    counsel boolean NOT NULL DEFAULT false,
+    prayer boolean NOT NULL DEFAULT false,
+    verse_read boolean NOT NULL DEFAULT false,
+    discussion boolean NOT NULL DEFAULT false,
+    text_given boolean NOT NULL DEFAULT false,
+    qa boolean NOT NULL DEFAULT false,
+    verse_reference varchar(120),
+    no_one_spoke boolean NOT NULL DEFAULT false,
+    content text,
+    created_at timestamp NOT NULL DEFAULT now(),
+    updated_at timestamp NOT NULL DEFAULT now(),
+    CONSTRAINT spiritual_notes_content_len_check
+        CHECK (content IS NULL OR char_length(content) <= 5000)
+);
+CREATE INDEX idx_spiritual_notes_order
+    ON public.spiritual_notes (meeting_date DESC, created_at DESC, id DESC);
+CREATE INDEX idx_spiritual_notes_author ON public.spiritual_notes (author_id);
+
 --
 -- Name: powersync; Type: PUBLICATION; Schema: -; Owner: -
 --

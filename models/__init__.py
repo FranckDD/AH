@@ -28,6 +28,7 @@ from .lab_stock import (
     LabStockProduct, LabStockReceipt, LabStockReceiptLine, LabStockCount,
     LabStockCountLine, LabStockMovement, LabStockRequest,
 )
+from .spiritual_note import SpiritualNote
 from .toxico import ToxicoPhaseEnum, ToxicoDossier, ToxicoPhaseHistory, ToxicoEvaluation, ToxicoStay, ToxicoPsychologistTransfer
 from .user import User
 from .stock_count import StockCount, StockCountLine, StockCountSettings

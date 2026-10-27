@@ -228,6 +228,11 @@ def delete_user(user_id: int, user_ctrl: UserController = Depends(get_user_contr
     try:
         existing = user_ctrl.user_repo.get_user_by_id(user_id)
         before = _user_snapshot(existing) if existing is not None else None
+        if existing is not None:
+            from models.spiritual_note import SpiritualNote
+            has_notes = user_ctrl.user_repo.session.query(SpiritualNote.id).filter(SpiritualNote.author_id == user_id).first()
+            if has_notes is not None:
+                raise HTTPException(status_code=409, detail="Ce compte a des notes spirituelles : desactivez-le au lieu de le supprimer.")
         ok = user_ctrl.delete_user(user_id)
         if ok and before is not None:
             _audit_user(user_ctrl.user_repo.session, actor, "DELETE", user_id, before, {})

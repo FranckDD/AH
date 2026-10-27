@@ -34,6 +34,7 @@ from .routes.audit import audit_endpoint
 from .routes.pharmacy import pharmacy_endpoints
 from .routes.stock import stock_endpoints
 from .routes.lab_stock import lab_stock_endpoints
+from .routes.spiritual_notes import spiritual_notes_endpoints
 from .routes.fabrication import fabrication_endpoints
 from .routes.cash_closure import cash_closure_endpoints
 from .routes.stock_count import stock_count_endpoints
@@ -186,6 +187,7 @@ app.include_router(audit_endpoint.router)
 app.include_router(pharmacy_endpoints.router)
 app.include_router(stock_endpoints.router)  # prefixe /stock (fabrication, receptions, avaries)
 app.include_router(lab_stock_endpoints.router)  # prefixe /lab-stock (stock du laboratoire)
+app.include_router(spiritual_notes_endpoints.router)  # prefixe /spiritual-notes (notes du conseiller spirituel)
 app.include_router(fabrication_endpoints.router)  # prefixe /fabrication (intrants, achats, lots)
 app.include_router(cash_closure_endpoints.router)  # prefixe /cash-closure (cloture de caisse, corrections)
 app.include_router(cash_closure_endpoints.modes_router)  # prefixe /payment-modes (modes de paiement)
