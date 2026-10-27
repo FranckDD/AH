@@ -41,6 +41,7 @@ check('UserManagement', view, [
     // clés (la colonne des actions est désormais l'en-tête masqué ui.actions du tableau commun)
     "t('users.title')", "t('users.search_placeholder')", "t('users.add_new')", "t('users.table.employee')", "t('users.table.role')", "t('users.table.contact')",
     "t('users.table.status')", "t('users.modal.edit_title')", "t('common.delete')",
+    'v-if="user.seesOwnToxicoOnly"', "t('users.modal.sees_own_toxico_only')",
 ]);
 
 test('toutes les clés users.*, common.* et usersScreens.* citées existent en FR et EN', () => {

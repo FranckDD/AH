@@ -38,6 +38,8 @@
     <ToxicoDischargedPanel v-if="activeTab === 'discharged'" :canReadmit="canAdmitPatient"
         @view="openDossier" @readmit="openReadmission" />
 
+    <ToxicoPreviousPanel v-if="activeTab === 'previous'" @view="openDossier" />
+
     <template v-if="activeTab === 'active'">
       <LoadErrorState v-if="toxicoStore.listLoadFailed" @retry="toxicoStore.fetchToxicoPatients()" />
       <ResponsiveTable
@@ -78,7 +80,8 @@
         <template #actions="{ row: p }">
           <AppButton variant="secondary" size="sm" :icon="EyeIcon" :title="t('toxicoScreens.details_title')" @click="openPatientDetails(p)">{{ t('toxicoScreens.details') }}</AppButton>
           <AppButton variant="info" size="sm" :icon="ClipboardDocumentListIcon" @click="openDossier(p)">{{ t('toxicoScreens.dossier') }}</AppButton>
-          <AppButton v-if="canEvaluatePatient" size="sm" :icon="PencilSquareIcon" @click="openEvaluation(p)">{{ t('toxico.actions.evaluate') }}</AppButton>
+          <AppButton v-if="canEvaluatePatient && p.canEvaluate" size="sm" :icon="PencilSquareIcon" @click="openEvaluation(p)">{{ t('toxico.actions.evaluate') }}</AppButton>
+          <AppButton v-if="canTransferPatient" variant="spirit" size="sm" @click="openTransfer(p)">{{ t('toxico.transfer.action') }}</AppButton>
           <AppButton v-if="canDischargePatient" variant="danger" size="sm" :icon="ArrowRightStartOnRectangleIcon" :title="t('toxico.actions.discharge')" @click="confirmDischarge(p)">{{ t('toxico.stays.discharge_action') }}</AppButton>
         </template>
       </ResponsiveTable>
@@ -117,6 +120,16 @@
         @open-dossier="openDossierFromDetails"
     />
 
+    <ToxicoTransferModal
+        v-if="patientToTransfer"
+        :dossierId="Number(patientToTransfer.dossier_id || patientToTransfer.id)"
+        :patientName="patientToTransfer.patientName || ''"
+        :currentPsychologistId="patientToTransfer.psychologistId ?? null"
+        :currentPsychologistName="patientToTransfer.psychologist === 'Non assigné' ? '' : (patientToTransfer.psychologist || '')"
+        @close="patientToTransfer = null"
+        @transferred="onTransferred"
+    />
+
     <ToxicoDischargeModal
         v-if="showDischargeConfirm && patientToDischarge"
         :dossierId="Number(patientToDischarge.dossier_id || patientToDischarge.id)"
@@ -132,6 +145,7 @@
 <script setup>
 import { notify } from '@/utils/notify';
 import { ref, onMounted, computed } from 'vue';
+import { useRoute } from 'vue-router';
 import { useToxicoStore } from '@/stores/toxicoStore';
 import { useAuthStore } from '@/stores/auth'; // 🟢 IMPORT DU STORE AUTH
 import { useI18n } from 'vue-i18n';
@@ -140,13 +154,15 @@ import ToxicoDossierModal from '@/components/toxico/ToxicoDossierModal.vue';
 import ToxicoAdmissionModal from '@/components/toxico/ToxicoAdmissionModal.vue';
 import ToxicoPatientDetailsModal from '@/components/toxico/ToxicoPatientDetailsModal.vue';
 import ToxicoDischargeModal from '@/components/toxico/ToxicoDischargeModal.vue';
+import ToxicoTransferModal from '@/components/toxico/ToxicoTransferModal.vue';
+import ToxicoPreviousPanel from '@/components/toxico/ToxicoPreviousPanel.vue';
 import ToxicoDischargedPanel from '@/components/toxico/ToxicoDischargedPanel.vue';
 import { toPreselectedPatient } from '@/utils/toxicoDischarged';
 import { AppButton, PageHeader, FormField, StatTile, StatusBadge, ResponsiveTable, LoadErrorState } from '@/components/ui';
 import { toneClasses } from '@/design/tones';
 import { phaseMeta } from '@/utils/toxicoUi';
 import { useToastStore } from '@/stores/toastStore';
-import { TOXICO_DISCHARGE_ROLES } from '@/utils/toxicoExport';
+import { TOXICO_DISCHARGE_ROLES, TOXICO_TRANSFER_ROLES } from '@/utils/toxicoExport';
 import {
     PlusCircleIcon,
     UserIcon,
@@ -165,12 +181,17 @@ const { t } = useI18n();
 const toxicoStore = useToxicoStore();
 const authStore = useAuthStore(); // 🟢 INITIALISATION
 const toast = useToastStore();
+const route = useRoute();
 
 // --- ONGLETS Actifs | Sortis ---
-const listTabs = [
+const baseTabs = [
     { id: 'active', label: 'toxico.discharged.tab_active' },
     { id: 'discharged', label: 'toxico.discharged.tab_discharged' },
 ];
+const previousTab = { id: 'previous', label: 'toxico.previous.tab' };
+// Onglet des patients suivis auparavant : psychologue a vue limitee seulement
+const showPreviousTab = computed(() => authStore.hasRole(['Psychologist']) && !!authStore.user?.sees_own_toxico_only);
+const listTabs = computed(() => (showPreviousTab.value ? [...baseTabs, previousTab] : baseTabs));
 const activeTab = ref('active');
 const readmitPatient = ref(null);
 const openNewAdmission = () => { readmitPatient.value = null; showAdmissionModal.value = true; };
@@ -204,6 +225,9 @@ const canEvaluatePatient = computed(() => {
     return authStore.hasRole(['Psychologist']);
 });
 
+const canTransferPatient = computed(() => authStore.hasRole(TOXICO_TRANSFER_ROLES));
+const patientToTransfer = ref(null);
+
 const canDischargePatient = computed(() => {
     // Admin, Manager et promoteur (2026-10-22) peuvent faire une sortie
     return authStore.hasRole(TOXICO_DISCHARGE_ROLES);
@@ -227,7 +251,36 @@ onMounted(() => {
     toxicoStore.fetchToxicoPatients();
     toxicoStore.fetchDashboardStats().catch(() => {});
     toxicoStore.fetchPsychologists();
+    // le drapeau sees_own_toxico_only peut etre perime dans le stockage local
+    authStore.fetchMe().catch(() => {});
+    openFromQuery(route.query.patient);
 });
+
+// Lien de notification : /toxico?patient=<id> ouvre ce dossier puis retire le parametre
+// (sinon un rechargement le rouvrirait). ATTENTION : AppShell cle le <router-view> sur
+// route.fullPath, donc un router.replace qui change la query recreerait cet ecran et
+// fermerait le dossier qu'on vient d'ouvrir. On nettoie l'adresse avec history.replaceState,
+// sans navigation. Un clic de cloche deja sur cet ecran change fullPath : l'ecran est
+// recree et onMounted rouvre le dossier (aucun watcher necessaire).
+function openFromQuery(raw) {
+    const target = Number(Array.isArray(raw) ? raw[0] : raw);
+    if (!Number.isInteger(target) || target <= 0) return;
+    selectedPatientId.value = target;
+    showDossierModal.value = true;
+    try {
+        const url = new URL(window.location.href);
+        url.searchParams.delete('patient');
+        window.history.replaceState(window.history.state, '', url.toString());
+    } catch {
+        /* sans effet : l'adresse garde simplement son parametre */
+    }
+}
+
+const openTransfer = (patient) => { patientToTransfer.value = patient; };
+const onTransferred = ({ name } = {}) => {
+    patientToTransfer.value = null;
+    toast.push(t('toxico.transfer.success', { name: name || '' }), 'success');
+};
 
 // --- ACTIONS UI ---
 let searchTimeout;

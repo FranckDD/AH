@@ -64,6 +64,7 @@ export const useUserStore = defineStore('user', () => {
                     
                     isActive: u.is_active,
                     isHeadNurse: u.is_head_nurse || false,
+                    seesOwnToxicoOnly: u.sees_own_toxico_only || false,
                     originalData: u
                 };
             });
@@ -110,7 +111,8 @@ export const useUserStore = defineStore('user', () => {
                 specialty_id: formData.specialty_id, // Peut être null
 
                 is_active: formData.is_active,
-                is_head_nurse: formData.is_head_nurse
+                is_head_nurse: formData.is_head_nurse,
+                sees_own_toxico_only: formData.sees_own_toxico_only
             };
 
             await api.post('/users/', payload);
@@ -134,7 +136,8 @@ export const useUserStore = defineStore('user', () => {
                 role_id: formData.role_id,
                 specialty_id: formData.specialty_id,
                 is_active: formData.is_active,
-                is_head_nurse: formData.is_head_nurse
+                is_head_nurse: formData.is_head_nurse,
+                sees_own_toxico_only: formData.sees_own_toxico_only
             };
 
             // On n'envoie le mot de passe que s'il est renseigné

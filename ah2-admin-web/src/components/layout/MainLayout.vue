@@ -1,7 +1,7 @@
 <template>
   <AppShell
     :menu-groups="menuGroups"
-    :bell-roles="['admin', 'promoteur', 'secretaire', 'Assistant', 'StockController', 'laborantin', 'ToxicoManager', 'ProductionManager']"
+    :bell-roles="['admin', 'promoteur', 'secretaire', 'Assistant', 'StockController', 'laborantin', 'ToxicoManager', 'ProductionManager', 'Psychologist']"
     brand-fallback="AH2 Dashboard"
     sidebar-id="dashboard-sidebar"
     :palette="paletteForRole(authStore.userRole)"

@@ -261,6 +261,7 @@ const checkToxicoDossier = async (patientId) => {
             const prefill = readmissionPrefill(res.data);
             if (prefill.substance) form.substance = prefill.substance;
             if (prefill.guardianName && !form.guardianName) form.guardianName = prefill.guardianName;
+            if (prefill.psychologist && !form.psychologist) form.psychologist = prefill.psychologist;
             if (prefill.guardianContact && !form.guardianContact) form.guardianContact = prefill.guardianContact;
         }
         if (minAdmissionDate.value && form.admissionDate < minAdmissionDate.value) {

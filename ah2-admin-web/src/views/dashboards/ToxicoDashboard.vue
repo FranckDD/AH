@@ -53,7 +53,7 @@
     </div>
 
     <div class="grid grid-cols-1 items-start gap-6 lg:grid-cols-2">
-      <AppCard :title="t('toxico.dashboard.psy_workload')">
+      <AppCard v-if="!toxicoStore.isScoped" :title="t('toxico.dashboard.psy_workload')">
         <ResponsiveTable :columns="columns" :rows="toxicoStore.statsByPsy" row-key="name" striped>
           <template #cell-name="{ row: psy }"><span class="font-medium">{{ psy.name }}</span></template>
           <template #cell-count="{ row: psy }">

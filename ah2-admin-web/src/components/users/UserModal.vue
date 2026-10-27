@@ -78,6 +78,14 @@
           <span>{{ t('users.modal.is_head_nurse') }}</span>
         </label>
 
+        <div v-if="showOwnToxicoField" class="md:col-span-2">
+          <label class="flex min-h-11 items-center gap-3 text-base font-medium text-ink">
+            <input type="checkbox" v-model="form.sees_own_toxico_only" class="h-5 w-5 accent-brand-600" />
+            <span>{{ t('users.modal.sees_own_toxico_only') }}</span>
+          </label>
+          <p class="text-sm text-ink-muted">{{ t('users.modal.sees_own_toxico_only_hint') }}</p>
+        </div>
+
         <label class="flex min-h-11 items-center gap-3 text-base font-medium text-ink md:col-span-2">
           <input type="checkbox" v-model="form.is_active" class="h-5 w-5 accent-brand-600" />
           <span>{{ t('users.modal.is_active') }}</span>
@@ -137,7 +145,8 @@ const form = reactive({
   role_id: null,
   specialty_id: null,
   is_active: true,
-  is_head_nurse: false
+  is_head_nurse: false,
+  sees_own_toxico_only: false
 })
 
 // --- LOGIQUE METIER CORRIGÉE ---
@@ -179,6 +188,14 @@ const showHeadNurseField = computed(() => {
   return (selectedRole.role_name || '').toLowerCase().trim() === 'nurse'
 })
 
+const showOwnToxicoField = computed(() => {
+  const selectedRole = props.applicationRoles.find(
+    (r) => (r.id === form.role_id) || (r.role_id === form.role_id)
+  )
+  if (!selectedRole) return false
+  return (selectedRole.role_name || '').toLowerCase().trim() === 'psychologist'
+})
+
 // --- EVENEMENTS ---
 
 const handlePostgresRoleChange = () => {
@@ -192,6 +209,9 @@ const handleRoleChange = () => {
   }
   if (!showHeadNurseField.value) {
     form.is_head_nurse = false
+  }
+  if (!showOwnToxicoField.value) {
+    form.sees_own_toxico_only = false
   }
 }
 
@@ -229,7 +249,8 @@ onMounted(() => {
       role_id: u.role_id,
       specialty_id: u.specialty_id,
       is_active: u.isActive,
-      is_head_nurse: u.isHeadNurse || false
+      is_head_nurse: u.isHeadNurse || false,
+      sees_own_toxico_only: u.seesOwnToxicoOnly || false
     })
   }
 })

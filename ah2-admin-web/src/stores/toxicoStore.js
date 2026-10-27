@@ -140,6 +140,18 @@ export const useToxicoStore = defineStore('toxico', () => {
         }
     }
     
+    // 5b. Transfert vers un autre psychologue referent
+    async function transferDossier(dossierId, { toPsychologistId, reason } = {}) {
+        try {
+            await ToxicoGateway.transferDossier(dossierId, { to_psychologist_id: toPsychologistId, reason });
+            await fetchToxicoPatients();
+            await fetchDashboardStats();
+        } catch (error) {
+            console.error("Erreur transfert:", error);
+            throw error;
+        }
+    }
+
     // 6. Récupérer les détails d'un patient spécifique (pour la modale Dossier)
     async function getPatientDetails(patientId) {
         isLoading.value = true;
@@ -228,6 +240,42 @@ export const useToxicoStore = defineStore('toxico', () => {
         dischargedFilters.value = { ...dischargedFilters.value, page };
         return fetchDischarged();
     }
+
+    // --- PATIENTS SUIVIS AUPARAVANT (psychologue a vue limitee, lecture seule) ---
+    const PREVIOUS_PER_PAGE = 20;
+    const previous = ref([]);
+    const previousTotal = ref(0);
+    const previousLoading = ref(false);
+    const previousError = ref(null);
+    const previousPage = ref(1);
+    let previousRequestId = 0;
+
+    async function fetchPrevious() {
+        const reqId = ++previousRequestId;
+        previousLoading.value = true;
+        previousError.value = null;
+        try {
+            const res = await ToxicoGateway.listPrevious({ page: previousPage.value, per_page: PREVIOUS_PER_PAGE });
+            if (reqId !== previousRequestId) return;
+            previous.value = res.data?.data || [];
+            previousTotal.value = res.data?.total || 0;
+        } catch (error) {
+            if (reqId !== previousRequestId) return;
+            console.error("Erreur chargement patients suivis auparavant:", error);
+            previous.value = [];
+            previousError.value = error;
+        } finally {
+            if (reqId === previousRequestId) previousLoading.value = false;
+        }
+    }
+
+    function setPreviousPage(n) {
+        previousPage.value = Math.max(1, Number(n) || 1);
+        return fetchPrevious();
+    }
+
+    // Statistiques limitees au perimetre du psychologue (le serveur renvoie scoped: true)
+    const isScoped = computed(() => globalStats.value?.scoped === true);
 
     // --- ACTIONS UI (Pagination) ---
     function setPage(page) {
@@ -352,11 +400,13 @@ export const useToxicoStore = defineStore('toxico', () => {
         addPatient,
         submitEvaluation,
         dischargePatient,
+        transferDossier,
         fetchOpenHospitalization,
         getPatientDetails,
         setPage,
         setSearch,
         discharged, dischargedTotal, dischargedTotalPages, dischargedLoading, dischargedError,
+        previous, previousTotal, previousLoading, previousError, previousPage, fetchPrevious, setPreviousPage, isScoped,
         dischargedFilters, fetchDischarged, setDischargedFilters, setDischargedPage, clearDischarged,
         
         // COMPUTED STATS

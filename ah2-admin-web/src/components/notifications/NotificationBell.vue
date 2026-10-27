@@ -154,6 +154,11 @@ const labelFor = (n) => {
       patient: n.payload?.patient_name || t('notifications.patient_fallback'), by: n.payload?.reported_by_name || '?',
     });
   }
+  if (n.type === 'toxico_transfer') {
+    return t('notifications.toxico_transfer', {
+      patient: n.payload?.patient_name || t('notifications.patient_fallback'), by: n.payload?.decided_by_name || '?',
+    });
+  }
   if (n.type === 'patient_pending_review') {
     return t('notifications.patient_pending', {
       patient: n.payload?.patient_name || t('notifications.patient_fallback'), by: n.payload?.created_by_name || '?',
@@ -267,6 +272,9 @@ const handleClick = async (n) => {
   }
   if (n.type === 'patient_pending_review' && n.payload?.patient_id) {
     router.push(`/medical/patients/${n.payload.patient_id}`);
+  }
+  if (n.type === 'toxico_transfer' && n.payload?.patient_id) {
+    pushIfRoute('/dashboard/toxico?patient=' + n.payload.patient_id);
   }
   if (n.type === 'stock_to_check') {
     pushIfRoute('/dashboard/stock-control');

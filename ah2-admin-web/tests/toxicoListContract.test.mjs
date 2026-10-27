@@ -22,7 +22,7 @@ function check(name, src, needles) {
 check('ToxicoList', view, [
     // droits (reflètent les routes serveur : voir aussi toxicoExport.test.mjs)
     "return authStore.hasRole(['admin', 'ToxicoManager', 'Assistant']);", "return authStore.hasRole(['Psychologist']);", 'return authStore.hasRole(TOXICO_DISCHARGE_ROLES);',
-    'v-if="canAdmitPatient"', 'v-if="canEvaluatePatient"', 'v-if="canDischargePatient"',
+    'v-if="canAdmitPatient"', 'v-if="canEvaluatePatient && p.canEvaluate"', 'v-if="canDischargePatient"',
     // chargement et recherche
     'toxicoStore.fetchToxicoPatients();', 'toxicoStore.fetchDashboardStats();', 'toxicoStore.fetchPsychologists();', ':value="toxicoStore.filters.search"', '@input="handleSearch"',
     'toxicoStore.setSearch(event.target.value);', '}, 500);', "v-if=\"activeTab === 'active'\"",

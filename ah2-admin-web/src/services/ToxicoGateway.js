@@ -34,6 +34,11 @@ export const ToxicoGateway = {
         return api.get('/toxico/dossiers/discharged', { params });
     },
 
+    // Patients suivis auparavant par le psychologue (lecture seule) : { page, per_page }
+    async listPrevious(params) {
+        return api.get('/toxico/dossiers/previous', { params });
+    },
+
     // Export PDF de la liste des patients sortis (params : buildDischargedExportQuery)
     async exportDischargedPdf(params) {
         return api.get('/toxico/dossiers/discharged/export', { params, responseType: 'blob' });
@@ -160,6 +165,11 @@ export const ToxicoGateway = {
         if (trimmed) body.note = trimmed;
         if (date) body.discharge_date = date; // AAAA-MM-JJ ; absent = aujourd'hui
         return api.post(`/toxico/discharge/${dossierId}`, body);
+    },
+
+    // Transfert vers un autre psychologue referent : { to_psychologist_id, reason } (motif obligatoire).
+    async transferDossier(dossierId, { to_psychologist_id, reason } = {}) {
+        return api.post(`/toxico/dossiers/${dossierId}/transfer`, { to_psychologist_id, reason: (reason || '').trim() });
     }
 
     

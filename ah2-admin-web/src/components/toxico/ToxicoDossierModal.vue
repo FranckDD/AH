@@ -25,11 +25,15 @@
         </button>
       </div>
 
+      <p v-if="patient.accessMode === 'readonly'" role="status" class="rounded-card border p-3 text-base" :class="toneClasses('info')">{{ t('toxico.transfer.readonly_banner') }}</p>
+
       <p v-if="discharge" role="status" class="rounded-card border p-3 text-base" :class="toneClasses('neutral')">
         {{ t('toxico.stays.discharged_on', { date: formatDateDMY(discharge.date), reason: discharge.reason ? t(dischargeReasonLabelKey(discharge.reason)) : '-' }) }}
         <span v-if="discharge.by"> ({{ t('toxico.stays.discharged_by', { name: discharge.by }) }})</span>
         <span v-if="discharge.note" class="block italic">« {{ discharge.note }} »</span>
       </p>
+
+      <p v-if="transferSuccess" role="status" class="rounded-card border p-3 text-base" :class="toneClasses('success')">{{ transferSuccess }}</p>
 
       <p v-if="dischargeSuccess" role="status" class="rounded-card border p-3 text-base" :class="toneClasses('success')">{{ t('toxico.stays.discharge_success') }}</p>
 
@@ -46,7 +50,7 @@
         </AppCard>
 
         <AppCard :title="t('toxico.dossier.tabs.history')">
-          <ToxicoStaysTimeline :stays="patient.stays || []" :phaseHistory="patient.phaseHistory || []" :evaluations="patient.evaluations || []" />
+          <ToxicoStaysTimeline :stays="patient.stays || []" :transfers="patient.transfers || []" :phaseHistory="patient.phaseHistory || []" :evaluations="patient.evaluations || []" />
         </AppCard>
       </section>
 
@@ -99,6 +103,7 @@
             {{ isExporting ? t('toxico.export.exporting') : t('toxico.export.dossier_pdf') }}
           </AppButton>
         </template>
+        <AppButton v-if="canTransfer" variant="spirit" @click="showTransfer = true">{{ t('toxico.transfer.action') }}</AppButton>
         <AppButton v-if="canDischarge" variant="danger" @click="showDischarge = true">{{ t('toxico.stays.discharge_action') }}</AppButton>
         <AppButton @click="$emit('close')">{{ t('toxicoScreens.dossier_close') }}</AppButton>
       </ActionBar>
@@ -109,6 +114,11 @@
       :patientName="`${patient.firstName || ''} ${patient.lastName || ''}`.trim()"
       :minDate="String((patient.stays || []).find((s) => s.is_open)?.admission_date || patient.admissionDate || '').slice(0, 10)"
       @close="showDischarge = false" @discharged="onDischarged" />
+
+  <ToxicoTransferModal v-if="showTransfer && patient" :dossierId="patient.dossier_id"
+      :patientName="`${patient.firstName || ''} ${patient.lastName || ''}`.trim()"
+      :currentPsychologistId="patient.psychologistId ?? null" :currentPsychologistName="patient.psychologist === 'Non assigné' ? '' : (patient.psychologist || '')"
+      @close="showTransfer = false" @transferred="onTransferred" />
 </template>
 
 <script setup>
@@ -121,12 +131,13 @@ import { ToxicoGateway } from '@/services/ToxicoGateway';
 import { ClockIcon, HeartIcon, BeakerIcon } from '@heroicons/vue/24/outline';
 import ToxicoStaysTimeline from '@/components/toxico/ToxicoStaysTimeline.vue';
 import ToxicoDischargeModal from '@/components/toxico/ToxicoDischargeModal.vue';
+import ToxicoTransferModal from '@/components/toxico/ToxicoTransferModal.vue';
 import { AppButton, AppCard, StatusBadge, ActionBar, FullScreenPanel } from '@/components/ui';
 import { toneClasses } from '@/design/tones';
 import { phaseMeta } from '@/utils/toxicoUi';
 import { dischargeSummary, dischargeReasonLabelKey } from '@/utils/toxicoStays';
 import { formatDateDMY } from '@/utils/localDate';
-import { TOXICO_DOSSIER_EXPORT_ROLES, TOXICO_DISCHARGE_ROLES, downloadPdfBlob, dossierExportFilename, exportErrorKey } from '@/utils/toxicoExport';
+import { TOXICO_DOSSIER_EXPORT_ROLES, TOXICO_DISCHARGE_ROLES, TOXICO_TRANSFER_ROLES, downloadPdfBlob, dossierExportFilename, exportErrorKey } from '@/utils/toxicoExport';
 
 const { t } = useI18n();
 const toxicoStore = useToxicoStore();
@@ -138,6 +149,9 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['close', 'discharged']);
+
+// Ancien patient du psychologue (transfere) : consultation seule, aucune action clinique.
+const isReadOnly = computed(() => patient.value?.accessMode === 'readonly');
 
 // Initialiser avec un objet vide évite parfois des erreurs, 
 // mais ici on utilise v-if="!patient" donc null est correct pour l'état initial.
@@ -154,14 +168,18 @@ const tabs = [
 // Dossier medical / prescriptions : admin, responsable toxico et psychologue
 // seulement (accompagnateur spirituel et assistant n'y ont pas droit - le
 // backend refuse aussi GET /patients/{id}/dossier/recent pour eux).
-const canSeeClinical = computed(() => authStore.hasRole(['admin', 'ToxicoManager', 'Psychologist']));
+const canSeeClinical = computed(() => authStore.hasRole(['admin', 'ToxicoManager', 'Psychologist']) && !isReadOnly.value);
 // L'historique complet vit sur /patients/:id, reserve admin + responsable toxico.
 const canOpenFullHistory = computed(() => authStore.hasRole(['admin', 'ToxicoManager']));
 // Sortie : responsable toxico et admin uniquement, et seulement sur un dossier actif.
-const canDischarge = computed(() => !!patient.value?.isActive && authStore.hasRole(TOXICO_DISCHARGE_ROLES));
+const canDischarge = computed(() => !isReadOnly.value && !!patient.value?.isActive && authStore.hasRole(TOXICO_DISCHARGE_ROLES));
 const showDischarge = ref(false);
+// Transfert vers un autre psychologue : actif ou sorti, jamais en consultation seule.
+const canTransfer = computed(() => !isReadOnly.value && authStore.hasRole(TOXICO_TRANSFER_ROLES));
+const showTransfer = ref(false);
+const transferSuccess = ref('');
 // Export PDF du dossier (actif ou sorti) : evaluations sensibles -> memes roles que le backend.
-const canExportDossier = computed(() => authStore.hasRole(TOXICO_DOSSIER_EXPORT_ROLES));
+const canExportDossier = computed(() => !isReadOnly.value && authStore.hasRole(TOXICO_DOSSIER_EXPORT_ROLES));
 const isExporting = ref(false);
 const exportError = ref(null);
 const exportPdf = async () => {
@@ -181,6 +199,11 @@ const discharge = computed(() => dischargeSummary(patient.value));
 const loadDossier = async () => {
     const data = await toxicoStore.getPatientDetails(props.patientId);
     patient.value = data;
+};
+const onTransferred = async ({ name } = {}) => {
+    showTransfer.value = false;
+    transferSuccess.value = t('toxico.transfer.success', { name: name || '' });
+    try { await loadDossier(); } catch (e) { console.error('Erreur rechargement dossier:', e); }
 };
 const onDischarged = async () => {
     showDischarge.value = false;

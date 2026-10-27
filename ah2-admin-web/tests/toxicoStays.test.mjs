@@ -99,3 +99,31 @@ for (const loc of ['fr', 'en']) {
         for (const k of keys) assert.equal(typeof get(msgs, k), 'string', `missing ${loc}: ${k}`);
     });
 }
+
+test('readmissionPrefill reprend le referent actuel du dossier (psychologistId) ou null', async () => {
+    const { readmissionPrefill } = await import('../src/utils/toxicoStays.js');
+    assert.equal(readmissionPrefill({ psychologistId: 7, stays: [] }).psychologist, 7);
+    assert.equal(readmissionPrefill({ stays: [] }).psychologist, null);
+});
+
+test('validateTransfer returns the error key of the first problem, empty when valid', async () => {
+    const { validateTransfer } = await import('../src/utils/toxicoStays.js');
+    assert.deepEqual(validateTransfer({ toPsychologistId: null, currentPsychologistId: 3, reason: 'x' }), ['toxico.transfer.errors.target_required']);
+    assert.deepEqual(validateTransfer({ toPsychologistId: 3, currentPsychologistId: 3, reason: 'x' }), ['toxico.transfer.errors.same_referent']);
+    assert.deepEqual(validateTransfer({ toPsychologistId: 4, currentPsychologistId: 3, reason: '   ' }), ['toxico.transfer.errors.reason_required']);
+    assert.deepEqual(validateTransfer({ toPsychologistId: 4, currentPsychologistId: 3, reason: 'a'.repeat(1001) }), ['toxico.transfer.errors.reason_too_long']);
+    assert.deepEqual(validateTransfer({ toPsychologistId: 4, currentPsychologistId: null, reason: 'a'.repeat(1000) }), []);
+    assert.deepEqual(validateTransfer({ toPsychologistId: 4, currentPsychologistId: 3, reason: ' Surcharge ' }), []);
+});
+
+test('transferItems keeps the transfer stay, falls back to the last stay, empty list stays empty', async () => {
+    const { transferItems } = await import('../src/utils/toxicoStays.js');
+    const stays = [{ stay_number: 1 }, { stay_number: 2 }];
+    const tr = (o) => ({ id: 1, decided_at: '2026-10-20T10:00:00', from_name: 'A', to_name: 'B', decided_by_name: 'C', reason: 'r', stay_number: null, ...o });
+    const [withStay] = transferItems([tr({ stay_number: 1 })], stays);
+    assert.deepEqual(withStay, { kind: 'transfer', date: '2026-10-20T10:00:00', stay_number: 1, from_name: 'A', to_name: 'B', decided_by_name: 'C', reason: 'r' });
+    assert.equal(transferItems([tr({})], stays)[0].stay_number, 2);
+    assert.equal(transferItems([tr({})], [])[0].stay_number, null);
+    assert.deepEqual(transferItems([], stays), []);
+    assert.deepEqual(transferItems(undefined, stays), []);
+});

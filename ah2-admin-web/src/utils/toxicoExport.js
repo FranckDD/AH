@@ -9,6 +9,9 @@ export const TOXICO_DOSSIER_EXPORT_ROLES = ['Psychologist', 'ToxicoManager', 'ad
 // Sortie d'un dossier (POST /toxico/discharge) : promoteur ajoute le 2026-10-22.
 export const TOXICO_DISCHARGE_ROLES = ['ToxicoManager', 'admin', 'promoteur'];
 
+// Transfert d'un patient a un autre psychologue (POST /toxico/dossiers/{id}/transfer) : miroir de la garde serveur.
+export const TOXICO_TRANSFER_ROLES = ['admin', 'ToxicoManager'];
+
 export const DISCHARGED_EXPORT_FILENAME = 'toxico_patients_sortis.pdf';
 
 // Memes filtres que la liste affichee, sans pagination (l'export prend tout).

@@ -45,8 +45,8 @@ test('admission : confirmation par un toast de succes', () => {
 test('readmission : substance et tuteur repris du sejour precedent', async () => {
     const { readmissionPrefill } = await import('../src/utils/toxicoStays.js');
     const dossier = { substance: 'Cannabis', guardianName: 'Mme Z', guardianContact: '699', stays: [{ stay_number: 1, is_open: false, substance: 'Opioïdes' }] };
-    assert.deepEqual(readmissionPrefill(dossier), { substance: 'Opioïdes', guardianName: 'Mme Z', guardianContact: '699' });
-    assert.deepEqual(readmissionPrefill({ substance: 'Cannabis', stays: [] }), { substance: 'Cannabis', guardianName: '', guardianContact: '' });
+    assert.deepEqual(readmissionPrefill(dossier), { substance: 'Opioïdes', guardianName: 'Mme Z', guardianContact: '699', psychologist: null });
+    assert.deepEqual(readmissionPrefill({ substance: 'Cannabis', stays: [] }), { substance: 'Cannabis', guardianName: '', guardianContact: '', psychologist: null });
     assert.deepEqual(readmissionPrefill(null), {});
     assert.match(read('components/toxico/ToxicoAdmissionModal.vue'), /readmissionPrefill\(/);
 });

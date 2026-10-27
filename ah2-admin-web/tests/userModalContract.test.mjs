@@ -51,7 +51,34 @@ check('UserModal', modal, [
     "t('users.groups.label')", "t('users.groups.app_admin')", "t('users.groups.app_medical')", "t('users.groups.app_secretaire')", "t('users.groups.app_laborantin')",
     "t('users.table.role')", "t('users.specialty.label')", "t('users.specialty.placeholder')", "t('users.modal.is_head_nurse')", "t('users.modal.is_active')",
     "t('users.modal.cancel')", "t('users.modal.update')", "t('users.modal.create')",
+    // psychologue limite a ses patients de toxicologie
+    'sees_own_toxico_only: false', 'v-model="form.sees_own_toxico_only"', 'v-if="showOwnToxicoField"', 'if (!showOwnToxicoField.value) {',
+    'form.sees_own_toxico_only = false', 'sees_own_toxico_only: u.seesOwnToxicoOnly || false', "t('users.modal.sees_own_toxico_only')",
 ]);
+
+test('UserModal : la case psychologue est reservee au role Psychologist (minuscules) et son aide est affichee', () => {
+    const m = modal.match(/const showOwnToxicoField = computed\(\(\) => \{[\s\S]*?\n\}\)/);
+    assert.ok(m, 'showOwnToxicoField absent');
+    assert.ok(m[0].includes("toLowerCase().trim() === 'psychologist'"));
+    assert.ok(modal.includes("t('users.modal.sees_own_toxico_only_hint')"));
+});
+
+test('i18n : cases psychologue en FR et EN, sans caractere typographique interdit', () => {
+    for (const k of ['users.modal.sees_own_toxico_only', 'users.modal.sees_own_toxico_only_hint']) {
+        for (const locale of ['fr', 'en']) {
+            const v = pick(msgs[locale], k);
+            assert.equal(typeof v, 'string', `${locale}.${k}`);
+            assert.ok(v.length > 5);
+            assert.doesNotMatch(v, /[—–…·]/, `${locale}.${k}`);
+        }
+    }
+});
+
+test('userStore : envoie sees_own_toxico_only a la creation ET a la mise a jour, et le relit par ligne', () => {
+    const store = readFileSync(new URL('../src/stores/userStore.js', import.meta.url), 'utf8');
+    assert.equal(store.split('sees_own_toxico_only: formData.sees_own_toxico_only').length - 1, 2);
+    assert.ok(store.includes('seesOwnToxicoOnly: u.sees_own_toxico_only || false'));
+});
 
 test('toutes les clés users.*, common.* et usersScreens.* citées existent en FR et EN', () => {
     const used = new Set();
@@ -77,7 +104,7 @@ test('UserModal : mot de passe avec bouton afficher/masquer nommé, interrupteur
     assert.match(t, /usersScreens\.show_password/);
     assert.match(t, /usersScreens\.hide_password/);
     assert.match(t, /autocomplete="new-password"/);
-    assert.equal((t.match(/type="checkbox"/g) || []).length, 2, 'compte actif et chef infirmier');
+    assert.equal((t.match(/type="checkbox"/g) || []).length, 3, 'compte actif, chef infirmier et psychologue limite');
     assert.doesNotMatch(t, /sr-only peer/);
 });
 

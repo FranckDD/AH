@@ -71,8 +71,8 @@ test('filtrage : buildMenu avec isAdmin (authStore.isAdmin ou rôle admin) et ha
 });
 
 test('cloche des notifications réservée aux mêmes rôles', () => {
-    assert.ok(src.includes("authStore.hasRole(['admin', 'promoteur', 'secretaire', 'Assistant', 'StockController', 'laborantin', 'ToxicoManager', 'ProductionManager'])")
-        || src.includes(":bell-roles=\"['admin', 'promoteur', 'secretaire', 'Assistant', 'StockController', 'laborantin', 'ToxicoManager', 'ProductionManager']\""));
+    assert.ok(src.includes(":bell-roles=\"['admin', 'promoteur', 'secretaire', 'Assistant', 'StockController', 'laborantin', 'ToxicoManager', 'ProductionManager', 'Psychologist']\""));
+    assert.match(src, /:bell-roles="\[[^\]]*'Psychologist'/);
 });
 
 test('au montage : jeton d’impression pour admin et promoteur seulement ; informations de la structure chargées par le cadre', () => {

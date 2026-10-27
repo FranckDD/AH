@@ -20,6 +20,34 @@ export function validateDischarge({ reason, note, date, minDate, today } = {}) {
     return [];
 }
 
+export const TRANSFER_REASON_MAX_LENGTH = 1000;
+
+// Transfert : retourne une liste de cles i18n d'erreur (vide si valide).
+export function validateTransfer({ toPsychologistId, currentPsychologistId, reason } = {}) {
+    if (toPsychologistId == null || toPsychologistId === '') return ['toxico.transfer.errors.target_required'];
+    if (currentPsychologistId != null && Number(toPsychologistId) === Number(currentPsychologistId)) return ['toxico.transfer.errors.same_referent'];
+    const trimmed = (reason || '').trim();
+    if (!trimmed) return ['toxico.transfer.errors.reason_required'];
+    if (trimmed.length > TRANSFER_REASON_MAX_LENGTH) return ['toxico.transfer.errors.reason_too_long'];
+    return [];
+}
+
+// Transferts du dossier -> elements de frise. Un transfert sans sejour (patient sorti) se range sous le
+// dernier sejour, jamais dans le groupe "ancien".
+export function transferItems(transfers, stays) {
+    const lastStay = [...(stays || [])].sort((a, b) => b.stay_number - a.stay_number)[0];
+    const fallback = lastStay ? lastStay.stay_number : null;
+    return (transfers || []).map((t) => ({
+        kind: 'transfer',
+        date: t.decided_at,
+        stay_number: t.stay_number ?? fallback,
+        from_name: t.from_name,
+        to_name: t.to_name,
+        decided_by_name: t.decided_by_name,
+        reason: t.reason,
+    }));
+}
+
 // Readmission : valeurs reprises du dossier existant (substance du dernier sejour, tuteur du dossier).
 export function readmissionPrefill(dossier) {
     if (!dossier) return {};
@@ -28,6 +56,8 @@ export function readmissionPrefill(dossier) {
         substance: (closed && closed.substance) || dossier.substance || '',
         guardianName: dossier.guardianName || '',
         guardianContact: dossier.guardianContact || '',
+        // la readmission repropose le referent actuel du dossier
+        psychologist: dossier.psychologistId ?? null,
     };
 }
 

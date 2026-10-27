@@ -71,3 +71,8 @@ test('TOXICO_DISCHARGE_ROLES mirrors POST /toxico/discharge (promoteur added, ex
     const router = readFileSync(new URL('../src/router/index.js', import.meta.url), 'utf8');
     assert.match(router, /ToxicoList\.vue[\s\S]{0,250}ROLES\.PROMOTEUR/);
 });
+
+test('TOXICO_TRANSFER_ROLES mirrors POST /toxico/dossiers/{id}/transfer (admin and ToxicoManager only)', async () => {
+    const { TOXICO_TRANSFER_ROLES } = await import('../src/utils/toxicoExport.js');
+    assert.deepEqual([...TOXICO_TRANSFER_ROLES], ['admin', 'ToxicoManager']);
+});

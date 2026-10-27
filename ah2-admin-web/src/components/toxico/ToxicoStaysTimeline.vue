@@ -37,6 +37,11 @@
               <p v-if="item.end_date" class="text-sm text-ink-muted">{{ t('toxico.stays.until', { date: formatDate(item.end_date) }) }}</p>
               <p v-if="item.comments" class="break-words text-base text-ink">{{ item.comments }}</p>
             </template>
+            <template v-else-if="item.kind === 'transfer'">
+              <p class="text-base font-semibold text-ink">{{ t('toxico.transfer.history_label') }}</p>
+              <p class="break-words text-base text-ink">{{ t('toxico.transfer.history_line', { from: item.from_name || t('toxico.transfer.no_referent'), to: item.to_name || '-', by: item.decided_by_name || '-' }) }}</p>
+              <p v-if="item.reason" class="break-words text-base text-ink-muted">{{ t('toxico.transfer.history_reason', { reason: item.reason === 'Readmission' ? t('toxico.transfer.reason_readmission') : item.reason }) }}</p>
+            </template>
             <template v-else>
               <p class="flex flex-wrap items-center gap-2 text-base font-semibold text-action-700">
                 {{ t('toxicoScreens.eval_line', { evaluation: t('toxico.stays.evaluation'), decision: item.decision, before: item.phase_before, after: item.phase_after }) }}
@@ -57,7 +62,7 @@
 <script setup>
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { groupByStay, dischargeReasonLabelKey, sortNewestFirst, isFinishedStatus, phaseStatusKey } from '@/utils/toxicoStays';
+import { groupByStay, dischargeReasonLabelKey, sortNewestFirst, isFinishedStatus, phaseStatusKey, transferItems } from '@/utils/toxicoStays';
 import { formatDateDMY } from '@/utils/localDate';
 import { StatusBadge } from '@/components/ui';
 
@@ -65,6 +70,7 @@ const props = defineProps({
   stays: { type: Array, default: () => [] },
   phaseHistory: { type: Array, default: () => [] },
   evaluations: { type: Array, default: () => [] },
+  transfers: { type: Array, default: () => [] },
 });
 const { t } = useI18n();
 
@@ -72,6 +78,7 @@ const groups = computed(() => {
   const items = [
     ...props.phaseHistory.map((p) => ({ ...p, kind: 'phase', date: p.start_date })),
     ...props.evaluations.map((e) => ({ ...e, kind: 'eval', date: e.created_at })),
+    ...transferItems(props.transfers, props.stays),
   ];
   // Sejours en ordre chronologique, elements du plus recent au plus ancien (phase en cours en haut).
   return groupByStay(sortNewestFirst(items), props.stays);

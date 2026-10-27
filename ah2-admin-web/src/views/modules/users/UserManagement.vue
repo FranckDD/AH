@@ -43,6 +43,7 @@
           <p v-if="user.specialtyName && user.specialtyName !== '-'" class="mt-1.5 text-sm text-ink-muted">{{ user.specialtyName }}</p>
           <p v-else class="mt-1.5 text-sm uppercase text-ink-muted">{{ user.postgres_role }}</p>
           <p v-if="user.isHeadNurse" class="mt-1.5 text-sm font-semibold text-ink">{{ t('users.modal.is_head_nurse') }}</p>
+          <p v-if="user.seesOwnToxicoOnly" class="mt-1.5 text-sm font-semibold text-ink">{{ t('users.modal.sees_own_toxico_only') }}</p>
         </template>
 
         <template #cell-contact="{ row: user }">
