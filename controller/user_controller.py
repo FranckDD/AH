@@ -32,7 +32,8 @@ class UserController:
                 is_active     = data.get('is_active', True),
                 role_id       = data.get('role_id'),
                 specialty_id  = data.get('specialty_id'),
-                is_head_nurse = data.get('is_head_nurse') or False
+                is_head_nurse = data.get('is_head_nurse') or False,
+                sees_own_toxico_only = data.get('sees_own_toxico_only') or False
             )
         except SQLAlchemyError as e:
             raise RuntimeError(f"Erreur création utilisateur : {e}")
@@ -41,7 +42,7 @@ class UserController:
         user = self.user_repo.session.query(User).get(user_id)
         if not user:
             raise ValueError(f"Utilisateur {user_id} introuvable")
-        for field in ('full_name','email', 'contact','postgres_role','is_active','role_id','specialty_id','is_head_nurse'):
+        for field in ('full_name','email', 'contact','postgres_role','is_active','role_id','specialty_id','is_head_nurse','sees_own_toxico_only'):
             if field in data:
                 setattr(user, field, data[field])
         if data.get('password'):

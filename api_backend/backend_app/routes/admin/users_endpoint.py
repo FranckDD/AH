@@ -39,7 +39,7 @@ def get_user_controller(
     return UserController(user_repo=user_repo, role_repo=role_repo)
 
 
-_USER_AUDIT_FIELDS = ("username", "full_name", "email", "contact", "postgres_role", "is_active", "is_head_nurse", "role_id", "specialty_id")
+_USER_AUDIT_FIELDS = ("username", "full_name", "email", "contact", "postgres_role", "is_active", "is_head_nurse", "sees_own_toxico_only", "role_id", "specialty_id")
 
 
 def _audit_user(db: Session, actor, action: str, user_id, old: dict, new: dict):

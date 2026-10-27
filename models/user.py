@@ -22,6 +22,7 @@ class User(Base):
     contact = Column(String(50), nullable=True)
     token_version = Column(Integer, nullable=False, default=0, server_default="0")
     is_head_nurse = Column(Boolean, nullable=False, default=False, server_default="false")
+    sees_own_toxico_only = Column(Boolean, nullable=False, default=False, server_default="false")
 
     from models.application_role import ApplicationRole
     application_role = relationship("ApplicationRole", back_populates="users", lazy="joined")

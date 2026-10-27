@@ -201,6 +201,7 @@ def get_me(current_user=Depends(get_current_user)):
         # (Task 6) - il faut donc exposer explicitement is_head_nurse ici pour que le
         # garde d'ecriture NurseShiftsView.vue::canManage fonctionne.
         "is_head_nurse": bool(getattr(current_user, "is_head_nurse", False)),
+        "sees_own_toxico_only": bool(getattr(current_user, "sees_own_toxico_only", False)),
         "application_role": {
             "id": getattr(current_user.application_role, "id", None),
             "role_name": getattr(current_user.application_role, "role_name", None),

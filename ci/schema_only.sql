@@ -5501,6 +5501,24 @@ CREATE INDEX idx_lab_result_amendments_result
 
 ALTER TABLE public.parametres ADD COLUMN ordre integer NOT NULL DEFAULT 0;
 
+ALTER TABLE public.users ADD COLUMN sees_own_toxico_only boolean DEFAULT false NOT NULL;
+
+CREATE TABLE public.toxico_psychologist_transfers (
+    id serial PRIMARY KEY,
+    dossier_id integer NOT NULL REFERENCES public.toxico_dossiers(id) ON DELETE CASCADE,
+    from_psychologist_id integer REFERENCES public.users(user_id),
+    to_psychologist_id integer NOT NULL REFERENCES public.users(user_id),
+    decided_by integer NOT NULL REFERENCES public.users(user_id),
+    decided_at timestamp without time zone NOT NULL,
+    reason text NOT NULL,
+    stay_id integer REFERENCES public.toxico_stays(id) ON DELETE SET NULL,
+    CONSTRAINT toxico_transfers_reason_check CHECK (length(btrim(reason)) > 0),
+    CONSTRAINT toxico_transfers_distinct_check CHECK (from_psychologist_id IS DISTINCT FROM to_psychologist_id)
+);
+CREATE INDEX idx_toxico_transfers_dossier ON public.toxico_psychologist_transfers (dossier_id);
+CREATE INDEX idx_toxico_transfers_from ON public.toxico_psychologist_transfers (from_psychologist_id);
+CREATE INDEX idx_toxico_transfers_to ON public.toxico_psychologist_transfers (to_psychologist_id);
+
 --
 -- Name: powersync; Type: PUBLICATION; Schema: -; Owner: -
 --

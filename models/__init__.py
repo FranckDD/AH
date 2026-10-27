@@ -28,7 +28,7 @@ from .lab_stock import (
     LabStockProduct, LabStockReceipt, LabStockReceiptLine, LabStockCount,
     LabStockCountLine, LabStockMovement, LabStockRequest,
 )
-from .toxico import ToxicoPhaseEnum, ToxicoDossier, ToxicoPhaseHistory, ToxicoEvaluation, ToxicoStay
+from .toxico import ToxicoPhaseEnum, ToxicoDossier, ToxicoPhaseHistory, ToxicoEvaluation, ToxicoStay, ToxicoPsychologistTransfer
 from .user import User
 from .stock_count import StockCount, StockCountLine, StockCountSettings
 from .report import DailyControl, ReportSettings

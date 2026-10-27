@@ -53,6 +53,9 @@ class ToxicoDossier(Base):
     phase_history = relationship("ToxicoPhaseHistory", back_populates="dossier", cascade="all, delete-orphan", order_by="desc(ToxicoPhaseHistory.start_date)")
     evaluations = relationship("ToxicoEvaluation", back_populates="dossier", cascade="all, delete-orphan", order_by="desc(ToxicoEvaluation.created_at)")
     stays = relationship("ToxicoStay", back_populates="dossier", cascade="all, delete-orphan", order_by="ToxicoStay.stay_number")
+    transfers = relationship(
+        "ToxicoPsychologistTransfer", back_populates="dossier",
+        order_by="desc(ToxicoPsychologistTransfer.decided_at), desc(ToxicoPsychologistTransfer.id)")
 
 
 class ToxicoStay(Base):
@@ -125,3 +128,30 @@ class ToxicoEvaluation(Base):
     dossier = relationship("ToxicoDossier", back_populates="evaluations")
     # Qui a fait l'évaluation ?
     evaluator = relationship("User", foreign_keys=[created_by])
+
+
+class ToxicoPsychologistTransfer(Base):
+    """Journal des transferts d'un dossier toxico d'un psychologue a un autre."""
+    __tablename__ = 'toxico_psychologist_transfers'
+    __table_args__ = (
+        CheckConstraint('length(btrim(reason)) > 0', name='toxico_transfers_reason_check'),
+        CheckConstraint('from_psychologist_id IS DISTINCT FROM to_psychologist_id',
+                        name='toxico_transfers_distinct_check'),
+        Index('idx_toxico_transfers_dossier', 'dossier_id'),
+        Index('idx_toxico_transfers_from', 'from_psychologist_id'),
+        Index('idx_toxico_transfers_to', 'to_psychologist_id'),
+    )
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    dossier_id = Column(Integer, ForeignKey('toxico_dossiers.id', ondelete='CASCADE'), nullable=False)
+    from_psychologist_id = Column(Integer, ForeignKey('users.user_id'), nullable=True)
+    to_psychologist_id = Column(Integer, ForeignKey('users.user_id'), nullable=False)
+    decided_by = Column(Integer, ForeignKey('users.user_id'), nullable=False)
+    decided_at = Column(DateTime, nullable=False)  # fourni par l'application
+    reason = Column(Text, nullable=False)
+    stay_id = Column(Integer, ForeignKey('toxico_stays.id', ondelete='SET NULL'), nullable=True)
+
+    dossier = relationship("ToxicoDossier", back_populates="transfers")
+    from_psychologist = relationship("User", foreign_keys=[from_psychologist_id])
+    to_psychologist = relationship("User", foreign_keys=[to_psychologist_id])
+    decider = relationship("User", foreign_keys=[decided_by])

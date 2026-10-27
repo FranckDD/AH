@@ -74,3 +74,94 @@ def test_create_user_with_head_nurse_checked_persists_flag(db_session, api_clien
     assert resp.status_code == 201, resp.text
     body = resp.json()
     assert body["is_head_nurse"] is True
+
+
+# --- Chantier psychologues : drapeau sees_own_toxico_only -------------------
+
+def _admin_client(db_session, api_client, name):
+    create_test_user(db_session, name, "admin", password=TEST_PASSWORD)
+    client = api_client(auth_endpoints, users_endpoint)
+    return client, auth_headers(client, name, TEST_PASSWORD)
+
+
+def test_create_psychologist_with_sees_own_toxico_only_persists_flag(db_session, api_client):
+    client, headers = _admin_client(db_session, api_client, "pv_admin_create")
+    resp = client.post("/users/", json={
+        "username": "pv_new_psy",
+        "password": "NewPsyPass123!",
+        "full_name": "Psy Limitee",
+        "sees_own_toxico_only": True,
+    }, headers=headers)
+    assert resp.status_code == 201, resp.text
+    body = resp.json()
+    assert body["sees_own_toxico_only"] is True
+    got = client.get(f"/users/{body['user_id']}", headers=headers)
+    assert got.status_code == 200, got.text
+    assert got.json()["sees_own_toxico_only"] is True
+
+
+def test_update_user_sets_and_clears_sees_own_toxico_only(db_session, api_client):
+    client, headers = _admin_client(db_session, api_client, "pv_admin_update")
+    psy = create_test_user(db_session, "pv_target_update", "Psychologist", password=TEST_PASSWORD)
+    r1 = client.put(f"/users/{psy.user_id}", json={"sees_own_toxico_only": True}, headers=headers)
+    assert r1.status_code == 200, r1.text
+    assert r1.json()["sees_own_toxico_only"] is True
+    assert r1.json()["is_active"] is True
+    r2 = client.put(f"/users/{psy.user_id}", json={"sees_own_toxico_only": False}, headers=headers)
+    assert r2.status_code == 200, r2.text
+    assert r2.json()["sees_own_toxico_only"] is False
+    assert r2.json()["is_active"] is True
+
+
+def test_list_users_returns_the_flag(db_session, api_client):
+    client, headers = _admin_client(db_session, api_client, "pv_admin_list")
+    psy = create_test_user(db_session, "pv_listed_psy", "Psychologist", password=TEST_PASSWORD)
+    psy.sees_own_toxico_only = True
+    db_session.flush()
+    resp = client.get("/users/", params={"search": "pv_listed_psy"}, headers=headers)
+    assert resp.status_code == 200, resp.text
+    payload = resp.json()
+    items = payload["data"]
+    row = next(u for u in items if u["username"] == "pv_listed_psy")
+    assert row["sees_own_toxico_only"] is True
+
+
+def test_flag_defaults_to_false_on_create_without_it(db_session, api_client):
+    client, headers = _admin_client(db_session, api_client, "pv_admin_default")
+    resp = client.post("/users/", json={
+        "username": "pv_default_user",
+        "password": "NewPsyPass123!",
+        "full_name": "Sans drapeau",
+    }, headers=headers)
+    assert resp.status_code == 201, resp.text
+    assert resp.json()["sees_own_toxico_only"] is False
+
+
+def test_flag_is_in_audit_snapshot(db_session):
+    user = create_test_user(db_session, "pv_audit_user", "Psychologist", password=TEST_PASSWORD)
+    user.sees_own_toxico_only = True
+    assert "sees_own_toxico_only" in users_endpoint._USER_AUDIT_FIELDS
+    assert users_endpoint._user_snapshot(user)["sees_own_toxico_only"] is True
+
+
+def test_self_profile_cannot_set_the_flag(db_session, api_client):
+    psy = create_test_user(db_session, "pv_self_psy", "Psychologist", password=TEST_PASSWORD)
+    psy.sees_own_toxico_only = True
+    db_session.flush()
+    client = api_client(auth_endpoints, users_endpoint)
+    headers = auth_headers(client, "pv_self_psy", TEST_PASSWORD)
+    resp = client.put("/auth/profile", json={"full_name": "X", "sees_own_toxico_only": False}, headers=headers)
+    assert resp.status_code == 200, resp.text
+    db_session.refresh(psy)
+    assert psy.sees_own_toxico_only is True
+
+
+def test_auth_me_exposes_the_flag(db_session, api_client):
+    psy = create_test_user(db_session, "pv_me_psy", "Psychologist", password=TEST_PASSWORD)
+    psy.sees_own_toxico_only = True
+    db_session.flush()
+    client = api_client(auth_endpoints, users_endpoint)
+    headers = auth_headers(client, "pv_me_psy", TEST_PASSWORD)
+    resp = client.get("/auth/me", headers=headers)
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["sees_own_toxico_only"] is True
