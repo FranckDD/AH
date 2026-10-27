@@ -65,7 +65,9 @@ def _new_dossier(env, first_name="ReadmTest", admission=None):
 
 def _readmit_data(env, psy_key="psy2"):
     return {"admission_date": date.today(), "substance": "Cannabis",
-            "psychologist_id": env["users"][psy_key].user_id}
+            "psychologist_id": env["users"][psy_key].user_id,
+            # Auteur obligatoire quand le referent change (transfert automatique trace, Tache 6).
+            "decided_by": env["users"]["admin"].user_id}
 
 
 def _stays(env, dossier_id):

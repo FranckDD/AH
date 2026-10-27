@@ -7,7 +7,6 @@ from fastapi.encoders import jsonable_encoder
 from api_backend.backend_app.routes.medical_records.schemas import MedicalRecordResponse
 from api_backend.backend_app.routes.prescription.prescriptions_schemas import PrescriptionResponse
 from api_backend.backend_app.routes.cs.schemas_cs import ConsultationResponse
-
 logger = logging.getLogger(__name__)
 
 
@@ -129,6 +128,10 @@ class PatientDossierController:
         if est_medical_seul:
             reponse.pop("dossier_toxico", None)
             reponse.pop("historique_spirituel", None)
+        # Psychologue limite : dossier toxico hors perimetre -> get_dossier_details
+        # rend None ; cle retiree (meme patron que est_medical_seul), flags inchange.
+        if self.toxico_ctrl.scope.is_limited and reponse.get("dossier_toxico") is None:
+            reponse.pop("dossier_toxico", None)
         return reponse
 
     def get_recent_activity(self, patient_id: int, limit: int = 3) -> Dict[str, Any]:
@@ -139,6 +142,11 @@ class PatientDossierController:
         aux pannes par domaine et meme tracabilite que get_full_dossier.
         """
         if not self.patient_ctrl.get_patient(patient_id):
+            raise ValueError(f"Patient {patient_id} introuvable")
+        # Psychologue limite : uniquement pour ses propres patients (acces 'full') ;
+        # sinon 404 IDENTIQUE a un patient inconnu (aucun indice d'existence).
+        if (self.toxico_ctrl.scope.is_limited
+                and self.toxico_ctrl.access_for_patient(patient_id) != 'full'):
             raise ValueError(f"Patient {patient_id} introuvable")
 
         def _recent_prescriptions():

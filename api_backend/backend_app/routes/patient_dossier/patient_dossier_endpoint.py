@@ -137,6 +137,12 @@ def export_patient_dossier(
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
+    # Export : bloc toxicologie seulement en acces plein (jamais pour un patient
+    # suivi auparavant en lecture seule ; hors perimetre il est deja retire).
+    bloc_toxico = dossier.get("dossier_toxico")
+    if bloc_toxico is not None and bloc_toxico.get("accessMode") != "full":
+        dossier.pop("dossier_toxico", None)
+
     # Sejours hospitaliers : meme perimetre que les routes /hospitalizations
     # (soignants cliniques + admin + promoteur), jamais pour les autres roles
     # autorises a exporter (toxico, spirituel, labo, assistant).

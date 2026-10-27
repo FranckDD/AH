@@ -44,6 +44,8 @@ class ToxicoPatientListItem(BaseModel):
     relapseCount: int
     psychologist: str # Nom complet
     admissionDate: Optional[date] = None
+    canEvaluate: bool = False
+    psychologistId: Optional[int] = None
 
 class ToxicoDossierDetail(BaseModel):
     """Pour la modale Dossier (Détail)"""
@@ -75,6 +77,24 @@ class ToxicoDossierDetail(BaseModel):
 
 class ToxicoListResponse(BaseModel):
     data: List[ToxicoPatientListItem]
+    total: int
+    page: int
+    per_page: int
+
+
+class ToxicoPreviousItem(BaseModel):
+    """Onglet "Patients suivis auparavant" (lecture seule)."""
+    patient_id: int
+    dossier_id: int
+    patientName: str
+    code: Optional[str] = None
+    substance: Optional[str] = None
+    isActive: bool
+    psychologist: str
+
+
+class ToxicoPreviousListResponse(BaseModel):
+    data: List[ToxicoPreviousItem]
     total: int
     page: int
     per_page: int
@@ -129,6 +149,14 @@ class ToxicoAdmissionCreate(BaseModel):
     guardianContact: str
     consentFile: Optional[str] = Field(None) # On reçoit le nom du fichier pour l'instant
     notes: Optional[str] = None
+
+class ToxicoTransferRequest(BaseModel):
+    """Corps strict de POST /toxico/dossiers/{dossier_id}/transfer."""
+    model_config = ConfigDict(extra="forbid")
+
+    to_psychologist_id: int
+    reason: str = Field(max_length=1000)
+
 
 class ToxicoDischargeRequest(BaseModel):
     """Corps strict de POST /toxico/discharge/{dossier_id}."""

@@ -103,7 +103,7 @@ def test_dernier_sejour_apres_readmission_et_nouvelle_sortie(env, http):
     _discharge(env, did, "abandon", on=date.today() - timedelta(days=20))
     repo.create_dossier_after_patient_commit(pid, {
         "admission_date": date.today() - timedelta(days=10), "substance": "Cannabis",
-        "psychologist_id": users["psy2"].user_id})
+        "psychologist_id": users["psy2"].user_id, "decided_by": users["admin"].user_id})
     _discharge(env, did, "exclusion", "règlement")
     _as(users["Psychologist"], "Psychologist")
     item = _get(http, env).json()["data"][0]
@@ -192,7 +192,7 @@ def test_patient_readmis_disparait_de_la_liste(env, http):
     assert [x["dossier_id"] for x in _get(http, env).json()["data"]] == [did]
     env["repo"].create_dossier_after_patient_commit(pid, {
         "admission_date": date.today(), "substance": "Alcool",
-        "psychologist_id": env["users"]["psy2"].user_id})
+        "psychologist_id": env["users"]["psy2"].user_id, "decided_by": env["users"]["admin"].user_id})
     assert _get(http, env).json()["data"] == []
 
 

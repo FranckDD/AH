@@ -92,7 +92,6 @@ def test_le_detail_donne_le_nom_de_la_mere_enregistre(db_session):
     psy = create_test_user(db_session, "t_tdf_p5", "Psychologist", password=PWD)
     pid, d, repo = _dossier(db_session, assistant, psy, "MereOk")
     from controller.toxico_controller import ToxicoController
-    ctrl = ToxicoController.__new__(ToxicoController)
-    ctrl.user = assistant
+    ctrl = ToxicoController(repo=repo, patient_controller=None, current_user=assistant)
     out = ctrl.serialize_dossier_details(repo.get_dossier_full(pid))
     assert out["mothersName"] == "Maman Stockee"

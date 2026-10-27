@@ -9,7 +9,8 @@ from fastapi import UploadFile
 from celery import Task # Pour le typage
 
 
-from repositories.toxico_repo import ToxicoRepository, ToxicoValidationError
+from repositories.toxico_repo import (ToxicoRepository, ToxicoValidationError, ToxicoForbiddenError,
+                                      ToxicoScope, scope_for_user)
 from repositories.patient_repo import PatientRepository
 from api_backend.backend_app.utils.file_storage import save_consent_file, consent_path # Assurez-vous que ce chemin est correct selon votre structure
 
@@ -49,7 +50,9 @@ class ToxicoController:
         self.repo = repo
         self.patient_controller = patient_controller 
         self.user = current_user
-        
+        # Perimetre de lecture fixe une fois pour toutes (psychologue limite ou non).
+        self.scope: ToxicoScope = scope_for_user(current_user)
+
 
     # --- LECTURE (Avec Cache Redis) ---
 
@@ -84,7 +87,7 @@ class ToxicoController:
         Retourne les objets ORM et le total.
         """
         # Le Repo fait le travail lourd (JOIN, FILTRE, PAGINATION)
-        return self.repo.search_dossiers(search, phase, page, per_page)
+        return self.repo.search_dossiers(search, phase, page, per_page, scope=self.scope)
 
     def map_dossier_to_list_item(self, d):
         """Helper pour mapper l'objet ORM vers le format liste attendu par le Front"""
@@ -101,13 +104,23 @@ class ToxicoController:
             # Sans cette date, le badge "+X cette semaine" et l'alerte
             # "evaluation en retard" de ToxicoList.vue ne se declenchent jamais.
             "admissionDate": d.admission_date,
+            "psychologistId": d.psychologist_id,
+            # Seul le psychologue referent evalue : sert a masquer le bouton cote front.
+            "canEvaluate": self._is_psychologist() and d.psychologist_id is not None
+                           and d.psychologist_id == self._current_user_id(),
         }
+
+    def _is_psychologist(self) -> bool:
+        from api_backend.backend_app.security.role_map import normalize_role_name
+        raw = self.user.get('roles') if isinstance(self.user, dict) else getattr(self.user, 'roles', None)
+        roles = {normalize_role_name(str(r)) for r in (raw or []) if r}
+        return normalize_role_name("Psychologist") in roles
 
     def list_discharged(self, search=None, reason=None, discharged_from=None, discharged_to=None,
                         page: int = 1, per_page: int = 20) -> Dict[str, Any]:
         """Liste paginée des patients sortis (dossiers inactifs) + dernier séjour."""
         rows, total = self.repo.search_discharged_dossiers(
-            search, reason, discharged_from, discharged_to, page, per_page)
+            search, reason, discharged_from, discharged_to, page, per_page, scope=self.scope)
         data = [self._map_discharged_row(r) for r in rows]
         total_pages = (total + per_page - 1) // per_page if total else 0
         return {"data": data, "total": total, "page": page, "per_page": per_page,
@@ -140,13 +153,44 @@ class ToxicoController:
         """Toutes les lignes filtrees (sans pagination), bornees a `cap`.
         Retourne (lignes, total_reel) : total > len(lignes) => tronque."""
         rows, total = self.repo.search_discharged_dossiers(
-            search, reason, discharged_from, discharged_to, 1, None, export_cap=cap)
+            search, reason, discharged_from, discharged_to, 1, None, export_cap=cap, scope=self.scope)
         return [self._map_discharged_row(r) for r in rows], total
 
     def get_dossier_details(self, patient_id: int):
-        """Détail complet pour la modale dossier. Retourne l'objet ORM complet."""
+        """Détail complet pour la modale dossier. Retourne l'objet ORM complet,
+        None si absent OU hors perimetre (psychologue limite)."""
         # Le Repo charge toutes les relations nécessaires (Eager Loading)
-        return self.repo.get_dossier_full(patient_id)
+        return self.repo.get_dossier_full(patient_id, scope=self.scope)
+
+    # --- ACCES DIRECT (plein / lecture seule / refuse) ---
+
+    def access_for_dossier(self, dossier_id: int) -> str:
+        return self.repo.get_dossier_access(dossier_id, self.scope)
+
+    def access_for_patient(self, patient_id: int) -> str:
+        return self.access_for_dossier(self.repo.get_dossier_id_for_patient(patient_id))
+
+    def _current_user_id(self):
+        uid = self.user.get('user_id') if isinstance(self.user, dict) else getattr(self.user, 'user_id', None)
+        return int(uid) if uid is not None else None
+
+    def list_previously_followed(self, search: Optional[str] = None, page: int = 1,
+                                 per_page: int = 20) -> Dict[str, Any]:
+        """Onglet "Patients suivis auparavant" (lecture seule) de l'utilisateur courant."""
+        uid = self._current_user_id()
+        if uid is None:
+            return {"data": [], "total": 0, "page": page, "per_page": per_page}
+        items, total = self.repo.list_previously_followed(uid, search, page, per_page)
+        data = [{
+            "patient_id": d.patient_id,
+            "dossier_id": d.id,
+            "patientName": f"{d.patient.first_name or ''} {d.patient.last_name or ''}".strip(),
+            "code": d.patient.code_patient,
+            "substance": d.substance,
+            "isActive": bool(d.is_active),
+            "psychologist": d.psychologist.full_name if d.psychologist else "Non assigné",
+        } for d in items]
+        return {"data": data, "total": total, "page": page, "per_page": per_page}
 
     # Promoteur "pur" (2026-10-22) : il peut valider une sortie mais le texte
     # des evaluations (observation/recommandation) reste reserve aux roles
@@ -182,8 +226,15 @@ class ToxicoController:
 
         stays = sorted(dossier.stays, key=lambda s: s.stay_number)
         stay_numbers = {s.id: s.stay_number for s in stays}
+        # Lecture seule (patient suivi auparavant) : le serveur refuse export et
+        # consentement ; le front masque les actions. Non limite : toujours 'full'.
+        access = self.access_for_dossier(dossier.id) if self.scope.is_limited else 'full'
+        if access == 'none':
+            return None  # garde-fou : jamais serialiser un dossier hors perimetre
 
         return {
+            "accessMode": 'readonly' if access == 'readonly' else 'full',
+            "psychologistId": dossier.psychologist_id,
             "dossier_id": dossier.id,
             "patient_id": dossier.patient_id,
             "code": dossier.patient.code_patient,
@@ -241,8 +292,32 @@ class ToxicoController:
                     "stay_number": stay_numbers.get(e.stay_id),
                     "evaluator_name": getattr(e.evaluator, "full_name", "Inconnu") if e.evaluator else "Inconnu"
                 } for e in dossier.evaluations
-            ]
+            ],
+            # Historique des changements de psychologue, du plus recent au plus ancien.
+            "transfers": [
+                self.serialize_transfer(t, stay_numbers)
+                for t in sorted(dossier.transfers, key=lambda t: (t.decided_at, t.id), reverse=True)
+            ],
         }
+
+    @staticmethod
+    def serialize_transfer(t, stay_numbers: Dict[int, int]) -> Dict[str, Any]:
+        """Ligne d'historique de transfert ; noms lus des relations (jamais recopies)."""
+        return {
+            "id": t.id,
+            "decided_at": t.decided_at,
+            "from_name": t.from_psychologist.full_name if t.from_psychologist else None,
+            "to_name": t.to_psychologist.full_name if t.to_psychologist else None,
+            "decided_by_name": t.decider.full_name if t.decider else None,
+            "reason": t.reason,
+            "stay_number": stay_numbers.get(t.stay_id),
+        }
+
+    def transfer_dossier(self, dossier_id: int, to_psychologist_id: int, reason: str) -> Dict[str, Any]:
+        t = self.repo.transfer_dossier(dossier_id, to_psychologist_id, reason, self._current_user_id())
+        from models.toxico import ToxicoStay
+        stay = self.repo.session.get(ToxicoStay, t.stay_id) if t.stay_id else None
+        return self.serialize_transfer(t, {stay.id: stay.stay_number} if stay else {})
 
     # --- ÉCRITURE (BUSINESS LOGIC) ---
 
@@ -317,7 +392,9 @@ class ToxicoController:
             "psychologist_id": data['psychologist_id'],
             "guardian_name": data.get('guardianName'), 
             "guardian_contact": data.get('guardianContact'),
-            "notes": data.get('notes'), 
+            "notes": data.get('notes'),
+            # Auteur d'un eventuel changement de referent a la readmission (transfert trace).
+            "decided_by": self._current_user_id(),
             
             # 🟢 La valeur finale qui doit aller en base
             "consent_file": file_path_or_url 
@@ -356,6 +433,22 @@ class ToxicoController:
 
     def submit_evaluation(self, data: dict):
         user_id = self.user.get('user_id') if isinstance(self.user, dict) else self.user.user_id
+        # Psychologue limite : un dossier hors perimetre se comporte comme un id
+        # inconnu (meme ValueError -> meme reponse), aucun indice d'existence.
+        if self.scope.is_limited:
+            access = self.access_for_dossier(data.get('dossier_id'))
+            if access == 'none':
+                raise ValueError("Dossier introuvable")
+            if access != 'full':
+                raise ToxicoForbiddenError(
+                    "Consultation en lecture seule : ce patient n'est plus sous votre responsabilité.",
+                    code="read_only_access")
+        # Seul le referent actuel evalue (limite ou non). Evalue apres le filtre de
+        # perimetre (rien de revelateur avant) et avant le 409 "dossier sorti".
+        if self.repo.get_referent_id(data['dossier_id']) != user_id:
+            raise ToxicoForbiddenError(
+                "Seul le psychologue référent de ce dossier peut ajouter une évaluation.",
+                code="not_referent")
         return self.repo.process_evaluation(dossier_id=data['dossier_id'], data=data, user_id=user_id) # type: ignore
     
     def discharge_patient(self, dossier_id: int, reason: str, note: Optional[str] = None, discharge_date=None):
@@ -371,7 +464,7 @@ class ToxicoController:
     
     def get_dashboard_stats(self) -> Dict[str, Any]:
         """Chiffres globaux du suivi toxicologique (independants de la page et de la recherche de la liste)."""
-        s = self.repo.active_stats()
+        s = self.repo.active_stats(scope=self.scope)
         total = s["total_active"]
         return {
             "currentMonthAdmissions": self.get_current_month_admissions_count(),
@@ -381,13 +474,23 @@ class ToxicoController:
             "bySubstance": s["by_substance"],
             "byPsychologist": [{"name": n, "count": c} for n, c in sorted(s["by_psychologist"].items())],
             "newThisWeek": s["new_this_week"],
+            "scoped": self.scope.is_limited,
         }
 
     def get_current_month_admissions_count(self):
         """Calcule le nombre de dossiers créés ce mois-ci (avec Cache Redis)."""
         
-        current_month = datetime.now().strftime("%Y-%m")
-        CACHE_KEY = f"toxico:stats:admissions:{current_month}"
+        now = datetime.now()
+        start_of_month = datetime(now.year, now.month, 1)
+        next_month = datetime(now.year + (now.month == 12), now.month % 12 + 1, 1)
+
+        # Psychologue limite : calcul direct sur son perimetre. La cle Redis est
+        # GLOBALE : ni lue (il recevrait le total de tous) ni ecrite (il y mettrait
+        # son propre chiffre pour tout le monde).
+        if self.scope.is_limited:
+            return self.repo.count_dossiers_created_since(start_of_month, next_month, scope=self.scope)
+
+        CACHE_KEY = f"toxico:stats:admissions:{now.strftime('%Y-%m')}"
 
         # 1. Vérif Cache (Redis indisponible = pas bloquant, meme pattern
         # defensif que get_psychologists_list ci-dessus)
@@ -398,9 +501,6 @@ class ToxicoController:
         except Exception: pass
 
         # 2. Calcul DB
-        now = datetime.now()
-        start_of_month = datetime(now.year, now.month, 1)
-        next_month = datetime(now.year + (now.month == 12), now.month % 12 + 1, 1)
         count = self.repo.count_dossiers_created_since(start_of_month, next_month)
 
         # 3. Mise en cache (TTL 24h)

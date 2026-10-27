@@ -19,7 +19,8 @@ from api_backend.backend_app.database import SessionLocal
 from api_backend.backend_app.routes.auth.auth_endpoints import get_current_user, role_required
 
 from controller.toxico_controller import ToxicoController
-from repositories.toxico_repo import ToxicoRepository, ToxicoValidationError, ToxicoConflictError
+from repositories.toxico_repo import (ToxicoRepository, ToxicoValidationError, ToxicoConflictError,
+                                      ToxicoForbiddenError, ToxicoNotFoundError)
 from repositories.patient_repo import PatientRepository
 from repositories.audit_repo import AuditRepository 
 from controller.patient_controller import PatientController
@@ -28,9 +29,11 @@ from api_backend.backend_app.routes.toxico.toxico_schema import (
     PsychologistSimple,
     ToxicoListResponse,
     ToxicoDischargedListResponse,
+    ToxicoPreviousListResponse,
     ToxicoAdmissionCreate,
     ToxicoEvaluationCreate,
     ToxicoDischargeRequest,
+    ToxicoTransferRequest,
 )
 
 # 🟢 GLOBAL : On autorise le Psychologue ici.
@@ -110,6 +113,24 @@ def list_discharged(
                             detail="La date de début doit précéder la date de fin.")
     return ctrl.list_discharged(search=search, reason=reason, discharged_from=discharged_from,
                                 discharged_to=discharged_to, page=page, per_page=per_page)
+
+@router.get("/dossiers/previous", response_model=ToxicoPreviousListResponse,
+            # Declaree AVANT les routes /dossiers/{dossier_id}/... ; psychologue seulement.
+            dependencies=[Depends(role_required("Psychologist"))])
+def list_previously_followed(
+    search: Optional[str] = Query(None, max_length=100),
+    page: int = Query(1, ge=1),
+    per_page: int = Query(20, ge=1, le=100),
+    ctrl: ToxicoController = Depends(get_toxico_controller),
+):
+    """Patients dont l'utilisateur n'est plus referent mais qu'il a suivis
+    (transfert, sejour ou evaluation a son nom) : consultation en lecture seule."""
+    return ctrl.list_previously_followed(search=search, page=page, per_page=per_page)
+
+
+READ_ONLY_DETAIL = {"code": "read_only_access",
+                    "message": "Consultation en lecture seule : export et consentement indisponibles."}
+
 
 # --- EXPORTS PDF (2026-10-22) ---
 
@@ -250,6 +271,17 @@ def _build_dossier_pdf_context(d: dict) -> dict:
         "guardian_contact": d.get("guardianContact") or "",
         "stays": stays,
         "orphan": orphan if (orphan["phases"] or orphan["evaluations"]) else None,
+        # Changements de psychologue (deja tries du plus recent au plus ancien).
+        "transfers": [
+            {
+                "date": t["decided_at"].strftime("%d/%m/%Y") if isinstance(t.get("decided_at"), (date, datetime))
+                        else _fmt_date(t.get("decided_at")),
+                "from": t.get("from_name") or "Aucun",
+                "to": t.get("to_name") or "-",
+                "by": t.get("decided_by_name") or "-",
+                "reason": t.get("reason") or "",
+            } for t in (d.get("transfers") or [])
+        ],
         # Zones de signature (2026-10-22) : psychologue du DERNIER sejour ;
         # responsable administratif = qui a valide la sortie du dernier sejour,
         # seulement si le dossier est sorti (sinon case vierge a signer).
@@ -269,10 +301,15 @@ def export_dossier(
     ctrl: ToxicoController = Depends(get_toxico_controller),
     db: Session = Depends(get_db),
 ):
-    dossier = ctrl.get_dossier_details(patient_id)
-    if not dossier:
+    access = ctrl.access_for_patient(patient_id)
+    if access == 'none':
         raise HTTPException(status_code=404, detail="Dossier Toxico introuvable")
+    if access != 'full':
+        raise HTTPException(status_code=403, detail=READ_ONLY_DETAIL)
+    dossier = ctrl.get_dossier_details(patient_id)
     data = ctrl.serialize_dossier_details(dossier)
+    if not data:
+        raise HTTPException(status_code=404, detail="Dossier Toxico introuvable")
     pdf_bytes = render_pdf_from_template("toxico_dossier_export_template.html", {
         **_header_ctx(db),
         **_build_dossier_pdf_context(data),
@@ -287,13 +324,15 @@ def get_patient_detail(
     patient_id: int,
     ctrl: ToxicoController = Depends(get_toxico_controller),
 ):
+    # Psychologue limite : None (404 identique a un id inconnu) hors perimetre.
     dossier = ctrl.get_dossier_details(patient_id)
-    if not dossier:
+    data = ctrl.serialize_dossier_details(dossier) if dossier else None
+    if not data:
         raise HTTPException(status_code=404, detail="Dossier Toxico introuvable")
 
     # Masquage du texte des evaluations pour le promoteur "pur" : fait dans
     # ToxicoController.serialize_dossier_details (partage avec le dossier consolide).
-    return ctrl.serialize_dossier_details(dossier)
+    return data
 
 logger = logging.getLogger(__name__)
 CONSENT_MEDIA_TYPES = {".pdf": "application/pdf", ".jpg": "image/jpeg", ".png": "image/png"}
@@ -317,8 +356,15 @@ async def _validate_consent_upload(upload: Optional[UploadFile]) -> None:
 def get_consent_file(dossier_id: int,
                      request: Request,
                      db: Session = Depends(get_db),
-                     current_user: Any = Depends(get_current_user)):
-    """Consentement signe : jamais servi par /static ; lecture authentifiee et journalisee."""
+                     current_user: Any = Depends(get_current_user),
+                     ctrl: ToxicoController = Depends(get_toxico_controller)):
+    """Consentement signe : jamais servi par /static ; lecture authentifiee et journalisee.
+    Psychologue limite : hors perimetre = meme 404 qu'un id inconnu ; lecture seule = 403."""
+    access = ctrl.access_for_dossier(dossier_id)
+    if access == 'none':
+        raise HTTPException(status_code=404, detail="Aucun consentement pour ce dossier.")
+    if access != 'full':
+        raise HTTPException(status_code=403, detail=READ_ONLY_DETAIL)
     dossier = db.get(ToxicoDossier, dossier_id)
     stored = dossier.consent_file if dossier else None
     if not stored:
@@ -406,6 +452,8 @@ def submit_evaluation(
 
         ctrl.submit_evaluation(payload)
         return {"message": "Évaluation enregistrée"}
+    except ToxicoForbiddenError as e:  # sous-classe de ValueError : AVANT
+        raise HTTPException(status_code=403, detail={"code": e.code, "message": str(e)})
     except ToxicoConflictError as e:
         raise HTTPException(status_code=409, detail=str(e))
     except ValueError as e:
@@ -452,7 +500,25 @@ def discharge_patient(
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     
-@router.get("/stats/dashboard", response_model=Dict[str, Any], tags=["ToxicoStats"])
+@router.post("/dossiers/{dossier_id}/transfer", status_code=status.HTTP_200_OK,
+             dependencies=[Depends(role_required("ToxicoManager", "admin"))])
+def transfer_dossier(
+    dossier_id: int,
+    body: ToxicoTransferRequest,
+    ctrl: ToxicoController = Depends(get_toxico_controller),
+):
+    """Transfere un patient a un autre psychologue (historique + notification, une transaction)."""
+    try:
+        row = ctrl.transfer_dossier(dossier_id, body.to_psychologist_id, body.reason)
+    except ToxicoNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except ToxicoValidationError as e:
+        raise HTTPException(status_code=422, detail={"code": e.code, "message": str(e)})
+    except ToxicoConflictError as e:
+        raise HTTPException(status_code=409, detail={"code": e.code, "message": str(e)})
+    return {"message": "Patient transféré.", "transfer": row}
+
+@router.get("/stats/dashboard",response_model=Dict[str, Any], tags=["ToxicoStats"])
 def get_dashboard_stats(ctrl: ToxicoController = Depends(get_toxico_controller)):
     # Compteur agrege (aucune donnee nominative) : ouvert aussi au promoteur,
     # la page liste toxico l'appelle au chargement.
