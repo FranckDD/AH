@@ -5519,6 +5519,15 @@ CREATE INDEX idx_toxico_transfers_dossier ON public.toxico_psychologist_transfer
 CREATE INDEX idx_toxico_transfers_from ON public.toxico_psychologist_transfers (from_psychologist_id);
 CREATE INDEX idx_toxico_transfers_to ON public.toxico_psychologist_transfers (to_psychologist_id);
 
+CREATE SEQUENCE public.pharmacy_barcode_seq START WITH 10000000 MINVALUE 10000000 MAXVALUE 19999999 NO CYCLE;
+ALTER TABLE public.pharmacy ADD COLUMN barcode varchar(12) NOT NULL DEFAULT nextval('public.pharmacy_barcode_seq')::text;
+ALTER TABLE public.pharmacy ADD CONSTRAINT pharmacy_barcode_key UNIQUE (barcode);
+
+ALTER TABLE public.pharmacy ADD COLUMN photo_path varchar(255);
+ALTER TABLE public.pharmacy ADD COLUMN photo_version integer NOT NULL DEFAULT 0;
+ALTER TABLE public.organization_config ADD COLUMN label_width_mm integer NOT NULL DEFAULT 50;
+ALTER TABLE public.organization_config ADD COLUMN label_height_mm integer NOT NULL DEFAULT 30;
+
 --
 -- Name: powersync; Type: PUBLICATION; Schema: -; Owner: -
 --

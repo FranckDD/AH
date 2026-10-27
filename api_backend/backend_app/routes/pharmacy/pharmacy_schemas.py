@@ -40,6 +40,9 @@ class PharmacyResponse(BaseModel):
     stock_status: str
     prescribed_by: Optional[int] = None
     name_dr: Optional[str] = None
+    barcode: str
+    has_photo: bool = False
+    photo_version: int = 0
     created_at: datetime
     updated_at: datetime
 

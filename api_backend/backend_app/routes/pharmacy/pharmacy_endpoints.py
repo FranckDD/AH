@@ -1,4 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+import os
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
+from fastapi.responses import FileResponse
+from starlette.concurrency import run_in_threadpool
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 import logging
@@ -12,6 +15,8 @@ from repositories.audit_repo import AuditRepository
 from controller.pharmacy_controller import PharmacyController
 from api_backend.backend_app.routes.auth.auth_endpoints import get_current_user,role_required
 from .mapping import normalize_pharmacy_data
+from api_backend.backend_app.utils.product_photos import (
+    PhotoError, PHOTO_MAX_UPLOAD_BYTES, photo_file_path)
 from .pharmacy_schemas import PharmacyCreate, PharmacyUpdate, PharmacyResponse, CriticalStockCount # <--- Importer CriticalStockCount
 from .pharmacy_schemas import  ExpiringProductCount, TotalStockValue,StockDashboardStats,CategoryCount # Importer les nouveaux schémas
 
@@ -124,6 +129,69 @@ def list_products(
             
     except Exception as e:
         logger.exception("Error listing pharmacy products")
+        raise HTTPException(500, "Internal server error")
+
+@router.get("/by-barcode/{code}", response_model=PharmacyResponse)
+def get_product_by_barcode(
+    code: str,
+    ctrl: PharmacyController = Depends(get_pharmacy_controller)
+):
+    try:
+        product = ctrl.get_product_by_barcode(code.strip())
+        if not product:
+            raise HTTPException(404, "Product not found")
+        return normalize_pharmacy_data(product)
+    except HTTPException:
+        raise
+    except Exception:
+        logger.exception("Error getting product by barcode")
+        raise HTTPException(500, "Internal server error")
+
+@router.get("/{medication_id}/photo")
+def get_product_photo(
+    medication_id: int,
+    ctrl: PharmacyController = Depends(get_pharmacy_controller)
+):
+    """Photo du produit : lecture authentifiee, jamais servie par /static."""
+    product = ctrl.repo.get_by_id(medication_id)
+    target = photo_file_path(product.photo_path) if product else None
+    if not target or not os.path.isfile(target):
+        raise HTTPException(404, "No photo for this product")
+    return FileResponse(target, media_type="image/jpeg",
+                        headers={"Cache-Control": "private, max-age=3600"})
+
+@router.put("/{medication_id}/photo", response_model=PharmacyResponse,
+            dependencies=[Depends(role_required("admin", "Assistant", "ToxicoManager"))])
+async def put_product_photo(
+    medication_id: int,
+    file: UploadFile = File(...),
+    ctrl: PharmacyController = Depends(get_pharmacy_controller)
+):
+    raw = await file.read(PHOTO_MAX_UPLOAD_BYTES + 1)
+    try:
+        product = await run_in_threadpool(ctrl.set_photo, medication_id, raw)
+        return await run_in_threadpool(normalize_pharmacy_data, product)
+    except PhotoError as e:
+        raise HTTPException(e.status_code, str(e))
+    except ValueError as e:
+        raise HTTPException(404, str(e))
+    except Exception:
+        logger.exception(f"Error saving photo for product {medication_id}")
+        raise HTTPException(500, "Internal server error")
+
+@router.delete("/{medication_id}/photo", response_model=PharmacyResponse,
+               dependencies=[Depends(role_required("admin", "Assistant", "ToxicoManager"))])
+def delete_product_photo(
+    medication_id: int,
+    ctrl: PharmacyController = Depends(get_pharmacy_controller)
+):
+    try:
+        product = ctrl.delete_photo(medication_id)
+        return normalize_pharmacy_data(product)
+    except ValueError as e:
+        raise HTTPException(404, str(e))
+    except Exception:
+        logger.exception(f"Error deleting photo for product {medication_id}")
         raise HTTPException(500, "Internal server error")
 
 @router.get("/{medication_id}", response_model=PharmacyResponse)

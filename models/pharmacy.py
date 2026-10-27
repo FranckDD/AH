@@ -2,7 +2,7 @@
 
 from datetime import datetime
 from sqlalchemy import (
-    Column, Integer, String, DateTime, Numeric, ForeignKey, Text
+    Column, Integer, String, DateTime, Numeric, ForeignKey, Text, text
 )
 from sqlalchemy.orm import relationship
 from .database import Base  # supposons que Base = declarative_base()
@@ -25,6 +25,12 @@ class Pharmacy(Base):
     created_at       = Column(DateTime, nullable=False, default=datetime.utcnow)
     updated_at       = Column(DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
     price = Column(Numeric(10, 2), nullable=False, default=0.00)
+    # Code-barres : 8 chiffres, genere par la base (sequence), jamais modifie.
+    barcode = Column(String(12), nullable=False, unique=True,
+                     server_default=text("nextval('pharmacy_barcode_seq')::text"))
+    # Photo optionnelle : nom de fichier (uuid.jpg) sous storage/product_photos, jamais public.
+    photo_path = Column(String(255), nullable=True)
+    photo_version = Column(Integer, nullable=False, default=0, server_default=text("0"))
 
     # Relations (si besoin)
     patient   = relationship('Patient', back_populates='pharmacies')

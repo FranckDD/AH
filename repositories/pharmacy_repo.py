@@ -16,6 +16,10 @@ class PharmacyRepository:
     def get_by_id(self, medication_id: int) -> Pharmacy:
         return self.session.get(Pharmacy, medication_id)
 
+    def get_by_barcode(self, code: str):
+        return (self.session.query(Pharmacy)
+                .filter(Pharmacy.barcode == code).one_or_none())
+
     def _lock_product(self, medication_id: int):
         """Relecture FRAICHE sous verrou (regle R7) avant toute ecriture de quantity."""
         return (self.session.query(Pharmacy)

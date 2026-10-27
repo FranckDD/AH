@@ -77,6 +77,46 @@ class PharmacyController:
             raise ValueError(f"Aucun produit trouvé pour l'ID {medication_id}")
         return prod
 
+    def get_product_by_barcode(self, code: str):
+        return self.repo.get_by_barcode(code)
+
+    # --- PHOTO (option : aucun effet sur le stock) ---
+
+    def set_photo(self, medication_id: int, raw: bytes):
+        from api_backend.backend_app.utils.product_photos import shrink_to_jpeg, write_photo, remove_photo
+        jpeg = shrink_to_jpeg(raw)  # PhotoError avant toute ecriture ni verrou
+        prod = self.repo._lock_product(medication_id)
+        if not prod:
+            raise ValueError(f"Aucun produit trouvé pour l'ID {medication_id}")
+        old = prod.photo_path
+        new_id = write_photo(jpeg)
+        try:
+            prod.photo_path = new_id
+            prod.photo_version = (prod.photo_version or 0) + 1
+            self.repo.session.commit()
+        except Exception:
+            self.repo.session.rollback()
+            remove_photo(new_id)
+            raise
+        remove_photo(old)
+        return prod
+
+    def delete_photo(self, medication_id: int):
+        from api_backend.backend_app.utils.product_photos import remove_photo
+        prod = self.repo._lock_product(medication_id)
+        if not prod:
+            raise ValueError(f"Aucun produit trouvé pour l'ID {medication_id}")
+        old = prod.photo_path
+        try:
+            prod.photo_path = None
+            prod.photo_version = (prod.photo_version or 0) + 1
+            self.repo.session.commit()
+        except Exception:
+            self.repo.session.rollback()
+            raise
+        remove_photo(old)
+        return prod
+
     # --- ÉCRITURE AVEC CELERY ET INVALIDATION ---
 
     def _invalidate_stats(self):
@@ -125,8 +165,16 @@ class PharmacyController:
         return prod
 
     def delete_product(self, medication_id: int):
-        res = self.repo.delete(medication_id)
+        existing = self.repo.get_by_id(medication_id)
+        old_photo = existing.photo_path if existing else None  # lu avant la suppression de la ligne
+        res = self.repo.delete(medication_id)  # leve si le commit echoue : le fichier reste alors en place
         if res:
+            if old_photo:
+                try:
+                    from api_backend.backend_app.utils.product_photos import remove_photo
+                    remove_photo(old_photo)
+                except Exception:
+                    logger.exception("Photo file of deleted product %s could not be removed", medication_id)
             self._invalidate_stats()
             self._audit("DELETE", medication_id)
         return res

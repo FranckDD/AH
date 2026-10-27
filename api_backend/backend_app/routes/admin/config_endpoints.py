@@ -25,6 +25,9 @@ def get_config_controller(db: Session = Depends(get_db)):
     repo = ConfigRepository(session=db)
     return ConfigController(repo=repo)
 
+LABEL_MM_MIN = 20
+LABEL_MM_MAX = 120
+
 # --- NORMALISATION ---
 def normalize_config_data(config: OrganizationConfig):
     if not config:
@@ -45,6 +48,8 @@ def normalize_config_data(config: OrganizationConfig):
         "rccm": config.rccm,
         "legal_info": config.legal_info,
         "ticket_logo_url": config.ticket_logo_url,
+        "label_width_mm": config.label_width_mm if config.label_width_mm is not None else 50,
+        "label_height_mm": config.label_height_mm if config.label_height_mm is not None else 30,
     }
 
 # --- ROUTES ---
@@ -74,7 +79,9 @@ async def update_structure_info(
     niu: Optional[str] = Form(None),
     rccm: Optional[str] = Form(None),
     legal_info: Optional[str] = Form(None),
-    
+    label_width_mm: Optional[int] = Form(None),
+    label_height_mm: Optional[int] = Form(None),
+
     # Le fichier est optionnel (on peut update juste le texte)
     logo: Optional[UploadFile] = File(None),
     ticket_logo: Optional[UploadFile] = File(None),
@@ -99,6 +106,12 @@ async def update_structure_info(
         "rccm": rccm,
         "legal_info": legal_info
     }
+
+    for key, value in (("label_width_mm", label_width_mm), ("label_height_mm", label_height_mm)):
+        if value is not None:
+            if not (LABEL_MM_MIN <= value <= LABEL_MM_MAX):
+                raise HTTPException(status_code=422, detail=f"{key} must be between {LABEL_MM_MIN} and {LABEL_MM_MAX} mm")
+            data[key] = value
 
     try:
         updated_config = ctrl.update_structure_info(

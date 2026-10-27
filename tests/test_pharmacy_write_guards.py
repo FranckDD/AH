@@ -152,3 +152,12 @@ def test_get_secretaire_ok_stockcontroller_403(env):
     for url in ("/pharmacy/", "/pharmacy/?term=TEST_PWG", f"/pharmacy/{env['pid']}"):
         assert c.get(url, headers=env["h"]["secretaire"]).status_code == 200
         assert c.get(url, headers=env["h"]["StockController"]).status_code == 403
+
+
+def test_put_with_barcode_keeps_original_barcode(env):
+    before = env["db"].get(Pharmacy, env["pid"]).barcode
+    r = env["client"].put(f"/pharmacy/{env['pid']}", json={"price": 11, "barcode": "10000001"},
+                          headers=env["h"]["admin"])
+    assert r.status_code == 200, r.text
+    env["db"].expire_all()
+    assert env["db"].get(Pharmacy, env["pid"]).barcode == before

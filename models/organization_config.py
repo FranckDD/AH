@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text
+from sqlalchemy import Column, Integer, String, Text, text
 from .database import Base
 
 class OrganizationConfig(Base):
@@ -26,3 +26,7 @@ class OrganizationConfig(Base):
     niu = Column(String, nullable=True)  # Numéro Identifiant Unique
     rccm = Column(String, nullable=True) # Registre Commerce
     legal_info = Column(Text, nullable=True) # Texte libre supplémentaire pour pied de page
+
+    # Taille des etiquettes de produits (mm), reglee par l'admin.
+    label_width_mm = Column(Integer, nullable=False, default=50, server_default=text("50"))
+    label_height_mm = Column(Integer, nullable=False, default=30, server_default=text("30"))
