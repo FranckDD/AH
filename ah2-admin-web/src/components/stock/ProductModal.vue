@@ -69,6 +69,37 @@
 
     </form>
 
+    <!-- Photo et code-barres : fiche d'un produit existant, roles de gestion seulement (le code n'est jamais modifiable) -->
+    <FormSection v-if="isEditing && canManage" :title="t('stockLabels.section_title')" class="mt-4">
+        <div class="grid gap-4 md:col-span-2 md:grid-cols-2">
+            <div class="grid content-start gap-3">
+                <p class="text-base font-medium text-ink">{{ t('stockLabels.code_label') }}</p>
+                <p data-testid="product-code" class="select-all font-mono text-3xl font-bold tracking-widest text-ink">{{ form.barcode || '-' }}</p>
+                <p class="text-sm text-ink-muted">{{ t('stockLabels.code_help') }}</p>
+                <div v-if="barcodeMarkup" class="w-full max-w-xs rounded-control border border-tone-neutral-border bg-white p-2" v-html="barcodeMarkup"></div>
+            </div>
+
+            <div class="grid content-start gap-3">
+                <p class="text-base font-medium text-ink">{{ t('stockLabels.photo_label') }}</p>
+                <div class="flex h-48 w-48 items-center justify-center overflow-hidden rounded-control border border-dashed border-tone-neutral-border bg-tone-neutral-bg">
+                    <img v-if="photoUrl" :src="photoUrl" :alt="form.name" class="h-full w-full object-contain" />
+                    <span v-else class="px-2 text-center text-base text-ink-muted">{{ t('stockLabels.no_photo') }}</span>
+                </div>
+                <p class="text-sm text-ink-muted">{{ t('stockLabels.photo_help') }}</p>
+                <input ref="photoInput" type="file" accept="image/jpeg,image/png,image/webp" class="hidden" tabindex="-1" aria-hidden="true" @change="onPhotoPicked" />
+                <div class="flex flex-wrap gap-2">
+                    <AppButton type="button" variant="secondary" :disabled="photoBusy" :loading="photoBusy" @click="photoInput && photoInput.click()">
+                        {{ form.hasPhoto ? t('stockLabels.replace_photo') : t('stockLabels.add_photo') }}
+                    </AppButton>
+                    <AppButton v-if="form.hasPhoto" type="button" variant="ghost" :disabled="photoBusy" @click="removePhoto">
+                        {{ t('stockLabels.remove_photo') }}
+                    </AppButton>
+                </div>
+                <p v-if="photoError" role="alert" class="rounded-control border p-3 text-base font-medium" :class="toneClasses('danger')">{{ photoError }}</p>
+            </div>
+        </div>
+    </FormSection>
+
     <!-- Barre d'actions fixe : Enregistrer (principal) et Annuler (discret) -->
     <template #footer>
       <ActionBar>
@@ -86,13 +117,30 @@
 </template>
 
 <script setup>
-import { reactive, watch, computed } from 'vue';
+import { reactive, ref, watch, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { AppButton, FormField, FormSection, ActionBar, FullScreenPanel } from '@/components/ui';
+import { toneClasses } from '@/design/tones';
+import { useAuthStore } from '@/stores/auth';
+import { useStockStore } from '@/stores/stockStore';
+import { ProductPhotoGateway } from '@/services/ProductPhotoGateway';
+import { barcodeSvgMarkup } from '@/utils/barcodeSvg';
+import { describeServerError } from '@/utils/serverError';
 
 const props = defineProps({ product: Object, canEditQuantity: { type: Boolean, default: true } });
 const emit = defineEmits(['close', 'save']);
 const { t } = useI18n();
+const authStore = useAuthStore();
+const stockStore = useStockStore();
+
+// Photo et etiquettes : roles de gestion seulement (la secretaire ne fait que lire le stock).
+const canManage = computed(() => authStore.hasRole(['admin', 'Assistant', 'ToxicoManager']));
+const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
+const PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+const photoInput = ref(null);
+const photoUrl = ref(null);
+const photoBusy = ref(false);
+const photoError = ref('');
 
 // Style commun des champs : zone tactile >= 44 px, focus visible.
 const fieldClass = 'block w-full min-h-11 rounded-control border border-tone-neutral-border px-3 text-base text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand-600';
@@ -119,7 +167,10 @@ const form = reactive({
     price: 0,
     expiryDate: '',
     forme: 'Comprimé',
-    dosage: ''
+    dosage: '',
+    barcode: '',
+    hasPhoto: false,
+    photoVersion: 0
 });
 
 const isEditing = computed(() => !!form.id);
@@ -138,10 +189,61 @@ watch(() => props.product, (newVal) => {
             price: 0,
             expiryDate: '',
             forme: 'Comprimé',
-            dosage: ''
+            dosage: '',
+            barcode: '',
+            hasPhoto: false,
+            photoVersion: 0
         });
     }
 }, { immediate: true });
+
+const barcodeMarkup = computed(() => barcodeSvgMarkup(form.barcode));
+
+// Apercu : recharge quand la photo change (version incrementee par le serveur).
+watch(() => [form.id, form.hasPhoto, form.photoVersion, canManage.value], async ([id, has, version, manage]) => {
+    photoUrl.value = null;
+    if (!id || !has || !manage) return;
+    const url = await ProductPhotoGateway.getPhotoUrl(id, version);
+    if (form.id === id && form.photoVersion === version) photoUrl.value = url;
+}, { immediate: true });
+
+const applyServerProduct = (data) => {
+    form.hasPhoto = !!data?.has_photo;
+    form.photoVersion = Number(data?.photo_version) || 0;
+    // La liste du stock est rechargee pour que la ligne (et l'etat de la photo) soit a jour.
+    stockStore.fetchStock();
+};
+
+const onPhotoPicked = async (event) => {
+    const input = event.target;
+    const file = input.files && input.files[0];
+    input.value = '';
+    if (!file) return;
+    photoError.value = '';
+    if (!PHOTO_TYPES.includes(file.type)) { photoError.value = t('stockLabels.bad_type'); return; }
+    if (file.size > MAX_PHOTO_BYTES) { photoError.value = t('stockLabels.too_big'); return; }
+    photoBusy.value = true;
+    try {
+        applyServerProduct(await ProductPhotoGateway.uploadPhoto(form.id, file));
+    } catch (err) {
+        photoError.value = describeServerError(err, t('stockLabels.upload_failed'));
+    } finally {
+        photoBusy.value = false;
+    }
+};
+
+const removePhoto = async () => {
+    if (!window.confirm(t('stockLabels.confirm_remove'))) return;
+    photoError.value = '';
+    photoBusy.value = true;
+    try {
+        applyServerProduct(await ProductPhotoGateway.deletePhoto(form.id));
+    } catch (err) {
+        photoError.value = describeServerError(err, t('stockLabels.remove_failed'));
+    } finally {
+        photoBusy.value = false;
+    }
+};
 
 const handleSubmit = () => {
     if (form.category !== 'PHARMA') {

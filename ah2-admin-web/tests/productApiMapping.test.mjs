@@ -15,3 +15,10 @@ test('dosage envoye en dosage_mg numerique', () => {
     assert.equal(mapProductToApi(base).dosage_mg, null);
     assert.equal(parseDosageMg('abc'), null);
 });
+
+test('code-barres et photo ne sont jamais renvoyes a l enregistrement', () => {
+    const body = mapProductToApi({ ...base, barcode: '12345678', hasPhoto: true, photoVersion: 3 });
+    for (const k of ['barcode', 'hasPhoto', 'photoVersion', 'has_photo', 'photo_version']) {
+        assert.equal(k in body, false);
+    }
+});

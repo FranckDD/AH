@@ -179,7 +179,10 @@ streams:
       # 2026-09-23 (pas de verification/deduction cote client, la
       # deduction reelle reste exclusivement serveur au moment de l'upload).
       - SELECT medication_id::text AS id, medication_id AS server_id,
-          drug_name, quantity, threshold, price::text AS price, stock_status
+          drug_name, quantity, threshold, price::text AS price, stock_status,
+          barcode, forme, dosage_mg::text AS dosage_mg,
+          (CASE WHEN photo_path IS NOT NULL THEN 1 ELSE 0 END) AS has_photo,
+          photo_version
         FROM pharmacy AS pharmacy_stock
 
   # Catalogues de reference en lecture seule (chantier 4 sous-projet 4) -

@@ -5,7 +5,7 @@
 // il n'en existait pas avant la refonte.
 import { ref, onMounted, onBeforeUnmount, useId } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { XMarkIcon } from '@heroicons/vue/24/outline';
+import { XMarkIcon, ArrowsPointingOutIcon, ArrowsPointingInIcon } from '@heroicons/vue/24/outline';
 import { nextFocusIndex } from '@/utils/ui';
 import { toneClasses } from '@/design/tones';
 
@@ -17,6 +17,8 @@ const props = defineProps({
     accent: { type: Boolean, default: false },
     // En-tete teinte selon un etat (ex. 'danger' pour une sortie ou une suppression) ; sans effet si `accent` est actif.
     tone: { type: String, default: '' },
+    // Ajoute un bouton agrandir/restaurer : plein ecran sur PC (sans effet sur telephone/tablette, deja plein ecran).
+    maximizable: { type: Boolean, default: false },
 });
 const emit = defineEmits(['close']);
 
@@ -24,6 +26,8 @@ const { t } = useI18n();
 const titleId = `panel-title-${useId()}`;
 const panel = ref(null);
 const closeButton = ref(null);
+const maximized = ref(false);
+const maxButton = ref(null);
 let previouslyFocused = null;
 
 const FOCUSABLE =
@@ -60,7 +64,7 @@ function onKeydown(event) {
 onMounted(() => {
     previouslyFocused = document.activeElement;
     // Premier champ de saisie du corps, sinon le bouton de fermeture.
-    const first = focusables().find((el) => el !== closeButton.value?.$el && el !== closeButton.value) || closeButton.value;
+    const first = focusables().find((el) => el !== closeButton.value?.$el && el !== closeButton.value && el !== maxButton.value) || closeButton.value;
     // preventScroll : un lien ou un champ plus bas dans le contenu ne doit pas faire defiler le panneau a l'ouverture.
     first?.focus?.({ preventScroll: true });
 });
@@ -71,19 +75,32 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-    <div class="fixed inset-0 z-50 flex bg-ink/50 lg:items-center lg:justify-center lg:p-6" @keydown="onKeydown">
+    <div :class="['fixed inset-0 z-50 flex bg-ink/50 lg:items-center lg:justify-center', maximized ? 'lg:p-0' : 'lg:p-6']" @keydown="onKeydown">
         <div
             ref="panel"
             role="dialog"
             aria-modal="true"
             :aria-labelledby="titleId"
-            :class="['app-refonte flex h-full w-full flex-col bg-white lg:h-auto lg:max-h-[92dvh] lg:rounded-card lg:shadow-card', wide ? 'lg:max-w-6xl' : 'lg:max-w-4xl']"
+            :class="['app-refonte flex h-full w-full flex-col bg-white lg:shadow-card', maximized ? 'lg:max-w-none' : ['lg:h-auto lg:max-h-[92dvh] lg:rounded-card', wide ? 'lg:max-w-6xl' : 'lg:max-w-4xl']]"
         >
-            <header :class="['flex shrink-0 items-center justify-between gap-3 px-4 py-3 md:px-6 lg:rounded-t-card', accent ? 'bg-brand-600 text-white' : tone ? `border-b ${toneClasses(tone)}` : 'border-b border-tone-neutral-border text-ink']">
+            <header :class="['flex shrink-0 items-center justify-between gap-3 px-4 py-3 md:px-6', maximized ? '' : 'lg:rounded-t-card', accent ? 'bg-brand-600 text-white' : tone ? `border-b ${toneClasses(tone)}` : 'border-b border-tone-neutral-border text-ink']">
                 <div class="min-w-0">
                     <h2 :id="titleId" class="text-xl font-bold">{{ title }}</h2>
                     <p v-if="subtitle" :class="['text-base', accent ? 'text-white/90' : tone ? '' : 'text-ink-muted']">{{ subtitle }}</p>
                 </div>
+                <div class="flex shrink-0 items-center gap-1">
+                <button
+                    v-if="maximizable"
+                    ref="maxButton"
+                    type="button"
+                    :class="['hidden min-h-11 min-w-11 items-center justify-center rounded-control focus-visible:outline-2 lg:inline-flex', accent ? 'text-white hover:bg-white/20 focus-visible:outline-white' : tone ? 'hover:bg-white/60 focus-visible:outline-brand-600' : 'text-ink-muted hover:bg-tone-neutral-bg focus-visible:outline-brand-600']"
+                    :aria-label="maximized ? t('ui.restore') : t('ui.maximize')"
+                    :aria-pressed="maximized"
+                    @click="maximized = !maximized"
+                >
+                    <ArrowsPointingInIcon v-if="maximized" class="h-6 w-6" aria-hidden="true" />
+                    <ArrowsPointingOutIcon v-else class="h-6 w-6" aria-hidden="true" />
+                </button>
                 <button
                     ref="closeButton"
                     type="button"
@@ -93,6 +110,7 @@ onBeforeUnmount(() => {
                 >
                     <XMarkIcon class="h-6 w-6" aria-hidden="true" />
                 </button>
+                </div>
             </header>
 
             <div :class="['min-h-0 flex-1 overflow-y-auto px-4 md:px-6', accent ? 'bg-tone-neutral-bg py-3' : 'py-4']">

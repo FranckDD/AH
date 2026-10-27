@@ -3,6 +3,9 @@
 
     <PageHeader :title="t('stock.title')" :subtitle="t('stock.subtitle')">
       <template #actions>
+        <AppButton v-if="canManageLabels" variant="secondary" :icon="PrinterIcon" @click="openLabels(null)">
+          {{ t('stockLabels.print_labels') }}
+        </AppButton>
         <AppButton
           v-if="!isSecretary" @click="openModal(null)"
           :icon="PlusIcon"
@@ -99,6 +102,9 @@
                 <AppButton v-if="!isSecretary" @click="openModal(prod)" variant="secondary" :icon="PencilSquareIcon">
                     {{ t('common.edit') }}
                 </AppButton>
+                <AppButton v-if="canManageLabels && prod.barcode" @click="openLabels(prod)" variant="ghost" :icon="PrinterIcon" :title="t('stockLabels.print_label_one')">
+                    {{ t('stockLabels.label_one') }}
+                </AppButton>
                 <AppButton v-if="isAdmin && getExpiryStatus(prod.expiryDate) === 'EXPIRED' && prod.quantity > 0" @click="handleDispose(prod)" variant="danger" :icon="ArchiveBoxXMarkIcon" :title="t('stock.actions.dispose')">
                     {{ t('stock.actions.dispose') }}
                 </AppButton>
@@ -178,6 +184,12 @@
         @save="handleSave"
     />
 
+    <LabelPrintModal
+        v-if="showLabels"
+        :preselect="labelProduct"
+        @close="showLabels = false"
+    />
+
   </div>
 </template>
 
@@ -188,6 +200,7 @@ import { useStockStore } from '@/stores/stockStore';
 import { useI18n } from 'vue-i18n';
 import { adjustmentReasonText } from '@/utils/stockNotificationLabels';
 import ProductModal from '@/components/stock/ProductModal.vue';
+import LabelPrintModal from '@/components/stock/LabelPrintModal.vue';
 import AdjustmentRequestModal from '@/components/stock/AdjustmentRequestModal.vue';
 import { useAuthStore } from '@/stores/auth';
 import { StockOpsGateway, describeStockError } from '@/services/StockOpsGateway';
@@ -195,7 +208,7 @@ import { AppButton, AppCard, PageHeader, StatTile, StatusBadge, EmptyState, Resp
 import { toneClasses } from '@/design/tones';
 import { 
     PlusIcon, MagnifyingGlassIcon, PencilSquareIcon, TrashIcon, XMarkIcon, ExclamationTriangleIcon,
-    ClockIcon, ArchiveBoxXMarkIcon, ChevronLeftIcon, ChevronRightIcon
+    ClockIcon, ArchiveBoxXMarkIcon, PrinterIcon, ChevronLeftIcon, ChevronRightIcon
 } from '@heroicons/vue/24/outline';
 
 const { t } = useI18n();
@@ -225,6 +238,16 @@ const fieldClass = 'block w-full min-h-11 rounded-control border border-tone-neu
 // par une demande d'ajustement.
 const isAdmin = computed(() => authStore.hasRole(['admin']));
 const isSecretary = computed(() => authStore.hasRole(['secretaire']));
+
+// Photo, code et etiquettes : roles de gestion seulement (la secretaire ne voit aucun de ces controles).
+const canManageLabels = computed(() => authStore.hasRole(['admin', 'Assistant', 'ToxicoManager']));
+const showLabels = ref(false);
+const labelProduct = ref(null);
+const openLabels = (prod) => {
+    if (!canManageLabels.value) return;
+    labelProduct.value = prod ? { id: prod.id, name: prod.name, barcode: prod.barcode } : null;
+    showLabels.value = true;
+};
 
 const requestProduct = ref(null);
 const myRequests = ref([]);

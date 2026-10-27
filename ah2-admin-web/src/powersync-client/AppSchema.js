@@ -307,6 +307,11 @@ const pharmacy_stock = new Table(
     threshold: column.integer,
     price: column.text,
     stock_status: column.text,
+    barcode: column.text,
+    forme: column.text,
+    dosage_mg: column.text,
+    has_photo: column.integer,
+    photo_version: column.integer,
   },
 );
 

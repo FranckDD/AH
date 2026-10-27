@@ -67,7 +67,11 @@ export const useStockStore = defineStore('stock', () => {
             price: p.price,
             expiryDate: p.expiry_date ? p.expiry_date.split('T')[0] : null,
             forme: p.forme,
-            dosage: p.dosage_mg !== null && p.dosage_mg !== undefined ? String(p.dosage_mg) : ''
+            dosage: p.dosage_mg !== null && p.dosage_mg !== undefined ? String(p.dosage_mg) : '',
+            // Lecture seule : code-barres genere par le serveur et etat de la photo (jamais renvoyes a l'enregistrement).
+            barcode: p.barcode || '',
+            hasPhoto: !!p.has_photo,
+            photoVersion: Number(p.photo_version) || 0
         };
     };
 

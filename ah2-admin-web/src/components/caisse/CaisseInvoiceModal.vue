@@ -1,5 +1,5 @@
 <template>
-  <FullScreenPanel :title="t('caisse.invoice_modal.title')" :subtitle="t('caisseInvoice.subtitle')" wide accent @close="$emit('close')">
+  <FullScreenPanel :title="t('caisse.invoice_modal.title')" :subtitle="t('caisseInvoice.subtitle')" wide accent maximizable @close="$emit('close')">
     <div class="grid gap-3">
       <div class="grid gap-3 lg:grid-cols-[1fr_17rem]">
         <!-- PATIENT -->
@@ -11,7 +11,7 @@
             </FormField>
             <p class="text-center text-base text-ink-muted md:pb-2">{{ t('caisse.invoice_modal.or') }}</p>
             <FormField id="inv-patient-label" :label="t('caisse.invoice_modal.patient_label_placeholder')" v-slot="{ describedBy }">
-              <input id="inv-patient-label" v-model="patientLabel" type="text" :aria-describedby="describedBy" :class="fieldClass" />
+              <input id="inv-patient-label" v-model="patientLabel" type="text" @keydown.enter.prevent="focusScanIfLabel" @blur="focusScanIfLabel" :aria-describedby="describedBy" :class="fieldClass" />
             </FormField>
             <ul v-if="patientResults.length" class="max-h-44 divide-y divide-tone-neutral-border overflow-y-auto rounded-control border border-tone-neutral-border md:col-span-3">
               <li v-for="p in patientResults" :key="p.patient_id">
@@ -43,6 +43,17 @@
       <div class="grid gap-3 lg:grid-cols-[1fr_17rem] lg:items-start">
         <!-- LIGNES -->
         <FormSection compact :title="t('caisse.invoice_modal.section_items')" :subtitle="t('caisseInvoice.lines_hint')">
+          <!-- Scan code-barres : la douchette tape les chiffres puis Entree -->
+          <div class="md:col-span-2">
+            <FormField id="inv-scan" :label="t('caisseInvoice.scan_label')" v-slot="{ describedBy }">
+              <input id="inv-scan" ref="scanInput" v-model="scanRaw" type="text" inputmode="numeric" autocomplete="off"
+                     :placeholder="t('caisseInvoice.scan_placeholder')" :aria-describedby="describedBy"
+                     @keydown.enter.prevent="onScan" @input="scanMessage = null" :class="fieldClass" />
+            </FormField>
+            <p v-if="scanMessage" role="alert" class="mt-2 rounded-control border px-3 py-2 text-base" :class="toneClasses(scanMessage.tone)">
+              {{ t(scanMessage.key) }}
+            </p>
+          </div>
           <div class="flex flex-wrap gap-2 md:col-span-2">
             <AppButton variant="pharma" :icon="PlusIcon" @click="addLine('Médicament')">{{ t('caisse.invoice_modal.line_type_pharmacy') }}</AppButton>
             <AppButton variant="spirit" :icon="PlusIcon" @click="addLine('Consultation')">{{ t('caisse.invoice_modal.line_type_consultation') }}</AppButton>
@@ -54,7 +65,9 @@
             {{ t('caisse.invoice_modal.no_lines') }}
           </p>
 
-          <div v-for="(line, idx) in lines" :key="line.key" class="grid gap-2 rounded-control border border-tone-neutral-border p-2 md:col-span-2">
+          <div v-for="(line, idx) in lines" :key="line.key" class="grid gap-2 rounded-control border border-tone-neutral-border p-2 md:col-span-2"
+               :class="line.itemType === 'Médicament' && line.refId !== null && panelProduct?.medication_id === line.refId ? 'border-brand-600' : ''"
+               @click="onLineClick(line)">
             <div class="grid gap-2 md:grid-cols-[1fr_5rem_7.5rem_7.5rem_auto] md:items-end">
               <div class="min-w-0">
                 <p class="text-base font-semibold text-ink">
@@ -69,7 +82,7 @@
                 <template v-if="line.itemType === 'Médicament'">
                   <input v-if="!line.refLabel" v-model="line.searchQuery" @input="onLineSearchInput(line, 'product')" type="search" autocomplete="off"
                          :aria-label="t('caisse.invoice_modal.search_product_placeholder')" :placeholder="t('caisse.invoice_modal.search_product_placeholder')" :class="fieldClass" />
-                  <p v-else class="flex min-h-10 items-center text-base font-medium text-ink">{{ line.refLabel }}</p>
+                  <button v-else type="button" class="flex min-h-10 w-full items-center text-left text-base font-medium text-ink focus-visible:outline-2 focus-visible:outline-brand-600">{{ line.refLabel }}</button>
                 </template>
 
                 <!-- Consultation -->
@@ -93,12 +106,14 @@
 
               <FormField :id="`line-${line.key}-qty`" :label="t('caisse.invoice_modal.quantity')" v-slot="{ describedBy }">
                 <input :id="`line-${line.key}-qty`" v-model.number="line.quantity" type="number" min="1" step="1" inputmode="numeric"
+                       @keydown.enter.prevent="focusScan" @change="returnToScan"
                        :disabled="line.itemType === 'Consultation'" :aria-describedby="describedBy" :class="[fieldClass, 'text-right disabled:bg-tone-neutral-bg']" />
               </FormField>
               <!-- Prix verrouille au catalogue pour la secretaire (autre prix : demande de reduction) -->
               <FormField :id="`line-${line.key}-price`" :label="t('caisse.invoice_modal.unit_price')"
                          :help="isPriceLocked(line) && !isPriceUndefined(line) ? t('caisseInvoice.price_locked_help') : ''" v-slot="{ describedBy }">
                 <input :id="`line-${line.key}-price`" v-model.number="line.unitPrice" type="number" min="0" step="0.01" inputmode="decimal"
+                       @keydown.enter.prevent="focusScan" @change="returnToScan"
                        :readonly="isPriceLocked(line)" :tabindex="isPriceLocked(line) ? -1 : undefined"
                        :aria-describedby="describedBy" :class="[fieldClass, 'text-right', isPriceLocked(line) ? 'cursor-default bg-tone-neutral-bg text-ink-muted' : '']" />
               </FormField>
@@ -106,7 +121,7 @@
                 <span class="text-base font-medium text-ink">{{ t('caisse.invoice_modal.line_total') }}</span>
                 <span class="flex min-h-10 items-center justify-end text-base font-bold text-ink">{{ formatCurrency(lineTotal(line)) }}</span>
               </div>
-              <AppButton variant="ghost" :icon="TrashIcon" :aria-label="t('caisseInvoice.remove_line')" @click="removeLine(idx)" />
+              <span class="contents" @click.stop><AppButton variant="ghost" :icon="TrashIcon" :aria-label="t('caisseInvoice.remove_line')" @click="removeLine(idx)" /></span>
             </div>
 
             <!-- Resultats de recherche, sous la ligne -->
@@ -148,6 +163,9 @@
           </div>
         </FormSection>
 
+        <div class="contents lg:grid lg:content-start lg:gap-3">
+        <InvoiceProductPanel :product="panelProduct" :format-currency="formatCurrency" class="max-lg:order-first" />
+
         <!-- Total facture : brut, reduction personnel, net (valeurs deja calculees) -->
         <aside class="grid content-start gap-1 rounded-card border border-tone-success-border bg-tone-success-bg p-3">
           <p class="text-base font-semibold text-tone-success-text">{{ t('caisseInvoice.total_card') }}</p>
@@ -164,6 +182,7 @@
             <span>{{ t('caisse.invoice_modal.advance_amount') }}</span><span class="font-semibold">{{ formatCurrency(advanceAmount) }}</span>
           </p>
         </aside>
+        </div>
       </div>
 
       <!-- PAIEMENT -->
@@ -274,13 +293,15 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted, onBeforeUnmount, nextTick } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { CaisseGateway } from '@/services/CaisseGateway';
 import { LabGateway } from '@/services/labGateway';
 import { DiscountRequestGateway } from '@/services/DiscountRequestGateway';
 import { StaffDiscountGateway } from '@/services/StaffDiscountGateway';
 import { computeInvoiceTotals } from '@/utils/invoiceTotals';
+import { normalizeScan, applyScanToLines, shouldRedirectToScan } from '@/utils/barcodeScan';
+import InvoiceProductPanel from '@/components/caisse/InvoiceProductPanel.vue';
 import { useAuthStore } from '@/stores/auth';
 import { TrashIcon, PlusIcon } from '@heroicons/vue/24/outline';
 import { AppButton, FormField, FormSection, ActionBar, FullScreenPanel } from '@/components/ui';
@@ -372,6 +393,7 @@ const selectPatient = (p) => {
   selectedPatient.value = p;
   patientResults.value = [];
   patientSearchQuery.value = '';
+  focusScan();
 };
 
 // --- Lignes ---
@@ -402,7 +424,78 @@ const canEditCatalogPrice = computed(() => authStore.hasRole(['admin', 'promoteu
 const isPriceLocked = (line) => !canEditCatalogPrice.value && line.catalogLine;
 // Prix catalogue 0 ou absent = "prix non defini" : la ligne ne peut pas etre vendue.
 const isPriceUndefined = (line) => isPriceLocked(line) && line.refId !== null && !(Number(line.unitPrice) > 0);
-const removeLine = (idx) => lines.value.splice(idx, 1);
+const removeLine = (idx) => {
+  const removed = lines.value[idx];
+  lines.value.splice(idx, 1);
+  if (removed && removed.refId !== null && panelProduct.value?.medication_id === removed.refId
+      && !lines.value.some((l) => l.itemType === 'Médicament' && l.refId === removed.refId)) {
+    panelProduct.value = null;
+  }
+  focusScan();
+};
+
+// --- Scan code-barres et panneau produit (option ajoutee : recherche par nom, prix, stock inchanges) ---
+const scanInput = ref(null);
+const scanRaw = ref('');
+const scanMessage = ref(null); // { key, tone } | null
+const panelProduct = ref(null);
+const focusScan = () => nextTick(() => scanInput.value?.focus?.({ preventScroll: true }));
+// Libelle libre du patient : une fois renseigne, Entree ou la sortie du champ envoie le curseur au scan.
+const focusScanIfLabel = () => { if (patientLabel.value.trim()) focusScan(); };
+
+// Apres une saisie de quantite ou de prix, rendre le curseur au scan sauf si
+// l'utilisateur est passe a un autre champ (le focus est mesure apres le clic/Tab).
+const returnToScan = (ev) => {
+  const el = ev.target;
+  setTimeout(() => {
+    const active = document.activeElement;
+    if (!active || active === document.body || active === el) focusScan();
+  }, 0);
+};
+// Chiffre tape hors champ (douchette) : on le dirige vers le champ de scan.
+const onStrayDigit = (ev) => {
+  if (shouldRedirectToScan(ev)) scanInput.value?.focus?.({ preventScroll: true });
+};
+onMounted(() => document.addEventListener('keydown', onStrayDigit, true));
+onBeforeUnmount(() => document.removeEventListener('keydown', onStrayDigit, true));
+
+// Complete la fiche (forme, dosage, photo) quand le resultat de recherche n'en porte pas ; echec silencieux.
+const showInPanel = async (product) => {
+  panelProduct.value = product;
+  if (!product || product.has_photo !== undefined || !product.medication_id) return;
+  const { data } = await CaisseGateway.getProduct(product.medication_id);
+  if (data && panelProduct.value?.medication_id === product.medication_id) panelProduct.value = { ...product, ...data };
+};
+const onLineClick = (line) => {
+  if (line.itemType !== 'Médicament' || line.refId === null) return;
+  showInPanel(line.product || { medication_id: line.refId, drug_name: line.refLabel, price: line.unitPrice, quantity: line.knownStock });
+};
+
+const onScan = async () => {
+  const raw = scanRaw.value;
+  scanRaw.value = '';
+  if (!raw.trim()) return;
+  const code = normalizeScan(raw);
+  if (!code) {
+    scanMessage.value = { key: 'caisseInvoice.scan_invalid', tone: 'warning' };
+    return focusScan();
+  }
+  try {
+    const { data: product } = await CaisseGateway.findProductByBarcode(code);
+    if (!product) {
+      scanMessage.value = { key: 'caisseInvoice.scan_unknown', tone: 'warning' };
+    } else {
+      scanMessage.value = null;
+      const { line } = applyScanToLines(lines.value, product, (base) => reactive({ ...base, key: ++lineKeySeq }));
+      line.product = product;
+      showInPanel(product);
+    }
+  } catch (err) {
+    console.error('Recherche par code-barres echouee :', err);
+    scanMessage.value = { key: 'caisseInvoice.scan_error', tone: 'danger' };
+  }
+  focusScan();
+};
 
 let lineSearchTimeout = null;
 const onLineSearchInput = (line, kind) => {
@@ -429,6 +522,9 @@ const selectProductLine = (line, product) => {
   // ce cas plutot qu'un faux positif.
   line.knownStock = product.quantity != null ? Number(product.quantity) : null;
   line.searchResults = [];
+  line.product = product;
+  showInPanel(product);
+  focusScan();
 };
 
 const selectConsultationLine = (line, consultation) => {

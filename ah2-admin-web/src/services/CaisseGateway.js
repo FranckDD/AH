@@ -2,6 +2,7 @@ import api from '@/services/api';
 import { db } from '@/powersync-client/client';
 import { useAuthStore } from '@/stores/auth';
 import { buildPatientLookupQuery, mapLookupRow } from '@/utils/patientLookupQuery';
+import { lookupProductByBarcode, mapStockRowToProduct } from '@/utils/productBarcodeLookup';
 
 const cleanParams = (params) => {
     const cleaned = {};
@@ -66,6 +67,35 @@ export const CaisseGateway = {
                 };
             }
             throw err;
+        }
+    },
+
+    // Produit exact par code-barres (lecteur ou saisie). 404 -> { data: null }.
+    // Meme garde hors ligne que searchProducts : secretaire uniquement.
+    async findProductByBarcode(code) {
+        return lookupProductByBarcode(code, {
+            get: (path) => api.get(path),
+            getAll: (sql, params) => db.getAll(sql, params),
+            canFallback: () => useAuthStore().hasRole(['secretaire']),
+        });
+    },
+
+    // Fiche complete d'un produit (forme, dosage, photo) pour le panneau produit
+    // de la facture. Facultatif : toute erreur -> { data: null }. Meme garde
+    // hors ligne que searchProducts : secretaire uniquement.
+    async getProduct(id) {
+        try {
+            const resp = await api.get(`/pharmacy/${id}`);
+            return { data: resp.data };
+        } catch (err) {
+            try {
+                const authStore = useAuthStore();
+                if (!err.response && authStore.hasRole(['secretaire'])) {
+                    const rows = await db.getAll('SELECT * FROM pharmacy_stock WHERE server_id = ? LIMIT 1', [id]);
+                    return { data: rows.length ? mapStockRowToProduct(rows[0]) : null };
+                }
+            } catch { /* facultatif */ }
+            return { data: null };
         }
     },
 

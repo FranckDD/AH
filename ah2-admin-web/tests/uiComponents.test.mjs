@@ -61,7 +61,7 @@ test('alignClass', () => {
     assert.equal(alignClass('?'), 'text-left');
 });
 
-const UI_KEYS = ['noResults', 'noResultsHelp', 'close', 'retry', 'loading', 'required', 'expand', 'collapse', 'actions'];
+const UI_KEYS = ['noResults', 'noResultsHelp', 'close', 'retry', 'loading', 'required', 'expand', 'collapse', 'actions', 'maximize', 'restore'];
 
 test('clés ui.* présentes en FR et EN', () => {
     const msgs = i18n.global.messages.value;
@@ -106,4 +106,14 @@ test('boutons de rubrique : Prescrire et Admettre reprennent la couleur de leur 
     assert.match(read('components/hospitalization/HospitalizationCard.vue'), /variant="hospital"[^>]*showAdmitForm = true/);
     assert.match(read('views/modules/prescriptions/PrescriptionsList.vue'), /variant="pharma"[^>]*openCreateModal/);
     assert.match(read('views/modules/patients/PatientDetailView.vue'), /variant="pharma"[^>]*acceptPrescriptionOffer/);
+});
+
+test('FullScreenPanel : maximizable est optionnel et n ajoute le bouton qu a la demande', () => {
+    const src = readFileSync(new URL('../src/components/ui/FullScreenPanel.vue', import.meta.url), 'utf8');
+    assert.match(src, /maximizable: \{ type: Boolean, default: false \}/);
+    assert.match(src, /v-if="maximizable"/);
+    assert.match(src, /:aria-pressed="maximized"/);
+    assert.match(src, /t\('ui\.maximize'\)/);
+    assert.match(src, /t\('ui\.restore'\)/);
+    assert.match(src, /event\.key === 'Escape'/);
 });

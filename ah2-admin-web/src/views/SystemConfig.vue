@@ -98,6 +98,14 @@
                   <input id="cfg-pobox" v-model="formStructure.po_box" type="text" :aria-describedby="describedBy" :class="fieldClass" />
                 </FormField>
 
+                <h3 class="border-t border-tone-neutral-border pt-4 text-base font-semibold text-ink md:col-span-2">{{ t('configScreens.label_title') }}</h3>
+                <FormField id="cfg-label-width" :label="t('configScreens.label_width')" :help="t('configScreens.label_size_help')" v-slot="{ describedBy }">
+                  <input id="cfg-label-width" v-model.number="formStructure.label_width_mm" type="number" min="20" max="120" step="1" inputmode="numeric" :aria-describedby="describedBy" :class="fieldClass" />
+                </FormField>
+                <FormField id="cfg-label-height" :label="t('configScreens.label_height')" :help="t('configScreens.label_size_help')" v-slot="{ describedBy }">
+                  <input id="cfg-label-height" v-model.number="formStructure.label_height_mm" type="number" min="20" max="120" step="1" inputmode="numeric" :aria-describedby="describedBy" :class="fieldClass" />
+                </FormField>
+
                 <h3 class="border-t border-tone-neutral-border pt-4 text-base font-semibold text-ink md:col-span-2">{{ t('configScreens.legal_title') }}</h3>
 
                 <FormField id="cfg-niu" :label="t('configScreens.niu')" v-slot="{ describedBy }">
@@ -271,7 +279,8 @@ const openSections = reactive({
 // --- ETAT CONFIGURATION STRUCTURE ---
 const formStructure = ref({
     name: '', slogan: '', phone: '', phone2: '', email: '', website: '',
-    address: '', city: '', po_box: '', niu: '', rccm: ''
+    address: '', city: '', po_box: '', niu: '', rccm: '',
+    label_width_mm: 50, label_height_mm: 30
 });
 const logoFile = ref(null);
 const previewLogo = ref(null);
@@ -323,7 +332,13 @@ const handleRegenerateToken = async () => {
     confirmRegenerate.value = false;
 };
 
+const validLabelSize = (v) => Number.isInteger(v) && v >= 20 && v <= 120;
+
 const saveStructureConfig = async () => {
+    if (!validLabelSize(formStructure.value.label_width_mm) || !validLabelSize(formStructure.value.label_height_mm)) {
+        notify('alerts.save_failed', { detail: t('configScreens.label_size_invalid') });
+        return;
+    }
     isSaving.value = true;
     try {
         const formData = new FormData();
