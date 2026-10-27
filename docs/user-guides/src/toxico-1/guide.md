@@ -2,7 +2,7 @@
 title: Admission, phases and evaluations
 role: Toxicology manager
 subtitle: Admitting a patient to the toxicology programme, following the phases, reading the evaluations written by the psychologist, and opening the patient file.
-version: 27 October 2026
+version: 28 October 2026
 output: toxico-1-admission-phases-evaluations
 ---
 
@@ -59,7 +59,7 @@ Select **Toxicology Monitoring** in the menu. This screen is your daily work tab
 
 ![The monitoring list](figures/list.png)
 
-The title {1} gives the number of active patients. The tiles repeat the main figures. Each row shows the patient with the code and the substance, the current phase with a coloured bar, the number of relapses, and the referring psychologist. Three buttons end the row: **Details** {5}, **File** {6} and **Discharge** {7}. The tabs {4} switch between **Active** and **Discharged** patients. [[New Toxico Admission]] {3} opens the admission form (chapter 3).
+The title {1} gives the number of active patients. The tiles repeat the main figures. Each row shows the patient with the code and the substance, the current phase with a coloured bar, the number of relapses, and the referring psychologist. Three buttons end the row: **Details** {5}, **File** {6} and **Discharge** {7}. A fourth button, [[Transfer]], changes the psychologist of the patient (second guide). The tabs {4} switch between **Active** and **Discharged** patients. [[New Toxico Admission]] {3} opens the admission form (chapter 3).
 
 To find a patient, type a name or a patient code in the search box {2}. The list filters itself after a short pause. A search that matches nothing shows "No patient found." Clear the box to see everybody again. The tiles count the whole programme and do not change with the search.
 
@@ -69,7 +69,7 @@ There is no **Evaluate** button on your rows. The psychologist sees one, you do 
 
 A patient goes through four phases: Phase 1 Withdrawal, Phase 2 Detox, Phase 3 Reintegration and Phase 4 Aftercare. Every admission starts in phase 1, whatever the substance. The bar of a row is red in phase 1, orange in phase 2 and blue in phase 3.
 
-The phase changes only through an evaluation written by the psychologist. An evaluation can keep the patient where he or she is, move the patient to the next phase, or send the patient back one phase, which is recorded as a relapse. You do not move a patient between phases yourself, and neither does the administrator or the promoter. If a patient seems ready to progress, ask the referring psychologist to evaluate.
+The phase changes only through an evaluation written by the psychologist. An evaluation can keep the patient where he or she is, move the patient to the next phase, or send the patient back one phase, which is recorded as a relapse. You do not move a patient between phases yourself, and neither does the administrator or the promoter. If a patient seems ready to progress, ask the referent psychologist to evaluate.
 
 A red label with the number of relapses appears in the **Relapses** column, and the patient then shows in the Clinical Alerts of the dashboard.
 
@@ -123,20 +123,20 @@ A consent file larger than 5 MB is refused with the message "Le fichier est trop
 
 ## Evaluations
 
-An evaluation is the written result of an interview between the psychologist and the patient. It records one decision about the phase (maintain, progress or regress), the clinical observation and a recommendation. It is the only way to change a phase, and it is the one act in the programme that is reserved to the psychologist.
+An evaluation is the written result of an interview between the psychologist and the patient. It records one decision about the phase (maintain, progress or regress), the clinical observation and a recommendation. It is the only way to change a phase, and it is the one act in the programme that is reserved to the psychologist, and only to the referent psychologist of the file: the psychologist currently named for the patient. A colleague who does not follow the patient cannot evaluate, and the server refuses the request with the message "Only the responsible psychologist of this file can add an evaluation."
 
 | Action | Psychologist | Toxicology manager | Spiritual counsellor |
 |---|---|---|---|
-| Record an evaluation | Yes | No | No |
+| Record an evaluation | Yes, if referent of the file | No | No |
 | Read the evaluations of a patient | Yes | Yes | Yes |
 | Admit a patient | No | Yes | No |
 | Discharge a patient | No | Yes | No |
 
-The application enforces this. In the demonstration, a request to record an evaluation sent with the manager account was refused by the server, and the Evaluate button is not offered to you. The administrator cannot evaluate either.
+The application enforces this. In the demonstration, a request to record an evaluation sent with the manager account was refused by the server, and the Evaluate button is not offered to you. The administrator cannot evaluate either. When a patient changes psychologist (see the guide "Toxicology manager 2"), the new psychologist becomes the only one who can evaluate. Evaluations already written keep the name of their author.
 
 ### Reading the evaluations
 
-Open the file of a patient (chapter 5). In the first tab, **Toxico History**, each stay lists its events, the most recent first. An evaluation line shows the date, the decision, the phases before and after, the name of the psychologist, the observation and the recommendation. A regression carries a red **Relapse** label. The oldest line of a stay is the admission itself, written "Phase 1: Withdrawal, Admission initiale".
+Open the file of a patient (chapter 5). In the first tab, **Toxico History**, each stay lists its events, the most recent first. An evaluation line shows the date, the decision, the phases before and after, the name of the psychologist, the observation and the recommendation. A regression carries a red **Relapse** label. A line "Psychologist change" appears each time the patient was transferred: it gives the date, the former and the new psychologist, who decided, and the reason. The oldest line of a stay is the admission itself, written "Phase 1: Withdrawal, Admission initiale".
 
 Read the observation and the recommendation before you decide anything about the patient: a request for a family meeting, for example, may need you to call the guardian. To write the evaluation itself, see the psychologist guide, which describes the window, the 500 characters of the observation and the warning on a relapse.
 
@@ -158,7 +158,7 @@ Select [[File]] on a row. The file opens full screen, with the patient name, the
 
 ![The file of a patient](figures/file-history.png)
 
-**Toxico History** {1} shows the progress bar on the four phases, then each stay with its phases and evaluations. A patient who comes back after a discharge starts a second stay, which appears under the first. **Medical Record** {2} lists the last three consultations of the clinic for this patient, and **Prescriptions** {3} the last three prescriptions. When a patient has none, the tab says "No medical record." or "No prescription.".
+**Toxico History** {1} shows the progress bar on the four phases, then each stay with its phases and evaluations, and the transfers between psychologists with their reason. A patient who comes back after a discharge starts a second stay, which appears under the first. **Medical Record** {2} lists the last three consultations of the clinic for this patient, and **Prescriptions** {3} the last three prescriptions. When a patient has none, the tab says "No medical record." or "No prescription.".
 
 Both medical tabs carry a [[See full history]] button, which only the manager and the administrator have. It opens the complete clinical file of the patient, described next. Read the medical tabs before a decision on a patient who is also treated for a physical illness: in the demonstration, a patient admitted for cannabis also had a consultation for fever and a prescription for paracetamol, and both appeared here.
 
@@ -210,9 +210,9 @@ The user name and the role cannot be changed here. To change your password, open
 
 **Creating a new patient who already exists.** Search by name and by code first. A second record splits the history of the person in two.
 
-**Choosing the wrong psychologist.** The name you choose is the person who will be expected to evaluate, and it is printed on the file. Check it before you validate.
+**Choosing the wrong psychologist.** The name you choose is the only person who can evaluate the patient, and it is printed on the file. Check it before you validate. If it is wrong later, use the Transfer button (second guide).
 
-**Looking for the Evaluate button.** It is not offered to your role. Ask the referring psychologist.
+**Looking for the Evaluate button.** It is not offered to your role. Ask the referent psychologist.
 
 **Reading a failed load as "no patient".** After a network cut, the list shows an error message and the tiles read a dash. Select Retry before you draw any conclusion.
 
@@ -245,7 +245,7 @@ Consent
 : The signed document in which the patient or the guardian agrees to the programme. It is uploaded at admission.
 
 Evaluation
-: The record of an interview: a decision (maintain, progress, regress), an observation and a recommendation. Only the psychologist writes it.
+: The record of an interview: a decision (maintain, progress, regress), an observation and a recommendation. Only the referent psychologist of the file writes it.
 
 Guardian
 : The person to call in an emergency. Name and telephone number are required at admission.
@@ -253,8 +253,8 @@ Guardian
 Phase
 : One of the four stages of the follow-up: Withdrawal, Detox, Reintegration, Aftercare.
 
-Referring psychologist
-: The psychologist named at admission for a patient.
+Referent psychologist
+: The psychologist currently in charge of a patient. Named at admission, changed only by a transfer. Also called referring psychologist.
 
 Relapse
 : A regression recorded by an evaluation. It counts in the relapse rate.

@@ -2,13 +2,13 @@
 title: Patients and sessions
 role: Psychologist
 subtitle: Reading the toxicology follow-up, opening a patient file, recording the evaluation that moves a patient between phases, finding discharged patients and printing the file.
-version: 27 October 2026
+version: 28 October 2026
 output: psychologist-1-patients-sessions
 ---
 
 ## Before you start {.unnumbered}
 
-This guide is for the psychologist of the centre. In Glostone-Care the psychologist works inside the toxicology follow-up: you read the patients who are followed for a substance, you open their files, and you record, after each interview, an evaluation that keeps the patient in the same phase, moves the patient forward, or sends the patient back. That evaluation is the one act that only the psychologist can perform.
+This guide is for the psychologist of the centre. In Glostone-Care the psychologist works inside the toxicology follow-up: you read the patients who are followed for a substance, you open their files, and you record, after each interview, an evaluation that keeps the patient in the same phase, moves the patient forward, or sends the patient back. That evaluation is the one act that only the psychologist can perform, and only for the patients you are the referent of.
 
 The screenshots come from a demonstration installation. The patients in the figures are invented. Numbers in red discs, such as {3}, match the numbered markers drawn on the figures.
 
@@ -16,7 +16,7 @@ The screenshots come from a demonstration installation. The patients in the figu
 
 Your menu has two entries: **Toxicology Dashboard** and **Toxicology Monitoring**. Nothing else is open to your role. If you type the address of another screen, such as the patient list of the clinic or the user list, the application shows an "Access denied" page with a link, [[Go to my dashboard]], back to your dashboard.
 
-You can read every patient followed in toxicology, not only the patients whose referring psychologist is you. You can open the file of each of them, including their last medical records and prescriptions, and you can record an evaluation on any of them. You cannot admit a patient, discharge a patient or readmit one: those actions belong to the toxicology manager and the administrator. You do not see invoices, the cash register, laboratory results or appointments, and the application shows no notification bell to your role.
+You are the **referent** of a patient when you are the psychologist currently named in the file. You can record an evaluation only on your own patients. Whether you can read the other patients depends on your account. By default you read every patient followed in toxicology and open their files, including their last medical records and prescriptions. If the administrator ticked the box "Sees only their own toxicology patients" on your account, you see only the patients you are the referent of, and your dashboard figures count only those patients (see "A limited account" below). You cannot admit a patient, discharge a patient or readmit one: those actions belong to the toxicology manager and the administrator. You do not see invoices, the cash register, laboratory results or appointments, and the application shows you a notification bell only for transfers: when the toxicology manager or the administrator names you as the new referent of a patient, you receive a notification there, and clicking it opens the patient file.
 
 ### Interface language
 
@@ -26,7 +26,7 @@ The application starts in French on a new computer. The language switch sits at 
 
 ### Confidentiality
 
-The text you write in an evaluation is clinical. The toxicology manager, the spiritual counsellor, the assistant and the administrator can read it. The promoter, who validates discharges, sees the decision and the dates but not your observations. A patient file also shows the last three medical records and the last three prescriptions of the clinic, so a patient who is treated for a physical illness is visible to you in full. Do not leave your session open on a shared computer, and use **Logout** at the end of the day.
+The text you write in an evaluation is clinical. The toxicology manager, the spiritual counsellor, the assistant and the administrator can read it. The promoter, who validates discharges, sees the decision and the dates but not your observations. A patient file also shows the last three medical records and the last three prescriptions of the clinic for the patients you currently follow, so a patient who is treated for a physical illness is visible to you in full. Do not leave your session open on a shared computer, and use **Logout** at the end of the day.
 
 ## Signing in and the dashboard
 
@@ -55,7 +55,7 @@ Select **Toxicology Monitoring** in the menu. This screen is your daily work tab
 
 ![The patient list](figures/list.png)
 
-The title {1} gives the number of active patients followed. The tiles repeat the main figures. Each row shows the patient with the code and the substance, the current phase with a coloured bar, the number of relapses, and the referring psychologist. The three buttons at the end of the row open the **Details** {4}, the **File** {5} and the **Evaluate** {6} window. The tabs {3} switch between **Active** and **Discharged** patients (chapter 6).
+The title {1} gives the number of active patients followed. The tiles repeat the main figures. Each row shows the patient with the code and the substance, the current phase with a coloured bar, the number of relapses, and the referring psychologist. The buttons at the end of the row open the **Details** {4}, the **File** {5} and the **Evaluate** {6} window. **Evaluate** is shown only on the rows of the patients you are the referent of. The tabs {3} switch between **Active** and **Discharged** patients (chapter 6).
 
 To find a patient, type a name or a patient code in the search box {2}. The list filters itself after a short pause. A search that matches nothing shows an empty table. Clear the box to see everybody again.
 
@@ -87,11 +87,22 @@ Each evaluation appears in the history with its date, the decision, the phases b
 
 The stay groups everything that happened between the admission and the discharge. A patient who comes back after a discharge starts a second stay, which appears under the first.
 
+### A limited account
+
+When the administrator has limited your account to your own patients, the screens change in four ways.
+
+- The lists of **Active** and **Discharged** patients, the search and the dashboard figures cover only the patients you currently follow. The split by psychologist on the dashboard is hidden.
+- A third tab, **Previously followed patients**, lists the patients that the toxicology manager transferred to a colleague. Each row gives the patient, the current psychologist and the status.
+- A file opened from that tab is in reading mode. A blue band says "Read-only view: you followed this patient, but they are no longer under your care." You can read the history of stays, the evaluations you wrote and the transfers. You cannot evaluate, export the file or open the consent document, and the **Medical Record** and **Prescriptions** tabs are not offered.
+- A patient who has never been in your care is not found at all, even by typing the exact name.
+
+When a patient is transferred to you, the patient appears in your lists and you become the only psychologist who can evaluate. The file shows the line "Psychologist change" with the reason written by the toxicology manager: read it before the first interview. The evaluations written earlier keep the name of their author.
+
 ## Recording an evaluation
 
 The evaluation is the written result of an interview. It records one decision about the phase, your clinical observation and, if you wish, your recommendation. Do it after the interview, while your notes are fresh.
 
-1. In **Toxicology Monitoring**, find the patient.
+1. In **Toxicology Monitoring**, find one of your patients.
 2. Select [[Evaluate]] on the row. The window **Clinical & Behavioral Evaluation** opens and repeats the patient name and the current phase.
 
 ![The evaluation window](figures/eval-form.png)
@@ -168,7 +179,7 @@ The user name and the role cannot be changed here. To change your password, open
 
 **Reading a failed load as an empty service.** After a network cut, the list shows an error message and a dash in the tiles. Select Retry before you draw any conclusion.
 
-**Evaluating a patient of a colleague by accident.** Your list contains every patient of the service. Check the name on the evaluation window before you write.
+**Looking for Evaluate on a colleague's patient.** The button is shown only on the rows of the patients you are the referent of. If a patient was transferred to you or from you, the button moves with the transfer. Check the name on the evaluation window before you write.
 
 **Writing a one-word observation.** A regression needs at least 10 characters, and a colleague who reads the file later needs more than that.
 
@@ -181,6 +192,8 @@ The user name and the role cannot be changed here. To change your password, open
 | "Access denied" page | Your role cannot open that screen | Select the link to your dashboard. |
 | "Cannot load the data while offline" | The server cannot be reached | Check the network, then select Retry. |
 | Submit Evaluation stays pale | The observation is empty, or too short for a regression | Write the observation. |
+| "Only the responsible psychologist of this file can add an evaluation." | You are no longer the referent of this patient, for example after a transfer | Ask the toxicology manager. Do not try again. |
+| "This file is read-only for you." | The patient was transferred to a colleague | Read the file only. |
 | A red message in the evaluation window | The server refused the evaluation | Read the message, correct, submit once. If it persists, tell the administrator. |
 | "PDF export failed. Please try again later." | The PDF could not be produced | Try again once. If it persists, tell the administrator. |
 | Sign-in refused several times | Wrong password, or too many attempts | Wait a minute, then try again. Ask an administrator to reset the password. |
@@ -193,8 +206,11 @@ Evaluation
 Phase
 : One of the four stages of the follow-up: Withdrawal, Detox, Reintegration, Aftercare.
 
-Referring psychologist
-: The psychologist named at admission for a patient. The name shows in the list and in the printed file.
+Read-only view
+: A file opened from the tab Previously followed patients. You can read it but not evaluate, export or change it.
+
+Referent
+: The psychologist currently named in the file of a patient, also called the referring psychologist. Named at admission and changed only by a transfer. Only the referent writes evaluations. The name shows in the list and in the printed file.
 
 Relapse
 : A regression recorded by an evaluation. It counts in the relapse rate.

@@ -2,7 +2,7 @@
 title: Getting started, accounts, catalogue and prices
 role: Administrator
 subtitle: Signing in, creating and managing staff accounts, and keeping the exam and product catalogue and its prices correct.
-version: 27 October 2026
+version: 28 October 2026
 output: admin-1-getting-started-accounts-catalogue
 ---
 
@@ -92,6 +92,18 @@ For a **Médecin**, a **Specialty** list appears and is required. For an **Infir
 ![The head nurse box, shown for a nurse](figures/user-headnurse.png "small")
 
 Tick [[Head nurse]] {2} (and choose [[Role]] {1}) for the nurse who organises the others. The head nurse is still a nurse for every other purpose. The difference is that the head nurse, like a doctor, can change the nurses' duty schedule. An ordinary nurse can only read it. The box exists only on the nurse role: choosing another role clears it.
+
+### Psychologist accounts
+
+A **Psychologue** account shows one more box, [[Sees only their own toxicology patients]]. It is off by default, so a new psychologist sees every patient followed in toxicology, as before. Tick the box, when you create the account or later in the edit form, for a psychologist who must see only the patients they currently follow. The effect is limited to the toxicology screens:
+
+- The lists of active and discharged patients and the patient files show only the patients whose current psychologist is that person.
+- The dashboard figures are personal: the tiles count only those patients, and the split by psychologist is hidden.
+- A **Previously followed patients** tab shows the patients that were transferred to a colleague. They open in reading mode only.
+
+The box exists only on the Psychologue role: choosing another role clears it. The server applies the change at once. The tab appears the next time the person opens Toxicology Monitoring.
+
+As administrator you can also move a patient from one psychologist to another with the [[Transfer]] button of Toxicology Monitoring. The procedure is in the guide "Toxicology manager 2".
 
 ### Changing an account
 
@@ -278,6 +290,8 @@ When the promoter agrees a new tariff, update the list in one session, exam by e
 
 **Trusting the Role column for old accounts.** A few older accounts show "N/A". Open the account to check the role, the specialty or the head nurse box.
 
+**Ticking the own-patients box on the wrong person.** A psychologist with the box ticked loses sight of the other patients of the service. Untick it in the edit form to give the full view back.
+
 **Forgetting that the user name cannot change.** The field is read-only in the edit form.
 
 **Typing an exam price that is not a multiple of 100.** The form refuses it. Round it.
@@ -319,6 +333,9 @@ Exam parameter
 
 Head nurse
 : A nurse who is allowed to change the duty schedule of the nurses, like a doctor.
+
+Previously followed patients
+: A tab of a limited psychologist that lists the patients who were transferred to a colleague. They open in reading mode.
 
 Price not defined
 : A catalogue price of 0 or empty. The item cannot be invoiced by a secretary.

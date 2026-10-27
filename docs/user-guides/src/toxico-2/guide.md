@@ -2,7 +2,7 @@
 title: Discharge, readmission and exports
 role: Toxicology manager
 subtitle: Ending a stay in the toxicology programme, finding discharged patients, readmitting a patient who comes back, and printing the files and the lists.
-version: 27 October 2026
+version: 28 October 2026
 output: toxico-2-discharge-readmission-exports
 ---
 
@@ -74,7 +74,7 @@ A patient who left can come back. The application then opens a new stay in the s
 1. Select the **Discharged** tab and find the patient.
 2. Select [[Readmit]] on the row. The **Admission Form** opens with the patient already chosen. The yellow band {1} reads "Patient already followed: readmission, stay 2." and tells you that the phase restarts at 1 and the earliest date allowed, which is the date of the last discharge.
 3. Check the admission date {2}. It opens on today. A date before the last discharge is refused by the field itself ("Value must be 26/10/2026.").
-4. Choose the referring psychologist {3}. The field opens empty and is required, even if the patient comes back to the same person.
+4. Check the referring psychologist {3}. The field opens on the psychologist who currently follows the patient, and it is required. Keep that name if the patient comes back to the same person. If you choose another psychologist, the application records a transfer with the reason "Readmission" in the file, so the change is never made without a trace.
 5. Check the primary substance, then the guardian name {4} and the guardian contact. The substance of the last stay and the guardian recorded in the file are filled in for you. Ask whether they are still correct and change them if not. Both guardian fields are required.
 6. Add a new signed consent if the patient signed one. Without a new file, the previous consent stays attached to the file.
 7. Write the reason for the return in [[Admission Note]]. A new note replaces the previous admission note in the Details window, so copy anything you still need from the old one.
@@ -91,11 +91,32 @@ The window closes, a green message "Readmission recorded, stay 2" appears and th
 | Patient code and identity | Unchanged |
 | Earlier stays, evaluations, reasons and notes of discharge | Unchanged, grouped under their stay |
 | Phase | Restarts at phase 1 |
-| Psychologist, substance, guardian | Those entered on the form |
+| Psychologist, substance, guardian | Those entered on the form. A different psychologist is recorded as a transfer |
 | Number of relapses | Kept, not reset |
 | Admissions (month) tile | Increases: a readmission counts as an admission |
 
 An admission is refused if the patient already has an active file: the form shows "This patient already has an active toxicology file: discharge them first." and Validate Admission stays pale.
+
+## Transferring a patient to another psychologist
+
+A patient keeps the same psychologist until you change it. The change is called a transfer. It is the only way to give a patient to another psychologist, and it leaves a written trace. Only the toxicology manager and the administrator have the button.
+
+1. In **Toxicology Monitoring**, on the **Active** tab, select [[Transfer]] on the row of the patient. For a discharged patient, select [[View record]] and then [[Transfer]] at the foot of the file. The same button is at the foot of the file of an active patient.
+2. The window **Transfer the patient** repeats the name and the current psychologist. Choose the new one in [[New responsible psychologist]]. The list offers the active accounts with the Psychologist role, without the current psychologist.
+3. Write the reason in [[Reason for the transfer]]. It is required and holds up to 1000 characters. Write what the next psychologist needs to know: why the patient changes hands and what is in progress.
+4. Select [[Confirm the transfer]].
+
+The window closes and a green message "Patient transferred to" followed by the name appears. From that moment:
+
+- The new psychologist is the referent of the patient. Only this person can write evaluations, and the button **Evaluate** moves to the rows of the new psychologist.
+- If the patient has an open stay, the psychologist of that stay changes too. The stays already closed keep the psychologist they had.
+- The new psychologist receives a notification. The former psychologist is not notified.
+- Nothing is erased. The evaluations written before the transfer keep the name of their author, and the file shows a line "Psychologist change" with the date, the former and the new psychologist, who decided and the reason. The printed file shows the same lines.
+- A psychologist whose account is limited to their own patients (see the administrator guide) no longer sees the patient in the lists. The patient moves to the tab **Previously followed patients** of that psychologist, in reading mode.
+
+A transfer does not change the phase, the stay or the substance of the patient.
+
+> Note: In the list of discharged patients, the column Psychologist still gives the psychologist of the last stay. After a transfer of a discharged patient it can show the former name, although the file already names the new referent. Open the file to check.
 
 ## Reading a patient over time
 
@@ -197,6 +218,10 @@ The account icon at the top right opens **My Account**, where you correct your n
 
 **Accepting the readmission form without reading it.** The substance and the guardian are copied from the last stay. Check them with the patient.
 
+**Transferring without a reason.** The reason is required, and it is the only explanation the next psychologist will read. The window shows "The reason is required." and saves nothing until it is written.
+
+**Choosing the psychologist who already follows the patient.** The current psychologist is not offered in the list. If the server answers "This psychologist already follows the patient.", the file was changed in the meantime: reload and check.
+
 **Ignoring the hospital warning.** The toxicology discharge does not close a hospital stay. Tell the medical team.
 
 **Reading the Toxicology Follow-up tab of the clinical file as the status of the patient.** It does not show the discharge.
@@ -213,6 +238,9 @@ The account icon at the top right opens **My Account**, where you correct your n
 | Validate Admission stays pale on a readmission | The psychologist or a guardian field is empty | Fill the fields marked with a star. |
 | "The discharge date cannot be in the future." or "...before the admission." | The date chosen is outside the stay | Choose a date between the admission and today. |
 | "Confirm that the hospital stay stays open to continue." | The patient has an open hospital stay and the box is not ticked | Read the warning, tick the box, then confirm. |
+| "The reason is required." in the transfer window | The reason is empty | Write the reason, 1000 characters at most. |
+| "Choose the new psychologist." | No psychologist selected | Choose one in the list. |
+| "The chosen psychologist was not found, is inactive or does not have the psychologist role." | The account changed after you opened the window | Close the window, open it again and choose another account. |
 | "Fix the date range to show results." | The end date is before the start date | Correct one of the dates. |
 | "No discharged patient matches these criteria." | The filters leave nobody | Clear a filter. |
 | "Unable to load discharged patients." | The server cannot be reached | Check the network, then select Retry. |
@@ -235,6 +263,9 @@ Relapse
 
 Stay
 : The period between an admission and a discharge. Stay 2 is the first readmission.
+
+Transfer
+: The change of the referent psychologist of a patient, decided by the toxicology manager or the administrator, with a written reason.
 
 Visa de la direction
 : The line at the foot of the printed list, where the person in charge of the centre signs.
