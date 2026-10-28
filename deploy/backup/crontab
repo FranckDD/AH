@@ -1,0 +1,12 @@
+# Modele de planification (supercronic), fuseau Africa/Douala. entrypoint.sh remplace les
+# marqueurs @...@ par les variables BACKUP_*_CRON de deploy/.env (supercronic ne sait pas
+# lire l'environnement dans l'horaire) puis verifie le resultat avec "supercronic -test".
+# Format a 5 champs : minute heure jour-du-mois mois jour-de-semaine.
+# Export chiffre de la base, toutes les heures.
+@BACKUP_HOURLY_CRON@ /opt/backup/hourly.sh
+# Sauvegarde complete (base + uploads, product_photos, consents), chaque nuit.
+@BACKUP_NIGHTLY_CRON@ /opt/backup/nightly.sh
+# Envoi du depot local chez Hostinger (SFTP), une fois par semaine.
+@BACKUP_OFFSITE_CRON@ /opt/backup/offsite.sh
+# Controle d'integrite (restic check partiel + relecture du dernier export), une fois par semaine.
+@BACKUP_VERIFY_CRON@ /opt/backup/verify.sh
