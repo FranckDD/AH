@@ -33,4 +33,33 @@ else:
     print(f"[CONFIG CLIENT] AH2_API_BASE : {AH2_API_BASE}")
     # JWT/DB unused in client – skip
 
+DEFAULT_DEV_CORS_ORIGINS = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:3000",
+    # `npm run preview` (build de production, necessaire pour tester le
+    # service worker/PWA) sert par defaut sur ce port.
+    "http://localhost:4173",
+    "http://127.0.0.1:4173",
+]
+
+
+def parse_cors_origins(raw, is_prod=None):
+    """Origines CORS autorisees. Vide/None -> liste de developpement.
+
+    Sinon liste separee par des virgules (espaces et items vides ignores).
+    "*" est refuse en production.
+    """
+    if is_prod is None:
+        is_prod = IS_PROD
+    if raw is None or not raw.strip():
+        return list(DEFAULT_DEV_CORS_ORIGINS)
+    origins = [o.strip() for o in raw.split(",") if o.strip()]
+    if not origins:
+        return list(DEFAULT_DEV_CORS_ORIGINS)
+    if "*" in origins and is_prod:
+        raise ValueError("CORS_ORIGINS ne doit pas contenir '*' en production.")
+    return origins
+
+
 print("Loaded JWT_SECRET length:", len(JWT_SECRET) if JWT_SECRET else "None")

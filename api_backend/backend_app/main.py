@@ -51,7 +51,7 @@ from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 from .rate_limit import limiter
-from .config import IS_PROD
+from .config import IS_PROD, parse_cors_origins
 
 app = FastAPI(title="AH2 API")
 app.state.limiter = limiter
@@ -129,19 +129,7 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
         content={"detail": error_details},
     )
 
-origins = [
-    # 1. Votre frontend Vue/Vite qui tourne sur ce port
-    "http://localhost:5173",
-    # 2. Si vous utilisez un autre port, ajoutez-le ici
-    "http://127.0.0.1:5173",
-    "http://localhost:3000",      # Autre port courant
-    # 3. `npm run preview` (build de production, necessaire pour tester le
-    #    service worker/PWA du pilote PowerSync - `npm run dev` n'active
-    #    pas le SW) sert par defaut sur ce port, distinct de `npm run dev`.
-    "http://localhost:4173",
-    "http://127.0.0.1:4173",
-    #"*"
-]
+origins = parse_cors_origins(os.getenv("CORS_ORIGINS"))
 
 app.add_middleware(
     CORSMiddleware,
