@@ -39,3 +39,17 @@ storage/
 # Guides utilisateur : les PDF et les captures (environ 120 Mo) se regenerent depuis les sources et les scripts de capture ; ils ne sont pas versionnes
 docs/user-guides/en/
 docs/user-guides/src/*/figures/
+
+# Deploiement : secrets du serveur (le modele deploy/.env.example reste suivi)
+deploy/.env
+deploy/secrets/
+deploy/alerts/alerts.env
+deploy/alerts/recipients.txt
+# Export des donnees de reference (contient telephone/adresse de l'organisation)
+reference_data.json
+*.reference_data.json
+
+# Repetition locale : secrets jetables
+deploy/rehearsal.env
+deploy/.smoke-work/
+deploy/.backup-test-work/

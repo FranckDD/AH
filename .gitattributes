@@ -1,0 +1,6 @@
+*.sh text eol=lf
+deploy/scheduler/crontab text eol=lf
+Dockerfile.* text eol=lf
+*.dockerignore text eol=lf
+deploy/backup/crontab text eol=lf
+deploy/backup/Dockerfile text eol=lf

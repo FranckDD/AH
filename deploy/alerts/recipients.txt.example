@@ -1,0 +1,5 @@
+# Destinataires des alertes (modele). Copier en deploy/alerts/recipients.txt (ignore par git).
+# Une adresse par ligne ; les lignes vides et ce qui suit # sont ignores.
+promoteur@example.test   # promoteur
+admin@example.test       # administrateur
+technicien@example.test  # technicien responsable

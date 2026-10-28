@@ -1,0 +1,371 @@
+# Production AH2 : VPS 8 Go, tout en conteneurs. Aucun secret ici : tout vient
+# du fichier d'environnement du serveur (deploy/.env, modele : .env.example).
+# Lancer : docker compose --env-file deploy/.env -f deploy/docker-compose.prod.yml up -d
+# Seuls 80 et 443 sont publies sur l'hote (service caddy).
+
+name: ah2
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
+x-common: &common
+  restart: unless-stopped
+  logging: *logging
+  security_opt:
+    - no-new-privileges:true
+
+# Variables communes aux conteneurs Python (api, worker, scheduler).
+# DATABASE_URL et REDIS_URL sont assemblees ici a partir des mots de passe
+# uniques de .env : un mot de passe ne peut pas differer d'un service a l'autre.
+x-app-env: &app-env
+  TZ: Africa/Douala
+  DATABASE_URL: postgresql://${POSTGRES_USER:?POSTGRES_USER manquant dans deploy/.env}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD manquant dans deploy/.env}@db:5432/${POSTGRES_DB:?POSTGRES_DB manquant dans deploy/.env}
+  REDIS_URL: redis://:${REDIS_PASSWORD:?REDIS_PASSWORD manquant dans deploy/.env}@redis:6379/0
+  JWT_SECRET: ${JWT_SECRET:?JWT_SECRET manquant dans deploy/.env}
+  JWT_ALGORITHM: ${JWT_ALGORITHM:?JWT_ALGORITHM manquant dans deploy/.env}
+  AH2_API_BASE: https://${DOMAIN:?DOMAIN manquant dans deploy/.env}/api
+  IS_PROD: "true"
+  CORS_ORIGINS: https://${DOMAIN:?DOMAIN manquant dans deploy/.env}
+  PRODUCT_PHOTO_DIR: /app/storage/product_photos
+  CONSENT_STORAGE_DIR: /app/storage/toxico_consents
+
+services:
+  caddy:
+    <<: *common
+    image: ghcr.io/${GHCR_OWNER:?GHCR_OWNER manquant dans deploy/.env}/ah2-web:${IMAGE_TAG:?IMAGE_TAG manquant dans deploy/.env}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp" # HTTP/3
+    environment:
+      TZ: Africa/Douala
+      DOMAIN: ${DOMAIN:?DOMAIN manquant dans deploy/.env}
+      PS_PORT: ${PS_PORT:?PS_PORT manquant dans deploy/.env}
+      ACME_EMAIL: ${ACME_EMAIL:?ACME_EMAIL manquant dans deploy/.env}
+      # Jamais vide (Caddy refuse une valeur vide) : Let's Encrypt prod par defaut.
+      ACME_CA: ${ACME_CA:-https://acme-v02.api.letsencrypt.org/directory}
+      CADDY_TLS_MODE: ${CADDY_TLS_MODE:-}
+      # HSTS : vide par defaut (max-age=0, aucun epinglage). En production seulement
+      # (autorite Let's Encrypt reelle) : HSTS_HEADER=max-age=31536000 dans .env.
+      HSTS_HEADER: ${HSTS_HEADER:-max-age=0}
+    # Pas de cap_drop ALL. Avec no-new-privileges, la capacite de fichier (setcap) n'est
+    # PAS accordee : Caddy (uid 10001) lie 80/443 grace a ce sysctl, explicite ici
+    # (c'est deja le defaut de Docker >= 20.10 dans les espaces de noms de conteneur).
+    sysctls:
+      net.ipv4.ip_unprivileged_port_start: 0
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      ah2:
+        ipv4_address: 172.28.0.10 # adresse fixe, reprise dans FORWARDED_ALLOW_IPS
+    depends_on:
+      # service_started (pas healthy) : le site et le retour arriere doivent rester
+      # joignables (502) meme si l'API est en panne ou en cours de redemarrage.
+      api:
+        condition: service_started
+      powersync:
+        condition: service_started
+    # Sonde sur l'endpoint d'administration de Caddy (meme commande que le HEALTHCHECK
+    # de Dockerfile.web, verifiee a la tache 4) :
+    # elle ne depend ni du DNS ni du certificat. /healthz (HTTPS) se teste de l'exterieur.
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:2019/config/ || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    mem_limit: 256m
+
+  api:
+    <<: *common
+    image: ghcr.io/${GHCR_OWNER:?GHCR_OWNER manquant dans deploy/.env}/ah2-api:${IMAGE_TAG:?IMAGE_TAG manquant dans deploy/.env}
+    command: ["api"]
+    environment:
+      <<: *app-env
+      # Seul Caddy (adresse fixe) est cru pour X-Forwarded-For.
+      FORWARDED_ALLOW_IPS: 172.28.0.10
+      WEB_CONCURRENCY: ${WEB_CONCURRENCY:-2}
+    volumes:
+      - consents:/app/storage/toxico_consents
+      - product_photos:/app/storage/product_photos
+      - uploads:/app/static/uploads
+    networks:
+      - ah2
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "/app/deploy/entrypoints/healthcheck.sh"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+    stop_grace_period: 40s
+    mem_limit: 1536m
+
+  worker:
+    <<: *common
+    image: ghcr.io/${GHCR_OWNER:?GHCR_OWNER manquant dans deploy/.env}/ah2-api:${IMAGE_TAG:?IMAGE_TAG manquant dans deploy/.env}
+    command: ["worker"]
+    init: true
+    environment:
+      <<: *app-env
+      CELERY_CONCURRENCY: ${CELERY_CONCURRENCY:-2}
+    volumes:
+      # Les taches Celery ne lisent que les logos des en-tetes PDF.
+      - uploads:/app/static/uploads:ro
+    networks:
+      - ah2
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    # Pas de sonde propre : on neutralise celle qui viserait l'API.
+    healthcheck:
+      disable: true
+    stop_grace_period: 60s
+    mem_limit: 768m
+
+  scheduler:
+    <<: *common
+    image: ghcr.io/${GHCR_OWNER:?GHCR_OWNER manquant dans deploy/.env}/ah2-api:${IMAGE_TAG:?IMAGE_TAG manquant dans deploy/.env}
+    command: ["scheduler"]
+    init: true
+    environment:
+      <<: *app-env
+      # Alertes e-mail (tache 10), lancees par la crontab (*/10) : sondes par le reseau
+      # interne, SANS docker.sock (acces root a l'hote). Reglages SMTP et destinataires :
+      # dossier deploy/alerts monte en lecture seule sur /run/alerts.
+      DOMAIN: ${DOMAIN:?DOMAIN manquant dans deploy/.env}
+      ALERT_PROBE_POWERSYNC: http://powersync:${PS_PORT:?PS_PORT manquant dans deploy/.env}/probes/liveness
+      ALERT_CHECK_OFFSITE: ${ALERT_CHECK_OFFSITE:-1}
+      ALERT_DISK_PCT: ${ALERT_DISK_PCT:-80}
+    volumes:
+      - uploads:/app/static/uploads:ro
+      - backup_status:/var/lib/ah2-status:ro
+      - alerts_state:/var/lib/ah2-alerts
+      - ${ALERTS_CONFIG_DIR:-./alerts}:/run/alerts:ro
+      # Occupation disque des volumes de donnees (lecture seule, statvfs seulement).
+      - pgdata:/watch/pgdata:ro
+      - ps_storage_data:/watch/ps_storage:ro
+      - ${BACKUP_REPO_DIR:-/srv/ah2-backups}:/watch/backups:ro
+    networks:
+      - ah2
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      disable: true
+    stop_grace_period: 30s
+    mem_limit: 256m
+
+  db:
+    <<: *common
+    image: postgres:17.6-bookworm
+    command:
+      - postgres
+      - -c
+      - config_file=/etc/postgresql/postgresql.conf
+      - -c
+      - timezone=Africa/Douala
+      - -c
+      - log_timezone=Africa/Douala
+      - -c
+      - wal_level=logical
+      - -c
+      - max_wal_senders=10
+      - -c
+      - max_replication_slots=10
+    environment:
+      TZ: Africa/Douala
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER manquant dans deploy/.env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD manquant dans deploy/.env}
+      POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB manquant dans deploy/.env}
+      POWERSYNC_REPL_PASSWORD: ${POWERSYNC_REPL_PASSWORD:?POWERSYNC_REPL_PASSWORD manquant dans deploy/.env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro
+    networks:
+      - ah2
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    stop_grace_period: 60s
+    mem_limit: 1536m
+
+  redis:
+    <<: *common
+    image: redis:7.4.5-alpine
+    # Mot de passe lu dans l'environnement du conteneur (absent de la ligne de commande visible).
+    command: ["sh", "-c", "exec redis-server --requirepass \"$$REDIS_PASSWORD\" --appendonly yes --maxmemory 192mb --maxmemory-policy noeviction"]
+    environment:
+      TZ: Africa/Douala
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD manquant dans deploy/.env}
+    volumes:
+      - redis_data:/data
+    networks:
+      - ah2
+    healthcheck:
+      test: ["CMD-SHELL", "REDISCLI_AUTH=\"$$REDIS_PASSWORD\" redis-cli ping | grep -q PONG"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    mem_limit: 256m
+
+  powersync:
+    <<: *common
+    # Version 1.23.2 = celle du developpement (label OCI de l'image locale),
+    # figee par son empreinte (RepoDigest de l'image locale).
+    image: journeyapps/powersync-service:1.23.2@sha256:51a5917619cb69aa4d7257e5909db12afa5cf619c5c24c2109044bb6766b5b29
+    # La cle HS256 du client est le JWT_SECRET de l'API en base64url, calculee
+    # ici au demarrage : elle ne peut pas diverger de celle de l'API.
+    entrypoint:
+      - sh
+      - -c
+      - |
+        PS_APP_HS256_SECRET=$$(node -e 'process.stdout.write(Buffer.from(process.env.JWT_SECRET).toString("base64url"))')
+        export PS_APP_HS256_SECRET
+        exec node service/lib/entry.js "$$@"
+      - powersync-entrypoint
+    command: ["start", "-r", "unified"]
+    environment:
+      TZ: Africa/Douala
+      POWERSYNC_CONFIG_PATH: /config/service.yaml
+      NODE_OPTIONS: --max-old-space-size=700
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET manquant dans deploy/.env}
+      PS_DATA_SOURCE_URI: postgresql://powersync_repl:${POWERSYNC_REPL_PASSWORD:?POWERSYNC_REPL_PASSWORD manquant dans deploy/.env}@db:5432/${POSTGRES_DB:?POSTGRES_DB manquant dans deploy/.env}
+      PS_STORAGE_SOURCE_URI: postgresql://${PG_STORAGE_USER:?PG_STORAGE_USER manquant dans deploy/.env}:${PG_STORAGE_PASSWORD:?PG_STORAGE_PASSWORD manquant dans deploy/.env}@pg-storage:5432/${PG_STORAGE_DB:?PG_STORAGE_DB manquant dans deploy/.env}
+      PS_PORT: ${PS_PORT:?PS_PORT manquant dans deploy/.env}
+      PS_ADMIN_TOKEN: ${PS_ADMIN_TOKEN:?PS_ADMIN_TOKEN manquant dans deploy/.env}
+    volumes:
+      - ./powersync/service.prod.yaml:/config/service.yaml:ro
+      - ../powersync/sync-config.yaml:/config/sync-config.yaml:ro
+    networks:
+      - ah2
+    depends_on:
+      db:
+        condition: service_healthy
+      pg-storage:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://localhost:${PS_PORT:?PS_PORT manquant dans deploy/.env}/probes/liveness').then(r => r.ok ? process.exit(0) : process.exit(1)).catch(() => process.exit(1))"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 30s
+    mem_limit: 1024m
+
+  # Stockage interne PowerSync uniquement (comme powersync/docker-compose.yaml : postgres 18).
+  pg-storage:
+    <<: *common
+    image: postgres:18.0-bookworm
+    environment:
+      TZ: Africa/Douala
+      POSTGRES_USER: ${PG_STORAGE_USER:?PG_STORAGE_USER manquant dans deploy/.env}
+      POSTGRES_DB: ${PG_STORAGE_DB:?PG_STORAGE_DB manquant dans deploy/.env}
+      POSTGRES_PASSWORD: ${PG_STORAGE_PASSWORD:?PG_STORAGE_PASSWORD manquant dans deploy/.env}
+    volumes:
+      - ps_storage_data:/var/lib/postgresql
+    networks:
+      - ah2
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    mem_limit: 512m
+
+  # Sauvegardes (tache 9) : depot restic LOCAL chiffre dans le dossier hote BACKUP_REPO_DIR
+  # (pas un volume nomme : "docker compose down -v" ne doit jamais pouvoir l'effacer, et le PC
+  # de l'admin le recupere en lecture seule). Export de la base chaque heure, sauvegarde complete
+  # chaque nuit, envoi SFTP Hostinger chaque semaine. Planification : variables BACKUP_*_CRON.
+  # Uid 10001 (comme l'API) : il lit les volumes de fichiers (montes en lecture seule).
+  # Le volume backup_status contient les marqueurs last_success_* lus par le service alerts.
+  backup:
+    <<: *common
+    image: ghcr.io/${GHCR_OWNER:?GHCR_OWNER manquant dans deploy/.env}/ah2-backup:${IMAGE_TAG:?IMAGE_TAG manquant dans deploy/.env}
+    environment:
+      TZ: Africa/Douala
+      RESTIC_PASSWORD: ${RESTIC_PASSWORD:?RESTIC_PASSWORD manquant dans deploy/.env}
+      PGHOST: db
+      PGUSER: ${POSTGRES_USER:?POSTGRES_USER manquant dans deploy/.env}
+      PGPASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD manquant dans deploy/.env}
+      PGDATABASE: ${POSTGRES_DB:?POSTGRES_DB manquant dans deploy/.env}
+      BACKUP_HOURLY_CRON: ${BACKUP_HOURLY_CRON:-7 * * * *}
+      BACKUP_NIGHTLY_CRON: ${BACKUP_NIGHTLY_CRON:-30 2 * * *}
+      BACKUP_OFFSITE_CRON: ${BACKUP_OFFSITE_CRON:-30 4 * * 0}
+      BACKUP_VERIFY_CRON: ${BACKUP_VERIFY_CRON:-15 5 * * 3}
+      KEEP_HOURLY: ${KEEP_HOURLY:-48}
+      KEEP_DAILY: ${KEEP_DAILY:-14}
+      KEEP_WEEKLY: ${KEEP_WEEKLY:-8}
+      KEEP_MONTHLY: ${KEEP_MONTHLY:-6}
+      BACKUP_SFTP_HOST: ${BACKUP_SFTP_HOST:-}
+      BACKUP_SFTP_USER: ${BACKUP_SFTP_USER:-}
+      BACKUP_SFTP_PATH: ${BACKUP_SFTP_PATH:-}
+      BACKUP_SFTP_PORT: ${BACKUP_SFTP_PORT:-22}
+    volumes:
+      - ${BACKUP_REPO_DIR:-/srv/ah2-backups}:/backups/repo
+      - uploads:/data/uploads:ro
+      - product_photos:/data/product_photos:ro
+      - consents:/data/consents:ro
+      - backup_status:/var/lib/ah2-status
+      # Secrets du serveur (jamais dans git) : voir docs/exploitation/sauvegardes.md
+      - ${BACKUP_SFTP_KEY_FILE:-./secrets/backup_sftp_key}:/run/secrets/backup_sftp_key:ro
+      - ${BACKUP_KNOWN_HOSTS_FILE:-./secrets/backup_known_hosts}:/run/secrets/backup_known_hosts:ro
+    networks:
+      - ah2
+    depends_on:
+      db:
+        condition: service_healthy
+    # Sain = un export horaire a reussi il y a moins de 2 h (marqueur ecrit par hourly.sh).
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - 'f=/var/lib/ah2-status/last_success_hourly; [ -r $$f ] && [ $$(( $$(date +%s) - $$(cat $$f) )) -lt 7200 ] || exit 1'
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 10m
+    stop_grace_period: 120s
+    mem_limit: 256m
+
+networks:
+  ah2:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/24
+          # Adresses dynamiques dans la moitie haute : jamais en collision avec Caddy (172.28.0.10).
+          ip_range: 172.28.0.128/25
+
+volumes:
+  pgdata:
+  ps_storage_data:
+  uploads:
+  product_photos:
+  consents:
+  caddy_data:
+  caddy_config:
+  redis_data:
+  backup_status:
+  alerts_state:

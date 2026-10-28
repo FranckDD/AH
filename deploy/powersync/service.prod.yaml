@@ -1,0 +1,46 @@
+# Service PowerSync de production (derive de powersync/service.yaml).
+# Monte dans le conteneur en /config/service.yaml ; sync-config.yaml du depot
+# est monte a cote (/config/sync-config.yaml). Seules les variables PS_ sont
+# substituables par !env.
+
+_type: self-hosted
+
+telemetry:
+  disable_telemetry_sharing: false
+
+replication:
+  connections:
+    - type: postgresql
+      uri: !env PS_DATA_SOURCE_URI
+      # Reseau Docker prive (db n'est jamais publie sur l'hote) : pas de TLS.
+      sslmode: disable
+
+storage:
+  type: postgresql
+  uri: !env PS_STORAGE_SOURCE_URI
+  sslmode: disable # idem : pg-storage reste sur le reseau interne
+
+port: !env PS_PORT
+
+sync_config:
+  path: sync-config.yaml
+
+# Cle HS256 = JWT_SECRET de l'API (encode en base64url). Le compose la calcule
+# au demarrage a partir de JWT_SECRET : les deux ne peuvent pas diverger.
+client_auth:
+  audience: ["ah2-web"]
+  jwks:
+    keys:
+      - kty: oct
+        alg: HS256
+        kid: ah2-hs256-1
+        k: !env PS_APP_HS256_SECRET
+
+api:
+  tokens:
+    - !env PS_ADMIN_TOKEN
+
+system:
+  logging:
+    level: info
+    format: text

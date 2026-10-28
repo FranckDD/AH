@@ -1,0 +1,138 @@
+# Caddyfile de production AH2 : une seule porte d'entree (HTTPS) pour l'interface,
+# l'API (/api/*) et PowerSync (/sync/*).
+#
+# Variables d'environnement (passees par le compose) :
+#   DOMAIN          obligatoire. Nom du site (ex. app.ahandtohumanity-ngo.org).
+#   PS_PORT         obligatoire. Port interne du service PowerSync (ex. 8080).
+#   ACME_EMAIL      obligatoire. Adresse de contact pour Let's Encrypt.
+#   ACME_CA         facultatif, NON VIDE si defini (une valeur vide est une erreur de
+#                   syntaxe) : le compose doit ecrire ${ACME_CA:-https://acme-v02.api.letsencrypt.org/directory}.
+#                   Absent = Let's Encrypt production (valeur par defaut de l'image).
+#                   Tant que le DNS ne pointe pas vers le serveur, mettre l'autorite
+#                   de test : https://acme-staging-v02.api.letsencrypt.org/directory
+#   HSTS_HEADER     facultatif. Valeur de Strict-Transport-Security. Defaut "max-age=0"
+#                   (aucun epinglage : sans risque avec l'autorite de test ou
+#                   local_certs). La production, une fois le vrai certificat obtenu,
+#                   met max-age=31536000.
+#   CADDY_TLS_MODE  facultatif. Vide = certificats publics. "local_certs" = certificats
+#                   internes (repetition locale, DOMAIN=localhost), aucun contact
+#                   avec Let's Encrypt.
+{
+	email {$ACME_EMAIL}
+	acme_ca {$ACME_CA:https://acme-v02.api.letsencrypt.org/directory}
+	{$CADDY_TLS_MODE}
+}
+
+# En-tetes de securite des fichiers de l'interface. L'API pose les siens
+# (CSP, HSTS) sur ses propres reponses : ils ne sont donc pas ajoutes sur /api/*.
+# CSP alignee sur celle de l'API (unsafe-eval : vue-i18n compile ses messages a
+# l'execution), plus ce que l'interface utilise reellement : wasm et workers
+# PowerSync (worker-src blob:), images blob:/data: (logos, photos, apercus),
+# WebSocket PowerSync (wss://DOMAIN), pont d'impression local (127.0.0.1:9123).
+(security_headers) {
+	header {
+		Strict-Transport-Security "{$HSTS_HEADER:max-age=0}"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-eval' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' wss://{$DOMAIN} http://127.0.0.1:9123; worker-src 'self' blob:; object-src 'self' blob:; frame-src 'self' blob:; manifest-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+	}
+}
+
+{$DOMAIN} {
+	# Pas de compression sur le flux PowerSync (/sync/*, deja compresse, flux continu).
+	@compressible not path /sync/*
+	encode @compressible zstd gzip
+
+	# Journal d'acces : sans chaine de requete (termes de recherche de patients),
+	# sans cookies ni en-tetes d'autorisation.
+	log {
+		output stdout
+		format filter {
+			wrap json
+			fields {
+				request>uri regexp \?.* ""
+				request>headers>Cookie delete
+				request>headers>Authorization delete
+				request>headers>Proxy-Authorization delete
+				resp_headers>Set-Cookie delete
+			}
+		}
+	}
+
+	# Sante de Caddy lui-meme (healthcheck du compose).
+	handle /healthz {
+		respond "ok" 200
+	}
+
+	# "/api" et "/sync" tout court (sans barre finale) : 404, pas de repli sur l'interface.
+	@bareprefix path /api /sync
+	handle @bareprefix {
+		respond "Not found" 404
+	}
+
+	# API : le prefixe /api est retire. X-Forwarded-For est ECRASE par l'adresse
+	# reelle du client (jamais la valeur envoyee depuis internet) : l'API ne fait
+	# confiance a cet en-tete que s'il vient de Caddy. Corps limite a 6 Mo
+	# (photos et consentements plafonnes a 5 Mo par le code).
+	handle_path /api/* {
+		# Refus immediat (413) si Content-Length annonce plus de 6 Mo (6291456 octets) :
+		# request_body seul ne coupe qu'a la lecture du corps, trop tard si l'amont
+		# repond sans le lire (comparaison de chaines : sans Content-Length, GET, le test
+		# est faux). request_body reste le filet pour l'envoi en morceaux.
+		@toolarge expression `size({http.request.header.Content-Length}) > 7 || (size({http.request.header.Content-Length}) == 7 && {http.request.header.Content-Length} > '6291456')`
+		route {
+			respond @toolarge "Request entity too large" 413
+			request_body {
+				max_size 6MB
+			}
+			reverse_proxy api:8000 {
+				header_up X-Forwarded-For {remote_host}
+				header_up X-Forwarded-Proto {scheme}
+				header_up X-Forwarded-Host {host}
+			}
+		}
+	}
+
+	# PowerSync : HTTP en flux et WebSocket. flush_interval -1 = pas de tampon.
+	handle_path /sync/* {
+		reverse_proxy powersync:{$PS_PORT} {
+			flush_interval -1
+			header_up X-Forwarded-For {remote_host}
+			header_up X-Forwarded-Proto {scheme}
+			header_up X-Forwarded-Host {host}
+			transport http {
+				dial_timeout 5s
+				read_timeout 0
+				write_timeout 0
+			}
+		}
+	}
+
+	# Fichiers a empreinte (nom change a chaque build) : cache d'un an. Un fichier
+	# inconnu ici renvoie 404 (pas de repli sur index.html).
+	handle /assets/* {
+		import security_headers
+		header Cache-Control "public, max-age=31536000, immutable"
+		root * /srv
+		file_server
+	}
+
+	# Interface (PWA) : repli sur index.html pour les liens profonds. Tout est
+	# revalide (no-cache) : index.html, sw.js, workbox-*.js, registerSW.js,
+	# manifest.webmanifest, icones. Pas de listing de repertoire (pas de "browse").
+	handle {
+		import security_headers
+		header Cache-Control "no-cache"
+		root * /srv
+		try_files {path} /index.html
+		file_server
+	}
+
+	# Une erreur (ex. 404 sous /assets/) ne doit jamais etre mise en cache.
+	handle_errors {
+		header Cache-Control "no-store"
+		respond "{err.status_code} {err.status_text}" {err.status_code}
+	}
+}

@@ -1,0 +1,21 @@
+# Liste blanche pour deploy/Dockerfile.web (BuildKit lit <Dockerfile>.dockerignore).
+# Tout est exclu, puis seules les sources de l'interface sont reincluses.
+# node_modules, dist, tests, .env* (dont .env.local qui pointe vers 127.0.0.1:8200)
+# restent dehors : les VITE_* ne passent que par les ARG du Dockerfile.
+*
+
+!ah2-admin-web/package.json
+!ah2-admin-web/package-lock.json
+!ah2-admin-web/index.html
+!ah2-admin-web/vite.config.js
+!ah2-admin-web/postcss.config.js
+!ah2-admin-web/src
+!ah2-admin-web/public
+!deploy/Caddyfile
+
+# Exclusions fines a l'interieur des dossiers reinclus
+**/.env
+**/.env.*
+**/node_modules
+**/dist
+**/*.log

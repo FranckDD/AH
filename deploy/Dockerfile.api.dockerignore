@@ -1,0 +1,39 @@
+# Liste blanche pour deploy/Dockerfile.api (BuildKit lit <Dockerfile>.dockerignore).
+# Tout est exclu, puis seul le code utile a l'API est reinclus. Ainsi .git, .env*,
+# node_modules, ah2-admin-web, view*, build, dist, htmlcov, docs, exports, tests,
+# .superpowers, storage, static/uploads, *.db, *.sqlite, Offline_access, _corbeille,
+# printer_bridge, powersync, dumps ah2_v3_*, *.log, installeurs... restent dehors.
+# deploy/Dockerfile.web (tache 4) aura son propre fichier .dockerignore.
+*
+
+!requirements-api.txt
+!api_backend
+!controller
+!repositories
+!models
+!utils
+!tasks
+!alembic
+!alembic.ini
+!celery_app.py
+!ci
+!scripts
+!assets/logo_light.png
+!assets/logo_dark.png
+!assets/ahlogo.png
+!deploy/entrypoints
+!deploy/scheduler
+!deploy/alerts
+
+# Exclusions fines a l'interieur des dossiers reinclus
+**/__pycache__
+**/*.pyc
+**/.env
+**/.env.*
+**/*.log
+# Reglages reels des alertes (secrets) : montes sur le serveur, jamais dans l'image
+deploy/alerts/alerts.env
+deploy/alerts/recipients.txt
+**/*.db
+**/*.sqlite
+api_backend/static/uploads

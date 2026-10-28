@@ -1,0 +1,7 @@
+# Planificateur AH2 (supercronic), fuseau Africa/Douala. Repertoire de travail : /app.
+# Rattrapage de la cloture de caisse (idempotent) : chaque heure a la minute 5.
+5 * * * * python scripts/cash_closure_catchup.py
+# Controle quotidien : chaque jour a 23 h 30.
+30 23 * * * python scripts/daily_control.py
+# Alertes e-mail (controles disque, sauvegardes, services, certificat) : toutes les 10 minutes.
+*/10 * * * * python -m deploy.alerts.run_checks

@@ -1,0 +1,52 @@
+# syntax=docker/dockerfile:1
+# Image web : build Vite (PWA) puis Caddy 2 qui sert l'interface et fait le proxy.
+# Contexte de build : la racine du depot.
+#   docker build -f deploy/Dockerfile.web -t ah2-web --build-arg DOMAIN=app.exemple.org .
+# Le fichier deploy/Dockerfile.web.dockerignore (liste blanche) est lu par BuildKit :
+# aucun .env* (ex. ah2-admin-web/.env.local) n'entre dans le build.
+
+# --- Etape 1 : build de l'interface
+FROM node:24-bookworm-slim AS build
+WORKDIR /app
+
+# Les URL sont "cuites" dans le JS au build ; tout passe par ARG (jamais par fichier .env).
+ARG DOMAIN=localhost
+ARG VITE_API_URL=https://${DOMAIN}/api
+ARG VITE_POWERSYNC_URL=https://${DOMAIN}/sync
+ARG VITE_PRINT_BRIDGE_URL=http://127.0.0.1:9123
+ENV VITE_API_URL=${VITE_API_URL} \
+    VITE_POWERSYNC_URL=${VITE_POWERSYNC_URL} \
+    VITE_PRINT_BRIDGE_URL=${VITE_PRINT_BRIDGE_URL} \
+    NODE_OPTIONS=--max-old-space-size=2048 \
+    npm_config_fund=false npm_config_audit=false
+
+COPY ah2-admin-web/package.json ah2-admin-web/package-lock.json ./
+RUN npm ci
+
+COPY ah2-admin-web/ ./
+RUN npx vite build
+
+# --- Etape 2 : Caddy
+FROM caddy:2.10.2-alpine
+
+# tzdata : TZ=Africa/Douala (compose) donne WAT dans le conteneur (sinon UTC).
+# Caddy tourne sans root : la capacite de se lier aux ports 80/443 est portee par
+# le binaire (setcap). Le compose ne doit pas faire cap_drop: ALL sans
+# cap_add: NET_BIND_SERVICE. /data (certificats) et /config doivent etre
+# inscriptibles par l'uid 10001 (un volume nomme herite du proprietaire de l'image).
+RUN apk add --no-cache libcap tzdata \
+ && setcap cap_net_bind_service=+ep /usr/bin/caddy \
+ && apk del libcap \
+ && addgroup -g 10001 -S ah2 && adduser -u 10001 -S -G ah2 -H -s /sbin/nologin ah2 \
+ && mkdir -p /data/caddy /config/caddy \
+ && chown -R 10001:10001 /data /config
+
+COPY --from=build /app/dist /srv
+COPY deploy/Caddyfile /etc/caddy/Caddyfile
+
+ENV ACME_CA=https://acme-v02.api.letsencrypt.org/directory
+
+USER 10001:10001
+EXPOSE 80 443
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+  CMD wget -q -O /dev/null http://127.0.0.1:2019/config/ || exit 1
