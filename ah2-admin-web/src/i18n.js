@@ -2907,6 +2907,9 @@ const messages = {
         invoice_amount: "Montant facture",
         reduced_amount: "Montant réduit",
       },
+      waiting_for: "En attente de {name}",
+      waiting_for_you: "En attente de votre decision",
+      go_review: "Ouvrir les demandes a traiter",
     },
     ui: {
       noResults: "Aucun résultat",
@@ -3323,7 +3326,12 @@ const messages = {
       hide_password: "Masquer le mot de passe",
       save_failed: "Enregistrement refusé par le serveur.",
       delete_failed: "Suppression impossible.",
-      delete_confirm: "Voulez-vous vraiment supprimer {name} ?"
+      delete_confirm: "Voulez-vous vraiment supprimer {name} ?",
+      unlock: "Déverrouiller",
+      locked: "Verrouillé",
+      unlock_confirm: "Déverrouiller le compte de {name} ?",
+      unlock_done: "Compte déverrouillé.",
+      unlock_failed: "Déverrouillage impossible."
     },
     adminDashboard: {
       go_reports: "Ouvrir les rapports",
@@ -6415,6 +6423,9 @@ const messages = {
         invoice_amount: "Invoice amount",
         reduced_amount: "Reduced amount",
       },
+      waiting_for: "Waiting for {name}",
+      waiting_for_you: "Waiting for your decision",
+      go_review: "Open requests to review",
     },
     ui: {
       noResults: "No results",
@@ -6831,7 +6842,12 @@ const messages = {
       hide_password: "Hide password",
       save_failed: "The server refused the save.",
       delete_failed: "Deletion failed.",
-      delete_confirm: "Do you really want to delete {name}?"
+      delete_confirm: "Do you really want to delete {name}?",
+      unlock: "Unlock",
+      locked: "Locked",
+      unlock_confirm: "Unlock the account of {name}?",
+      unlock_done: "Account unlocked.",
+      unlock_failed: "Unlocking failed."
     },
     adminDashboard: {
       go_reports: "Open the reports",

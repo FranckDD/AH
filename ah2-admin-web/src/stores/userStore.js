@@ -65,6 +65,7 @@ export const useUserStore = defineStore('user', () => {
                     isActive: u.is_active,
                     isHeadNurse: u.is_head_nurse || false,
                     seesOwnToxicoOnly: u.sees_own_toxico_only || false,
+                    locked: u.locked === true,
                     originalData: u
                 };
             });
@@ -155,6 +156,12 @@ export const useUserStore = defineStore('user', () => {
         }
     }
 
+    async function unlockUser(id) {
+        await api.post(`/users/${id}/unlock`);
+        const u = userData.value.data.find(x => x.id === id);
+        if (u) u.locked = false;
+    }
+
     async function deleteUser(id) {
         isLoading.value = true;
         try {
@@ -179,6 +186,6 @@ export const useUserStore = defineStore('user', () => {
             total_pages: userData.value.total_pages
         })),
         isLoading, error, filters,
-        fetchUsers, addUser, updateUser, deleteUser, setPage, setFilters
+        fetchUsers, addUser, updateUser, deleteUser, setPage, setFilters, unlockUser
     };
 });

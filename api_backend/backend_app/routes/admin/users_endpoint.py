@@ -14,6 +14,7 @@ from api_backend.backend_app.routes.auth.auth_endpoints import get_current_user,
 from api_backend.backend_app.exceptions import translate_integrity_error
 from .users_schemas import RoleOut, SpecialtyOut, UserCreate, UserUpdate, UserOut, UserListResponse
 from .mapping import normalize_user_data
+from api_backend.backend_app.security.login_lockout import get_store as get_lockout_store
 
 logger = logging.getLogger(__name__)
 
@@ -101,14 +102,26 @@ def list_users(
     per_page: int = Query(50, ge=1, le=500),
     search: Optional[str] = None,
     user_ctrl: UserController = Depends(get_user_controller),
+    current_user=Depends(get_current_user),
 ):
     """Liste tous les utilisateurs ou recherche par terme, toujours paginee."""
     if search:
         raws, total = user_ctrl.search_users(search, page=page, per_page=per_page)
     else:
         raws, total = user_ctrl.list_users(page=page, per_page=per_page)
+    items = [_safe_validate_user(u) for u in raws]
+    # L'etat de verrouillage n'est montre qu'a un admin (seul role pouvant deverrouiller).
+    is_admin = "admin" in {str(r).strip().lower() for r in (getattr(current_user, "roles", None) or [])}
+    locked = set()
+    if is_admin:
+        try:
+            locked = get_lockout_store().locked_usernames([i.username for i in items])
+        except Exception:
+            locked = set()
+    for item in items:
+        item.locked = item.username in locked
     return {
-        "data": [_safe_validate_user(u) for u in raws],
+        "data": items,
         "total": total,
         "page": page,
         "per_page": per_page,
@@ -221,6 +234,21 @@ def update_user(user_id: int, data: UserUpdate, user_ctrl: UserController = Depe
         raise HTTPException(status_code=500, detail="Erreur serveur maj")
     except RuntimeError as re:
         raise HTTPException(status_code=500, detail=str(re))
+
+
+@router.post("/{user_id}/unlock", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(role_required("admin"))])
+def unlock_user(user_id: int, user_ctrl: UserController = Depends(get_user_controller), actor=Depends(get_current_user)):
+    """Deverrouille un compte bloque apres des echecs de connexion repetes (admin uniquement)."""
+    target = user_ctrl.user_repo.get_user_by_id(user_id)
+    if target is None:
+        raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
+    try:
+        get_lockout_store().unlock(target.username)
+    except Exception:
+        logger.exception("Deverrouillage impossible (stockage de verrouillage)")
+        raise HTTPException(status_code=503, detail="Deverrouillage impossible : stockage de verrouillage indisponible, reessayer.")
+    _audit_user(user_ctrl.user_repo.session, actor, "UNLOCK", user_id, {}, {"username": target.username})
+    return None
 
 
 @router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(role_required("admin", "manager"))])

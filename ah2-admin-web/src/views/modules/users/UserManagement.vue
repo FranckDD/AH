@@ -54,9 +54,13 @@
         <template #cell-status="{ row: user }">
           <StatusBadge v-if="user.isActive" tone="success" :label="t('usersScreens.active')" />
           <StatusBadge v-else tone="neutral" :label="t('usersScreens.inactive')" />
+          <StatusBadge v-if="user.locked" class="mt-1.5" tone="danger" :label="t('usersScreens.locked')" />
         </template>
 
         <template #actions="{ row: user }">
+          <AppButton v-if="canUnlock && user.locked" variant="secondary" :icon="LockOpenIcon" :title="t('usersScreens.unlock')" @click="confirmUnlock(user)">
+            <span>{{ t('usersScreens.unlock') }}</span>
+          </AppButton>
           <AppButton variant="secondary" :icon="PencilSquareIcon" :title="t('users.modal.edit_title')" @click="openEditModal(user)">
             <span class="lg:sr-only">{{ t('usersScreens.edit') }}</span>
           </AppButton>
@@ -94,14 +98,17 @@ import api from '@/services/api';
 import UserModal from '@/components/users/UserModal.vue'; 
 import { useI18n } from 'vue-i18n'; 
 import { useToastStore } from '@/stores/toastStore';
+import { useAuthStore } from '@/stores/auth';
 import { describeServerError } from '@/utils/serverError';
 import { AppButton, PageHeader, FormField, StatusBadge, ResponsiveTable } from '@/components/ui';
 import { 
-    PlusIcon, PencilSquareIcon, TrashIcon, MagnifyingGlassIcon, ChevronLeftIcon, ChevronRightIcon 
+    PlusIcon, PencilSquareIcon, TrashIcon, LockOpenIcon, MagnifyingGlassIcon, ChevronLeftIcon, ChevronRightIcon 
 } from '@heroicons/vue/24/outline';
 
 const userStore = useUserStore();
 const toastStore = useToastStore();
+const authStore = useAuthStore();
+const canUnlock = computed(() => authStore.hasRole(['admin']));
 const { t } = useI18n();
 
 // Colonnes du tableau (cartes empilees sous lg) et style commun des champs.
@@ -198,6 +205,17 @@ const handleSaveUser = async (userData) => {
     } catch(error) {
         // Le formulaire reste ouvert : on dit pourquoi le serveur a refuse (identifiant deja pris, etc.)
         toastStore.push(describeServerError(error, t('usersScreens.save_failed')), 'error');
+    }
+};
+
+const confirmUnlock = async (user) => {
+    if (confirm(t('usersScreens.unlock_confirm', { name: `${user.firstName} ${user.lastName}` }))) {
+        try {
+            await userStore.unlockUser(user.id);
+            toastStore.push(t('usersScreens.unlock_done'), 'success');
+        } catch (error) {
+            toastStore.push(describeServerError(error, t('usersScreens.unlock_failed')), 'error');
+        }
     }
 };
 

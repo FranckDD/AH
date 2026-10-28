@@ -62,6 +62,13 @@
         </template>
         <template #cell-status="{ row: r }">
           <StatusBadge :tone="statusTone(r.status)" :label="t(`discount_history.status.${r.status}`)" />
+          <p v-if="r.status === 'pending' && r.requested_to_name" class="mt-1 text-sm text-ink">
+            <template v-if="isForMe(r)">
+              <span class="font-semibold">{{ t('discount_history.waiting_for_you') }}</span>
+              <router-link v-if="canReview" :to="{ name: 'discount-review' }" class="ml-2 font-medium text-brand-600 underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600">{{ t('discount_history.go_review') }}</router-link>
+            </template>
+            <template v-else>{{ t('discount_history.waiting_for', { name: r.requested_to_name }) }}</template>
+          </p>
         </template>
       </ResponsiveTable>
 
@@ -82,9 +89,16 @@ import { useI18n } from 'vue-i18n';
 import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/vue/24/outline';
 import { DiscountRequestGateway } from '@/services/DiscountRequestGateway';
 import { todayLocalISO } from '@/utils/localDate';
+import { useAuthStore } from '@/stores/auth';
 import { AppButton, PageHeader, FormField, StatTile, StatusBadge, ResponsiveTable } from '@/components/ui';
 
 const { t } = useI18n();
+const authStore = useAuthStore();
+
+// Demande en attente adressee a l'utilisateur connecte (la decision reste sur l'ecran DiscountReview).
+const currentUserId = () => authStore.user?.id ?? authStore.user?.user_id ?? null;
+const isForMe = (r) => r.requested_to != null && r.requested_to === currentUserId();
+const canReview = computed(() => authStore.hasRole(['admin', 'promoteur']));
 
 // Colonnes du tableau (cartes sous lg) et style commun des champs.
 const columns = computed(() => [

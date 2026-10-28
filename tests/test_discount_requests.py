@@ -601,3 +601,32 @@ def test_build_ticket_data_no_discount_block_for_plain_transaction(db_session, s
     caisse_ctrl = CaisseController(repo=caisse_repo, current_user=secretaire_user, discount_repo=DiscountRequestRepository(db_session))
     ticket = caisse_ctrl.build_ticket_data(tx.transaction_id)
     assert ticket["discount"] is None
+
+
+def test_history_items_carry_recipient_for_pending_request(api_client, db_session):
+    """Un item en attente expose requested_to (id) et requested_to_name ;
+    les cles existantes restent inchangees."""
+    client = api_client(auth_endpoints, discount_endpoints)
+    sec = create_test_user(db_session, "dh4_sec", "secretaire", password=TEST_PASSWORD)
+    manager = create_test_user(db_session, "dh4_mgr", "admin", password=TEST_PASSWORD)
+    sec_headers = auth_headers(client, "dh4_sec", TEST_PASSWORD)
+    mgr_headers = auth_headers(client, "dh4_mgr", TEST_PASSWORD)
+    invoice_data = {
+        "payment_method": "Espèces", "transaction_type": "Consultation",
+        "amount": 2000, "advance_amount": 0,
+        "items": [{"item_type": "Service", "item_ref_id": 0, "unit_price": 2000, "quantity": 1, "line_total": 2000}],
+    }
+    r = client.post("/discount-requests", json={"invoice_data": invoice_data, "requested_to": manager.user_id}, headers=sec_headers)
+    assert r.status_code == 201
+    for headers in (sec_headers, mgr_headers):
+        r = client.get("/discount-requests/history", headers=headers)
+        assert r.status_code == 200
+        item = r.json()["data"][0]
+        assert item["status"] == "pending"
+        assert item["requested_to"] == manager.user_id
+        assert item["requested_to_name"]
+        for key in ("id", "transaction_id", "created_at", "decided_at", "status", "patient_id", "patient_label",
+                    "requested_by_name", "decided_by_name", "original_amount", "decision_percent",
+                    "decision_echelonne_deadline", "reduced_amount"):
+            assert key in item
+

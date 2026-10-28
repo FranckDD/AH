@@ -161,9 +161,12 @@ def reset_rate_limiter():
     Evite que les tests successifs de /auth/login ne se bloquent entre eux :
     TestClient envoie toutes ses requetes avec la meme adresse cliente
     ('testclient'), slowapi la traiterait sinon comme un seul appelant
-    cumulant les appels de tous les tests (limite : 5/minute, SEC-05).
+    cumulant les appels de tous les tests (limite par IP : 60/minute, SEC-05). Remet aussi a
+    zero l'etat de verrouillage de compte (chantier 8, tache 5b) pour qu'aucun verrou ne fuie.
     """
+    from api_backend.backend_app.security import login_lockout
     limiter.reset()
+    login_lockout.get_store().clear_all()
     yield
 
 

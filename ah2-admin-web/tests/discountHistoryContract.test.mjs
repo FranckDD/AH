@@ -96,3 +96,21 @@ test('protocole du test d’utilisation de la secrétaire : cinq tâches types, 
     assert.match(protocol, /penser à voix haute/i);
     assert.doesNotMatch(protocol, /facture|encaisser|retrait/i, 'les tâches de caisse relèvent de la phase 3');
 });
+
+// --- Attente d'un destinataire precis ---
+test('mentions "En attente de {name}" / "Waiting for" en FR et EN, ASCII, sans bouton de decision', () => {
+    for (const locale of ['fr', 'en']) {
+        for (const k of ['waiting_for', 'waiting_for_you', 'go_review']) {
+            const v = msgs[locale].discount_history?.[k];
+            assert.equal(typeof v, 'string', `${locale}.discount_history.${k}`);
+            assert.doesNotMatch(v, /[^ -~]/, `${locale}.${k} non ASCII`);
+        }
+        assert.match(msgs[locale].discount_history.waiting_for, /\{name\}/);
+    }
+    for (const k of ['waiting_for', 'waiting_for_you', 'go_review']) assert.ok(view.includes(`discount_history.${k}`), k);
+    assert.match(view, /r\.requested_to_name/);
+    assert.match(view, /r\.requested_to === currentUserId\(\)/);
+    assert.match(view, /name: 'discount-review'/);
+    assert.doesNotMatch(view, /\.decide\b|decide\(|approve\(|refuse\(/);
+});
+

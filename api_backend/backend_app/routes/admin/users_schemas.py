@@ -56,6 +56,7 @@ class UserOut(BaseModel):
     specialty_id: Optional[int] = None
     specialty_name: Optional[str] = None
     roles: Optional[List[str]] = None  # propriété calculée si présente
+    locked: bool = False  # compte verrouillé après échecs de connexion (liste admin uniquement)
 
     model_config = ConfigDict(from_attributes=True, json_schema_extra={
         "example": {

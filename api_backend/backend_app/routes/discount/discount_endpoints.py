@@ -117,6 +117,7 @@ def _request_to_history_dict(r: DiscountRequest) -> Dict[str, Any]:
         "patient_id": r.transaction.patient_id if r.transaction else None,
         "patient_label": _patient_name(r.transaction),
         "requested_by_name": (r.requester.full_name or r.requester.username) if r.requester else None,
+        "requested_to": r.requested_to,
         "requested_to_name": (r.recipient.full_name or r.recipient.username) if r.recipient else None,
         "decided_by_name": (r.decider.full_name or r.decider.username) if r.decider else None,
         "original_amount": float(r.original_amount),

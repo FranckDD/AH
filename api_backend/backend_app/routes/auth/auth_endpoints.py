@@ -9,6 +9,8 @@ from jose import ExpiredSignatureError, jwt as jose_jwt ,JWTError
 from ...database import SessionLocal
 from ...config import JWT_SECRET, JWT_ALGORITHM, JWT_EXPIRE_MINUTES
 from ...rate_limit import limiter
+from ...security.login_lockout import get_store as get_lockout_store, LOGIN_IP_LIMIT, LOCK_SECONDS, MAX_FAILURES
+from models.user import pwd_context
 from ...exceptions import translate_integrity_error
 from controller.auth_controller import AuthController
 from controller.user_controller import UserController
@@ -28,6 +30,9 @@ JWT_AUDIENCE = "ah2-web"
 
 router = APIRouter()
 
+# Hash factice pour garder un cout de verification similaire quand le compte est verrouille.
+_DUMMY_HASH = pwd_context.hash("dummy-password-not-used")
+
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
 # Dependency
@@ -40,12 +45,34 @@ def get_db():
         db.close()
 
 @router.post("/auth/login", response_model=Token, tags=["Authentication"])
-@limiter.limit("5/minute")
+@limiter.limit(LOGIN_IP_LIMIT)  # anti-abus large par IP (le centre partage une seule adresse NAT)
 def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     auth_ctrl = AuthController(db_session=db)
-    user = auth_ctrl.authenticate(form_data.username, form_data.password)
+    lockout = get_lockout_store()
+    generic_401 = HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Identifiants invalides")
+    if lockout.is_locked(form_data.username):
+        # Compte verrouille : meme reponse qu'un mauvais mot de passe, meme meme avec le bon.
+        # Verification factice pour garder un cout comparable ; aucun audit (une ligne par verrouillage).
+        pwd_context.verify(form_data.password, _DUMMY_HASH)
+        raise generic_401
+    client_ip = request.client.host if request.client else None
+    user = auth_ctrl.authenticate(form_data.username, form_data.password, ip_address=client_ip)
     if not user:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Identifiants invalides")
+        if lockout.register_failure(form_data.username):
+            # Une seule ligne d'audit par verrouillage, et seulement si le compte existe
+            # (rien dans l'audit ne distingue un identifiant inconnu). Jamais le mot de passe.
+            known = auth_ctrl.user_repo.get_user_by_username(form_data.username)
+            if known is not None:
+                auth_ctrl._record_access(
+                    known, "ACCOUNT_LOCKED",
+                    f"Compte verrouille {LOCK_SECONDS // 60} min apres {MAX_FAILURES} echecs : {form_data.username}",
+                    ip_address=client_ip)
+        raise generic_401
+    if lockout.is_locked(form_data.username):
+        # Rafale parallele : le verrou est apparu pendant la verification (bcrypt). Un succes
+        # arrive apres le 5e echec est refuse, et le compteur n'est pas remis a zero.
+        raise generic_401
+    lockout.reset(form_data.username)
 
     # s'assurer que la relation application_role est chargée (sécurité)
     try:
@@ -276,12 +303,26 @@ def update_password(
     
     # On instancie le contrôleur avec la session DB
     auth_ctrl = AuthController(db_session=db)
-    
-    auth_ctrl.change_user_password(
-        user_id=current_user.user_id, # L'ID vient du token décodé
-        old_pass=password_data.old_password,
-        new_pass=password_data.new_password
-    )
+
+    # Meme cle de verrouillage que le login (identifiant de l'utilisateur authentifie) : on ne
+    # peut pas deviner l'ancien mot de passe avec un jeton vole. Compte verrouille => meme erreur.
+    lockout = get_lockout_store()
+    username = current_user.username
+    wrong_old = HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                              detail="L'ancien mot de passe est incorrect")
+    if lockout.is_locked(username):
+        raise wrong_old
+
+    try:
+        auth_ctrl.change_user_password(
+            user_id=current_user.user_id, # L'ID vient du token décodé
+            old_pass=password_data.old_password,
+            new_pass=password_data.new_password
+        )
+    except HTTPException as exc:
+        if exc.status_code == status.HTTP_400_BAD_REQUEST and exc.detail == wrong_old.detail:
+            lockout.register_failure(username)  # seul cas compte : ancien mot de passe faux
+        raise
 
     return {"message": "Mot de passe mis à jour avec succès"}
 
