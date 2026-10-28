@@ -24,6 +24,7 @@ from repositories.config_repo import ConfigRepository
 from api_backend.backend_app.routes.auth.auth_endpoints import get_current_user, role_required
 from api_backend.backend_app.exceptions import translate_integrity_error
 from utils.payment_mode_guard import PaymentModeError
+from utils.business_time import ClientTimeError
 from .mapping import normalize_caisse_data
 from ..caisse.caisse_schemas import (
     FinancialKpiSchema,
@@ -214,7 +215,7 @@ def create_transaction(
     try:
         tx = caisse_ctrl.create_transaction(data)
         return normalize_caisse_data(tx)
-    except (PaymentModeError, PriceLockError) as pe:
+    except (PaymentModeError, PriceLockError, ClientTimeError) as pe:
         raise HTTPException(status_code=422, detail=str(pe))
     except ValueError as ve:
         raise HTTPException(status_code=400, detail=str(ve))
@@ -244,7 +245,7 @@ def add_payment(
     """
     try:
         return caisse_ctrl.add_installment_payment(transaction_id, payment_data.model_dump())
-    except (PaymentModeError, PriceLockError) as pe:
+    except (PaymentModeError, PriceLockError, ClientTimeError) as pe:
         raise HTTPException(status_code=422, detail=str(pe))
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))

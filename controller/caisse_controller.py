@@ -5,7 +5,7 @@ import json
 import logging
 import redis
 from datetime import datetime, date
-from utils.business_time import business_today
+from utils.business_time import business_today, resolve_client_time
 from typing import Dict, List, Optional
 from dotenv import load_dotenv
 from celery import Task
@@ -297,6 +297,13 @@ class CaisseController:
             if key not in data:
                 raise ValueError(f"Champ manquant : {key}")
 
+        # Heure de la vente rejouee hors ligne (ISO avec fuseau -> Douala naive ; hors bornes -> heure serveur).
+        # Absente (chemin en ligne) => business_now() au depot, comme avant.
+        if data.get("paid_at") not in (None, ""):
+            data = {**data, "paid_at": resolve_client_time(data.get("paid_at"), ref=str(data.get("uuid") or ""))}
+        else:
+            data = {k: v for k, v in data.items() if k != "paid_at"}
+
         # 1. Validations métier
         if not data["items"] and data.get("advance_amount", 0) == 0:
             raise ValueError("La transaction doit contenir au moins une ligne ou indiquer une avance.")
@@ -378,6 +385,11 @@ class CaisseController:
         data = {**data, "payment_method": resolve_payment_mode(
             self.repo.session, data.get("payment_method"), required=False,
             replay=bool(data.get("uuid")))}
+        # Heure du versement fait hors ligne (meme regle que la vente) ; absente => defaut base.
+        if data.get("payment_date"):
+            data["payment_date"] = resolve_client_time(data["payment_date"], ref=str(data.get("uuid") or ""))
+        else:
+            data.pop("payment_date", None)
 
         result = self.repo.add_payment_installment(transaction_id, data, self.user)
 

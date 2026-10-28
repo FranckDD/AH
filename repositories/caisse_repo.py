@@ -361,6 +361,8 @@ class CaisseRepository:
         )
         # Verrou partage de la cloture puis heure reelle (jamais l'heure de debut de transaction)
         payment.received_at = lock_cash_write(self.session)
+        if data.get("payment_date"):
+            payment.payment_date = data["payment_date"]  # heure Douala naive (versement rejoue hors ligne)
         if data.get("uuid"):
             import uuid
             payment.uuid = uuid.UUID(str(data["uuid"]))

@@ -86,6 +86,7 @@ class InstallmentPaymentIn(BaseModel):
     payment_type: Optional[str] = Field("VERSEMENT_ECHEANCE", description="Type de versement. Par défaut 'VERSEMENT_ECHEANCE', peut être 'SOLDE'.")
     note: Optional[str] = Field(None, description="Note spécifique à ce versement.")
     uuid: Optional[str] = Field(None, description="UUID client (creation hors ligne PowerSync) - si absent, Postgres en genere un")
+    payment_date: Optional[str] = Field(None, description="Heure du versement fait hors ligne (ISO 8601, avec ou sans fuseau). Absente en ligne.")
 
     class Config:
         from_attributes = True

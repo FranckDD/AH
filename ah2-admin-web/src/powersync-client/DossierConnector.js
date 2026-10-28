@@ -36,6 +36,15 @@ function isFatalUploadError(error) {
 // transitoire est relancee telle quelle (rejeu de toute la transaction,
 // idempotent cote serveur via les uuid et les garde-fous
 // isLabResultQuarantined avant chaque envoi).
+// Lit une colonne sur la ligne locale COMPLETE (jamais op.opData seul, qui
+// peut etre partiel sur un PATCH : meme motif que appointments:PATCH). Repli
+// sur la valeur de l'operation si la ligne a disparu. Noms de table/colonne
+// constants (jamais saisis par l'utilisateur).
+async function readLocalColumn(database, table, id, column, fallback) {
+  const row = await database.getOptional(`SELECT ${column} AS v FROM ${table} WHERE id = ?`, [id]);
+  return (row && row.v) || fallback || undefined;
+}
+
 async function sendLabOp(database, send, quarantineEntry) {
   try {
     await send();
@@ -321,6 +330,12 @@ export class DossierConnector {
               // Reduction personnel : recalculee et verifiee par le serveur
               // (rejet si ecart). Jamais de details envoyes (serveur seul).
               staff_discount_amount: Number(op.opData.staff_discount_amount || 0),
+              // Heure reelle de la vente (ISO UTC ecrite localement), lue sur la
+              // ligne locale complete : le serveur la convertit en heure de
+              // Douala. Sans elle, une vente hors ligne prendrait l'heure de
+              // la synchronisation (voire le jour suivant). Chemin en ligne
+              // (CaisseGateway direct) : jamais envoye, heure serveur.
+              paid_at: await readLocalColumn(database, 'caisse', op.id, 'paid_at', op.opData.paid_at),
               uuid: op.id,
             });
             break;
@@ -544,6 +559,7 @@ export class DossierConnector {
               payment_method: op.opData.payment_method,
               payment_type: op.opData.payment_type,
               note: op.opData.note,
+              payment_date: await readLocalColumn(database, 'paiement_echelonne', op.id, 'payment_date', op.opData.payment_date),
               uuid: op.id,
             });
             break;
