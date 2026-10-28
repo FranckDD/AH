@@ -2,7 +2,7 @@
 import logging
 from typing import Any, Dict
 
-from fastapi import FastAPI, HTTPException, Header
+from fastapi import APIRouter, FastAPI, HTTPException, Header, Request
 from fastapi.middleware.cors import CORSMiddleware
 from escpos.printer import Win32Raw, Usb, Network
 
@@ -10,8 +10,6 @@ from config import load_config
 from ticket_renderer import render_ticket
 
 logger = logging.getLogger("printer_bridge")
-
-app = FastAPI(title="AH2 Printer Bridge")
 
 # Le frontend (autre origine, ex. http://localhost:4173 ou l'URL de prod)
 # appelle ce pont via fetch() avec l'en-tete X-Print-Token : le navigateur
@@ -21,19 +19,56 @@ app = FastAPI(title="AH2 Printer Bridge")
 DEFAULT_ALLOWED_ORIGINS = ["http://localhost:4173", "http://localhost:5173"]
 
 
+router = APIRouter()
+
+
 def _allowed_origins():
     try:
-        return load_config().get("allowed_origins", DEFAULT_ALLOWED_ORIGINS)
+        origins = load_config().get("allowed_origins", DEFAULT_ALLOWED_ORIGINS)
     except FileNotFoundError:
-        return DEFAULT_ALLOWED_ORIGINS  # tests/CI sans config.json
+        return list(DEFAULT_ALLOWED_ORIGINS)  # tests/CI sans config.json
+    # Jamais de joker : le jeton reste la vraie protection, CORS limite en
+    # plus qui peut tenter l'appel. Une entree "*" est ignoree et journalisee.
+    safe = [o for o in origins if o != "*"]
+    if len(safe) != len(origins):
+        logger.warning(
+            "allowed_origins contient '*' : entree ignoree (origines explicites uniquement)"
+        )
+    return safe
 
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=_allowed_origins(),
-    allow_methods=["GET", "POST"],
-    allow_headers=["Content-Type", "X-Print-Token"],
-)
+def create_app() -> FastAPI:
+    application = FastAPI(title="AH2 Printer Bridge")
+    origins = _allowed_origins()
+
+    application.add_middleware(
+        CORSMiddleware,
+        allow_origins=origins,
+        allow_methods=["GET", "POST"],
+        allow_headers=["Content-Type", "X-Print-Token"],
+    )
+
+    # Private Network Access (Chrome/Edge) : une page HTTPS publique qui
+    # appelle ce pont local envoie un preflight avec
+    # Access-Control-Request-Private-Network: true ; il faut y repondre
+    # Access-Control-Allow-Private-Network: true, et seulement pour une
+    # origine autorisee. Ajoute apres CORSMiddleware donc execute apres lui
+    # (on voit sa reponse : ACAO present seulement si l'origine est listee).
+    @application.middleware("http")
+    async def private_network_access(request: Request, call_next):
+        response = await call_next(request)
+        origin = request.headers.get("origin")
+        if (
+            request.method == "OPTIONS"
+            and request.headers.get("access-control-request-private-network", "").lower() == "true"
+            and origin in origins
+            and response.headers.get("access-control-allow-origin") == origin
+        ):
+            response.headers["Access-Control-Allow-Private-Network"] = "true"
+        return response
+
+    application.include_router(router)
+    return application
 
 
 def get_active_printer():
@@ -62,12 +97,12 @@ def get_active_printer():
     raise ValueError(f"connection_type inconnu: {config['connection_type']}")
 
 
-@app.get("/health")
+@router.get("/health")
 def health():
     return {"status": "ok"}
 
 
-@app.post("/print")
+@router.post("/print")
 def print_ticket(ticket_data: Dict[str, Any], x_print_token: str = Header(None)):
     config = load_config()
     if not x_print_token or x_print_token != config.get("token"):
@@ -86,6 +121,9 @@ def print_ticket(ticket_data: Dict[str, Any], x_print_token: str = Header(None))
         raise HTTPException(status_code=500, detail=f"Erreur d'impression: {e}")
 
     return {"status": "printed"}
+
+
+app = create_app()
 
 
 if __name__ == "__main__":
