@@ -11,9 +11,10 @@
 La fonction `assign_dossier` est l'unique endroit qui decide du calcul.
 """
 import hashlib
+import logging
 import re
 import unicodedata
-from datetime import date
+from datetime import date, datetime
 from typing import Any, Dict, NamedTuple, Optional
 
 from sqlalchemy import text
@@ -149,12 +150,89 @@ def dossier_day(session, number: DossierNumber) -> Optional[date]:
     ).scalar()
 
 
-def ensure_dossier_assigned(result) -> DossierNumber:
-    """Garde d'impression : la fiche n'est imprimable qu'avec un numero officiel (a appeler par D3)."""
+def patient_key_for(patient_id: Optional[int], external_info: Optional[Dict[str, Any]], token: Any) -> str:
+    """Cle de patient pour TOUT resultat, sans jamais lever : interne `p:<id>`, externe (voir build_patient_key, `token`
+    = identifiant de la reception : batch_id, ou uuid d'un resultat isole), sinon `r:<token>` (resultat sans
+    identite : une cle propre a sa reception, jamais NULL)."""
+    if patient_id or external_info:
+        try:
+            return build_patient_key(patient_id, external_info, batch_id=token)
+        except ValueError:
+            pass
+    return f"r:{token}"
+
+
+def _result_day(session, result) -> date:
+    """Jour de reception d'un resultat sans numero : plus ancien test_date du lot (heure de Douala, naive), sinon le
+    sien, sinon aujourd'hui."""
+    from utils.business_time import business_today
+    batch_id = getattr(result, "batch_id", None)
+    when = None
+    if batch_id:
+        when = session.execute(text("SELECT MIN(test_date) FROM lab_results WHERE batch_id = :b"),
+                               {"b": batch_id}).scalar()
+    if when is None:
+        when = getattr(result, "test_date", None)
+    if isinstance(when, datetime):
+        return when.date()
+    return when if isinstance(when, date) else business_today()
+
+
+def assign_missing_dossier(session, result) -> DossierNumber:
+    """Attribue (sous le verrou consultatif) le numero manquant d'un resultat ET de tous les examens de son lot
+    (batch_id) : un lot = un seul numero. Reutilise celui d'un frere s'il en a deja un. Ne commit pas."""
+    from models.lab import LabResult
+    session.execute(text("SELECT pg_advisory_xact_lock(:k)"), {"k": DOSSIER_LOCK_KEY})
+    batch_id = getattr(result, "batch_id", None)
+    where, params = ("batch_id = :b", {"b": batch_id}) if batch_id else ("result_id = :r", {"r": result.result_id})
+
+    row = session.execute(
+        text(f"SELECT dossier_year, dossier_counter, dossier_rank, patient_key FROM lab_results "
+             f"WHERE {where} AND dossier_year IS NOT NULL ORDER BY result_id LIMIT 1"), params).first()
+    if row:
+        number, key = DossierNumber(row.dossier_year, row.dossier_counter, row.dossier_rank), row.patient_key
+    else:
+        token = batch_id or getattr(result, "uuid", None) or result.result_id
+        key = getattr(result, "patient_key", None) or patient_key_for(
+            getattr(result, "patient_id", None), getattr(result, "external_patient_info", None), token)
+        number = assign_dossier(session, key, _result_day(session, result))
+
+    if batch_id:
+        targets = session.query(LabResult).filter(LabResult.batch_id == batch_id).all()
+    else:
+        targets = []
+    if result not in targets:
+        targets.append(result)
+    for t in targets:
+        if result_dossier(t) is None:
+            t.dossier_year, t.dossier_counter, t.dossier_rank = number.year, number.counter, number.rank
+            if not t.patient_key:
+                t.patient_key = key
+    session.flush()
+    return number
+
+
+def ensure_dossier_assigned(result, commit: bool = False) -> DossierNumber:
+    """Numero officiel du resultat ; s'il manque (ancien resultat, reception jamais numerotee) il est ATTRIBUE ici,
+    jamais refuse : l'impression n'est jamais bloquee. `commit` : valider la transaction apres l'attribution
+    (routes d'impression). Leve DossierNotAssignedError seulement si l'attribution elle-meme echoue de facon
+    inattendue ; l'appelant imprime alors avec le code de reference."""
     n = result_dossier(result)
-    if n is None:
-        raise DossierNotAssignedError(
-            "Numero de dossier non encore attribue : la reception n'a pas encore ete synchronisee. "
-            "Impression impossible pour le moment."
-        )
+    if n is not None:
+        return n
+    from sqlalchemy.orm import object_session
+    session = object_session(result)
+    if session is None:
+        raise DossierNotAssignedError("Numero de dossier non attribue et resultat hors session.")
+    try:
+        with session.begin_nested():
+            n = assign_missing_dossier(session, result)
+        if commit:
+            session.commit()
+    except Exception as e:
+        if commit:
+            session.rollback()
+        logging.getLogger(__name__).warning("Attribution du numero de dossier impossible (resultat %s) : %s",
+                                            getattr(result, "result_id", None), e)
+        raise DossierNotAssignedError("Numero de dossier non attribue.") from e
     return n

@@ -18,6 +18,7 @@ from typing import NamedTuple
 from utils.business_time import business_now, business_today, BUSINESS_TZ
 from utils.lab_age import age_in_days, format_age, parse_external_age
 from utils.lab_reference import normalize_sex, select_range, flag_word
+from utils.lab_dossier import DossierNotAssignedError, ensure_dossier_assigned
 from utils.lab_snapshot import build_print_snapshot
 from models.prescription import Prescription
 from models.caisse import Caisse
@@ -786,10 +787,19 @@ class LabRepository:
         (l'age de la copie est celui de la reception). Ne commit pas. Retourne True si elle vient d'etre faite."""
         if result.print_snapshot is not None:
             return False
+        self._ensure_dossier(result)
         result.print_snapshot = self._make_snapshot(result)
         result.print_snapshot_at = business_now()
         result.print_snapshot_by = user_id
         return True
+
+    def _ensure_dossier(self, result: LabResult) -> None:
+        """Numero de dossier manquant (ancien resultat) : attribue avant de figer la copie. Ne bloque jamais la
+        validation ; ne commit pas (la transaction de l'appelant s'en charge)."""
+        try:
+            ensure_dossier_assigned(result)
+        except DossierNotAssignedError:
+            pass
 
     def _make_snapshot(self, result: LabResult) -> Dict[str, Any]:
         return build_print_snapshot(result, result.examen, list(result.details), self._patient_bio(result))
@@ -883,6 +893,7 @@ class LabRepository:
                     "snapshot_at": result.print_snapshot_at.isoformat() if result.print_snapshot_at else None,
                     "snapshot_by": result.print_snapshot_by, "replaced_at": now.isoformat(),
                     "replaced_by": user_id, "replaced_by_name": user_name, "reason": reason}]
+            self._ensure_dossier(result)
             result.print_snapshot = self._make_snapshot(result)
             result.print_snapshot_at = now
             result.print_snapshot_by = user_id

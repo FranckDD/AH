@@ -5,7 +5,7 @@
 <title>Fiche de resultats</title>
 <style>{{ css|safe }}</style>
 </head>
-<body{% if dense %} class="dense"{% endif %}>
+<body class="variant-{{ title_variant|e }}{% if dense %} dense{% endif %}">
 {# Texte libre: TOUJOURS |e (render_pdf_from_template n'echappe rien). #}
 {% if footer_text and footer_text.strip() %}
 <div id="sheet-footer">{% for line in footer_text.splitlines() if line.strip() %}<p>{{ line|e }}</p>{% endfor %}</div>
@@ -17,7 +17,7 @@
 
 {% block patient %}
 <div class="patient-block">
-    {% if dossier_label %}<p>DOSSIER N° {{ dossier_label|e }} </p>{% endif %}
+    {% if dossier_label %}<p class="dossier-line">DOSSIER N° {{ dossier_label|e }} </p>{% endif %}
     <p>Nom du Patient : {{ (patient_name or "")|e }}</p>
     {% if age_label or sex %}
     <p class="age-sex">{% if age_label %}<span>Age : {{ age_label|e }}</span>{% endif %}{% if sex %}<span>Sexe : {{ sex|e }}</span>{% endif %}</p>

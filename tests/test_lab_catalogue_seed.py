@@ -348,3 +348,79 @@ def test_pdf_header_prints_new_fields_only_when_filled():
     filled = _render_header(agrement_number="N 0705/ST/TEST", footer_text="LIGNE UN\n\nLIGNE DEUX")
     assert "N 0705/ST/TEST" in filled
     assert "<p>LIGNE UN</p><p>LIGNE DEUX</p>" in filled
+
+
+# --- ajouts du parcours navigateur (2026-10-31) : 12 parametres manquants, 2 examens de crachats ----------------
+
+MISSING_PARAMS = [
+    # code, libelle imprime, unite, type, sous-titre, libelle qui precede
+    ("CYTO_SANG", "Hématies", "/mm3", "numeric", None, "CYTOLOGIE"),
+    ("CYTO_SANG", "Leucocytes", "/mm3", "numeric", None, "Hématies"),
+    ("CULOT_UR", "Cellules épithéliales", "/mm3", "text", None, "Leucocytes"),
+    ("CULOT_UR", "Levures", "/mm3", "numeric", None, "Cellules épithéliales"),
+    ("CULOT_UR", "BACTERIURIE QUANTITATIVE", "", "text", None, "CYTOLOGIE"),
+    ("ECBU", "Cellules épithéliales", "/mm3", "text", "CYTOLOGIE", "Leucocytes"),
+    ("CULT_ATB", "Hématies", "/mm3", "text", "CYTOLOGIE", "EXAMEN MICROSCOPIQUE"),
+    ("CULT_ATB", "Leucocytes", "/mm3", "text", "CYTOLOGIE", "Hématies"),
+    ("CULT_ATB", "Cellules épithéliales", "/mm3", "text", "CYTOLOGIE", "Leucocytes"),
+    ("SPH_PUS", "Pyocytes", "/mm3", "text", "CYTOLOGIE", "EXAMEN MICROSCOPIQUE"),
+    ("SPH_PUS", "Leucocytes", "/mm3", "text", "CYTOLOGIE", "Pyocytes"),
+    ("TDR_PALU", "Parasitemie", "", "text", None, "RESULTAT"),
+]
+
+
+def test_catalogue_file_has_the_twelve_missing_parameters_in_printed_order():
+    for code, label, unit, kind, group, before in MISSING_PARAMS:
+        params = EXAMS[code]["parameters"]
+        labels = [p["print_label"] for p in params]
+        assert label in labels, (code, label)
+        p = params[labels.index(label)]
+        assert (p["unite"], p["result_kind"], p.get("group")) == (unit, kind, group), (code, label)
+        assert labels.index(label) == labels.index(before) + 1, (code, label)
+    assert len(MISSING_PARAMS) == 12
+
+
+def test_sputum_exams_in_catalogue_file():
+    plain, atb = EXAMS["ECBC_CRACHATS"], EXAMS["ECBC_CRACHATS_ATB"]
+    for e in (plain, atb):
+        assert e["layout_family"] == "narrative" and e["section"] == "LABORATOIRE DE BACTERIOLOGIE"
+        assert e["categorie"] == "Bacteriologie" and e["existing_code"] is False
+        assert e["signature_label"] == "LE RESPONSABLE DE LABORATOIRE"
+    assert plain["print_title"] == "EXAMEN CYTOBACTERIOLOGIQUE DES CRACHATS"
+    assert atb["print_title"] == "EXAMEN CYTOBACTERIOLOGIQUE DES CRACHATS + ATB"
+    assert [p["print_label"] for p in plain["parameters"]] == ["Aspect", "Cytologie", "Gram"]
+    assert [(p["print_label"], p.get("group")) for p in atb["parameters"]] == [
+        ("Aspect", None), ("Cytologie", None), ("Gram", None), ("Culture sur milieux usuels", None),
+        ("Sensible à", "ANTIBIOGRAMME (ATB)"), ("Intermédiaire à", "ANTIBIOGRAMME (ATB)"),
+        ("Résistant à", "ANTIBIOGRAMME (ATB)"), ("ANTIFONGIGRAMME (AFG)", None)]
+    # aucune norme ni plage inventee
+    assert all(not p["ranges"] and not p["norm_text"] for e in (plain, atb) for p in e["parameters"])
+    orders = [e["sort_order"] for e in CATALOGUE["exams"]]
+    assert len(orders) == len(set(orders))
+    assert EXAMS["CRACHAT_BAAR"]["sort_order"] < plain["sort_order"] < atb["sort_order"] < EXAMS["MYCOPLASMES"]["sort_order"]
+
+
+def test_prolactine_ranges_unchanged_and_phase_question_documented():
+    ranges = EXAMS["PROLACTINE"]["parameters"][0]["ranges"]
+    assert [(r["sexe"], r["min"], r["max"]) for r in ranges] == [("M", 2, 15), ("F", 2, 20)]
+    doc = open(os.path.join(ROOT, "docs", "laboratory-templates.md"), encoding="utf-8").read()
+    assert "A confirmer par la cheffe du laboratoire: phase de 2-20 et 2-15" in doc
+    assert "## Examens (%d)" % len(CATALOGUE["exams"]) in doc
+
+
+def test_seed_adds_missing_items_without_touching_results_or_prices(old_db):
+    results_before = _run(old_db, "select * from lab_results order by 1", fetch=True)
+    details_before = _run(old_db, "select * from lab_result_details order by 1", fetch=True)
+    s = _seed(old_db)
+    assert {"ECBC_CRACHATS", "ECBC_CRACHATS_ATB"} <= set(s["exams_added"])
+    assert _run(old_db, "select * from lab_results order by 1", fetch=True) == results_before
+    assert _run(old_db, "select * from lab_result_details order by 1", fetch=True) == details_before
+    for code, label, unit, kind, group, before in MISSING_PARAMS:
+        labels = _active_labels(old_db, code)
+        assert labels.index(label) == labels.index(before) + 1, (code, label)
+    assert _active_labels(old_db, "ECBC_CRACHATS") == ["Aspect", "Cytologie", "Gram"]
+    assert len(_active_labels(old_db, "ECBC_CRACHATS_ATB")) == 8
+    assert _run(old_db, "select prix from examens where code in ('ECBC_CRACHATS', 'ECBC_CRACHATS_ATB')",
+                fetch=True) == [(0,), (0,)]
+    again = _seed(old_db)
+    assert again["exams_added"] == [] and again["params_added"] == 0

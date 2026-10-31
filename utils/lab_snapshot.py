@@ -95,6 +95,8 @@ def _dossier(result: Any) -> Optional[Dict[str, int]]:
 def _pregnancy(result: Any) -> Optional[Dict[str, Any]]:
     status = getattr(result, "pregnancy_status_at_result", None)
     ga = getattr(result, "gestational_age_weeks", None)
+    if status == "inconnu":
+        status = None   # « inconnu » n'est pas une donnee : sans SA, la cle reste vide
     if status is None and ga is None:
         return None
     return {"status_at_result": status, "gestational_age_weeks": ga}
@@ -153,8 +155,53 @@ def build_print_snapshot(result: Any, exam: Any, details: Any, patient_bio: Any,
     return snap
 
 
+def _has_ga(n: Any) -> bool:
+    return isinstance(n, dict) and (n.get("ga_min_weeks") is not None or n.get("ga_max_weeks") is not None)
+
+
+def _strip_ga_keys(n: Dict[str, Any]) -> Dict[str, Any]:
+    return {k: v for k, v in n.items() if k not in ("ga_min_weeks", "ga_max_weeks")}
+
+
+def _strip_parameter(p: Dict[str, Any]) -> Dict[str, Any]:
+    """Retire d'un parametre toute trace d'une norme de grossesse (plages avec bornes d'age gestationnel)."""
+    q = dict(p)
+    norms = q.get("norms")
+    had_ga = False
+    if isinstance(norms, list):
+        kept = []
+        for n in norms:
+            if _has_ga(n):
+                had_ga = True
+                continue
+            kept.append(_strip_ga_keys(n) if isinstance(n, dict) else n)
+        selected_removed = any(_has_ga(n) and n.get("selected") for n in norms)
+        if selected_removed:
+            # la plage choisie etait une plage de grossesse : aucune plage n'est marquee choisie
+            kept = [{**n, "selected": False} if isinstance(n, dict) else n for n in kept]
+        q["norms"] = kept
+    norm = q.get("norm")
+    if isinstance(norm, dict):
+        if _has_ga(norm):
+            # la norme choisie est une plage de grossesse : son texte le dit, on ne garde que la valeur
+            had_ga = True
+            q["norm"] = None
+        else:
+            q["norm"] = _strip_ga_keys(norm)
+    if had_ga:
+        # le texte de norme du catalogue (imprime tel quel) decrit aussi les plages de grossesse
+        q["norm_text"] = None
+    return q
+
+
 def strip_pregnancy(snapshot: Dict[str, Any]) -> Dict[str, Any]:
-    """Copie de la copie sans donnee de grossesse (a utiliser quand `can_see_pregnancy(user)` est faux)."""
+    """Copie de la copie sans donnee de grossesse (a utiliser quand `can_see_pregnancy(user)` est faux).
+
+    Retire aussi toute trace qu'une norme est une plage de semaines de grossesse : bornes `ga_*`, plages
+    avec bornes gestationnelles, marqueur `selected` de ces plages. La valeur (`flagged`) reste."""
     out = dict(snapshot)
     out["pregnancy"] = None
+    params = out.get("parameters")
+    if isinstance(params, list):
+        out["parameters"] = [_strip_parameter(p) if isinstance(p, dict) else p for p in params]
     return out

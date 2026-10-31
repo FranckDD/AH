@@ -8,10 +8,10 @@
             <div class="ls-name">{{ (structure.name or "")|e }}</div>
             {% if structure.slogan %}<div class="ls-slogan">{{ structure.slogan|e }}</div>{% endif %}
             {% if structure.address or structure.city or structure.po_box %}
-            <div>{% if structure.address %}{{ structure.address|e }}{% endif %}{% if structure.city %}{% if structure.address %} - {% endif %}{{ structure.city|e }}{% endif %}{% if structure.po_box %} | BP: {{ structure.po_box|e }}{% endif %}</div>
+            <div>{% if structure.address %}{{ structure.address|e }}{% endif %}{% if structure.city %}{% if structure.address %} - {% endif %}{{ structure.city|e }}{% endif %}{% if structure.po_box %}{% set _bp = structure.po_box|string|trim %} | {% if (_bp|lower|replace('.', '')|replace(' ', '')|replace(':', ''))[:2] == 'bp' %}{{ _bp|e }}{% else %}BP: {{ _bp|e }}{% endif %}{% endif %}</div>
             {% endif %}
             {% if structure.phone or structure.phone2 or structure.email %}
-            <div>{% if structure.email %}Email : {{ structure.email|e }}{% endif %}{% if structure.phone %}{% if structure.email %} / {% endif %}Tél : {{ structure.phone|e }}{% endif %}{% if structure.phone2 %} / {{ structure.phone2|e }}{% endif %}</div>
+            <div>{% if structure.email %}{% set _em = structure.email|string|trim %}{% if (_em|lower)[:5] == 'email' or (_em|lower)[:6] == 'e-mail' %}{{ _em|e }}{% else %}Email : {{ _em|e }}{% endif %}{% endif %}{% if structure.phone %}{% set _tel = structure.phone|string|trim %}{% if structure.email %} / {% endif %}{% if (_tel|lower)[:3] in ['tel', 'tél'] %}{{ _tel|e }}{% else %}Tél : {{ _tel|e }}{% endif %}{% endif %}{% if structure.phone2 %} / {{ structure.phone2|e }}{% endif %}</div>
             {% endif %}
             {% if structure.website %}<div>{{ structure.website|e }}</div>{% endif %}
             {% if structure.agrement_number %}<div>{{ structure.agrement_number|e }}</div>{% endif %}

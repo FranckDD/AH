@@ -5668,6 +5668,9 @@ ALTER TABLE public.reference_ranges ADD CONSTRAINT ck_reference_ranges_display_t
     CHECK (display_text IS NULL OR length(display_text) <= 60);
 ALTER TABLE public.examens ADD CONSTRAINT ck_examens_fixed_notes_array
     CHECK (fixed_notes IS NULL OR jsonb_typeof(fixed_notes) = 'array');
+ALTER TABLE public.organization_config ADD COLUMN lab_sheet_title_variant varchar(20) NOT NULL DEFAULT 'centered_results';
+ALTER TABLE public.organization_config ADD CONSTRAINT ck_organization_config_lab_sheet_variant
+    CHECK (lab_sheet_title_variant IN ('centered_results', 'left_laboratory'));
 
 --
 -- Name: powersync; Type: PUBLICATION; Schema: -; Owner: -

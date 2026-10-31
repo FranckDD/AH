@@ -2178,11 +2178,11 @@
       }
      ],
      "norm_text": "HOMME 2 - 15 / FEMME 2 - 20",
-     "variants": "colonnes FEMME par phase (folliculaire, pic ovulation, luteale, post menopause) vides sur la fiche"
+     "variants": "grille FEMME par phase (folliculaire, pic ovulation, luteale, post menopause) : 2 - 20 entre folliculaire et ovulation, 2 - 15 entre luteale et post menopause (position mesuree sur la fiche, phase a confirmer)"
     }
    ],
    "deactivate": [],
-   "note": "",
+   "note": "A confirmer par la cheffe du laboratoire: phase de 2-20 et 2-15",
    "fixed_notes": []
   },
   {
@@ -2457,6 +2457,18 @@
      "group": "CYTOLOGIE"
     },
     {
+     "name": "Cellules épithéliales",
+     "match": [],
+     "print_label": "Cellules épithéliales",
+     "unite": "/mm3",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "CYTOLOGIE"
+    },
+    {
      "name": "Cytologie (autres éléments)",
      "match": [],
      "print_label": "CYTOLOGIE",
@@ -2615,9 +2627,42 @@
      "variants": ""
     },
     {
+     "name": "Cellules épithéliales",
+     "match": [],
+     "print_label": "Cellules épithéliales",
+     "unite": "/mm3",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": ""
+    },
+    {
+     "name": "Levures",
+     "match": [],
+     "print_label": "Levures",
+     "unite": "/mm3",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": ""
+    },
+    {
      "name": "Cytologie (autres éléments)",
      "match": [],
      "print_label": "CYTOLOGIE",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": ""
+    },
+    {
+     "name": "Bactériurie quantitative",
+     "match": [],
+     "print_label": "BACTERIURIE QUANTITATIVE",
      "unite": "",
      "result_kind": "text",
      "choices": null,
@@ -3008,6 +3053,42 @@
      "group": "EXAMEN MICROSCOPIQUE"
     },
     {
+     "name": "Hématies",
+     "match": [],
+     "print_label": "Hématies",
+     "unite": "/mm3",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "CYTOLOGIE"
+    },
+    {
+     "name": "Leucocytes",
+     "match": [],
+     "print_label": "Leucocytes",
+     "unite": "/mm3",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "CYTOLOGIE"
+    },
+    {
+     "name": "Cellules épithéliales",
+     "match": [],
+     "print_label": "Cellules épithéliales",
+     "unite": "/mm3",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "CYTOLOGIE"
+    },
+    {
      "name": "Examen Gram",
      "match": [],
      "print_label": "EXAMEN GRAM",
@@ -3135,6 +3216,30 @@
      "norm_text": "",
      "variants": "",
      "group": "EXAMEN MICROSCOPIQUE"
+    },
+    {
+     "name": "Pyocytes",
+     "match": [],
+     "print_label": "Pyocytes",
+     "unite": "/mm3",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "CYTOLOGIE"
+    },
+    {
+     "name": "Leucocytes",
+     "match": [],
+     "print_label": "Leucocytes",
+     "unite": "/mm3",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "CYTOLOGIE"
     },
     {
      "name": "Examen Gram",
@@ -3908,6 +4013,166 @@
    "fixed_notes": []
   },
   {
+   "code": "ECBC_CRACHATS",
+   "existing_code": false,
+   "match_names": [],
+   "nom": "Examen cytobactériologique des crachats",
+   "categorie": "Bacteriologie",
+   "section": "LABORATOIRE DE BACTERIOLOGIE",
+   "print_title": "EXAMEN CYTOBACTERIOLOGIQUE DES CRACHATS",
+   "layout_family": "narrative",
+   "method": null,
+   "signature_label": "LE RESPONSABLE DE LABORATOIRE",
+   "sort_order": 455,
+   "parameters": [
+    {
+     "name": "Aspect",
+     "match": [],
+     "print_label": "Aspect",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": ""
+    },
+    {
+     "name": "Cytologie",
+     "match": [],
+     "print_label": "Cytologie",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": ""
+    },
+    {
+     "name": "Gram",
+     "match": [],
+     "print_label": "Gram",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": ""
+    }
+   ],
+   "deactivate": [],
+   "note": "titre d'origine EXAMEN CYTOBACTERIOLOGQUE (faute) ; NB libre = champ NB de la fiche ; lignes Culture, ATB et antifongigramme seulement dans la version + ATB",
+   "fixed_notes": []
+  },
+  {
+   "code": "ECBC_CRACHATS_ATB",
+   "existing_code": false,
+   "match_names": [],
+   "nom": "Examen cytobactériologique des crachats + ATB",
+   "categorie": "Bacteriologie",
+   "section": "LABORATOIRE DE BACTERIOLOGIE",
+   "print_title": "EXAMEN CYTOBACTERIOLOGIQUE DES CRACHATS + ATB",
+   "layout_family": "narrative",
+   "method": null,
+   "signature_label": "LE RESPONSABLE DE LABORATOIRE",
+   "sort_order": 457,
+   "parameters": [
+    {
+     "name": "Aspect",
+     "match": [],
+     "print_label": "Aspect",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": ""
+    },
+    {
+     "name": "Cytologie",
+     "match": [],
+     "print_label": "Cytologie",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": ""
+    },
+    {
+     "name": "Gram",
+     "match": [],
+     "print_label": "Gram",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": ""
+    },
+    {
+     "name": "Culture",
+     "match": [],
+     "print_label": "Culture sur milieux usuels",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": ""
+    },
+    {
+     "name": "Sensible à",
+     "match": [],
+     "print_label": "Sensible à",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "ANTIBIOGRAMME (ATB)"
+    },
+    {
+     "name": "Intermédiaire à",
+     "match": [],
+     "print_label": "Intermédiaire à",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "ANTIBIOGRAMME (ATB)"
+    },
+    {
+     "name": "Résistant à",
+     "match": [],
+     "print_label": "Résistant à",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "ANTIBIOGRAMME (ATB)"
+    },
+    {
+     "name": "Antifongigramme (AFG)",
+     "match": [],
+     "print_label": "ANTIFONGIGRAMME (AFG)",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": ""
+    }
+   ],
+   "deactivate": [],
+   "note": "titre d'origine EXAMEN CYTOBACTERIOLOGQUE (faute) ; NB libre = champ NB de la fiche ; lignes Culture, ATB et antifongigramme seulement dans la version + ATB",
+   "fixed_notes": []
+  },
+  {
    "code": "MYCOPLASMES",
    "existing_code": false,
    "match_names": [],
@@ -4271,6 +4536,17 @@
      ],
      "ranges": [],
      "norm_text": "NEGATIF",
+     "variants": ""
+    },
+    {
+     "name": "Parasitémie",
+     "match": [],
+     "print_label": "Parasitemie",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
      "variants": ""
     }
    ],
@@ -6419,6 +6695,28 @@
      "print_label": "CYTOLOGIE",
      "unite": "",
      "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": ""
+    },
+    {
+     "name": "Hématies",
+     "match": [],
+     "print_label": "Hématies",
+     "unite": "/mm3",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": ""
+    },
+    {
+     "name": "Leucocytes",
+     "match": [],
+     "print_label": "Leucocytes",
+     "unite": "/mm3",
+     "result_kind": "numeric",
      "choices": null,
      "ranges": [],
      "norm_text": "",

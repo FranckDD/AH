@@ -58,7 +58,7 @@ SIMPLE_TABLES = {
 # plus tard n'est PAS exportee tant qu'on ne l'ajoute pas ici (jamais de logo, jeton ni secret).
 ORG_COLUMNS = ["name", "slogan", "address", "city", "po_box", "phone", "phone2", "email",
                "website", "niu", "rccm", "legal_info", "label_width_mm", "label_height_mm",
-               "agrement_number", "footer_text", "signature_label_default"]
+               "agrement_number", "footer_text", "signature_label_default", "lab_sheet_title_variant"]
 ORG_ALLOWED = {"id"} | set(ORG_COLUMNS)
 
 # Ordre de dependance pour l'import

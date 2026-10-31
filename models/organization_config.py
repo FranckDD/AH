@@ -32,6 +32,8 @@ class OrganizationConfig(Base):
     agrement_number = Column(String(200), nullable=True)
     footer_text = Column(Text, nullable=True)
     signature_label_default = Column(String(120), nullable=True)
+    # Migration 046 : centered_results (defaut) ou left_laboratory (titre et bloc patient des fiches du laboratoire)
+    lab_sheet_title_variant = Column(String(20), nullable=False, default="centered_results", server_default=text("'centered_results'"))
 
     # Taille des etiquettes de produits (mm), reglee par l'admin.
     label_width_mm = Column(Integer, nullable=False, default=50, server_default=text("50"))

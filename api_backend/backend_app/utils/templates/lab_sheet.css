@@ -3,7 +3,7 @@
    polices du systeme quand Liberation n'est pas installee. */
 @page {
     size: 21.59cm 27.94cm;
-    margin: 2.54cm 2.2cm 2.54cm 2.2cm;
+    margin: 1.7cm 2.2cm 2.1cm 2.2cm;
     @bottom-center { content: element(sheet-footer); }
 }
 html { font-family: "Liberation Serif", "Times New Roman", Times, serif; font-size: 10.5pt; color: #000; }
@@ -37,26 +37,32 @@ table.lv td.lv-norm { font-size: 9.5pt; }
 
 .free-block { margin-top: 10px; font-weight: 700; font-style: italic; white-space: pre-wrap; overflow-wrap: anywhere; }
 
-.signature { margin-top: 18px; text-align: right; font-weight: 700; font-style: italic; page-break-inside: avoid; break-inside: avoid; }
-.signature .sig-space { height: 2.2cm; }
+.signature { margin-top: 12px; break-before: avoid; text-align: right; font-weight: 700; font-style: italic; page-break-inside: avoid; break-inside: avoid; }
+.signature .sig-space { height: 1.5cm; }
 
 /* Variante serree (beaucoup de parametres : spermogramme) */
 @page dense { size: 21.59cm 27.94cm; margin: 1.3cm 1.6cm 1.6cm 1.6cm; @bottom-center { content: element(sheet-footer); } }
-body.dense { page: dense; font-size: 9.5pt; }
+body.dense { page: dense; font-size: 9pt; }
 body.dense .ls-logo img { max-height: 1.9cm; }
 body.dense .ls-name { font-size: 16pt; }
 body.dense .sheet-date { margin: 2px 0; }
 body.dense .sheet-title { margin: 2px 0 4px 0; }
 body.dense .patient-block { margin-bottom: 4px; }
+/* Variante « laboratoire a gauche » : titre et lignes du patient a gauche, DOSSIER en italique bleu */
+body.variant-left_laboratory .sheet-title { text-align: left; }
+body.variant-left_laboratory .patient-block { text-align: left; font-weight: 400; }
+body.variant-left_laboratory .patient-block .dossier-line { font-weight: 700; font-style: italic; color: #1f3fbf; }
+body.variant-left_laboratory .patient-block .age-sex span + span { margin-left: 3em; }
+
 body.dense .signature { margin-top: 4px; }
-body.dense .signature .sig-space { height: 1.2cm; }
+body.dense .signature .sig-space { height: 1cm; }
 body.dense .group-title { margin: 3px 0 1px 0; }
 
 /* En-tete des fiches : logo a gauche, texte centre a droite (_lab_sheet_header.html) */
 table.ls-header { width: 100%; border-collapse: collapse; margin-bottom: 4px; }
 table.ls-header td { vertical-align: top; padding: 0; }
 td.ls-logo { width: 3.1cm; }
-td.ls-logo img { max-width: 3cm; max-height: 2.8cm; }
+td.ls-logo img { max-width: 3cm; max-height: 2.5cm; }
 td.ls-info { text-align: center; font-size: 10pt; }
 .ls-name { font-family: Impact, "Liberation Sans Narrow", "Arial Narrow", "Liberation Sans", Arial, sans-serif;
            font-size: 21pt; font-weight: 700; color: #6a1fd0; margin-bottom: 4px; }
@@ -76,13 +82,15 @@ td.ls-info { text-align: center; font-size: 10pt; }
 
 /* Famille tableau */
 table.grid { width: 100%; border-collapse: collapse; margin-top: 2px; }
-table.grid th, table.grid td { border: 0.6pt solid #000; padding: 2px 4px; text-align: center; vertical-align: middle; }
+table.grid th, table.grid td { border: 0.6pt solid #000; padding: 1px 4px; line-height: 1.15; text-align: center; vertical-align: middle; }
 table.grid th { font-weight: 700; }
 table.grid td.label { text-align: left; }
 table.grid tr.group-row td { font-weight: 700; }
 table.grid td.inner { padding: 0; border: 0; }
 table.grid table.grid { margin: 0; }
 table.grid td.vam-norm { font-size: 9.5pt; }
+table.grid table.grid th { font-size: 9pt; padding: 1px 3px; }
+table.grid table.grid td { padding: 1px 4px; }
 table.grid td.norm { font-size: 9.5pt; }
 .lines p { margin: 1px 0; overflow-wrap: anywhere; }
 .lines.two-cols { columns: 2; column-gap: 1.2cm; }

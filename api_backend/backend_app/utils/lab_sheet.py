@@ -16,11 +16,15 @@ from typing import Any, Dict, Optional
 
 from markupsafe import Markup, escape
 
-from .pdf_generator import render_pdf_from_template
+from api_backend.backend_app.utils.pdf_header import light_logo  # noqa: F401  (logo reduit, partage par tous les PDF)
+
 
 SUPPORTED_SNAPSHOT_VERSIONS = (1, 2)
 
 DEFAULT_TITLE = "RESULTATS D'ANALYSES DE BIOLOGIE CLINIQUE"
+LEFT_TITLE = "LABORATOIRE D'ANALYSES DE BIOLOGIE CLINIQUE"
+TITLE_VARIANTS = ("centered_results", "left_laboratory")
+DEFAULT_TITLE_VARIANT = "centered_results"
 DEFAULT_SIGNATURE_LABEL = "Le Biologiste"
 DEFAULT_CITY = "Yaoundé"
 DEFAULT_FAMILY = "label_value"
@@ -338,7 +342,8 @@ def _pregnancy_line(pregnancy: Optional[dict]) -> Optional[str]:
     status = pregnancy.get("status_at_result")
     weeks = pregnancy.get("gestational_age_weeks")
     parts = []
-    if status:
+    # « inconnu » (ou absent) n'est pas une donnee : jamais imprime seul (anciennes copies figees comprises)
+    if status and status != "inconnu":
         parts.append(PREGNANCY_LABELS.get(status, str(status)))
     if weeks is not None:
         parts.append(f"{weeks} SA")
@@ -356,8 +361,8 @@ def _dossier_label(snapshot: dict, context: dict) -> Optional[str]:
     return format_dossier(DossierNumber(dossier["year"], dossier["counter"], dossier["rank"]), day)
 
 
-def render_lab_sheet(snapshot: dict, patient: dict, context: dict, *, show_pregnancy: bool) -> bytes:
-    """PDF d'une fiche (Lettre US) a partir de la copie figee.
+def render_lab_sheet_html(snapshot: dict, patient: dict, context: dict, *, show_pregnancy: bool) -> str:
+    """HTML d'une fiche (Lettre US) a partir de la copie figee.
 
     snapshot: JSON de lab_results.print_snapshot (version 1 ou 2).
     patient: {"name": str, "prescriber": str|None}; l'age et le sexe viennent de snapshot["patient"].
@@ -400,14 +405,19 @@ def render_lab_sheet(snapshot: dict, patient: dict, context: dict, *, show_pregn
                 if b["kind"] == "rows":
                     b["kind"] = "lines"
     notes_html = _notes_html(exam.get("fixed_notes"), rows, family)
-    title = context.get("title") or (BOXED_DEFAULT_TITLE if family == "boxed" else DEFAULT_TITLE)
+    variant = context.get("title_variant") or (getattr(structure, "lab_sheet_title_variant", None) if structure else None)
+    if variant not in TITLE_VARIANTS:
+        variant = DEFAULT_TITLE_VARIANT
+    default_title = LEFT_TITLE if variant == "left_laboratory" and family != "boxed" else DEFAULT_TITLE
+    title = context.get("title") or (BOXED_DEFAULT_TITLE if family == "boxed" else default_title)
 
     render_ctx: Dict[str, Any] = {
         "css": css,
         "structure": _HeaderWithoutFooter(structure) if structure else SimpleNamespace(name=""),
         "footer_text": getattr(structure, "footer_text", None) if structure else None,
-        "logo_path": context.get("logo_path"),
+        "logo_path": light_logo(context.get("logo_path")),
         "title": title,
+        "title_variant": variant,
         "city": city,
         "date_letters": format_date_letters(validation_date),
         "dossier_label": _dossier_label(snapshot, context),
@@ -427,4 +437,32 @@ def render_lab_sheet(snapshot: dict, patient: dict, context: dict, *, show_pregn
         "note": snapshot.get("note"),
         "signature_label": signature,
     }
-    return render_pdf_from_template(template, render_ctx)
+    return render_template_html(template, render_ctx)
+
+
+def render_lab_sheet(snapshot: dict, patient: dict, context: dict, *, show_pregnancy: bool) -> bytes:
+    """PDF d'une fiche : voir render_lab_sheet_html pour les parametres."""
+    return render_documents_pdf([render_lab_sheet_html(snapshot, patient, context, show_pregnancy=show_pregnancy)])
+
+
+def render_template_html(template_name: str, context: dict) -> str:
+    """HTML d'un gabarit de utils/templates (meme chargeur que render_pdf_from_template)."""
+    from jinja2 import Environment, FileSystemLoader
+    template_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "templates")
+    return Environment(loader=FileSystemLoader(template_dir)).get_template(template_name).render(**context)
+
+
+def render_documents_pdf(htmls: list) -> bytes:
+    """UN PDF dont les pages sont, dans l'ordre, celles de chaque document HTML (une fiche chacun).
+    Les documents sont mis en page separement (en-tete, pied, page nommee propres a chaque fiche) puis ecrits
+    ensemble: les polices ne sont reduites qu'une fois (30 fiches en quelques secondes) et le logo n'est
+    embarque qu'une fois par PDF."""
+    from weasyprint import HTML
+    base_url = os.path.dirname(os.path.abspath(__file__))
+    docs = [HTML(string=h, base_url=base_url).render() for h in htmls]
+    if not docs:
+        raise ValueError("Aucune fiche a imprimer.")
+    pdf = docs[0].write_pdf() if len(docs) == 1 else docs[0].copy([p for d in docs for p in d.pages]).write_pdf()
+    if not pdf:
+        raise ValueError("Erreur interne : WeasyPrint n'a pas pu generer le PDF.")
+    return pdf

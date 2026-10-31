@@ -97,7 +97,7 @@ def test_copie_creee_a_la_validation_avec_la_forme_exacte(db_session):
                          "family": "table", "signature_label": "Dr X", "sort_order": 7, "fixed_notes": []}
     assert set(s["patient"]) == PATIENT_KEYS and s["patient"]["sex"] == "F"
     assert s["patient"]["age_days"] > 6570 and s["patient"]["age_label"]
-    assert s["pregnancy"] is None and s["dossier"] is None
+    assert s["pregnancy"] is None and s["dossier"] is not None   # numero attribue a la validation si absent
     assert [p["label"] for p in s["parameters"]] == ["Glycemie a jeun", "Aspect"]
     g, a = s["parameters"]
     assert set(g) == PARAM_KEYS and set(g["norm"]) == NORM_KEYS
@@ -262,7 +262,7 @@ def test_dossier_dans_la_copie_quand_attribue(db_session):
     _, r, _, (d1, d2) = _result(db_session, "dos1")
     r.dossier_year, r.dossier_counter, r.dossier_rank = None, None, None
     _validate(db_session, r, d1, d2)
-    assert r.print_snapshot["dossier"] is None
+    assert r.print_snapshot["dossier"] is not None   # politique : attribue a la validation
     s = build_print_snapshot(type("R", (), {"dossier_year": 2026, "dossier_counter": 12, "dossier_rank": 3,
                                             "conclusion": None, "note": None})(),
                              r.examen, [], PatientBio(None, "X", None, None))

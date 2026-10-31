@@ -71,13 +71,13 @@
         <p>
             {% if structure.address %}{{ structure.address|e }}{% endif %}
             {% if structure.city %} - {{ structure.city|e }}{% endif %}
-            {% if structure.po_box %} | BP: {{ structure.po_box|e }}{% endif %}
+            {% if structure.po_box %}{% set _bp = structure.po_box|string|trim %} | {% if (_bp|lower|replace('.', '')|replace(' ', '')|replace(':', ''))[:2] == 'bp' %}{{ _bp|e }}{% else %}BP: {{ _bp|e }}{% endif %}{% endif %}
         </p>
         {% endif %}
 
         {% if structure.phone or structure.phone2 or structure.email %}
         <p>
-            {% if structure.phone %}Tel: {{ structure.phone|e }}{% endif %}
+            {% if structure.phone %}{% set _tel = structure.phone|string|trim %}{% if (_tel|lower)[:3] in ['tel', 'tél'] %}{{ _tel|e }}{% else %}Tel: {{ _tel|e }}{% endif %}{% endif %}
             {% if structure.phone2 %} / {{ structure.phone2|e }}{% endif %}
             {% if structure.email %} &middot; {{ structure.email|e }}{% endif %}
         </p>

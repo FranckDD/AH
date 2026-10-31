@@ -1,6 +1,6 @@
 # app/routes/labo/lab_endpoints.py
 import io
-from fastapi import APIRouter, Depends, HTTPException, status, Query, Body
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Body, Path
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 import logging
@@ -28,6 +28,8 @@ from api_backend.backend_app.routes.auth.auth_endpoints import get_current_user,
 from utils.pregnancy_visibility import require_pregnancy_write
 from utils.lab_catalogue_access import can_edit_lab_catalogue
 from api_backend.backend_app.utils.pdf_generator import build_medical_pdf, build_batch_medical_pdf
+from api_backend.backend_app.utils.lab_sheet import (
+    render_lab_sheet, render_lab_sheet_html, render_documents_pdf, render_template_html)
 from api_backend.backend_app.utils.patient_resolution import resolve_lab_result_id_from_path
 from fastapi.responses import StreamingResponse
 from controller.config_controller import ConfigController
@@ -249,6 +251,13 @@ def search_internal_patients(q: str = Query(""), ctrl: LabController = Depends(g
 def get_results_by_batch(batch_id: str, ctrl: LabController = Depends(get_lab_controller)):
     return ctrl.get_results_by_batch_id(batch_id)    
 
+@router.get("/batch-uuid/{batch_uuid}/dossier", response_model=Dict,
+            dependencies=[Depends(role_required("laborantin", "admin"))])
+def get_dossier_by_batch_uuid(batch_uuid: str = Path(..., min_length=8, max_length=64),
+                              ctrl: LabController = Depends(get_lab_controller)):
+    """Numero de dossier d'un passage recu hors ligne (batch_uuid du client), des que le serveur l'a attribue."""
+    return ctrl.get_dossier_for_batch_uuid(batch_uuid)
+
 @router.post("/results", status_code=status.HTTP_201_CREATED, 
              dependencies=[Depends(role_required("laborantin", "admin", "ToxicoManager"))])
 def create_single_result(payload: LabResultCreate, ctrl: LabController = Depends(get_lab_controller)):
@@ -347,6 +356,30 @@ def get_lab_stats(
 ):
     return ctrl.get_dashboard_stats(period) 
 
+PDF_HEADERS = {"Cache-Control": "no-store, private"}
+
+
+def _pdf_response(pdf_bytes: bytes, filename: str) -> StreamingResponse:
+    return StreamingResponse(
+        io.BytesIO(pdf_bytes),
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"', **PDF_HEADERS},
+    )
+
+
+def _render_sheet(args: dict) -> bytes:
+    return render_lab_sheet(args["snapshot"], args["patient"], args["context"], show_pregnancy=args["show_pregnancy"])
+
+
+def _sheet_html(args: dict) -> str:
+    return render_lab_sheet_html(args["snapshot"], args["patient"], args["context"], show_pregnancy=args["show_pregnancy"])
+
+
+def _old_result_html(lab_ctrl, config_ctrl, result_id: int) -> str:
+    """Ancienne page d'un resultat valide sans copie figee (passage mixte)."""
+    return render_template_html("lab_result_template.html", lab_ctrl.get_print_data(result_id, config_ctrl))
+
+
 @router.get("/batch/{batch_id}/pdf", tags=["Labo PDF"],
             dependencies=[Depends(role_required("laborantin", "admin", "ToxicoManager", "medecin", "nurse"))])
 def download_batch_pdf(
@@ -359,6 +392,22 @@ def download_batch_pdf(
     (le patient et l'en-tete une seule fois, une seule signature).
     """
     config_ctrl = ConfigController(repo=ConfigRepository(db))
+
+    # Fiches de la copie figee (ordre du passage, une fiche par examen) ; sans aucune copie, ancien PDF.
+    try:
+        plan = lab_ctrl.get_batch_print_plan(batch_id, config_ctrl)
+    except PermissionError as e:
+        raise HTTPException(status_code=403, detail=str(e))
+    if plan is not None:
+        try:
+            sheet_pdf = render_documents_pdf(
+                [_sheet_html(i["sheet"]) if "sheet" in i else _old_result_html(lab_ctrl, config_ctrl, i["result_id"])
+                 for i in plan["items"]])
+        except Exception:
+            logger.exception(f"Erreur lors de la generation du PDF du dossier {batch_id}")
+            raise HTTPException(status_code=500, detail="Erreur lors de la création du document PDF")
+        return _pdf_response(sheet_pdf, f"Dossier_{plan['code']}.pdf")
+
     try:
         print_data = lab_ctrl.get_batch_print_data(batch_id, config_ctrl)
     except PermissionError as e:
@@ -375,12 +424,7 @@ def download_batch_pdf(
         logger.exception(f"Erreur lors de la generation du PDF du dossier {batch_id}")
         raise HTTPException(status_code=500, detail="Erreur lors de la création du document PDF")
 
-    filename = f"Dossier_{print_data['passage']['code']}.pdf"
-    return StreamingResponse(
-        io.BytesIO(pdf_bytes),
-        media_type="application/pdf",
-        headers={"Content-Disposition": f'attachment; filename="{filename}"'}
-    )
+    return _pdf_response(pdf_bytes, f"Dossier_{print_data['passage']['code']}.pdf")
 
 @router.get("/results/{result_id}/pdf", tags=["Labo PDF"],
             dependencies=[Depends(role_required("laborantin", "admin", "ToxicoManager", "medecin", "nurse"))])
@@ -395,6 +439,19 @@ def download_result_pdf(
     # 1. Initialisation propre du ConfigController via son Repo
     config_repo = ConfigRepository(db)
     config_ctrl = ConfigController(repo=config_repo)
+
+    # 1b. Resultat valide avec copie figee : fiche de sa famille ; sans copie, ancien PDF ci-dessous.
+    try:
+        sheet = lab_ctrl.get_sheet_print_args(result_id, config_ctrl)
+    except PermissionError as e:
+        raise HTTPException(status_code=403, detail=str(e))
+    if sheet is not None:
+        try:
+            sheet_pdf = _render_sheet(sheet)
+        except Exception:
+            logger.exception(f"Erreur lors de la generation de la fiche du resultat {result_id}")
+            raise HTTPException(status_code=500, detail="Erreur lors de la création du document PDF")
+        return _pdf_response(sheet_pdf, f"Resultat_{sheet['code']}.pdf")
 
     # 2. Récupérer TOUTES les données pré-formatées pour l'impression
     try:
@@ -416,10 +473,4 @@ def download_result_pdf(
     # 4. Renvoyer le fichier au frontend
     filename = f"Resultat_{print_data['examen']['code']}.pdf"
     
-    return StreamingResponse(
-        io.BytesIO(pdf_bytes), 
-        media_type="application/pdf",
-        headers={
-            "Content-Disposition": f'attachment; filename="{filename}"'
-        }
-    )
+    return _pdf_response(pdf_bytes, filename)

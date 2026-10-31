@@ -19,9 +19,11 @@ from api_backend.backend_app.utils.pdf_header import get_pdf_header_context
 from api_backend.backend_app.utils.patient_resolution import resolve_patient_id
 from utils.lab_prescriber import split_prescriber, format_prescriber
 from utils.business_time import business_now, business_today, resolve_client_time, ClientTimeError
-from utils.lab_dossier import assign_dossier, build_patient_key, dossier_day, dossier_labels, format_dossier, result_dossier
+from utils.lab_dossier import (DossierNotAssignedError, assign_dossier, build_patient_key, patient_key_for, dossier_day, dossier_labels, ensure_dossier_assigned,
+                               format_dossier, result_dossier)
+from utils.lab_snapshot import strip_pregnancy
 from utils.pregnancy_visibility import (
-    PREGNANCY_STATUSES, extract_external_pregnancy, require_pregnancy_write, snapshot_pregnancy_status,
+    PREGNANCY_STATUSES, can_see_pregnancy, extract_external_pregnancy, require_pregnancy_write, snapshot_pregnancy_status,
     validate_gestational_weeks,
 )
 from repositories.lab_repo import patient_bio
@@ -492,6 +494,70 @@ class LabController:
             "skipped_count": len(rows) - len(done),
         }
 
+    # ------------------------------------------------------------------
+    # Fiches imprimees a partir de la copie figee (D3)
+    # ------------------------------------------------------------------
+    def _sheet_args(self, r: LabResult, header_ctx: Dict[str, Any]) -> Dict[str, Any]:
+        """Arguments de render_lab_sheet pour un resultat qui a une copie figee. Leve DossierNotAssignedError
+        (ValueError) tant que le numero de dossier officiel n'est pas attribue. L'identite vient des tables
+        vivantes ; la mise en page, les libelles, normes et valeurs viennent de la copie (jamais du catalogue)."""
+        # Jamais de blocage : un numero manquant est attribue ici (ancien resultat) ; si l'attribution elle-meme
+        # echoue, la fiche porte le code de reference du resultat a la place du numero.
+        try:
+            number = ensure_dossier_assigned(r, commit=True)
+        except DossierNotAssignedError:
+            self.logger.warning("Numero de dossier indisponible pour le resultat %s : impression avec le code de reference",
+                           r.result_id)
+            number = None
+        show = can_see_pregnancy(self.user)
+        snapshot = r.print_snapshot if show else strip_pregnancy(r.print_snapshot)
+        if r.patient:
+            name = f"{r.patient.last_name} {r.patient.first_name}"
+        else:
+            name = (r.external_patient_info or {}).get("nom") or "Inconnu"
+        day = dossier_day(self.repo.session, number) if number else None
+        context = dict(header_ctx)
+        context["validation_date"] = r.print_snapshot_at.date() if r.print_snapshot_at else None
+        if day:
+            context["dossier_day"] = day
+            context["dossier_label"] = format_dossier(number, day)
+        elif number is None:
+            context["dossier_label"] = r.code_lab_patient
+        return {"snapshot": snapshot, "patient": {"name": name, "prescriber": r.prescribed_by_name or None},
+                "context": context, "show_pregnancy": show, "code": r.code_lab_patient}
+
+    def get_sheet_print_args(self, result_id: int, config_ctrl: Any) -> Optional[Dict[str, Any]]:
+        """None si le resultat n'existe pas ou n'a pas de copie figee (ancien chemin de PDF)."""
+        r = self.repo.get_full_lab_result(result_id)
+        if not r or not r.print_snapshot:
+            return None
+        if self._est_medical_lecture_seule() and r.status != "completed":
+            raise PermissionError("Ce resultat n'est pas encore complet - reserve au laboratoire.")
+        return self._sheet_args(r, get_pdf_header_context(config_ctrl))
+
+    def get_batch_print_plan(self, batch_id_str: str, config_ctrl: Any) -> Optional[Dict[str, Any]]:
+        """Plan d'impression d'un passage dont au moins un examen termine a une copie figee :
+        {"code", "items": [{"sheet": args} | {"result_id": id}]} dans l'ordre du passage (ancien chemin pour
+        les resultats sans copie). None si le lot est inconnu, sans examen termine ou sans aucune copie : la
+        route garde alors l'ancien PDF "dossier complet" (et ses reponses 404 / 409)."""
+        try:
+            batch_uuid = uuid.UUID(batch_id_str)
+        except ValueError:
+            return None
+        rows = self.repo.get_results_by_batch_id(batch_uuid)
+        accepted = ("completed",) if self._est_medical_lecture_seule() else self.DONE_STATUSES
+        done = sorted((r for r in rows if r.status in accepted), key=lambda r: r.result_id)
+        if not done or not any(r.print_snapshot for r in done):
+            return None
+        header_ctx = get_pdf_header_context(config_ctrl)
+        items = []
+        for r in done:
+            if r.print_snapshot:
+                items.append({"sheet": self._sheet_args(r, header_ctx)})
+            else:
+                items.append({"result_id": r.result_id})
+        return {"code": done[0].code_lab_patient, "items": items}
+
     def _prepare_pregnancy(self, patient_id, external_info, external_pregnancy, weeks, explicit_status):
         """Valide et separe les donnees de grossesse d'une reception. Renvoie
         (SA, identite externe SANS cle de grossesse, bloc de grossesse externe ou None, statut a la reception).
@@ -564,17 +630,21 @@ class LabController:
             "status": "pending"
         }
         
-        label = None
+        # Numero de dossier : toujours attribue (meme regles que la reception par lot). Un resultat isole n'a pas
+        # de lot : son propre uuid separe les externes sans telephone ; sans identite, cle propre a ce resultat.
+        ref = uuid.uuid4()
+        payload["uuid"] = ref
         if patient_id or external_patient_info:
             try:
-                key = build_patient_key(patient_id, external_patient_info)
+                build_patient_key(patient_id, external_patient_info, batch_id=ref)
             except ValueError as e:
                 raise HTTPException(status_code=422, detail=str(e))
-            day = business_today()
-            num = assign_dossier(self.repo.session, key, day)
-            payload.update(patient_key=key, dossier_year=num.year, dossier_counter=num.counter,
-                           dossier_rank=num.rank)
-            label = format_dossier(num, day)
+        key = patient_key_for(patient_id, external_patient_info, ref)
+        day = business_today()
+        num = assign_dossier(self.repo.session, key, day)
+        payload.update(patient_key=key, dossier_year=num.year, dossier_counter=num.counter,
+                       dossier_rank=num.rank)
+        label = format_dossier(num, day)
 
         lr = self.repo.create_lab_result(payload)
         
@@ -874,7 +944,8 @@ class LabController:
             except ValueError as e:
                 raise HTTPException(status_code=422, detail=str(e))
         else:
-            patient_key = None
+            # Ni patient interne ni identite externe : numero quand meme, cle propre a cette reception.
+            patient_key = patient_key_for(None, None, server_batch_id)
 
         success_count = 0
         for item in results_list:
@@ -936,6 +1007,14 @@ class LabController:
             if not shared_code:
                 shared_code = new_res.code_lab_patient
             success_count += 1
+
+        if dossier is not None and existing_sibling is not None and sibling_number is None:
+            # Frere plus ancien sans numero (reception anterieure au numero de dossier) : tout le lot partage le
+            # numero qui vient d'etre attribue.
+            self.repo.session.query(LabResult).filter(
+                LabResult.batch_id == server_batch_id, LabResult.dossier_year.is_(None)
+            ).update({"dossier_year": dossier.year, "dossier_counter": dossier.counter,
+                      "dossier_rank": dossier.rank, "patient_key": patient_key}, synchronize_session="fetch")
 
         if external_prescriber and success_count:
             self.repo.upsert_external_prescriber(*external_prescriber)
@@ -1033,6 +1112,16 @@ class LabController:
             return []
         # Ordonnances (lignes restantes) + examens factures non recus - voir le repo.
         return self.repo.get_reception_candidates(query.strip())
+
+    def get_dossier_for_batch_uuid(self, batch_uuid: str) -> Dict[str, Any]:
+        """Numero de dossier deja attribue par le serveur a un lot recu hors ligne (batch_uuid client), ou
+        {"dossier": None} tant que les lignes du lot ne sont pas synchronisees. Ne cree ni ne modifie rien."""
+        results = self.repo.session.query(LabResult).filter(LabResult.batch_uuid == str(batch_uuid)).all()
+        labels = dossier_labels(self.repo.session, results)
+        for r in sorted(results, key=lambda x: x.result_id):
+            if labels.get(r.result_id):
+                return {"dossier": labels[r.result_id]}
+        return {"dossier": None}
 
     def get_results_by_batch_id(self, batch_id_str: str) -> List[Dict]:
         """Méthode appelée quand on clique sur un dossier groupé"""

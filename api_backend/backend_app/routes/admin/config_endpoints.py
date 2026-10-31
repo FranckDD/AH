@@ -25,6 +25,7 @@ def get_config_controller(db: Session = Depends(get_db)):
     repo = ConfigRepository(session=db)
     return ConfigController(repo=repo)
 
+LAB_SHEET_VARIANTS = ("centered_results", "left_laboratory")
 LABEL_MM_MIN = 20
 LABEL_MM_MAX = 120
 
@@ -50,6 +51,7 @@ def normalize_config_data(config: OrganizationConfig):
         "agrement_number": getattr(config, "agrement_number", None),
         "footer_text": getattr(config, "footer_text", None),
         "signature_label_default": getattr(config, "signature_label_default", None),
+        "lab_sheet_title_variant": getattr(config, "lab_sheet_title_variant", None) or "centered_results",
         "ticket_logo_url": config.ticket_logo_url,
         "label_width_mm": config.label_width_mm if config.label_width_mm is not None else 50,
         "label_height_mm": config.label_height_mm if config.label_height_mm is not None else 30,
@@ -85,6 +87,7 @@ async def update_structure_info(
     agrement_number: Optional[str] = Form(None),
     footer_text: Optional[str] = Form(None),
     signature_label_default: Optional[str] = Form(None),
+    lab_sheet_title_variant: Optional[str] = Form(None),
     label_width_mm: Optional[int] = Form(None),
     label_height_mm: Optional[int] = Form(None),
 
@@ -122,6 +125,12 @@ async def update_structure_info(
             if len(value) > limit:
                 raise HTTPException(status_code=422, detail=f"{key} must be at most {limit} characters")
             data[key] = value or None
+
+    if lab_sheet_title_variant is not None:
+        variant = lab_sheet_title_variant.strip() or "centered_results"
+        if variant not in LAB_SHEET_VARIANTS:
+            raise HTTPException(status_code=422, detail="lab_sheet_title_variant must be one of: " + ", ".join(LAB_SHEET_VARIANTS))
+        data["lab_sheet_title_variant"] = variant
 
     for key, value in (("label_width_mm", label_width_mm), ("label_height_mm", label_height_mm)):
         if value is not None:

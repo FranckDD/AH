@@ -260,11 +260,12 @@ def test_history_and_detail_expose_the_number(db_session, api_client, monkeypatc
     assert detail.json()["dossier"] == "001/01 du 03/02/2094"
 
 
-def test_unassigned_result_cannot_be_printed(db_session):
+def test_detached_unassigned_result_raises_only_when_it_cannot_be_assigned(db_session):
+    """Politique : un numero manquant est attribue a la demande ; hors session (rien a attribuer), l'erreur est
+    levee et l'appelant imprime avec le code de reference. Le cas en session: tests/test_lab_dossier_lazy.py."""
     unassigned = LabResult(test_type="x", status="completed", code_lab_patient="DN-NONE")
-    with pytest.raises(DossierNotAssignedError) as exc:
+    with pytest.raises(DossierNotAssignedError):
         ensure_dossier_assigned(unassigned)
-    assert "Numero de dossier non encore attribue" in str(exc.value)
     assigned = LabResult(test_type="x", status="completed", code_lab_patient="DN-OK",
                          dossier_year=2026, dossier_counter=289, dossier_rank=2)
     assert ensure_dossier_assigned(assigned) == DossierNumber(2026, 289, 2)
