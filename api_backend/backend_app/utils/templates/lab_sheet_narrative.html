@@ -1,0 +1,26 @@
+{% extends "lab_sheet_base.html" %}
+{# Famille compte rendu narratif (bacteriologie, PCV, ECBU, cultures, frottis, coprologie) :
+   titre, methode, RESULTATS, rubriques fixes (= `group` de la copie, soulignees) et, pour chaque
+   parametre, « LIBELLE : valeur » ou, pour un texte long / sur plusieurs lignes, le libelle en titre
+   suivi du paragraphe (white-space: pre-wrap). Parametres sans valeur omis. #}
+{% block body %}
+{% if exam.section %}<div class="section-title underline">{{ exam.section|e }}</div>{% endif %}
+{% if exam.title %}<div class="section-title">{{ exam.title|e }}</div>{% endif %}
+{% if exam.method %}<div class="exam-method">{{ exam.method|e }}</div>{% endif %}
+{{ notes_html.before_body }}
+<div class="results-heading">RESULTATS</div>
+<div class="narr">
+{% for g in groups %}
+    {% if g.title %}<div class="group-title">{{ g.title|e }}</div>{% endif %}
+    {% for r in g.rows if r.value %}
+        {% if r.multiline or r.label == g.title %}
+    {% if r.label != g.title %}<p class="lab">{{ r.label|e }} :</p>{% endif %}
+    <div class="para{% if r.flagged %} flagged{% endif %}">{{ r.value|e }}</div>
+        {% else %}
+    <p><span class="lab">{{ r.label|e }} :</span> <span class="value{% if r.flagged %} flagged{% endif %}">{{ r.value|e }}{% if r.unit %} {{ r.unit_html }}{% endif %}</span>{% if r.norm %} ({{ r.norm|e }}){% endif %}</p>
+        {% endif %}
+    {% endfor %}
+{% endfor %}
+</div>
+{{ notes_html.after_body }}
+{% endblock %}

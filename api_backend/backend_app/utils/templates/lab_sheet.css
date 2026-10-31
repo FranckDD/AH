@@ -1,0 +1,128 @@
+/* Fiche de resultats du laboratoire : Lettre US 21,59 x 27,94 cm, portrait.
+   Polices metriquement compatibles Times / Arial / Courier New (Liberation), repli sur les
+   polices du systeme quand Liberation n'est pas installee. */
+@page {
+    size: 21.59cm 27.94cm;
+    margin: 2.54cm 2.2cm 2.54cm 2.2cm;
+    @bottom-center { content: element(sheet-footer); }
+}
+html { font-family: "Liberation Serif", "Times New Roman", Times, serif; font-size: 10.5pt; color: #000; }
+body { margin: 0; }
+.sans { font-family: "Liberation Sans", Arial, Helvetica, sans-serif; }
+.mono { font-family: "Liberation Mono", "Courier New", Courier, monospace; }
+
+/* En-tete (partiel _pdf_header.html) : on resserre pour garder la place du corps */
+.header { padding-bottom: 6px; margin-bottom: 4px; }
+.hospital-info h1 { font-size: 17pt; }
+
+#sheet-footer { position: running(sheet-footer); font-size: 8pt; font-weight: 700; font-style: italic; text-align: center; }
+#sheet-footer p { margin: 0; }
+
+.sheet-date { text-align: right; font-style: italic; margin: 10px 0 8px 0; }
+.sheet-title { text-align: center; font-weight: 700; text-decoration: underline; font-size: 12pt; margin: 6px 0 12px 0; }
+
+.patient-block { margin-bottom: 12px; font-weight: 700; text-align: center; }
+.patient-block p { margin: 2px 0; }
+.patient-block .age-sex span + span { margin-left: 2em; }
+
+.exam-section { text-align: center; font-weight: 700; text-transform: uppercase; margin: 6px 0 2px 0; }
+.exam-title { text-align: center; margin: 0 0 8px 0; }
+.exam-method { text-align: center; font-style: italic; font-size: 9.5pt; margin: 0 0 8px 0; }
+
+table.lv { width: 100%; border-collapse: collapse; }
+table.lv td { padding: 2px 4px; vertical-align: top; }
+table.lv td.lv-value { font-weight: 700; }
+table.lv td.lv-norm { font-size: 9.5pt; }
+.flagged { font-weight: 700; color: #c00000; }
+
+.free-block { margin-top: 10px; font-weight: 700; font-style: italic; white-space: pre-wrap; overflow-wrap: anywhere; }
+
+.signature { margin-top: 18px; text-align: right; font-weight: 700; font-style: italic; page-break-inside: avoid; break-inside: avoid; }
+.signature .sig-space { height: 2.2cm; }
+
+/* Variante serree (beaucoup de parametres : spermogramme) */
+@page dense { size: 21.59cm 27.94cm; margin: 1.3cm 1.6cm 1.6cm 1.6cm; @bottom-center { content: element(sheet-footer); } }
+body.dense { page: dense; font-size: 9.5pt; }
+body.dense .ls-logo img { max-height: 1.9cm; }
+body.dense .ls-name { font-size: 16pt; }
+body.dense .sheet-date { margin: 2px 0; }
+body.dense .sheet-title { margin: 2px 0 4px 0; }
+body.dense .patient-block { margin-bottom: 4px; }
+body.dense .signature { margin-top: 4px; }
+body.dense .signature .sig-space { height: 1.2cm; }
+body.dense .group-title { margin: 3px 0 1px 0; }
+
+/* En-tete des fiches : logo a gauche, texte centre a droite (_lab_sheet_header.html) */
+table.ls-header { width: 100%; border-collapse: collapse; margin-bottom: 4px; }
+table.ls-header td { vertical-align: top; padding: 0; }
+td.ls-logo { width: 3.1cm; }
+td.ls-logo img { max-width: 3cm; max-height: 2.8cm; }
+td.ls-info { text-align: center; font-size: 10pt; }
+.ls-name { font-family: Impact, "Liberation Sans Narrow", "Arial Narrow", "Liberation Sans", Arial, sans-serif;
+           font-size: 21pt; font-weight: 700; color: #6a1fd0; margin-bottom: 4px; }
+.ls-slogan { font-style: italic; }
+.ls-legal { font-size: 8pt; }
+
+/* Titres de corps */
+.section-title { text-align: center; font-weight: 700; font-size: 13pt; margin: 6px 0 4px 0; }
+.section-title.underline { text-decoration: underline; font-size: 11.5pt; }
+.exam-band { background: #d9d9d9; font-weight: 700; font-size: 12.5pt; padding: 3px 8px; margin: 10px 0 4px 0; }
+.exam-band span { text-decoration: underline; }
+.results-heading { text-decoration: underline; font-size: 11pt; margin: 6px 0 4px 0; }
+.group-title { font-weight: 700; text-decoration: underline; margin: 8px 0 2px 0; }
+.exam-method { white-space: pre-wrap; }
+.value { font-weight: 400; }
+.value.flagged, .flagged { font-weight: 700; color: #c00000; }
+
+/* Famille tableau */
+table.grid { width: 100%; border-collapse: collapse; margin-top: 2px; }
+table.grid th, table.grid td { border: 0.6pt solid #000; padding: 2px 4px; text-align: center; vertical-align: middle; }
+table.grid th { font-weight: 700; }
+table.grid td.label { text-align: left; }
+table.grid tr.group-row td { font-weight: 700; }
+table.grid td.inner { padding: 0; border: 0; }
+table.grid table.grid { margin: 0; }
+table.grid td.vam-norm { font-size: 9.5pt; }
+table.grid td.norm { font-size: 9.5pt; }
+.lines p { margin: 1px 0; overflow-wrap: anywhere; }
+.lines.two-cols { columns: 2; column-gap: 1.2cm; }
+.lines.two-cols p { break-inside: avoid; }
+
+/* Famille trois colonnes (biochimie, VS) */
+table.tc { width: 100%; border-collapse: collapse; font-family: "Liberation Mono", "Courier New", Courier, monospace; font-size: 10pt; margin-top: 6px; }
+table.tc th { text-align: left; font-weight: 700; padding: 2px 4px 10px 4px; }
+table.tc td { padding: 3px 4px; vertical-align: top; overflow-wrap: anywhere; }
+table.tc .c1 { width: 42%; } table.tc .c2 { width: 26%; } table.tc .c3 { width: 32%; }
+
+/* Libelle : valeur */
+.lv-lines p { margin: 3px 0 3px 0.4cm; overflow-wrap: anywhere; }
+.lv-lines .norm { font-size: 9.5pt; }
+
+/* Narratif */
+.narr p { margin: 2px 0; overflow-wrap: anywhere; }
+.narr .lab { font-weight: 700; }
+.narr .para { white-space: pre-wrap; margin: 1px 0 4px 0.4cm; overflow-wrap: anywhere; }
+
+/* Formulaire en cases (Chlamydiae) */
+table.boxes { width: 100%; border-collapse: separate; border-spacing: 0 5px; font-family: "Liberation Mono", "Courier New", Courier, monospace; font-size: 10pt; }
+table.boxes td { vertical-align: middle; padding: 0 4px; }
+table.boxes td.blabel { font-weight: 700; width: 18%; }
+table.boxes td.bvalue { border: 0.8pt solid #3a3a8a; padding: 3px 6px; text-align: center; width: 30%; }
+table.boxes td.gap { width: 4%; }
+.boxed-rule { border-top: 1pt solid #000; margin: 8px 0 6px 0; }
+.boxed-results-rule { border-top: 1.6pt solid #3a3a8a; margin: 6px 0; }
+.boxed-heading { text-align: center; font-weight: 700; font-family: "Liberation Mono", "Courier New", Courier, monospace; margin: 4px 0; }
+.boxed-subtitle { text-align: center; font-weight: 700; font-size: 11.5pt; margin: 0 0 8px 0; }
+.boxed-method { color: #3a4a6a; margin: 6px 0; white-space: pre-wrap; }
+table.boxres { width: 100%; border-collapse: separate; border-spacing: 0 5px; }
+table.boxres td.blabel { width: 34%; font-weight: 700; font-family: "Liberation Mono", "Courier New", Courier, monospace; }
+table.boxres td.bvalue { border: 0.8pt solid #3a3a8a; padding: 3px 8px; overflow-wrap: anywhere; }
+.interp { font-size: 9pt; margin-top: 8px; }
+.interp ul { margin: 4px 0 4px 0; padding-left: 0.6cm; }
+.interp li { margin: 1px 0; }
+.interp .chosen { font-weight: 700; }
+/* Notes fixes de l'examen (examens.fixed_notes, copie v2) */
+.fixed-note { margin: 2px 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.fixed-note.bold { font-weight: 700; }
+.fixed-note.italic { font-style: italic; }
+.fixed-note.chosen { font-weight: 700; }

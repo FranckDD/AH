@@ -22,6 +22,7 @@ class UserCreate(UserBase):
     password: Optional[str] = Field(..., description="Mot de passe en clair")
     full_name: Optional[str] = Field(..., description="Nom complet")
     is_head_nurse: Optional[bool] = None
+    is_head_lab: Optional[bool] = None
     sees_own_toxico_only: Optional[bool] = None
 
     model_config = ConfigDict()
@@ -35,6 +36,7 @@ class UserUpdate(BaseModel):
     postgres_role: Optional[str] = None
     is_active: Optional[bool] = None
     is_head_nurse: Optional[bool] = None
+    is_head_lab: Optional[bool] = None
     sees_own_toxico_only: Optional[bool] = None
     role_id: Optional[int] = None
     specialty_id: Optional[int] = None
@@ -49,6 +51,7 @@ class UserOut(BaseModel):
     contact: Optional[str] = None
     is_active: bool
     is_head_nurse: bool = False
+    is_head_lab: bool = False
     sees_own_toxico_only: bool = False
     postgres_role: Optional[str] = None
     role_id: Optional[int] = None

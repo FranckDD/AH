@@ -5503,6 +5503,8 @@ ALTER TABLE public.parametres ADD COLUMN ordre integer NOT NULL DEFAULT 0;
 
 ALTER TABLE public.users ADD COLUMN sees_own_toxico_only boolean DEFAULT false NOT NULL;
 
+ALTER TABLE public.users ADD COLUMN is_head_lab boolean DEFAULT false NOT NULL;
+
 CREATE TABLE public.toxico_psychologist_transfers (
     id serial PRIMARY KEY,
     dossier_id integer NOT NULL REFERENCES public.toxico_dossiers(id) ON DELETE CASCADE,
@@ -5549,6 +5551,123 @@ CREATE TABLE public.spiritual_notes (
 CREATE INDEX idx_spiritual_notes_order
     ON public.spiritual_notes (meeting_date DESC, created_at DESC, id DESC);
 CREATE INDEX idx_spiritual_notes_author ON public.spiritual_notes (author_id);
+
+CREATE TABLE public.lab_external_prescribers (
+    id serial PRIMARY KEY,
+    title varchar(20) NOT NULL,
+    name varchar(80) NOT NULL DEFAULT '',
+    last_used_at timestamp NOT NULL DEFAULT now(),
+    CONSTRAINT lab_external_prescribers_title_check
+        CHECK (title IN ('Dr', 'I.D.E.', 'Fr', 'Br', 'M.', 'Mme', 'Volontaire', 'Autre'))
+);
+CREATE UNIQUE INDEX uq_lab_external_prescribers_title_name
+    ON public.lab_external_prescribers (title, lower(name));
+CREATE INDEX idx_lab_external_prescribers_recent
+    ON public.lab_external_prescribers (last_used_at DESC);
+
+CREATE TABLE public.lab_dossier_days (
+    year integer NOT NULL,
+    day date NOT NULL,
+    counter integer NOT NULL CHECK (counter >= 1),
+    PRIMARY KEY (year, day),
+    CONSTRAINT uq_lab_dossier_days_counter UNIQUE (year, counter),
+    CONSTRAINT uq_lab_dossier_days_counter_day UNIQUE (year, counter, day)
+);
+CREATE TABLE public.lab_dossier_ranks (
+    year integer NOT NULL,
+    counter integer NOT NULL,
+    rank integer NOT NULL CHECK (rank >= 1),
+    patient_key text NOT NULL,
+    day date NOT NULL,
+    PRIMARY KEY (year, counter, rank),
+    CONSTRAINT uq_lab_dossier_ranks_patient_day UNIQUE (year, day, patient_key),
+    CONSTRAINT fk_lab_dossier_ranks_day FOREIGN KEY (year, counter)
+        REFERENCES public.lab_dossier_days (year, counter),
+    CONSTRAINT fk_lab_dossier_ranks_counter_day FOREIGN KEY (year, counter, day)
+        REFERENCES public.lab_dossier_days (year, counter, day)
+);
+ALTER TABLE public.lab_results ADD COLUMN dossier_year integer;
+ALTER TABLE public.lab_results ADD COLUMN dossier_counter integer;
+ALTER TABLE public.lab_results ADD COLUMN dossier_rank integer;
+ALTER TABLE public.lab_results ADD COLUMN patient_key text;
+ALTER TABLE public.lab_results ADD CONSTRAINT fk_lab_results_dossier
+    FOREIGN KEY (dossier_year, dossier_counter, dossier_rank)
+    REFERENCES public.lab_dossier_ranks (year, counter, rank);
+ALTER TABLE public.lab_results ADD CONSTRAINT ck_lab_results_dossier_all_or_none
+    CHECK ((dossier_year IS NULL) = (dossier_counter IS NULL)
+       AND (dossier_year IS NULL) = (dossier_rank IS NULL));
+CREATE INDEX idx_lab_results_dossier
+    ON public.lab_results (dossier_year, dossier_counter, dossier_rank);
+
+ALTER TABLE public.patients ADD COLUMN pregnancy_status varchar(20) NOT NULL DEFAULT 'inconnu';
+ALTER TABLE public.patients ADD COLUMN expected_delivery_date date;
+ALTER TABLE public.patients ADD COLUMN pregnancy_program_number varchar(50);
+ALTER TABLE public.patients ADD CONSTRAINT ck_patients_pregnancy_status
+    CHECK (pregnancy_status IN ('enceinte', 'non_enceinte', 'inconnu'));
+ALTER TABLE public.lab_results ADD COLUMN gestational_age_weeks smallint;
+ALTER TABLE public.lab_results ADD CONSTRAINT ck_lab_results_gestational_age_weeks
+    CHECK (gestational_age_weeks IS NULL OR gestational_age_weeks BETWEEN 0 AND 45);
+
+ALTER TABLE public.reference_ranges ADD COLUMN age_min_days integer;
+ALTER TABLE public.reference_ranges ADD COLUMN age_max_days integer;
+ALTER TABLE public.reference_ranges ADD COLUMN ga_min_weeks smallint;
+ALTER TABLE public.reference_ranges ADD COLUMN ga_max_weeks smallint;
+UPDATE public.reference_ranges
+   SET age_min_days = age_min * 365, age_max_days = (age_max + 1) * 365 - 1;
+ALTER TABLE public.reference_ranges ALTER COLUMN age_min DROP NOT NULL;
+ALTER TABLE public.reference_ranges ALTER COLUMN age_max DROP NOT NULL;
+ALTER TABLE public.reference_ranges ADD CONSTRAINT ck_reference_ranges_ga_weeks
+    CHECK ((ga_min_weeks IS NULL OR ga_min_weeks BETWEEN 0 AND 45)
+       AND (ga_max_weeks IS NULL OR ga_max_weeks BETWEEN 0 AND 45)
+       AND (ga_min_weeks IS NULL OR ga_max_weeks IS NULL OR ga_min_weeks <= ga_max_weeks));
+ALTER TABLE public.reference_ranges ADD CONSTRAINT ck_reference_ranges_age_days
+    CHECK ((age_min_days IS NULL OR age_min_days >= 0)
+       AND (age_max_days IS NULL OR age_max_days >= 0)
+       AND (age_min_days IS NULL OR age_max_days IS NULL OR age_min_days <= age_max_days));
+
+ALTER TABLE public.examens ADD COLUMN section text;
+ALTER TABLE public.examens ADD COLUMN method text;
+ALTER TABLE public.examens ADD COLUMN layout_family varchar(20) NOT NULL DEFAULT 'label_value';
+ALTER TABLE public.examens ADD COLUMN signature_label text;
+ALTER TABLE public.examens ADD COLUMN print_title text;
+ALTER TABLE public.examens ADD COLUMN sort_order integer NOT NULL DEFAULT 0;
+ALTER TABLE public.examens ADD COLUMN is_active boolean NOT NULL DEFAULT true;
+ALTER TABLE public.examens ADD CONSTRAINT ck_examens_layout_family
+    CHECK (layout_family IN ('table', 'three_columns', 'label_value', 'narrative', 'boxed'));
+ALTER TABLE public.parametres ADD COLUMN print_label text;
+ALTER TABLE public.parametres ADD COLUMN result_kind varchar(10) NOT NULL DEFAULT 'numeric';
+ALTER TABLE public.parametres ADD COLUMN choices jsonb;
+ALTER TABLE public.parametres ADD COLUMN is_active boolean NOT NULL DEFAULT true;
+ALTER TABLE public.parametres ADD CONSTRAINT ck_parametres_result_kind
+    CHECK (result_kind IN ('numeric', 'text', 'choice', 'pos_neg'));
+ALTER TABLE public.organization_config ADD COLUMN agrement_number varchar(200);
+ALTER TABLE public.organization_config ADD COLUMN footer_text text;
+ALTER TABLE public.organization_config ADD COLUMN signature_label_default varchar(120);
+
+ALTER TABLE public.lab_results ADD COLUMN external_pregnancy_info jsonb;
+ALTER TABLE public.lab_results ADD COLUMN pregnancy_status_at_result text;
+ALTER TABLE public.lab_results ADD CONSTRAINT ck_lab_results_pregnancy_status_at_result
+    CHECK (pregnancy_status_at_result IS NULL
+           OR pregnancy_status_at_result IN ('enceinte', 'non_enceinte', 'inconnu'));
+ALTER TABLE public.lab_results ADD COLUMN print_snapshot jsonb;
+ALTER TABLE public.lab_results ADD COLUMN print_snapshot_at timestamp without time zone;
+ALTER TABLE public.lab_results ADD COLUMN print_snapshot_by integer;
+ALTER TABLE public.lab_results ADD COLUMN print_snapshot_history jsonb;
+ALTER TABLE public.lab_results ADD COLUMN conclusion text;
+ALTER TABLE public.lab_results ADD CONSTRAINT ck_lab_results_conclusion_length
+    CHECK (conclusion IS NULL OR length(conclusion) <= 5000);
+ALTER TABLE public.parametres ADD COLUMN group_label text;
+ALTER TABLE public.parametres ADD COLUMN norm_text text;
+ALTER TABLE public.reference_ranges ADD COLUMN display_text text;
+ALTER TABLE public.examens ADD COLUMN fixed_notes jsonb;
+ALTER TABLE public.parametres ADD CONSTRAINT ck_parametres_group_label_length
+    CHECK (group_label IS NULL OR length(group_label) <= 80);
+ALTER TABLE public.parametres ADD CONSTRAINT ck_parametres_norm_text_length
+    CHECK (norm_text IS NULL OR length(norm_text) <= 200);
+ALTER TABLE public.reference_ranges ADD CONSTRAINT ck_reference_ranges_display_text_length
+    CHECK (display_text IS NULL OR length(display_text) <= 60);
+ALTER TABLE public.examens ADD CONSTRAINT ck_examens_fixed_notes_array
+    CHECK (fixed_notes IS NULL OR jsonb_typeof(fixed_notes) = 'array');
 
 --
 -- Name: powersync; Type: PUBLICATION; Schema: -; Owner: -

@@ -62,14 +62,24 @@ def _check_columns(table, row, expected):
         raise ImportFailed("fichier invalide: colonnes inattendues dans '%s'" % table)
 
 
+# Colonnes jsonb : la valeur JSON (liste) est reecrite en texte JSON pour psycopg2.
+JSON_COLUMNS = {("parametres", "choices"), ("examens", "fixed_notes")}
+
+
+def _value(table, col, v):
+    if (table, col) in JSON_COLUMNS and v is not None:
+        return json.dumps(v, ensure_ascii=False)
+    return v
+
+
 def _insert(cur, table, columns, rows):
     if not rows:
         return
     cols = ", ".join(columns)
-    marks = ", ".join(["%s"] * len(columns))
+    marks = ", ".join("%s::jsonb" if (table, c) in JSON_COLUMNS else "%s" for c in columns)
     sql = "INSERT INTO public.%s (%s) VALUES (%s)" % (table, cols, marks)
     for row in rows:
-        cur.execute(sql, [row[c] for c in columns])
+        cur.execute(sql, [_value(table, c, row[c]) for c in columns])
 
 
 def import_data(conn, data) -> dict:

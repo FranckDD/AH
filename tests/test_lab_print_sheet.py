@@ -87,8 +87,12 @@ def test_select_range_prefers_exact_sex_then_generic_never_the_other_sex():
     assert select_range([m], "F", 30) is None          # plage masculine seule : rien pour une femme
     assert select_range([m, f], "X", 30) is None       # sexe inconnu : pas de choix arbitraire
     assert select_range([x], "X", 30) is x
-    assert select_range([R(sexe="F", age_min=0, age_max=10)], "F", 30) is None
-    assert select_range([R(sexe="F", age_min=0, age_max=10)], "F", None) is not None  # age inconnu : on ne filtre pas
+    Y = 365  # l'age est desormais en jours
+    assert select_range([m, f], "F", 30 * Y) is f
+    assert select_range([R(sexe="F", age_min=0, age_max=10)], "F", 30 * Y) is None
+    # age inconnu : seules les plages sans borne d'age s'appliquent (0..120 ans = sans borne)
+    assert select_range([R(sexe="F", age_min=0, age_max=10)], "F", None) is None
+    assert select_range([f], "F", None) is f
 
 
 # ------------------------------------------------------------------- donnees d'impression
@@ -214,3 +218,33 @@ def test_drapeau_manuel_haut_sans_texte_est_enregistre_avec_son_mot(db_session):
     assert _save(db_session, r, glob, 14, flag="A").interpretation == "Anormal"
     d = _save(db_session, r, glob, 14, flag="H", interp="Controle")
     assert d.interpretation == "Controle" and d.flagged is True
+
+
+# ----------------------------------------------------- la norme affichee au banc = celle du drapeau
+
+def test_detail_returns_the_applicable_range_used_by_the_flag(db_session):
+    _, r, glob, eryth = _setup(db_session, "ap1", "F")
+    ctrl = LabController(repo=LabRepository(db_session))
+    rows = {d["nom"]: d for d in ctrl.get_result_detail(r.result_id)["details"]}
+    assert rows["Hemoglobine"]["applicable_range"]["min"] == 12.0
+    assert rows["Hemoglobine"]["applicable_range"]["max"] == 15.5
+    assert rows["Hemoglobine"]["applicable_range"]["text"] == "12 - 15.5"
+    assert len(rows["Hemoglobine"]["ranges"]) == 2            # liste complete conservee
+    assert rows["Erythrocytes"]["applicable_range"] is None   # plage masculine seule : rien pour une femme
+
+
+def test_detail_range_follows_age_and_matches_the_flag(db_session):
+    _, r, glob, _ = _setup(db_session, "ap2", "F", birth=date(2000, 1, 1))
+    r.test_date = datetime(2000, 1, 11, 10, 0)                 # patient de 10 jours
+    db_session.add_all([
+        ReferenceRange(parametre_id=glob.id, sexe="X", age_min_days=0, age_max_days=28, valeur_min=14, valeur_max=22),
+        ReferenceRange(parametre_id=glob.id, sexe="F", age_min_days=29, valeur_min=11, valeur_max=14),
+    ])
+    db_session.flush()
+    ctrl = LabController(repo=LabRepository(db_session))
+    rows = {d["nom"]: d for d in ctrl.get_result_detail(r.result_id)["details"]}
+    shown = rows["Hemoglobine"]["applicable_range"]
+    assert (shown["min"], shown["max"]) == (14.0, 22.0)        # la norme du nouveau-ne, pas la 1re du sexe
+    _reopen(db_session, r)
+    d = _save(db_session, r, glob, 16)                          # normal pour 14-22 (Haut avec 12-15.5)
+    assert d.flagged is False and d.interpretation == "Normal"

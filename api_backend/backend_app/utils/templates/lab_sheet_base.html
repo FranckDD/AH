@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Fiche de resultats</title>
+<style>{{ css|safe }}</style>
+</head>
+<body{% if dense %} class="dense"{% endif %}>
+{# Texte libre: TOUJOURS |e (render_pdf_from_template n'echappe rien). #}
+{% if footer_text and footer_text.strip() %}
+<div id="sheet-footer">{% for line in footer_text.splitlines() if line.strip() %}<p>{{ line|e }}</p>{% endfor %}</div>
+{% endif %}
+{% include "_lab_sheet_header.html" %}
+
+<div class="sheet-date">{{ city|e }}, le {{ date_letters|e }}</div>
+<div class="sheet-title">{% block title %}{{ title|e }}{% endblock %}</div>
+
+{% block patient %}
+<div class="patient-block">
+    {% if dossier_label %}<p>DOSSIER N° {{ dossier_label|e }} </p>{% endif %}
+    <p>Nom du Patient : {{ (patient_name or "")|e }}</p>
+    {% if age_label or sex %}
+    <p class="age-sex">{% if age_label %}<span>Age : {{ age_label|e }}</span>{% endif %}{% if sex %}<span>Sexe : {{ sex|e }}</span>{% endif %}</p>
+    {% endif %}
+    <p>Examen demande par : {{ (prescriber or "")|e }}</p>
+    {% if pregnancy_line %}<p>Grossesse : {{ pregnancy_line|e }}</p>{% endif %}
+</div>
+{% endblock %}
+
+{% block body %}{% endblock %}
+
+{% if conclusion and conclusion.strip() %}<div class="free-block">CONCLUSION : {{ conclusion|e }}</div>{% endif %}
+{% if note and note.strip() %}<div class="free-block">NB : {{ note|e }}</div>{% endif %}
+{{ notes_html.after_conclusion }}
+
+<div class="signature">
+    <div>{{ signature_label|e }}</div>
+    <div class="sig-space"></div>
+</div>
+</body>
+</html>

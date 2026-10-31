@@ -51,42 +51,56 @@
         margin-bottom: 18px;
         letter-spacing: 0.2px;
     }
+    .footer-text {
+        font-size: 8pt;
+        font-weight: 700;
+        font-style: italic;
+        text-align: center;
+        margin-bottom: 12px;
+    }
+    .footer-text p { margin: 0; }
 </style>
 <div class="header">
     <div class="hospital-info">
-        <h1>{{ structure.name }}</h1>
+        <h1>{{ structure.name|e }}</h1>
         {% if structure.slogan %}
-            <p class="slogan">{{ structure.slogan }}</p>
+            <p class="slogan">{{ structure.slogan|e }}</p>
         {% endif %}
 
         {% if structure.address or structure.city or structure.po_box %}
         <p>
-            {% if structure.address %}{{ structure.address }}{% endif %}
-            {% if structure.city %} - {{ structure.city }}{% endif %}
-            {% if structure.po_box %} | BP: {{ structure.po_box }}{% endif %}
+            {% if structure.address %}{{ structure.address|e }}{% endif %}
+            {% if structure.city %} - {{ structure.city|e }}{% endif %}
+            {% if structure.po_box %} | BP: {{ structure.po_box|e }}{% endif %}
         </p>
         {% endif %}
 
         {% if structure.phone or structure.phone2 or structure.email %}
         <p>
-            {% if structure.phone %}Tel: {{ structure.phone }}{% endif %}
-            {% if structure.phone2 %} / {{ structure.phone2 }}{% endif %}
-            {% if structure.email %} &middot; {{ structure.email }}{% endif %}
+            {% if structure.phone %}Tel: {{ structure.phone|e }}{% endif %}
+            {% if structure.phone2 %} / {{ structure.phone2|e }}{% endif %}
+            {% if structure.email %} &middot; {{ structure.email|e }}{% endif %}
         </p>
         {% endif %}
 
-        {% if structure.website %}<p>{{ structure.website }}</p>{% endif %}
+        {% if structure.website %}<p>{{ structure.website|e }}</p>{% endif %}
+        {% if structure.agrement_number %}<p class="agrement">{{ structure.agrement_number|e }}</p>{% endif %}
     </div>
     <div class="logo-container">
         {% if logo_path %}
-            <img src="{{ logo_path }}" class="logo" alt="Logo">
+            <img src="{{ logo_path|e }}" class="logo" alt="Logo">
         {% endif %}
     </div>
 </div>
 {% if structure.niu or structure.rccm or structure.legal_info %}
 <div class="footer-legal">
-    {%- if structure.niu %}NIU: {{ structure.niu }}{% endif -%}
-    {%- if structure.rccm %}{% if structure.niu %} | {% endif %}RCCM: {{ structure.rccm }}{% endif -%}
-    {%- if structure.legal_info %}{% if structure.niu or structure.rccm %} | {% endif %}{{ structure.legal_info }}{% endif -%}
+    {%- if structure.niu %}NIU: {{ structure.niu|e }}{% endif -%}
+    {%- if structure.rccm %}{% if structure.niu %} | {% endif %}RCCM: {{ structure.rccm|e }}{% endif -%}
+    {%- if structure.legal_info %}{% if structure.niu or structure.rccm %} | {% endif %}{{ structure.legal_info|e }}{% endif -%}
+</div>
+{% endif %}
+{% if structure.footer_text %}
+<div class="footer-text">
+    {%- for line in structure.footer_text.splitlines() if line.strip() %}<p>{{ line|e }}</p>{% endfor -%}
 </div>
 {% endif %}

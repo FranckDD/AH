@@ -29,6 +29,13 @@ from types import SimpleNamespace
 from unittest.mock import MagicMock
 
 from controller.lab_controller import LabController
+from utils.lab_dossier import DossierNumber
+
+
+@pytest.fixture(autouse=True)
+def _fake_dossier_assignment(monkeypatch):
+    # Le repo/la session sont mockes ici : le numero de dossier (tests/test_lab_dossier_number.py) est neutralise.
+    monkeypatch.setattr("controller.lab_controller.assign_dossier", lambda session, key, day: DossierNumber(2026, 1, 1))
 
 
 class FakeLabRepo:

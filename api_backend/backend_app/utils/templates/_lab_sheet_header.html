@@ -1,0 +1,23 @@
+{# En-tete des fiches du laboratoire : memes donnees que _pdf_header.html (get_pdf_header_context),
+   mais le logo a GAUCHE et le texte centre a sa droite, comme les fiches Word du laboratoire.
+   Tout texte de la configuration est echappe (|e). #}
+<table class="ls-header">
+    <tr>
+        <td class="ls-logo">{% if logo_path %}<img src="{{ logo_path|e }}" alt="Logo">{% endif %}</td>
+        <td class="ls-info">
+            <div class="ls-name">{{ (structure.name or "")|e }}</div>
+            {% if structure.slogan %}<div class="ls-slogan">{{ structure.slogan|e }}</div>{% endif %}
+            {% if structure.address or structure.city or structure.po_box %}
+            <div>{% if structure.address %}{{ structure.address|e }}{% endif %}{% if structure.city %}{% if structure.address %} - {% endif %}{{ structure.city|e }}{% endif %}{% if structure.po_box %} | BP: {{ structure.po_box|e }}{% endif %}</div>
+            {% endif %}
+            {% if structure.phone or structure.phone2 or structure.email %}
+            <div>{% if structure.email %}Email : {{ structure.email|e }}{% endif %}{% if structure.phone %}{% if structure.email %} / {% endif %}Tél : {{ structure.phone|e }}{% endif %}{% if structure.phone2 %} / {{ structure.phone2|e }}{% endif %}</div>
+            {% endif %}
+            {% if structure.website %}<div>{{ structure.website|e }}</div>{% endif %}
+            {% if structure.agrement_number %}<div>{{ structure.agrement_number|e }}</div>{% endif %}
+            {% if structure.niu or structure.rccm or structure.legal_info %}
+            <div class="ls-legal">{% if structure.niu %}NIU: {{ structure.niu|e }}{% endif %}{% if structure.rccm %}{% if structure.niu %} | {% endif %}RCCM: {{ structure.rccm|e }}{% endif %}{% if structure.legal_info %}{% if structure.niu or structure.rccm %} | {% endif %}{{ structure.legal_info|e }}{% endif %}</div>
+            {% endif %}
+        </td>
+    </tr>
+</table>

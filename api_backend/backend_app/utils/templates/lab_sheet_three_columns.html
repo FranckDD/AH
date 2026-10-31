@@ -1,0 +1,23 @@
+{% extends "lab_sheet_base.html" %}
+{# Famille trois colonnes (biochimie, VS) : colonnes alignees en chasse fixe, sans bordure :
+   « LIBELLE: » / valeur unite / valeurs normales (unite repetee comme sur la fiche). #}
+{% block body %}
+{% if exam.section %}<div class="section-title underline">{{ exam.section|e }}</div>{% endif %}
+{% if exam.title and exam.title != exam.section %}<div class="exam-title">{{ exam.title|e }}</div>{% endif %}
+{% if exam.method %}<div class="exam-method">{{ exam.method|e }}</div>{% endif %}
+{{ notes_html.before_body }}
+<table class="tc">
+    <tr><th class="c1">EXAMENS</th><th class="c2">RESULTATS</th><th class="c3">VALEURS NORMALES</th></tr>
+{% for g in groups %}
+    {% if g.title %}<tr><td colspan="3" class="group-title">{{ g.title|e }}</td></tr>{% endif %}
+    {% for r in g.rows %}
+    <tr>
+        <td class="c1">{{ r.label|e }}:</td>
+        <td class="c2"><span class="value{% if r.flagged %} flagged{% endif %}">{{ r.value|e }}{% if r.unit and r.value %} {{ r.unit_html }}{% endif %}</span></td>
+        <td class="c3">{{ r.norm|e }}</td>
+    </tr>
+    {% endfor %}
+{% endfor %}
+</table>
+{{ notes_html.after_body }}
+{% endblock %}

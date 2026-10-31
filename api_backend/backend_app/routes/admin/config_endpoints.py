@@ -47,6 +47,9 @@ def normalize_config_data(config: OrganizationConfig):
         "niu": config.niu,
         "rccm": config.rccm,
         "legal_info": config.legal_info,
+        "agrement_number": getattr(config, "agrement_number", None),
+        "footer_text": getattr(config, "footer_text", None),
+        "signature_label_default": getattr(config, "signature_label_default", None),
         "ticket_logo_url": config.ticket_logo_url,
         "label_width_mm": config.label_width_mm if config.label_width_mm is not None else 50,
         "label_height_mm": config.label_height_mm if config.label_height_mm is not None else 30,
@@ -79,6 +82,9 @@ async def update_structure_info(
     niu: Optional[str] = Form(None),
     rccm: Optional[str] = Form(None),
     legal_info: Optional[str] = Form(None),
+    agrement_number: Optional[str] = Form(None),
+    footer_text: Optional[str] = Form(None),
+    signature_label_default: Optional[str] = Form(None),
     label_width_mm: Optional[int] = Form(None),
     label_height_mm: Optional[int] = Form(None),
 
@@ -106,6 +112,16 @@ async def update_structure_info(
         "rccm": rccm,
         "legal_info": legal_info
     }
+
+    # Champs des fiches (numero d'agrement, pied de page, signature par defaut) : ecrits seulement
+    # s'ils sont envoyes, pour qu'un ancien client qui les ignore ne les efface pas.
+    for key, value, limit in (("agrement_number", agrement_number, 200), ("footer_text", footer_text, 1000),
+                              ("signature_label_default", signature_label_default, 120)):
+        if value is not None:
+            value = value.strip()
+            if len(value) > limit:
+                raise HTTPException(status_code=422, detail=f"{key} must be at most {limit} characters")
+            data[key] = value or None
 
     for key, value in (("label_width_mm", label_width_mm), ("label_height_mm", label_height_mm)):
         if value is not None:

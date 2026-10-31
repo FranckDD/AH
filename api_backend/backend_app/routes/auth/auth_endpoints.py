@@ -111,7 +111,16 @@ def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends(), db
 
 # Exemple de dependency pour obtenir l'utilisateur courant
 
-def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> Any:
+def _mark_pregnancy_visibility(request, user) -> None:
+    """Pose le droit de voir les donnees de grossesse pour le filtre central (security/pregnancy_filter.py)."""
+    try:
+        from utils.pregnancy_visibility import can_see_pregnancy
+        request.state.pregnancy_visible = can_see_pregnancy(user)
+    except Exception:
+        request.state.pregnancy_visible = False
+
+
+def get_current_user(request: Request, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> Any:
     """
     Décode et vérifie le JWT, retourne l'objet utilisateur.
     Lève HTTPException(401) si le token est invalide/expiré ou si l'utilisateur n'existe pas.
@@ -206,6 +215,7 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     # 3. Assignation finale
     # On s'assure que user.roles existe pour la suite (role_required)
     user.roles = canonical_roles or []
+    _mark_pregnancy_visibility(request, user)
 
     # Debug (Décommente si tu as encore des soucis pour voir ce qui sort)
     # print(f"DEBUG AUTH: User={user.username}, Roles={user.roles}")
@@ -228,6 +238,7 @@ def get_me(current_user=Depends(get_current_user)):
         # (Task 6) - il faut donc exposer explicitement is_head_nurse ici pour que le
         # garde d'ecriture NurseShiftsView.vue::canManage fonctionne.
         "is_head_nurse": bool(getattr(current_user, "is_head_nurse", False)),
+        "is_head_lab": bool(getattr(current_user, "is_head_lab", False)),
         "sees_own_toxico_only": bool(getattr(current_user, "sees_own_toxico_only", False)),
         "application_role": {
             "id": getattr(current_user.application_role, "id", None),
@@ -251,7 +262,8 @@ def role_required(*allowed_roles: str):
         if c:
             allowed_canon.add(c)
 
-    def wrapper(user = Depends(get_current_user)):
+    def wrapper(request: Request, user = Depends(get_current_user)):
+        _mark_pregnancy_visibility(request, user)
         user_roles = set([r.strip().lower() for r in getattr(user, "roles", []) if r])
         if not (user_roles & allowed_canon):
             raise HTTPException(
@@ -271,7 +283,8 @@ def deny_roles(*denied_roles: str):
     """
     denied_canon = {c for c in (normalize_role_name(r) for r in denied_roles if r) if c}
 
-    def wrapper(user = Depends(get_current_user)):
+    def wrapper(request: Request, user = Depends(get_current_user)):
+        _mark_pregnancy_visibility(request, user)
         user_roles = set([r.strip().lower() for r in getattr(user, "roles", []) if r])
         if user_roles & denied_canon:
             raise HTTPException(

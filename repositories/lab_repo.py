@@ -11,15 +11,64 @@ import uuid
 # Assure-toi que ces imports correspondent à tes modèles
 from models.lab import (
     Examen, Parametre, ReferenceRange,
-    LabResult, LabResultDetail, LabResultAmendment
+    LabResult, LabResultDetail, LabResultAmendment, LabExternalPrescriber
 )
 from repositories.notification_repo import NotificationRepository
-from utils.business_time import business_now
+from typing import NamedTuple
+from utils.business_time import business_now, business_today, BUSINESS_TZ
+from utils.lab_age import age_in_days, format_age, parse_external_age
 from utils.lab_reference import normalize_sex, select_range, flag_word
+from utils.lab_snapshot import build_print_snapshot
 from models.prescription import Prescription
 from models.caisse import Caisse
 from models.caisse_item import CaisseItem
 from models.patient import Patient
+
+class PatientBio(NamedTuple):
+    """Age en jours (None si inconnu), code sexe 'M'/'F'/'X', SA du resultat (None si inconnue) et
+    libelle d'age pour l'affichage (None si age inconnu)."""
+    age_days: Optional[int]
+    sex: str
+    ga_weeks: Optional[int]
+    age_label: Optional[str]
+
+
+def reference_date_for(result) -> date:
+    """Date de reference de l'age : jour de reception (test_date) converti en date de Douala,
+    a defaut le jour metier courant. Un horodatage naif est une heure de Douala (c'est ainsi que
+    les dossiers sont enregistres) : il ne depend jamais du fuseau du processus."""
+    td = getattr(result, "test_date", None)
+    if isinstance(td, datetime):
+        if td.tzinfo is None:
+            return td.date()
+        return td.astimezone(BUSINESS_TZ).date()
+    return business_today()
+
+
+def patient_bio(result) -> PatientBio:
+    """Age en jours exacts a la date de reception, sexe, SA et libelle d'age. Patient interne
+    (date de naissance, genre) ou externe (JSON : age_days, sinon age en annees). Date de
+    naissance absente ou future : age inconnu (None), jamais 0."""
+    ref = reference_date_for(result)
+    ga = getattr(result, "gestational_age_weeks", None)
+    days = None
+    if result.patient:
+        dob = result.patient.birth_date
+        if dob:
+            try:
+                days = age_in_days(dob, ref)
+            except ValueError:
+                days = None
+        sex = normalize_sex(getattr(result.patient, 'gender', None))
+    elif result.external_patient_info:
+        info = result.external_patient_info
+        days = parse_external_age(info)
+        sex = normalize_sex(info.get('sexe') or info.get('gender'))
+    else:
+        sex = 'X'
+    return PatientBio(days, sex, ga, format_age(days) if days is not None else None)
+
+
 
 class LabResultLockedError(Exception):
     """Resultat valide : lecture seule, toute modification passe par la correction avec motif."""
@@ -83,7 +132,8 @@ class LabRepository:
         return False
 
     def list_all_examens(self) -> List[Examen]:
-        return self.session.query(Examen).order_by(Examen.nom).all()
+        # Examens inactifs (catalogue) jamais proposes pour un nouveau resultat / une facture.
+        return self.session.query(Examen).filter(Examen.is_active.is_(True)).order_by(Examen.nom).all()
 
     def get_examen_by_id(self, examen_id: int) -> Optional[Examen]:
         return self.session.get(Examen, examen_id)
@@ -405,7 +455,7 @@ class LabRepository:
             # -> On va chercher la définition de l'examen pour créer les lignes vides
             if result.examen_id and not details_data:
                 # Récupère tous les paramètres de cet examen (Hgb, GB, PLT...)
-                params = self.list_parametres_for_examen(result.examen_id)
+                params = [p for p in self.list_parametres_for_examen(result.examen_id) if p.is_active]
                 
                 if not params:
                     print(f"ATTENTION: L'examen ID {result.examen_id} n'a aucun paramètre configuré !")
@@ -431,6 +481,12 @@ class LabRepository:
                     
                     self.session.add(LabResultDetail(**d_dict))
 
+            # Resultat cree deja valide (import, reprise) : meme copie figee que la validation par le banc.
+            if result.status == "completed":
+                self.session.flush()
+                self.session.refresh(result, attribute_names=['details', 'examen'])
+                self.freeze_print_snapshot(result, data.get('last_updated_by') or data.get('created_by'))
+
             # 4. Validation finale
             self.session.commit()
             self.session.refresh(result)
@@ -453,6 +509,29 @@ class LabRepository:
         return self.session.query(LabResult).filter(
             LabResult.uuid == uuid.UUID(str(client_uuid))
         ).first()
+
+    def upsert_external_prescriber(self, title: str, name: str) -> None:
+        """Memorise un prescripteur externe (ou rafraichit sa date d'usage). Insertion sans doublon, titre + nom insensible a la casse."""
+        existing = self.session.query(LabExternalPrescriber).filter(
+            LabExternalPrescriber.title == title,
+            # lower() cote base des DEUX cotes : meme fonction que l'index unique (title, lower(name)),
+            # donc un nom accentue ne peut jamais echapper a la recherche puis violer l'index.
+            func.lower(LabExternalPrescriber.name) == func.lower(name),
+        ).first()
+        if existing:
+            existing.last_used_at = business_now()
+        else:
+            self.session.add(LabExternalPrescriber(title=title, name=name, last_used_at=business_now()))
+        self.session.flush()
+
+    def search_external_prescribers(self, q: str = "", limit: int = 20) -> List[LabExternalPrescriber]:
+        """Suggestions : les plus recemment utilises d'abord, filtre insensible a la casse sur le nom."""
+        query = self.session.query(LabExternalPrescriber)
+        term = (q or "").strip()
+        if term:
+            escaped = term.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+            query = query.filter(LabExternalPrescriber.name.ilike(f"%{escaped}%", escape="\\"))
+        return query.order_by(desc(LabExternalPrescriber.last_used_at), desc(LabExternalPrescriber.id)).limit(limit).all()
 
     def get_lab_result_by_batch_uuid(self, batch_uuid: str) -> Optional[LabResult]:
         """Premier dossier deja cree pour ce lot hors ligne (batch_uuid
@@ -541,18 +620,27 @@ class LabRepository:
         out: List[Dict[str, Any]] = []
         for p in patients:
             entries: List[Dict[str, Any]] = []
+            # Identite utile a l'ecran de reception : age exact (naissance), sexe, et suivi de grossesse du dossier
+            # (ces trois derniers champs sont retires par le filtre central pour tout role non autorise).
+            card = {
+                "birth_date": p.birth_date.isoformat() if p.birth_date else None,
+                "gender": p.gender,
+                "pregnancy_status": p.pregnancy_status or "inconnu",
+                "expected_delivery_date": p.expected_delivery_date.isoformat() if p.expected_delivery_date else None,
+                "pregnancy_program_number": p.pregnancy_program_number,
+            }
             for pr in [x for x in prescriptions if x.patient_id == p.patient_id]:
                 done = received_by_presc.get(pr.prescription_id, set())
                 remaining = [n for n in (pr.lab_exams_list or []) if self._norm_name(n) not in done]
                 if remaining:
                     entries.append({"id": p.patient_id, "nom": f"{p.last_name or ''} {p.first_name or ''}".strip(), "patient_code": p.code_patient,
                                     "prescription_id": pr.prescription_id, "exams_prescribed": remaining,
-                                    "has_active_prescription": True, "invoiced_exams": []})
+                                    "has_active_prescription": True, "invoiced_exams": [], **card})
             lines = invoiced_by_patient.get(p.patient_id, [])
             if lines and not entries:
                 entries.append({"id": p.patient_id, "nom": f"{p.last_name or ''} {p.first_name or ''}".strip(), "patient_code": p.code_patient,
                                 "prescription_id": None, "exams_prescribed": [],
-                                "has_active_prescription": False, "invoiced_exams": []})
+                                "has_active_prescription": False, "invoiced_exams": [], **card})
             if entries:
                 entries[0]["invoiced_exams"] = lines
             out.extend(entries)
@@ -585,13 +673,12 @@ class LabRepository:
                 )
             ).order_by(desc(LabResult.test_date)).limit(20).all()
 
-    def _interpret_single_detail(self, detail: LabResultDetail, age: int, sex: str):
+    def _interpret_single_detail(self, detail: LabResultDetail, age: Optional[int], sex: str, ga: Optional[int] = None):
+        """`age` en JOURS ; meme regle de selection que le banc et la fiche (utils.lab_reference)."""
         if detail.valeur_num is None: return
-        ref = self.session.query(ReferenceRange).filter(
-            ReferenceRange.parametre_id == detail.parametre_id,
-            ReferenceRange.sexe.in_(['X', sex]),
-            ReferenceRange.age_min <= age, ReferenceRange.age_max >= age
-        ).first()
+        ref = select_range(
+            self.session.query(ReferenceRange).filter(ReferenceRange.parametre_id == detail.parametre_id).all(),
+            sex, age, ga)
 
         if ref:
             if Decimal(str(ref.valeur_min)) <= detail.valeur_num <= Decimal(str(ref.valeur_max)):
@@ -620,23 +707,8 @@ class LabRepository:
                 LabResultDetail.parametre_id == d_id, LabResultDetail.result_id == result_id).first()
         return detail
 
-    def _patient_bio(self, result: LabResult) -> Tuple[Optional[int], str]:
-        """(age ou None si inconnu, code sexe 'M'/'F'/'X') - patient interne (gender) ou externe (JSON)."""
-        if result.patient:
-            age = None
-            dob = result.patient.birth_date
-            if dob:
-                today = date.today()
-                age = today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
-            return age, normalize_sex(getattr(result.patient, 'gender', None))
-        if result.external_patient_info:
-            info = result.external_patient_info
-            try:
-                age = int(info.get('age'))
-            except (ValueError, TypeError):
-                age = None
-            return age, normalize_sex(info.get('sexe') or info.get('gender'))
-        return None, 'X'
+    def _patient_bio(self, result: LabResult) -> PatientBio:
+        return patient_bio(result)
 
     @staticmethod
     def _value_unchanged(detail: LabResultDetail, data: Dict[str, Any]) -> bool:
@@ -662,7 +734,8 @@ class LabRepository:
         """Ecrit les valeurs saisies dans les lignes du dossier et calcule l'interpretation.
         Ne touche ni au statut ni a la note. Priorite au drapeau manuel (H/L/A/N), sinon jugement
         automatique avec la plage du sexe du patient."""
-        age, sex = self._patient_bio(result)
+        bio = self._patient_bio(result)
+        age, sex, ga = bio.age_days, bio.sex, bio.ga_weeks
         for raw_key, data in values_map.items():
             detail = self._resolve_detail(result.result_id, raw_key)
             if not detail:
@@ -685,7 +758,7 @@ class LabRepository:
                         detail.flagged = bool(manual_flag and manual_flag not in ['N', ''])
                         detail.interpretation = manual_interp or flag_word(manual_flag)
                     elif detail.valeur_num is not None:
-                        norme = select_range(param.reference_ranges, sex, age)
+                        norme = select_range(param.reference_ranges, sex, age, ga)
                         if norme:
                             if detail.valeur_num < norme.valeur_min:
                                 detail.interpretation = "Bas"
@@ -707,7 +780,22 @@ class LabRepository:
                 else:
                     detail.flagged = False
 
-    def save_results_values(self, result_id: int, values_map: Dict[int, Any], mark_completed: bool = False, global_note: Optional[str] = None) -> LabResult:
+    def freeze_print_snapshot(self, result: LabResult, user_id: Optional[int] = None) -> bool:
+        """Ecrit la copie figee d'impression (utils/lab_snapshot.py) UNE seule fois : sans effet si elle existe
+        deja. A appeler quand le resultat devient valide, valeurs deja appliquees, AVANT de toucher test_date
+        (l'age de la copie est celui de la reception). Ne commit pas. Retourne True si elle vient d'etre faite."""
+        if result.print_snapshot is not None:
+            return False
+        result.print_snapshot = self._make_snapshot(result)
+        result.print_snapshot_at = business_now()
+        result.print_snapshot_by = user_id
+        return True
+
+    def _make_snapshot(self, result: LabResult) -> Dict[str, Any]:
+        return build_print_snapshot(result, result.examen, list(result.details), self._patient_bio(result))
+
+    def save_results_values(self, result_id: int, values_map: Dict[int, Any], mark_completed: bool = False, global_note: Optional[str] = None,
+                            global_conclusion: Optional[str] = None, user_id: Optional[int] = None) -> LabResult:
         try:
             result = self.session.query(LabResult)\
                 .options(joinedload(LabResult.patient))\
@@ -724,16 +812,20 @@ class LabRepository:
                 resolved = [(self._resolve_detail(result_id, k), v) for k, v in values_map.items()]
                 unchanged = all(d is None or self._value_unchanged(d, v) for d, v in resolved)
                 note_same = global_note is None or global_note == (result.note or "")
-                if unchanged and note_same:
+                concl_same = global_conclusion is None or global_conclusion == (result.conclusion or "")
+                if unchanged and note_same and concl_same:
                     return result
                 raise LabResultLockedError(result_id)
 
             if global_note is not None:
                 result.note = global_note
+            if global_conclusion is not None:
+                result.conclusion = global_conclusion
 
             self._apply_values(result, values_map)
 
             if mark_completed:
+                self.freeze_print_snapshot(result, user_id)
                 result.status = "completed"
                 result.test_date = func.now()
             else:
@@ -750,7 +842,7 @@ class LabRepository:
             raise e
 
     def amend_result(self, result_id: int, values_map: Dict[Any, Any], global_note: Optional[str], reason: str,
-                     user_id: Optional[int], user_name: Optional[str]) -> LabResult:
+                     user_id: Optional[int], user_name: Optional[str], global_conclusion: Optional[str] = None) -> LabResult:
         """Correction d'un resultat VALIDE : motif obligatoire, valeurs d'avant conservees
         (lab_result_amendments), resultat marque 'corrige', medecin prescripteur notifie.
         Le statut reste 'completed'."""
@@ -776,7 +868,24 @@ class LabRepository:
 
             if global_note is not None:
                 result.note = global_note
+            if global_conclusion is not None:
+                result.conclusion = global_conclusion
             self._apply_values(result, values_map)
+
+            # Nouvelle copie figee : l'ancienne est archivee (print_snapshot_history, la plus ancienne en
+            # premier) avec qui/quand/pourquoi ; un ancien resultat sans copie en recoit une ici.
+            now = business_now()
+            old_snap = result.print_snapshot
+            result._snapshot_rewrite_ok = True
+            if old_snap is not None:
+                result.print_snapshot_history = list(result.print_snapshot_history or []) + [{
+                    "snapshot": old_snap,
+                    "snapshot_at": result.print_snapshot_at.isoformat() if result.print_snapshot_at else None,
+                    "snapshot_by": result.print_snapshot_by, "replaced_at": now.isoformat(),
+                    "replaced_by": user_id, "replaced_by_name": user_name, "reason": reason}]
+            result.print_snapshot = self._make_snapshot(result)
+            result.print_snapshot_at = now
+            result.print_snapshot_by = user_id
 
             self.session.add(LabResultAmendment(
                 result_id=result_id, amended_by=user_id, amended_by_name=user_name,
@@ -797,6 +906,7 @@ class LabRepository:
                 })
 
             self.session.commit()
+            result._snapshot_rewrite_ok = False
             self.session.refresh(result)
             return result
         except (LabResultNotValidatedError, ValueError):
@@ -811,10 +921,10 @@ class LabRepository:
             .order_by(LabResultAmendment.amended_at.desc(), LabResultAmendment.amendment_id.desc()).all()
 
     def _get_patient_bio_info(self, result: LabResult) -> Tuple[int, str]:
-        """(age affiche, code sexe 'M'/'F'/'X'). Age inconnu = 0 (affichage) ; pour choisir une plage
+        """(age en JOURS, code sexe 'M'/'F'/'X'). Age inconnu = 0 (affichage) ; pour choisir une plage
         de reference utiliser _patient_bio, qui distingue age inconnu (None) d'un nouveau-ne."""
-        age, sex = self._patient_bio(result)
-        return (age if age is not None else 0), sex
+        bio = self._patient_bio(result)
+        return (bio.age_days if bio.age_days is not None else 0), bio.sex
 
     def get_results_by_batch_id(self, batch_id: uuid.UUID) -> List[LabResult]:
         """Récupère tous les examens d'un lot spécifique avec les infos Patient/Examen."""

@@ -1,0 +1,34 @@
+{% extends "lab_sheet_base.html" %}
+{# Formulaire en cases (serodiagnostic des Chlamydiae) : pas de bloc patient standard ; identite en
+   cases a gauche (N°, NOM, AGE, SEXE), a droite le premier parametre (N° de l'examen anterieur),
+   le medecin demandeur et la date de prelevement ; puis RESULTATS, methode et une case par
+   parametre. Le bloc INTERPRETATION de la fiche est un texte fixe de l'examen (`fixed_notes`, position
+   after_body) ; la ligne du resultat « Validation » y est en gras (classe `chosen`, calculee par le rendu). #}
+{% block patient %}
+<div class="boxed-subtitle">{{ (exam.title or "")|e }}</div>
+{% set first = rows[0] if rows and rows[0].label.startswith("N°") else None %}
+<table class="boxes">
+    <tr><td class="blabel">N° :</td><td class="bvalue">{{ (dossier_label or "")|e }}</td><td class="gap"></td>
+        <td class="blabel">{% if first %}{{ first.label|e }}{% endif %}</td><td class="bvalue">{% if first %}{{ first.value|e }}{% endif %}</td></tr>
+    <tr><td class="blabel">NOM :</td><td class="bvalue">{{ (patient_name or "")|e }}</td><td class="gap"></td>
+        <td class="blabel">Médecin Demandeur</td><td class="bvalue">{{ (prescriber or "")|e }}</td></tr>
+    <tr><td class="blabel">AGE :</td><td class="bvalue">{{ (age_label or "")|e }}</td><td class="gap"></td>
+        <td class="blabel">date de prélèvement</td><td class="bvalue">{{ (dossier_date or "")|e }}</td></tr>
+    <tr><td class="blabel">SEXE :</td><td class="bvalue">{{ (sex or "")|e }}</td><td class="gap"></td><td></td><td></td></tr>
+</table>
+{% if pregnancy_line %}<p class="patient-block">Grossesse : {{ pregnancy_line|e }}</p>{% endif %}
+{% endblock %}
+{% block body %}
+{% set first = rows[0] if rows and rows[0].label.startswith("N°") else None %}
+<div class="boxed-rule"></div>
+<div class="boxed-heading">RESULTATS</div>
+{% if exam.method %}<div class="boxed-method">{{ exam.method|e }}</div>{% endif %}
+{{ notes_html.before_body }}
+<table class="boxres">
+{% for r in rows if r is not sameas first %}
+    <tr><td class="blabel">{{ r.label|e }} :</td><td class="bvalue"><span class="value{% if r.flagged %} flagged{% endif %}">{{ r.value|e }}{% if r.unit and r.value %} {{ r.unit_html }}{% endif %}</span></td></tr>
+{% endfor %}
+</table>
+<div class="boxed-results-rule"></div>
+<div class="interp">{{ notes_html.after_body }}</div>
+{% endblock %}

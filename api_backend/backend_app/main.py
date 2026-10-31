@@ -10,6 +10,7 @@ sys.path.append(root_path)
 
 # ⚠️ Ajustement ici selon les bons noms de fichiers
 from .routes.auth import auth_endpoints
+from .security.pregnancy_filter import PregnancyFilterMiddleware
 from .routes.patients import patients_endpoints
 from .routes.medical_records import medical_records_endpoint
 from .routes.hospitalizations import hospitalization_endpoint
@@ -26,6 +27,8 @@ from .routes.finance import finance_endpoints
 
 # --- AJOUT IMPORT LABO ---
 from .routes.labo import lab_endpoints  # <--- AJOUT ICI
+from .routes.labo import lab_catalogue_endpoints  # edition du catalogue (cheffe du labo / admin)
+from .routes.labo import pregnancy_report_endpoints
 # --- AJOUT IMPORT NOTIFICATIONS ---
 from .routes.notifications import notification_endpoints
 from .routes.discount import discount_endpoints
@@ -82,6 +85,10 @@ async def security_headers_middleware(request: Request, call_next):
     if IS_PROD:
         response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains"
     return response
+
+# Grossesse : retire des reponses JSON toute cle de suivi de grossesse pour les roles non autorises
+# (secretaire comprise). Voir security/pregnancy_filter.py.
+app.add_middleware(PregnancyFilterMiddleware)
 
 # 🟢 AJOUTER CE BLOC POUR LE DÉBOGAGE 422
 @app.exception_handler(RequestValidationError)
@@ -167,6 +174,8 @@ app.include_router(finance_endpoints.router)
 
 # --- AJOUT ROUTER LABO ---
 app.include_router(lab_endpoints.router) # <--- AJOUT ICI (Le préfixe "/labo" est déjà défini dans le fichier endpoint)
+app.include_router(lab_catalogue_endpoints.router)  # /labo/catalogue : edition du catalogue
+app.include_router(pregnancy_report_endpoints.router)  # rapport de subvention grossesse (/labo/reports, promoteur et admin)
 # --- AJOUT ROUTER NOTIFICATIONS ---
 app.include_router(notification_endpoints.router)
 app.include_router(discount_endpoints.router)

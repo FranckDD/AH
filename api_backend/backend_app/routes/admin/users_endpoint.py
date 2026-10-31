@@ -40,7 +40,7 @@ def get_user_controller(
     return UserController(user_repo=user_repo, role_repo=role_repo)
 
 
-_USER_AUDIT_FIELDS = ("username", "full_name", "email", "contact", "postgres_role", "is_active", "is_head_nurse", "sees_own_toxico_only", "role_id", "specialty_id")
+_USER_AUDIT_FIELDS = ("username", "full_name", "email", "contact", "postgres_role", "is_active", "is_head_nurse", "is_head_lab", "sees_own_toxico_only", "role_id", "specialty_id")
 
 
 def _audit_user(db: Session, actor, action: str, user_id, old: dict, new: dict):
@@ -62,6 +62,34 @@ def _audit_user(db: Session, actor, action: str, user_id, old: dict, new: dict):
 
 def _user_snapshot(u) -> dict:
     return {k: getattr(u, k, None) for k in _USER_AUDIT_FIELDS}
+
+
+def _actor_is_admin(actor) -> bool:
+    return "admin" in {str(r).strip().lower() for r in (getattr(actor, "roles", None) or [])}
+
+
+def _role_is_lab_technician(db: Session, role_id) -> bool:
+    if role_id is None:
+        return False
+    from models.application_role import ApplicationRole
+    from api_backend.backend_app.security.role_map import normalize_role_name
+    role = db.get(ApplicationRole, role_id)
+    return bool(role) and normalize_role_name(role.role_name) == "laborantin"
+
+
+def _guard_head_lab(db: Session, actor, payload: dict, current_role_id=None, current_flag: bool = False) -> None:
+    """Cheffe du laboratoire : posee par l'admin seul, et seulement sur un compte du role laborantin.
+    Modifie `payload` : si le role sort de laborantin, le drapeau est remis a faux."""
+    requested = payload.get("is_head_lab")
+    if requested is not None and bool(requested) != bool(current_flag) and not _actor_is_admin(actor):
+        raise HTTPException(status_code=403, detail="Seul un administrateur peut designer la cheffe du laboratoire.")
+    role_id = payload["role_id"] if payload.get("role_id") is not None else current_role_id
+    is_lab = _role_is_lab_technician(db, role_id)
+    if requested:
+        if not is_lab:
+            raise HTTPException(status_code=422, detail="La cheffe du laboratoire doit avoir le role laborantin.")
+    elif current_flag and not is_lab:
+        payload["is_head_lab"] = False
 
 
 def _safe_validate_user(raw: Any) -> UserOut:
@@ -184,6 +212,7 @@ def get_user(user_id: int, user_ctrl: UserController = Depends(get_user_controll
 def create_user(data: UserCreate, user_ctrl: UserController = Depends(get_user_controller), actor=Depends(get_current_user)):
     try:
         payload = data.model_dump()
+        _guard_head_lab(user_ctrl.user_repo.session, actor, payload)
         user = user_ctrl.create_user(payload)
         _audit_user(user_ctrl.user_repo.session, actor, "CREATE", user.user_id, {}, _user_snapshot(user))
         return _safe_validate_user(user)
@@ -210,6 +239,8 @@ def update_user(user_id: int, data: UserUpdate, user_ctrl: UserController = Depe
         existing = user_ctrl.user_repo.get_user_by_id(user_id)
         if existing is not None:
             before = _user_snapshot(existing)
+            _guard_head_lab(user_ctrl.user_repo.session, actor, payload,
+                            current_role_id=existing.role_id, current_flag=bool(existing.is_head_lab))
         updated = user_ctrl.update_user(user_id, payload)
         if before is not None:
             after = _user_snapshot(updated)

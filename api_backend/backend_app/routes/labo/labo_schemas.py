@@ -77,8 +77,13 @@ class ParametreOut(ParametreBase):
 class ReferenceRangeBase(BaseModel):
     parametre_id: int
     sexe: str = Field(..., max_length=1) 
-    age_min: int = Field(ge=0)
-    age_max: int = Field(ge=0)
+    # Anciennes bornes en annees (peuvent manquer sur une ligne qui n'a que des jours / SA).
+    age_min: Optional[int] = Field(None, ge=0)
+    age_max: Optional[int] = Field(None, ge=0)
+    age_min_days: Optional[int] = Field(None, ge=0)
+    age_max_days: Optional[int] = Field(None, ge=0)
+    ga_min_weeks: Optional[int] = Field(None, ge=0, le=45)
+    ga_max_weeks: Optional[int] = Field(None, ge=0, le=45)
     valeur_min: Decimal
     valeur_max: Decimal
 
@@ -88,24 +93,50 @@ class ReferenceRangeCreate(ReferenceRangeBase):
 class RangeIn(BaseModel):
     """Plage de reference saisie depuis le catalogue (le parametre vient de l'URL)."""
     sexe: str = Field(..., pattern="^[MFX]$")
-    age_min: int = Field(0, ge=0)
-    age_max: int = Field(150, ge=0)
+    # Anciennes bornes en annees : seules ecrites si aucune borne en jours / SA n'est donnee (defauts 0 / 150).
+    age_min: Optional[int] = Field(None, ge=0)
+    age_max: Optional[int] = Field(None, ge=0)
+    # Bornes en jours (inclusives) et en semaines d'amenorrhee ; absent = borne ouverte / sans critere.
+    age_min_days: Optional[int] = Field(None, ge=0)
+    age_max_days: Optional[int] = Field(None, ge=0)
+    ga_min_weeks: Optional[int] = Field(None, ge=0, le=45)
+    ga_max_weeks: Optional[int] = Field(None, ge=0, le=45)
     valeur_min: Decimal
     valeur_max: Decimal
 
     @model_validator(mode="after")
     def _bounds(self):
-        if self.age_min > self.age_max:
+        if self.age_min is not None and self.age_max is not None and self.age_min > self.age_max:
             raise ValueError("age_min doit etre inferieur ou egal a age_max")
+        if (self.age_min_days is not None and self.age_max_days is not None
+                and self.age_min_days > self.age_max_days):
+            raise ValueError("age_min_days doit etre inferieur ou egal a age_max_days")
+        if (self.ga_min_weeks is not None and self.ga_max_weeks is not None
+                and self.ga_min_weeks > self.ga_max_weeks):
+            raise ValueError("ga_min_weeks doit etre inferieur ou egal a ga_max_weeks")
         if self.valeur_min > self.valeur_max:
             raise ValueError("valeur_min doit etre inferieure ou egale a valeur_max")
         return self
+
+    def to_columns(self) -> dict:
+        """Colonnes a ecrire : jours / SA tels quels ; les annees heritees sont ecrites (defauts 0 / 150)
+        seulement quand aucune borne en jours ni SA n'est donnee, sinon uniquement si elles sont fournies."""
+        data = self.model_dump()
+        modern = any(data[k] is not None for k in ("age_min_days", "age_max_days", "ga_min_weeks", "ga_max_weeks"))
+        if not modern:
+            data["age_min"] = 0 if data["age_min"] is None else data["age_min"]
+            data["age_max"] = 150 if data["age_max"] is None else data["age_max"]
+        return data
 
 class ReferenceRangeUpdate(BaseModel):
     parametre_id: Optional[int] = None
     sexe: Optional[str] = Field(None, max_length=1)
     age_min: Optional[int] = Field(None, ge=0)
     age_max: Optional[int] = Field(None, ge=0)
+    age_min_days: Optional[int] = Field(None, ge=0)
+    age_max_days: Optional[int] = Field(None, ge=0)
+    ga_min_weeks: Optional[int] = Field(None, ge=0, le=45)
+    ga_max_weeks: Optional[int] = Field(None, ge=0, le=45)
     valeur_min: Optional[Decimal] = None
     valeur_max: Optional[Decimal] = None
 
@@ -139,6 +170,11 @@ class LabResultCreate(BaseModel):
     prescribed_by_id: Optional[int] = None
     external_patient_info: Optional[Dict[str, Any]] = None
     origin_prescription_id: Optional[int] = None
+    # Semaines d'amenorrhee au prelevement (ecriture : medecin/nurse/laborantin/admin ; 403 sinon)
+    gestational_age_weeks: Optional[int] = None
+    # Grossesse d'un patient externe (colonne separee, jamais dans external_patient_info) et statut a la reception
+    external_pregnancy_info: Optional[Dict[str, Any]] = None
+    pregnancy_status_at_result: Optional[str] = None
     details: List[LabResultDetailCreate] = Field(default_factory=list)
 
     @model_validator(mode='after')
@@ -188,6 +224,16 @@ class BatchResultCreate(BaseModel):
     # dans une operation CRUD separee (chaque ligne locale = son propre
     # appel HTTP hors ligne, contrairement a l'envoi synchrone en ligne).
     batch_uuid: Optional[str] = None
+    # received_at : heure de reception (ISO 8601) sur l'appareil, pour la reception faite hors ligne ; le serveur en
+    # tire le jour du numero de dossier (borne par resolve_client_time). Absent : heure serveur.
+    received_at: Optional[str] = None
+    # Semaines d'amenorrhee au prelevement, commune a tous les examens du lot (voir require_pregnancy_write)
+    gestational_age_weeks: Optional[int] = None
+    # Grossesse d'un patient externe (statut, DPA, numero de suivi) : colonne separee de external_patient_info,
+    # que les flux de synchronisation livrent. Statut de grossesse CHOISI pour cette demande (enceinte,
+    # non_enceinte, inconnu) : cliche du rapport de subvention, sans modifier la fiche du patient.
+    external_pregnancy_info: Optional[Dict[str, Any]] = None
+    pregnancy_status_at_result: Optional[str] = None
 
     # Liste des examens (ex: [ {examen_id: 1}, {examen_id: 5} ])
     results: List[BatchItem]
@@ -221,6 +267,13 @@ class LabResultOut(BaseModel):
     external_patient_info: Optional[Dict[str, Any]] = None 
     details: List[LabResultOutDetail] = Field(default_factory=list)
     batch_id: Optional[UUID] = None
+    dossier_year: Optional[int] = None
+    dossier_counter: Optional[int] = None
+    dossier_rank: Optional[int] = None
+    dossier: Optional[str] = None  # "289/02 du 08/10/2026", nul tant que non attribue
+    # Retire de la reponse pour tout role non autorise a voir la grossesse (filtre central)
+    gestational_age_weeks: Optional[int] = None
+    external_pregnancy_info: Optional[Dict[str, Any]] = None
     class Config:
         from_attributes = True
 
@@ -271,6 +324,7 @@ class PaginatedLabItemOut(BaseModel):
     batch_id: Optional[str] = None
     nb_anormaux: int = 0
     corrected: bool = False
+    dossier: Optional[str] = None
 
 class PaginatedLabHistoryOut(BaseModel):
     total_items: int
@@ -284,7 +338,8 @@ class LabAmendIn(BaseModel):
     """Correction d'un resultat valide : le motif est obligatoire."""
     reason: str
     values: Dict[str, Any] = Field(default_factory=dict)
-    note: Optional[str] = None
+    note: Optional[str] = Field(default=None, max_length=1000)
+    conclusion: Optional[str] = Field(default=None, max_length=5000)
 
     @model_validator(mode='after')
     def check_reason(self):

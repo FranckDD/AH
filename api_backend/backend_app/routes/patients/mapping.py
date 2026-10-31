@@ -66,6 +66,10 @@ def model_to_dict(obj: Any) -> Dict[str, Any]:
             "is_toxicology": getattr(obj, "is_toxicology", False),
             "is_spiritual": getattr(obj, "is_spiritual", False),
             "is_staff": bool(getattr(obj, "is_staff", False)),
+            # Grossesse : retiree de la reponse pour tout role non autorise (filtre central).
+            "pregnancy_status": getattr(obj, "pregnancy_status", None) or "inconnu",
+            "expected_delivery_date": getattr(obj, "expected_delivery_date", None),
+            "pregnancy_program_number": getattr(obj, "pregnancy_program_number", None),
         }
     return base
 

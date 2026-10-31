@@ -17,6 +17,14 @@ from models.user import User
 from repositories.lab_repo import LabRepository, LabResultLockedError, LabResultNotValidatedError
 from api_backend.backend_app.utils.pdf_header import get_pdf_header_context
 from api_backend.backend_app.utils.patient_resolution import resolve_patient_id
+from utils.lab_prescriber import split_prescriber, format_prescriber
+from utils.business_time import business_now, business_today, resolve_client_time, ClientTimeError
+from utils.lab_dossier import assign_dossier, build_patient_key, dossier_day, dossier_labels, format_dossier, result_dossier
+from utils.pregnancy_visibility import (
+    PREGNANCY_STATUSES, extract_external_pregnancy, require_pregnancy_write, snapshot_pregnancy_status,
+    validate_gestational_weeks,
+)
+from repositories.lab_repo import patient_bio
 from utils.lab_reference import SEX_LABELS_FR, ABNORMAL_FALLBACK, select_range, normalize_sex
 
 class ExamInUseError(ValueError):
@@ -94,7 +102,12 @@ class LabController:
                 "nom": nom_complet,
                 "sexe": sexe,
                 "age": age,
-                "is_external": False
+                "age_label": patient_bio(r).age_label,
+                "is_external": False,
+                # Grossesse (retiree par le filtre central pour tout role non autorise)
+                "pregnancy_status": getattr(r.patient, 'pregnancy_status', None) or 'inconnu',
+                "expected_delivery_date": getattr(r.patient, 'expected_delivery_date', None),
+                "pregnancy_program_number": getattr(r.patient, 'pregnancy_program_number', None),
             }
 
         # --- CAS 2 : PATIENT EXTERNE (JSONB) ---
@@ -104,12 +117,19 @@ class LabController:
             nom = info.get('nom_complet') or f"{info.get('nom', '')} {info.get('prenom', '')}"
             sexe = info.get('sexe') or info.get('gender') or 'X'
             age = info.get('age', 0)
+            # Grossesse de l'externe : colonne dediee (jamais dans external_patient_info)
+            raw_preg = getattr(r, 'external_pregnancy_info', None)
+            preg = raw_preg if isinstance(raw_preg, dict) else {}
             
             return {
                 "nom": nom.strip(),
                 "sexe": sexe,
                 "age": age,
-                "is_external": True
+                "age_label": patient_bio(r).age_label,
+                "is_external": True,
+                "pregnancy_status": preg.get('pregnancy_status') or 'inconnu',
+                "expected_delivery_date": preg.get('expected_delivery_date'),
+                "pregnancy_program_number": preg.get('pregnancy_program_number'),
             }
 
         # --- CAS 3 : ERREUR / ORPHELIN ---
@@ -237,6 +257,10 @@ class LabController:
                         "sexe": r.sexe, 
                         "age_min": r.age_min,
                         "age_max": r.age_max,
+                        "age_min_days": r.age_min_days,
+                        "age_max_days": r.age_max_days,
+                        "ga_min_weeks": r.ga_min_weeks,
+                        "ga_max_weeks": r.ga_max_weeks,
                         "min": float(r.valeur_min) if r.valeur_min else None, 
                         "max": float(r.valeur_max) if r.valeur_max else None
                     } for r in p.reference_ranges
@@ -302,11 +326,13 @@ class LabController:
 
         # 2. Formatage des résultats (réutilisation de ta logique existante)
         formatted_items = []
+        dossiers = dossier_labels(self.repo.session, results)
         for r in results:
             p_infos = self._format_patient_info(r)
             formatted_items.append({
                 'result_id': r.result_id,
                 'code': r.code_lab_patient,
+                'dossier': dossiers.get(r.result_id),
                 'patient_name': p_infos['nom'],
                 'patient_sexe': p_infos['sexe'],
                 'patient_age': p_infos['age'],
@@ -351,8 +377,10 @@ class LabController:
         header_ctx = get_pdf_header_context(config_ctrl)
 
         # 2. Age et sexe : le code sexe (M/F/X) choisit la plage, le libelle francais est affiche
-        age_connu, sexe_code = self.repo._patient_bio(r)
-        age_patient = age_connu if age_connu is not None else 0
+        bio = self.repo._patient_bio(r)
+        age_connu, sexe_code, ga_semaines = bio.age_days, bio.sex, bio.ga_weeks
+        # « age » : annees entieres (ancien affichage, repli des gabarits) ; « age_label » : age exact.
+        age_patient = int(age_connu / 365.25) if age_connu is not None else 0
 
         if r.patient:
             patient_name = f"{r.patient.last_name} {r.patient.first_name}"
@@ -362,6 +390,7 @@ class LabController:
         patient_info = {
             "nom": patient_name,
             "age": age_patient,
+            "age_label": bio.age_label,
             "sexe": SEX_LABELS_FR.get(sexe_code, SEX_LABELS_FR["X"]),
         }
 
@@ -377,7 +406,7 @@ class LabController:
             # Norme du sexe du patient (a defaut la norme generique) ; jamais celle de l'autre sexe.
             norme_affichage = "-"
             if p.input_type == 'numeric':
-                norme_trouvee = select_range(p.reference_ranges, sexe_code, age_connu)
+                norme_trouvee = select_range(p.reference_ranges, sexe_code, age_connu, ga_semaines)
                 if norme_trouvee and norme_trouvee.valeur_min is not None and norme_trouvee.valeur_max is not None:
                     # Sans zeros inutiles : 12.00 -> 12, 15.50 -> 15.5
                     min_val = format(round(float(norme_trouvee.valeur_min), 2), 'g')
@@ -463,13 +492,53 @@ class LabController:
             "skipped_count": len(rows) - len(done),
         }
 
+    def _prepare_pregnancy(self, patient_id, external_info, external_pregnancy, weeks, explicit_status):
+        """Valide et separe les donnees de grossesse d'une reception. Renvoie
+        (SA, identite externe SANS cle de grossesse, bloc de grossesse externe ou None, statut a la reception).
+        422 si une valeur est invalide. Les droits d'ecriture (403) sont controles avant par require_pregnancy_write."""
+        try:
+            weeks = validate_gestational_weeks(weeks)
+            identity, ext_pregnancy = extract_external_pregnancy(external_info, external_pregnancy)
+        except ValueError as e:
+            raise HTTPException(status_code=422, detail=str(e))
+        if explicit_status not in (None, "") and str(explicit_status).strip().lower() not in PREGNANCY_STATUSES:
+            raise HTTPException(status_code=422, detail="Statut de grossesse invalide (enceinte, non_enceinte ou inconnu).")
+        if not external_info:
+            identity = external_info  # None ou vide : inchange
+        current = None
+        if patient_id:
+            from models.patient import Patient
+            current = self.repo.session.query(Patient.pregnancy_status).filter(
+                Patient.patient_id == patient_id).scalar()
+        else:
+            if ext_pregnancy:
+                current = ext_pregnancy.get("pregnancy_status")
+                if weeks is None and isinstance(ext_pregnancy.get("gestational_age_weeks"), int):
+                    weeks = ext_pregnancy["gestational_age_weeks"]
+        status = snapshot_pregnancy_status(explicit_status, weeks, current)
+        return weeks, identity, ext_pregnancy, status
+
     def create_result(self, 
                     examen_id: int, 
                     patient_id: Optional[int] = None, 
                     external_patient_info: Optional[dict] = None,
                     origin_prescription_id: Optional[int] = None,
-                    code_lab_patient: Optional[str] = None) -> Dict:
+                    code_lab_patient: Optional[str] = None,
+                    gestational_age_weeks: Optional[int] = None,
+                    external_pregnancy_info: Optional[dict] = None,
+                    pregnancy_status_at_result: Optional[str] = None,
+                    details: Optional[list] = None) -> Dict:
+        # `details` : accepte pour la compatibilite de la route (les lignes de detail sont creees par le depot).
         
+        require_pregnancy_write(
+            self.user,
+            {"gestational_age_weeks": gestational_age_weeks, "external_patient_info": external_patient_info,
+             "external_pregnancy_info": external_pregnancy_info,
+             "pregnancy_status_at_result": pregnancy_status_at_result},
+        )
+        gestational_age_weeks, external_patient_info, ext_pregnancy, status_at_result = self._prepare_pregnancy(
+            patient_id, external_patient_info, external_pregnancy_info, gestational_age_weeks, pregnancy_status_at_result)
+
         user_id = getattr(self.user, "user_id", None)
         username = getattr(self.user, "username", "System")
         
@@ -481,7 +550,7 @@ class LabController:
         payload = {
             "examen_id": examen_id,
             "test_type": ex_obj.categorie, 
-            "test_date": datetime.now(),
+            "test_date": business_now(),
             "prescribed_by": user_id,
             "technician_id": user_id,
             "technician_name": username,
@@ -489,15 +558,31 @@ class LabController:
             "external_patient_info": external_patient_info,
             "origin_prescription_id": origin_prescription_id,
             "code_lab_patient": code_lab_patient,
+            "gestational_age_weeks": gestational_age_weeks,
+            "external_pregnancy_info": ext_pregnancy,
+            "pregnancy_status_at_result": status_at_result,
             "status": "pending"
         }
         
+        label = None
+        if patient_id or external_patient_info:
+            try:
+                key = build_patient_key(patient_id, external_patient_info)
+            except ValueError as e:
+                raise HTTPException(status_code=422, detail=str(e))
+            day = business_today()
+            num = assign_dossier(self.repo.session, key, day)
+            payload.update(patient_key=key, dossier_year=num.year, dossier_counter=num.counter,
+                           dossier_rank=num.rank)
+            label = format_dossier(num, day)
+
         lr = self.repo.create_lab_result(payload)
         
         return {
             "result_id": lr.result_id, 
             "code": lr.code_lab_patient, 
-            "status": lr.status
+            "status": lr.status,
+            "dossier": label,
         }
 
     def get_result_detail(self, result_id: int) -> Optional[Dict]:
@@ -511,10 +596,20 @@ class LabController:
             )
 
         details_out = []
+        # Meme age / sexe / SA que le calcul du drapeau enregistre : la norme affichee est celle qui l'a produit.
+        bio = self.repo._patient_bio(r)
         # Ordre de definition des parametres (jamais l'ordre physique des lignes, qui change apres une mise a jour).
         for d in sorted(r.details, key=self._detail_sort_key):
             if not d.parametre: continue 
             p = d.parametre
+            applicable = select_range(p.reference_ranges, bio.sex, bio.age_days, bio.ga_weeks)
+            applicable_out = None
+            if applicable is not None and applicable.valeur_min is not None and applicable.valeur_max is not None:
+                lo, hi = float(applicable.valeur_min), float(applicable.valeur_max)
+                applicable_out = {
+                    "id": applicable.id, "sexe": applicable.sexe, "min": lo, "max": hi,
+                    "text": f"{format(round(lo, 2), 'g')} - {format(round(hi, 2), 'g')}",
+                }
             details_out.append({
                 "detail_id": d.detail_id,
                 "parametre_id": d.parametre_id,
@@ -525,8 +620,10 @@ class LabController:
                 "valeur": d.valeur_num if p.input_type == 'numeric' else d.valeur_text,
                 "interpretation": d.interpretation,
                 "is_abnormal": d.flagged,
+                # Liste complete (compatibilite) + la plage retenue par select_range (source de l'affichage).
                 "ranges": [{"sexe": rr.sexe, "min": float(rr.valeur_min), "max": float(rr.valeur_max)} 
-                          for rr in p.reference_ranges]
+                          for rr in p.reference_ranges],
+                "applicable_range": applicable_out,
             })
 
         # --- IMPORTANT : On renvoie result_id ET id pour le frontend ---
@@ -534,11 +631,14 @@ class LabController:
             "result_id": r.result_id, 
             "id": r.result_id,
             "code": r.code_lab_patient,
+            "dossier": dossier_labels(getattr(self.repo, "session", None), [r]).get(r.result_id),
             "status": r.status,
             "note": r.note,
+            "conclusion": getattr(r, "conclusion", None),
             "test_date": r.test_date.isoformat() if r.test_date else None,
             "medecin_prescripteur": r.prescribed_by_name or None,
             "patient_info": self._format_patient_info(r),
+            "gestational_age_weeks": getattr(r, "gestational_age_weeks", None),
             "examen_nom": r.examen.nom if r.examen else "Inconnu",
             "details": details_out,
             "corrected": bool(r.corrected),
@@ -595,7 +695,8 @@ class LabController:
     
 
     # 🟢 MODIFIÉ: Ajout du paramètre global_note
-    def submit_values(self, result_id: int, values_map: Dict[int, Any], mark_completed: bool, global_note: Optional[str] = None) -> Dict:
+    def submit_values(self, result_id: int, values_map: Dict[int, Any], mark_completed: bool, global_note: Optional[str] = None,
+                      global_conclusion: Optional[str] = None) -> Dict:
         """
         Sauvegarde les valeurs saisies par le technicien.
         Accepte soit { detail_id: valeur }, soit { detail_id: {"valeur": X, "flag": Y, "interpretation": Z} }
@@ -620,13 +721,21 @@ class LabController:
                     }
             
             # 🟢 MODIFIÉ: On passe global_note au repo
-            updated = self.repo.save_results_values(result_id, clean_values, mark_completed, global_note)
+            if global_conclusion is not None and (not isinstance(global_conclusion, str) or len(global_conclusion) > 5000):
+                raise HTTPException(status_code=422, detail="La conclusion est limitee a 5000 caracteres.")
+            if global_note is not None and (not isinstance(global_note, str) or len(global_note) > 1000):
+                raise HTTPException(status_code=422, detail="Le NB est limite a 1000 caracteres.")
+            updated = self.repo.save_results_values(result_id, clean_values, mark_completed, global_note,
+                                                    global_conclusion=global_conclusion,
+                                                    user_id=getattr(self.user, "user_id", None))
             
             return {
                 "id": updated.result_id, 
                 "status": updated.status, 
                 "message": "Résultats sauvegardés."
             }
+        except HTTPException:
+            raise
         except LabResultLockedError as e:
             # Resultat valide : lecture seule. 409 = refus definitif (le connecteur hors ligne
             # met l'operation en quarantaine au lieu de la rejouer).
@@ -645,7 +754,8 @@ class LabController:
                 clean[k] = {"valeur": None if v == "" else v, "flag": None, "interpretation": None}
         return clean
 
-    def amend_values(self, result_id: int, values_map: Dict[Any, Any], global_note: Optional[str], reason: str) -> Dict:
+    def amend_values(self, result_id: int, values_map: Dict[Any, Any], global_note: Optional[str], reason: str,
+                     global_conclusion: Optional[str] = None) -> Dict:
         """Correction explicite d'un resultat valide (motif obligatoire) - voir LabRepository.amend_result."""
         if not (reason or "").strip():
             raise HTTPException(status_code=422, detail="Le motif de la correction est obligatoire.")
@@ -653,7 +763,8 @@ class LabController:
             updated = self.repo.amend_result(
                 result_id, self._clean_values(values_map), global_note, reason,
                 user_id=getattr(self.user, "user_id", None),
-                user_name=getattr(self.user, "full_name", None) or getattr(self.user, "username", None))
+                user_name=getattr(self.user, "full_name", None) or getattr(self.user, "username", None),
+                global_conclusion=global_conclusion)
         except LabResultNotValidatedError as e:
             raise HTTPException(status_code=409, detail=str(e))
         except ValueError as e:
@@ -679,9 +790,19 @@ class LabController:
         origin_prescription_id = payload.get('origin_prescription_id')
         batch_uuid = payload.get('batch_uuid')
 
+        # Grossesse : 403 si le role n'a pas le droit de l'ecrire (le laboratoire et l'admin seuls arrivent ici),
+        # 422 si une valeur est invalide. Validation avant toute ecriture.
+        require_pregnancy_write(current_user, payload)
+
         resolved_patient_id = None
         if patient_id or patient_uuid:
             resolved_patient_id = resolve_patient_id(self.repo.session, patient_id, patient_uuid)
+
+        # La grossesse d'un externe quitte external_patient_info (livre par un flux de synchronisation) pour une
+        # colonne dediee ; le statut a la reception est fige ici (interne : choix du formulaire ou statut du dossier).
+        gestational_age_weeks, external_info, ext_pregnancy, status_at_result = self._prepare_pregnancy(
+            resolved_patient_id, external_info, payload.get('external_pregnancy_info'),
+            payload.get('gestational_age_weeks'), payload.get('pregnancy_status_at_result'))
 
         # Un autre item de ce meme lot (batch_uuid) a-t-il deja ete cree
         # (envoye dans une operation CRUD anterieure) ? Si oui, on reutilise
@@ -696,6 +817,65 @@ class LabController:
 
         self._refuse_duplicate_lines(results_list, origin_prescription_id=origin_prescription_id)
 
+        # Prescripteur libre : uniquement pour le patient externe (titre + nom dans external_patient_info,
+        # champs qui voyagent deja hors ligne). Le patient interne garde la liste des medecins, inchangee.
+        external_prescriber = None
+        if external_info and not (patient_id or patient_uuid):
+            external_info = dict(external_info)
+            p_title = external_info.pop('prescriber_title', None)
+            p_name = external_info.pop('prescriber_name', None)
+            if p_title is not None or p_name is not None:
+                # Cles valides presentes : la valeur validee ECRASE tout prescribed_by_* libre envoye par le
+                # client. Sans cles (anciens clients / operations deja en file), comportement historique.
+                try:
+                    external_prescriber = split_prescriber(p_title, p_name)
+                    prescribed_by_name = format_prescriber(*external_prescriber)
+                except ValueError as e:
+                    raise HTTPException(status_code=422, detail=str(e))
+                prescribed_by_id = None
+        elif external_info:
+            external_info = dict(external_info)
+            external_info.pop('prescriber_title', None)
+            external_info.pop('prescriber_name', None)
+
+        # Numero de dossier officiel : attribue ici, par le serveur, sous verrou, au jour d'enregistrement
+        # (jour metier Douala). Les examens d'un meme patient le meme jour partagent compteur et rang.
+        # Hors ligne, le numero est donc attribue a l'arrivee du lot (le PUT/PATCH du connecteur appelle cette route).
+        #
+        # JOUR du numero = jour de RECEPTION (horloge de l'appareil, `received_at`, borne par resolve_client_time :
+        # futur > 5 min ou plus de 7 jours => heure serveur ; format illisible => 422), pas le jour d'arrivee.
+        # Une reception faite hors ligne le jour D et synchronisee en D+1 garde donc D. Si D est un jour ANTERIEUR
+        # sans compteur, il recoit max(compteur de l'annee)+1 : les numeros restent uniques mais ne sont pas
+        # chronologiques d'un jour a l'autre quand la synchronisation a du retard (renumeroter est impossible).
+        try:
+            reception_dt = resolve_client_time(payload.get('received_at'), ref=str(batch_uuid or ''))
+        except ClientTimeError as e:
+            raise HTTPException(status_code=422, detail=str(e))
+        reception_day = reception_dt.date()
+        dossier = None
+        replayed = None
+
+        # Les items d'un lot hors ligne arrivent en requetes separees : si un item-frere a deja un numero, on le
+        # reutilise tel quel (compteur, rang ET jour), jamais un second numero pour le meme lot.
+        sibling_number = result_dossier(existing_sibling) if existing_sibling else None
+        sibling_key = getattr(existing_sibling, 'patient_key', None) if existing_sibling else None
+        if sibling_number is not None:
+            sibling_day = dossier_day(self.repo.session, sibling_number)
+            if sibling_day is not None:
+                reception_day = sibling_day
+            else:
+                sibling_number = None
+        if sibling_number is not None and sibling_key:
+            patient_key = sibling_key
+        elif resolved_patient_id or external_info:
+            try:
+                # batch_id : voir build_patient_key (externe sans telephone => un rang par reception).
+                patient_key = build_patient_key(resolved_patient_id, external_info, batch_id=server_batch_id)
+            except ValueError as e:
+                raise HTTPException(status_code=422, detail=str(e))
+        else:
+            patient_key = None
+
         success_count = 0
         for item in results_list:
             item_uuid = item.get('uuid')
@@ -704,6 +884,7 @@ class LabController:
                 if already:
                     # Rejeu d'un item deja accepte - idempotent, ne duplique pas.
                     success_count += 1
+                    replayed = replayed or already
                     if not shared_code:
                         shared_code = already.code_lab_patient
                     continue
@@ -716,16 +897,29 @@ class LabController:
                 "external_patient_info": external_info,
                 "batch_id": server_batch_id,
                 "code_lab_patient": shared_code,
+                "patient_key": patient_key,
                 "prescribed_by": prescribed_by_id,
                 "prescribed_by_name": prescribed_by_name,
                 "origin_prescription_id": origin_prescription_id,
                 "origin_caisse_item_id": item.get('origin_caisse_item_id'),
+                "gestational_age_weeks": gestational_age_weeks,
+                "external_pregnancy_info": ext_pregnancy,
+                "pregnancy_status_at_result": status_at_result,
+                "test_date": reception_dt,
                 "technician_id": current_user.user_id,
                 "technician_name": current_user.full_name,
                 "created_by": current_user.user_id,
                 "created_by_name": current_user.full_name,
             }
             try:
+                if sibling_number is not None:
+                    dossier = sibling_number
+                    payload_item.update(dossier_year=dossier.year, dossier_counter=dossier.counter,
+                                        dossier_rank=dossier.rank)
+                elif patient_key:
+                    dossier = assign_dossier(self.repo.session, patient_key, reception_day)
+                    payload_item.update(dossier_year=dossier.year, dossier_counter=dossier.counter,
+                                        dossier_rank=dossier.rank)
                 new_res = self.repo.create_lab_result(payload_item)
             except IntegrityError:
                 # Examen supprime du catalogue (FK) ou reference invalide :
@@ -743,7 +937,25 @@ class LabController:
                 shared_code = new_res.code_lab_patient
             success_count += 1
 
-        return {"success": True, "count": success_count, "shared_code": shared_code, "batch_id": str(server_batch_id)}
+        if external_prescriber and success_count:
+            self.repo.upsert_external_prescriber(*external_prescriber)
+
+        if dossier is not None:
+            dossier_label = format_dossier(dossier, reception_day)
+        elif replayed is not None:
+            # Lot entierement rejoue (idempotence) : on relit le numero deja attribue, sans en creer un autre.
+            dossier_label = dossier_labels(self.repo.session, [replayed]).get(replayed.result_id)
+            dossier = result_dossier(replayed)
+        else:
+            dossier_label = None
+        return {"success": True, "count": success_count, "shared_code": shared_code, "batch_id": str(server_batch_id),
+                "dossier": dossier_label,
+                "dossier_counter": dossier.counter if dossier else None,
+                "dossier_rank": dossier.rank if dossier else None}
+
+    def list_external_prescribers(self, q: str = "") -> List[Dict[str, Any]]:
+        rows = self.repo.search_external_prescribers(q, limit=20)
+        return [{"title": r.title, "name": r.name, "label": format_prescriber(r.title, r.name)} for r in rows]
 
     def _refuse_duplicate_lines(self, results_list: List[Dict[str, Any]],
                                 origin_prescription_id: Optional[int]) -> None:
@@ -831,6 +1043,10 @@ class LabController:
 
             if self._est_medical_lecture_seule():
                 results = [r for r in results if r.status == "completed"]
+
+            labels = dossier_labels(self.repo.session, results)
+            for r in results:
+                r.dossier = labels.get(r.result_id)  # attribut non persiste, lu par LabResultOut
 
             # On retourne le format complet (LabResultOut)
             # Adapte 'to_dict()' selon comment tu formates tes objets habituellement

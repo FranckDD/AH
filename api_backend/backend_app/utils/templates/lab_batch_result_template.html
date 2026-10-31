@@ -84,7 +84,7 @@
         <div class="info-block" style="width: 45%;">
             <h3>Informations Patient</h3>
             <p><strong>Nom :</strong> {{ patient.nom }}</p>
-            <p><strong>Sexe / Âge :</strong> {{ patient.sexe }} / {{ patient.age }} ans</p>
+            <p><strong>Sexe / Âge :</strong> {{ patient.sexe }} / {% if patient.age_label %}{{ patient.age_label|e }}{% else %}{{ patient.age }} ans{% endif %}</p>
             {% if patient.type == 'interne' %}
                 <p><strong>Code Patient :</strong> {{ patient.code }}</p>
             {% endif %}
@@ -93,7 +93,7 @@
             <h3>Dossier Laboratoire</h3>
             <p><strong>Dossier :</strong> {{ passage.code }}</p>
             <p><strong>Date prélèvement :</strong> {{ passage.date_test }}</p>
-            <p><strong>Prescripteur :</strong> {{ passage.prescripteur }}</p>
+            <p><strong>Prescripteur :</strong> {{ passage.prescripteur|e }}</p>
             <p><strong>Examens :</strong> {{ exams|length }}</p>
         </div>
     </div>

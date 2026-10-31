@@ -53,3 +53,6 @@ reference_data.json
 deploy/rehearsal.env
 deploy/.smoke-work/
 deploy/.backup-test-work/
+
+# Documents du laboratoire : contiennent des noms de vrais patients, ne jamais commiter
+docs/laboratory/

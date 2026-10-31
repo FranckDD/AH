@@ -196,8 +196,10 @@ streams:
     auto_subscribe: false
     queries:
       - SELECT id::text AS id, id AS server_id, code, nom, categorie,
-          prix::text AS prix
+          prix::text AS prix, section, method, layout_family, signature_label,
+          print_title, sort_order, is_active, fixed_notes::text AS fixed_notes
         FROM examens AS exam_catalog
+        WHERE exam_catalog.is_active = true
 
   # Regles de reduction personnel, lecture seule (autorite serveur, jamais
   # d'ecriture locale). Regles actives seulement. Pas d'alias FROM : le nom
@@ -312,8 +314,12 @@ streams:
           reference_lab_params.examen_id, reference_lab_params.nom_parametre,
           reference_lab_params.unite, reference_lab_params.type_valeur,
           reference_lab_params.input_type, reference_lab_params.options_list,
-          reference_lab_params.ordre
+          reference_lab_params.ordre, reference_lab_params.print_label,
+          reference_lab_params.result_kind, reference_lab_params.choices::text AS choices,
+          reference_lab_params.is_active, reference_lab_params.group_label,
+          reference_lab_params.norm_text
         FROM parametres AS reference_lab_params
+        WHERE reference_lab_params.is_active = true
 
   reference_lab_ranges:
     auto_subscribe: false
@@ -321,6 +327,9 @@ streams:
       - SELECT reference_lab_ranges.id::text AS id, reference_lab_ranges.id AS server_id,
           reference_lab_ranges.parametre_id, reference_lab_ranges.sexe,
           reference_lab_ranges.age_min, reference_lab_ranges.age_max,
+          reference_lab_ranges.age_min_days, reference_lab_ranges.age_max_days,
+          reference_lab_ranges.ga_min_weeks, reference_lab_ranges.ga_max_weeks,
           reference_lab_ranges.valeur_min::text AS valeur_min,
-          reference_lab_ranges.valeur_max::text AS valeur_max
+          reference_lab_ranges.valeur_max::text AS valeur_max,
+          reference_lab_ranges.display_text
         FROM reference_ranges AS reference_lab_ranges

@@ -1,0 +1,21 @@
+{% extends "lab_sheet_base.html" %}
+{# Famille « Libelle : valeur » (serologies, CRP, ASLO, FR, urines, GE, KOAP, groupage, hemostase) :
+   section soulignee, titre d'examen en bandeau gris, methode, RESULTATS, puis une ligne par parametre
+   « Libelle : valeur unite (V.N. norme) » ; sous-titres = `group` de la copie. Repli des familles
+   inconnues. #}
+{% block body %}
+{% if exam.section %}<div class="section-title underline">{{ exam.section|e }}</div>{% endif %}
+{% if exam.title %}<div class="exam-band"><span>{{ exam.title|e }}</span></div>{% endif %}
+{% if exam.method %}<div class="exam-method">{{ exam.method|e }}</div>{% endif %}
+{{ notes_html.before_body }}
+<div class="results-heading">RESULTATS</div>
+<div class="lv-lines">
+{% for g in groups %}
+    {% if g.title %}<div class="group-title">{{ g.title|e }}</div>{% endif %}
+    {% for r in g.rows %}
+    <p>{{ r.label|e }} : <span class="value{% if r.flagged %} flagged{% endif %}">{{ r.value|e }}{% if r.unit and r.value %} {{ r.unit_html }}{% endif %}</span>{% if r.norm %} <span class="norm">{{ r.norm_paren|e }}</span>{% endif %}</p>
+    {% endfor %}
+{% endfor %}
+</div>
+{{ notes_html.after_body }}
+{% endblock %}

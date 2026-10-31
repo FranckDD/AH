@@ -30,6 +30,12 @@ class Patient(Base):
     is_spiritual    = Column(Boolean, default=False)
     is_staff        = Column(Boolean, nullable=False, default=False, server_default=text('false'))
 
+    # Suivi de grossesse (donnee sensible : jamais lue ni ecrite par le secretariat,
+    # voir utils/pregnancy_visibility.py). Migration 039.
+    pregnancy_status         = Column(String(20), nullable=False, default='inconnu', server_default=text("'inconnu'"))
+    expected_delivery_date   = Column(Date, nullable=True)
+    pregnancy_program_number = Column(String(50), nullable=True)
+
     # 🟢 CHAMPS DE SUPPRESSION LOGIQUE
     is_deleted = Column(Boolean, default=False)
     deleted_at = Column(TIMESTAMP, nullable=True)

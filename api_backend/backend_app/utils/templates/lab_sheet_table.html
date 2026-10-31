@@ -1,0 +1,62 @@
+{% extends "lab_sheet_base.html" %}
+{# Famille tableau : hemogramme (NFS), spermogramme, hormones, toxicologie urinaire.
+   Tableau borde libelle / resultat (avec unite) / valeurs usuelles ; sous-titres = `group` de la copie ;
+   paires « - X » / « V.A.M. X » en tableau a 5 colonnes (formule sanguine) ; libelles « ... 0H » en
+   matrice par temps (spermogramme) ; groupe sans norme en lignes « Libelle : valeur ». #}
+{% macro val(r) -%}
+<span class="value{% if r.flagged %} flagged{% endif %}">{{ r.value|e }}{% if r.unit and r.value %} {{ r.unit_html }}{% endif %}</span>
+{%- endmacro %}
+{% block body %}
+{% if exam.section %}<div class="section-title">{{ exam.section|e }}</div>{% endif %}
+{% if exam.title %}<div class="exam-title">{{ exam.title|e }}</div>{% endif %}
+{% if exam.method %}<div class="exam-method">{{ exam.method|e }}</div>{% endif %}
+{{ notes_html.before_body }}
+{% set any_norm = rows | selectattr("norm") | list | length > 0 %}
+{% set first_rows = namespace(done=false) %}
+{% for g in groups %}
+    {% for b in g.blocks %}
+        {% if b.kind == "rows" or b.kind == "vam" %}
+            {% if loop.first %}
+<table class="grid">
+                {% if not first_rows.done %}{% set first_rows.done = true %}
+    <tr><th style="width:34%">EXAMENS</th><th style="width:22%">RESULTATS</th>{% if any_norm %}<th>VALEURS USUELLES</th>{% endif %}</tr>
+                {% endif %}
+                {% if g.title %}<tr class="group-row"><td colspan="{{ 3 if any_norm else 2 }}">{{ g.title|e }}</td></tr>{% endif %}
+            {% else %}
+<table class="grid">
+            {% endif %}
+            {% if b.kind == "rows" %}
+                {% for r in b["items"] %}
+    <tr><td class="label">{{ r.label|e }}</td><td>{{ val(r) }}</td>{% if any_norm %}<td class="norm">{{ r.norm|e }}</td>{% endif %}</tr>
+                {% endfor %}
+            {% else %}
+    <tr><td class="inner" colspan="{{ 3 if any_norm else 2 }}">
+        <table class="grid">
+            <tr><th style="width:24%">ELEMENTS</th><th>RESULTATS %</th><th>VALEURS NORMALES %</th><th>VALEURS ABSOLUES MOYENNES</th><th>V.A.M USUELLES /(mm<sup>3</sup>)</th></tr>
+                {% for it in b["items"] %}
+            <tr><td class="label">{{ it.pct.label|e }}</td><td>{{ val(it.pct) }}</td><td class="vam-norm">{{ it.pct.norm|e }}</td><td>{{ val(it.abs) }}</td><td class="vam-norm">{{ it.abs.norm|e }}</td></tr>
+                {% endfor %}
+        </table>
+    </td></tr>
+            {% endif %}
+</table>
+        {% elif b.kind == "matrix" %}
+            {% if loop.first and g.title %}<div class="group-title">{{ g.title|e }}</div>{% endif %}
+<table class="grid">
+    <tr><th style="width:30%">&nbsp;</th>{% for t in b.times %}<th>{{ t|e }}</th>{% endfor %}</tr>
+            {% for it in b["items"] %}
+    <tr><td class="label">{{ it.label|e }}</td>{% for t in b.times %}<td>{% if it.cells[t] %}{{ val(it.cells[t]) }}{% endif %}</td>{% endfor %}</tr>
+            {% endfor %}
+</table>
+        {% else %}
+            {% if loop.first and g.title %}<div class="group-title">{{ g.title|e }}</div>{% endif %}
+<div class="lines{% if b["items"]|length > 4 %} two-cols{% endif %}">
+            {% for r in b["items"] %}
+    <p>{{ r.label|e }} : {{ val(r) }}{% if r.norm %} ({{ r.norm|e }}){% endif %}</p>
+            {% endfor %}
+</div>
+        {% endif %}
+    {% endfor %}
+{% endfor %}
+{{ notes_html.after_body }}
+{% endblock %}

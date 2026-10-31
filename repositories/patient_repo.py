@@ -250,6 +250,30 @@ class PatientRepository:
             self.session.rollback()
             raise
 
+    @staticmethod
+    def _pregnancy_of(p) -> Dict[str, Any]:
+        """Champs de grossesse d'un patient. Ils ne sont JAMAIS montres au secretariat : le filtre de sortie
+        central (middleware de l'API, utils/pregnancy_visibility.py) les retire pour les roles non autorises."""
+        return {
+            'pregnancy_status': getattr(p, 'pregnancy_status', None) or 'inconnu',
+            'expected_delivery_date': getattr(p, 'expected_delivery_date', None),
+            'pregnancy_program_number': getattr(p, 'pregnancy_program_number', None),
+        }
+
+    def set_pregnancy(self, patient_id: int, values: Dict[str, Any]) -> None:
+        """Ecrit les champs de grossesse deja valides (cles de PATIENT_PREGNANCY_FIELDS) dans la transaction
+        courante, sans commit (gere par l'appelant). Les procedures stockees create_patient/update_patient
+        ne les connaissent pas : UPDATE separe, comme pour l'uuid client."""
+        allowed = ('pregnancy_status', 'expected_delivery_date', 'pregnancy_program_number')
+        sets = {k: v for k, v in (values or {}).items() if k in allowed}
+        if not sets:
+            return
+        clause = ", ".join(f"{k} = :{k}" for k in sets)
+        self.session.execute(
+            text(f"UPDATE patients SET {clause} WHERE patient_id = :pid"),
+            {**sets, "pid": int(patient_id)},
+        )
+
     def get_id_by_uuid(self, client_uuid: str, only_active: bool = False) -> Optional[int]:
         """patient_id correspondant a un uuid (index unique patients_uuid_key).
         only_active=True exclut les patients supprimes (resolution d'un
@@ -284,6 +308,7 @@ class PatientRepository:
             'is_toxicology': p.is_toxicology,
             'is_spiritual': p.is_spiritual,
             'is_staff': p.is_staff,
+            **self._pregnancy_of(p),
         }
 
     def get_by_id_any_status(self, patient_id: int) -> Optional[Dict[str, Any]]:
@@ -314,6 +339,7 @@ class PatientRepository:
             'is_toxicology': p.is_toxicology,
             'is_spiritual': p.is_spiritual,
             'is_staff': p.is_staff,
+            **self._pregnancy_of(p),
         }
 
     def compute_domain_flags(self, patient_id: int) -> dict:

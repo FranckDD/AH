@@ -91,6 +91,19 @@ INSERT INTO reference_ranges (id, parametre_id, sexe, age_min, age_max, valeur_m
   (5, 3, 'M', 18, 120, 13.5, 17.5),
   (8, 3, 'F', 18, 120, 12.0, 15.5),
   (11, 15, 'X', 0, 120, 0.70, 1.10);
+INSERT INTO reference_ranges (id, parametre_id, sexe, age_min_days, age_max_days, ga_min_weeks, ga_max_weeks,
+                              valeur_min, valeur_max) VALUES
+  (12, 3, 'X', 0, 28, NULL, NULL, 16, 21.5),
+  (13, 15, 'F', NULL, NULL, 14, 27, 0.60, 0.95);
+UPDATE examens SET section = 'HEMATOLOGIE', method = 'Methode X', layout_family = 'table',
+  signature_label = 'Le Biologiste', print_title = 'HEMOGRAMME', sort_order = 10 WHERE id = 7;
+UPDATE examens SET is_active = false WHERE id = 20;
+UPDATE examens SET fixed_notes = '[{"position": "before_body", "text": "NOTE FIXE", "style": "bold"}]'::jsonb WHERE id = 7;
+UPDATE parametres SET group_label = 'NUMERATION GLOBULAIRE', norm_text = 'H: 12 - 17 F: 12 - 15' WHERE id = 3;
+UPDATE reference_ranges SET display_text = '16 - 21,5' WHERE id = 12;
+UPDATE parametres SET print_label = '- Taux d''HB (Hb)', result_kind = 'numeric' WHERE id = 3;
+UPDATE parametres SET result_kind = 'choice', choices = '["Clair", "Trouble"]'::jsonb, is_active = false
+  WHERE id = 16;
 INSERT INTO prayer_book_type (type_code, label) VALUES ('MPI', 'Prière I'), ('MPII', 'Prière II');
 INSERT INTO staff_discount_rules (id, category, min_invoice_amount, rate_percent, is_active)
   VALUES (30, 'examen', 2000, 15, true);
@@ -99,9 +112,11 @@ INSERT INTO permissions (permission_id, permission_name, procedure_name, descrip
 INSERT INTO role_permissions (role_id, permission_id)
   SELECT role_id, 4 FROM application_roles WHERE role_name IN ('admin', 'medecin');
 INSERT INTO medical_specialties (specialty_id, name) VALUES (6, 'Généraliste'), (9, 'ORL');
-INSERT INTO organization_config (id, name, slogan, logo_url, ticket_logo_url, ticket_print_token, city)
+INSERT INTO organization_config (id, name, slogan, logo_url, ticket_logo_url, ticket_print_token, city,
+                                 agrement_number, footer_text, signature_label_default)
   VALUES (1, 'Centre Test', 'Slogan', '/static/uploads/logos/a.png', '/static/uploads/ticket_logos/b.jpg',
-          'SECRET-TOKEN-VALUE', 'Yaounde');
+          'SECRET-TOKEN-VALUE', 'Yaounde', 'N 0001/TEST', 'Ligne 1
+Ligne 2', 'Le Biologiste');
 INSERT INTO users (username, password_hash, full_name, role_id)
   SELECT 'secret_user_t6', 'HASH-SECRET', 'Secret User', role_id FROM application_roles WHERE role_name='admin';
 """
@@ -139,10 +154,11 @@ def test_export_then_import_gives_identical_rows_except_prix(seeded_source, make
     for t in TABLES:
         src, dst = _dump(seeded_source, t), _dump(target, t)
         if t == "examens":
-            assert [r[:4] for r in src] == [r[:4] for r in dst]
+            assert [r[:4] + r[5:] for r in src] == [r[:4] + r[5:] for r in dst]
             assert all(r[4] == 0 for r in dst)
         elif t == "organization_config":
-            cols = "id, name, slogan, address, city, label_width_mm, label_height_mm"
+            cols = ("id, name, slogan, address, city, label_width_mm, label_height_mm, agrement_number, "
+                    "footer_text, signature_label_default")
             assert _dump(seeded_source, t, cols) == _dump(target, t, cols)
         elif t == "staff_discount_rules":
             cols = "id, category, min_invoice_amount, rate_percent, is_active"
@@ -157,6 +173,32 @@ def test_prices_all_zero_after_import(seeded_source, make_db, tmp_path):
     assert imp.main([path, "--database-url", target]) == 0
     assert _run(target, "select count(*) from examens where prix <> 0", fetch=True) == [(0,)]
     assert _run(target, "select count(*) from examens", fetch=True) == [(3,)]
+
+
+def test_extended_catalogue_columns_carried_over(seeded_source, make_db, tmp_path):
+    path = _export(seeded_source, tmp_path)
+    data = json.load(open(path, encoding="utf-8"))
+    assert data["_meta"]["version"] == 3
+    target = make_db()
+    assert imp.main([path, "--database-url", target]) == 0
+    assert _run(target, "select section, method, layout_family, signature_label, print_title, sort_order, is_active "
+                        "from examens order by id", fetch=True) == [
+        ("HEMATOLOGIE", "Methode X", "table", "Le Biologiste", "HEMOGRAMME", 10, True),
+        (None, None, "label_value", None, None, 0, True),
+        (None, None, "label_value", None, None, 0, False)]
+    assert _run(target, "select id, print_label, result_kind, choices, is_active from parametres order by id",
+                fetch=True) == [
+        (3, "- Taux d'HB (Hb)", "numeric", None, True), (9, None, "numeric", None, True),
+        (15, None, "numeric", None, True), (16, None, "choice", ["Clair", "Trouble"], False)]
+    assert _run(target, "select id, age_min_days, age_max_days, ga_min_weeks, ga_max_weeks from reference_ranges "
+                        "where id in (12, 13) order by id", fetch=True) == [(12, 0, 28, None, None), (13, None, None, 14, 27)]
+    # migration 045 : sous-titre, texte de norme, texte de plage, notes fixes
+    assert _run(target, "select fixed_notes from examens where id = 7", fetch=True) == [
+        ([{"position": "before_body", "text": "NOTE FIXE", "style": "bold"}],)]
+    assert _run(target, "select id, group_label, norm_text from parametres where id in (3, 9) order by id",
+                fetch=True) == [(3, "NUMERATION GLOBULAIRE", "H: 12 - 17 F: 12 - 15"), (9, None, None)]
+    assert _run(target, "select display_text from reference_ranges where id in (12, 13) order by id",
+                fetch=True) == [("16 - 21,5",), (None,)]
 
 
 def test_org_logo_and_token_not_carried_over(seeded_source, make_db, tmp_path):
@@ -188,7 +230,7 @@ def test_sequences_reset_to_max_id(seeded_source, make_db, tmp_path):
     assert _run(target, "insert into parametres (examen_id, nom_parametre, unite, type_valeur) "
                         "values (7,'x','u','numeric') returning id", fetch=True) == [(17,)]
     assert _run(target, "insert into reference_ranges (parametre_id, sexe, age_min, age_max, valeur_min, valeur_max) "
-                        "values (3,'M',0,1,0,1) returning id", fetch=True) == [(12,)]
+                        "values (3,'M',0,1,0,1) returning id", fetch=True) == [(14,)]
     assert _run(target, "insert into medical_specialties (name) values ('Nouvelle') returning specialty_id",
                 fetch=True) == [(10,)]
 
@@ -253,7 +295,8 @@ def test_error_midway_rolls_back_everything(seeded_source, make_db, tmp_path, ca
     data = json.load(open(path, encoding="utf-8"))
     data["parametres"].append({"id": 99, "examen_id": 9999, "nom_parametre": "x", "unite": "u",
                                "type_valeur": "numeric", "input_type": "numeric", "options_list": None,
-                               "ordre": 1})
+                               "ordre": 1, "print_label": None, "result_kind": "numeric", "choices": None,
+                               "is_active": True, "group_label": None, "norm_text": None})
     bad = str(tmp_path / "bad.json")
     json.dump(data, open(bad, "w", encoding="utf-8"))
     target = make_db()
@@ -295,7 +338,7 @@ def test_inventory_lists_exams_with_counts_and_writes_no_file(seeded_source, tmp
     line = [ln for ln in out.splitlines() if ln.startswith("7 ")][0]
     cells = line.split()
     assert "NFS" in cells and "3500.50" in cells
-    assert cells[-3:-1] == ["2", "2"]  # 2 parametres, 2 plages
+    assert cells[-3:-1] == ["2", "3"]  # 2 parametres, 3 plages
     assert "specialites" in out and "JAMAIS REPRIS" in out
     assert not list(tmp_path.iterdir())
 
@@ -320,13 +363,13 @@ def test_default_exclusion_cascades_and_leaves_nothing_orphaned(seeded_source, t
     assert len(data["parametres"]) == 4
     param_ids = {p["id"] for p in data["parametres"]}
     assert all(r["parametre_id"] in param_ids for r in data["reference_ranges"])
-    assert {r["id"] for r in data["reference_ranges"]} == {5, 8, 11}
+    assert {r["id"] for r in data["reference_ranges"]} == {5, 8, 11, 12, 13}
 
 
 def test_empty_exclude_codes_exports_everything(seeded_source, tmp_path):
     _run(seeded_source, TEST_EXAMS_SQL)
     data = json.load(open(_export(seeded_source, tmp_path, "--exclude-codes", ""), encoding="utf-8"))
-    assert len(data["examens"]) == 5 and len(data["parametres"]) == 6 and len(data["reference_ranges"]) == 5
+    assert len(data["examens"]) == 5 and len(data["parametres"]) == 6 and len(data["reference_ranges"]) == 7
 
 
 def test_custom_exclude_codes(seeded_source, tmp_path):

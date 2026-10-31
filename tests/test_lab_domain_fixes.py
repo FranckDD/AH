@@ -30,6 +30,9 @@ def _resultat(db, pid, ex, status, minutes=0):
 
 
 # --- ordre des parametres : ordre de definition, jamais l'ordre physique des lignes
+from repositories.lab_repo import patient_bio
+
+
 def test_detail_d_un_resultat_garde_l_ordre_de_definition_des_parametres():
     def det(did, pid, nom):
         return SimpleNamespace(detail_id=did, parametre_id=pid, valeur_num=1, valeur_text="1", interpretation=None,
@@ -40,7 +43,8 @@ def test_detail_d_un_resultat_garde_l_ordre_de_definition_des_parametres():
                         prescribed_by_name=None, patient=None, external_patient_info={"nom": "Ext"}, examen=None,
                         corrected=False, corrected_at=None,
                         details=[det(30, 12, "C"), det(10, 10, "A"), det(20, 11, "B")])
-    repo = SimpleNamespace(get_full_lab_result=lambda _id: r, list_amendments=lambda _id: [])
+    repo = SimpleNamespace(get_full_lab_result=lambda _id: r, list_amendments=lambda _id: [],
+                           _patient_bio=patient_bio)
     ctrl = LabController(repo=repo)
     out = ctrl.get_result_detail(1)
     assert [d["nom"] for d in out["details"]] == ["A", "B", "C"]

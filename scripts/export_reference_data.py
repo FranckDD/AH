@@ -6,8 +6,8 @@
 
 Options : --exclude-codes A,B (defaut VERIFX,DEMO_TEST ; "" = ne rien exclure) retire ces examens
 de test, avec leurs parametres et plages (aucune ligne orpheline). --with-ranges (defaut: non)
-inclut les plages de reference ; sans lui reference_ranges est exporte vide, car les plages
-validees viendront du responsable du laboratoire.
+inclut les plages de reference (celles chargees depuis les fiches du laboratoire par
+scripts/seed_lab_catalogue.py) ; sans lui reference_ranges est exporte vide.
 
 La base source est lue en transaction LECTURE SEULE (DATABASE_URL par defaut). Contenu :
 examens, parametres, reference_ranges (ids conserves pour garder les liens), prayer_book_type,
@@ -32,16 +32,21 @@ if __package__ in (None, ""):  # lance comme fichier : la racine du projet dans 
     sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 FORMAT = "ah2-reference-data"
-VERSION = 1
+# Version 2 (migration 041) : colonnes du catalogue etendu, plages en jours et SA.
+# Version 3 (migration 045) : group_label, norm_text, display_text des plages, fixed_notes des examens.
+VERSION = 3
 DEFAULT_EXCLUDE_CODES = "VERIFX,DEMO_TEST"
 
 # Table -> (colonnes exportees, ORDER BY). Les ids sont conserves.
 SIMPLE_TABLES = {
-    "examens": (["id", "code", "nom", "categorie", "prix"], "id"),
+    "examens": (["id", "code", "nom", "categorie", "prix", "section", "method", "layout_family",
+                 "signature_label", "print_title", "sort_order", "is_active", "fixed_notes"], "id"),
     "parametres": (["id", "examen_id", "nom_parametre", "unite", "type_valeur", "input_type",
-                    "options_list", "ordre"], "id"),
-    "reference_ranges": (["id", "parametre_id", "sexe", "age_min", "age_max", "valeur_min",
-                          "valeur_max"], "id"),
+                    "options_list", "ordre", "print_label", "result_kind", "choices", "is_active",
+                    "group_label", "norm_text"], "id"),
+    "reference_ranges": (["id", "parametre_id", "sexe", "age_min", "age_max", "age_min_days",
+                          "age_max_days", "ga_min_weeks", "ga_max_weeks", "valeur_min",
+                          "valeur_max", "display_text"], "id"),
     "prayer_book_type": (["type_code", "label"], "type_code"),
     "staff_discount_rules": (["id", "category", "min_invoice_amount", "rate_percent",
                               "is_active"], "id"),
@@ -52,7 +57,8 @@ SIMPLE_TABLES = {
 # organization_config : LISTE BLANCHE des colonnes metier reprises (plus "id"). Une colonne ajoutee
 # plus tard n'est PAS exportee tant qu'on ne l'ajoute pas ici (jamais de logo, jeton ni secret).
 ORG_COLUMNS = ["name", "slogan", "address", "city", "po_box", "phone", "phone2", "email",
-               "website", "niu", "rccm", "legal_info", "label_width_mm", "label_height_mm"]
+               "website", "niu", "rccm", "legal_info", "label_width_mm", "label_height_mm",
+               "agrement_number", "footer_text", "signature_label_default"]
 ORG_ALLOWED = {"id"} | set(ORG_COLUMNS)
 
 # Ordre de dependance pour l'import

@@ -82,6 +82,12 @@ class PatientCreate(BaseModel):
     is_toxicology: bool = False
     is_spiritual: bool = False
 
+    # Suivi de grossesse : ecriture reservee a medecin/nurse/laborantin/admin (403 sinon, controle dans
+    # l'endpoint). Valeurs validees par utils/pregnancy_visibility.clean_pregnancy_input.
+    pregnancy_status: Optional[str] = None
+    expected_delivery_date: Optional[date] = None
+    pregnancy_program_number: Optional[str] = None
+
     # Chantier 4 sous-projet 4 : uuid client d'un patient cree hors ligne
     # (PowerSync). Persiste tel quel ; un rejeu du meme uuid est idempotent
     # cote endpoint (voir patients_endpoints.create_patient).
@@ -122,6 +128,15 @@ class PatientUpdate(BaseModel):
     is_toxicology: Optional[bool] = None
     is_spiritual: Optional[bool] = None
 
+    # Suivi de grossesse (voir PatientCreate)
+    pregnancy_status: Optional[str] = None
+    expected_delivery_date: Optional[date] = None
+    pregnancy_program_number: Optional[str] = None
+    # Effacement explicite d'un champ de grossesse (une valeur nulle est ignoree par la mise a jour) :
+    # sous-ensemble de ["pregnancy_status" (remis a "inconnu"), "expected_delivery_date",
+    # "pregnancy_program_number"]. Ecriture reservee aux memes roles que la grossesse.
+    clear_pregnancy_fields: Optional[List[str]] = None
+
     @field_validator("gender", mode="before")
     @classmethod
     def _val_gender_update(cls, v):
@@ -154,6 +169,11 @@ class PatientResponse(BaseModel):
     # Personnel de la structure (reduction caisse) - lecture seule ici,
     # ecriture uniquement via PUT /patients/{id}/staff.
     is_staff: bool = False
+    # Suivi de grossesse : ces trois champs ne sortent QUE pour medecin/nurse/laborantin/admin/promoteur
+    # (le filtre central les retire de toute reponse destinee a un autre role, secretaire comprise).
+    pregnancy_status: Optional[str] = None
+    expected_delivery_date: Optional[date] = None
+    pregnancy_program_number: Optional[str] = None
 
     @field_validator("gender", mode="before")
     @classmethod

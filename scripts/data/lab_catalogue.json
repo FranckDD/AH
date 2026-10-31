@@ -1,0 +1,6444 @@
+{
+ "_meta": {
+  "format": "ah2-lab-catalogue",
+  "version": 1,
+  "source": "fiches du laboratoire (docs/laboratory, structure seulement, aucune donnee patient)",
+  "age_bands_days": {
+   "newborn": [
+    0,
+    28
+   ],
+   "child": [
+    29,
+    1825
+   ],
+   "adult_from": 1826
+  },
+  "layout_families": [
+   "table",
+   "three_columns",
+   "label_value",
+   "narrative",
+   "boxed"
+  ],
+  "result_kinds": [
+   "numeric",
+   "text",
+   "choice",
+   "pos_neg"
+  ]
+ },
+ "exams": [
+  {
+   "code": "NFS",
+   "existing_code": true,
+   "match_names": [],
+   "nom": "Numération Formule Sanguine",
+   "categorie": "Hematologie",
+   "section": "HEMATOLOGIE",
+   "print_title": "HEMOGRAMME",
+   "layout_family": "table",
+   "method": null,
+   "signature_label": "Le Biologiste",
+   "sort_order": 10,
+   "parameters": [
+    {
+     "name": "Globules rouges (RBC)",
+     "match": [
+      "Erythrocytes"
+     ],
+     "print_label": "- Globules rouges (RBC)",
+     "unite": "x10^6/mm3",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [
+      {
+       "sexe": "M",
+       "age_min_days": null,
+       "age_max_days": null,
+       "min": 4.0,
+       "max": 5.5,
+       "display_text": "4,0 - 5,5"
+      },
+      {
+       "sexe": "F",
+       "age_min_days": null,
+       "age_max_days": null,
+       "min": 4.0,
+       "max": 5.0,
+       "display_text": "4,0 - 5,0"
+      }
+     ],
+     "norm_text": "H: 4,0 - 5,5 F: 4,0 - 5,0",
+     "variants": "",
+     "group": "NUMERATION GLOBULAIRE"
+    },
+    {
+     "name": "Globules blancs (WBC)",
+     "match": [
+      "Leucocytes"
+     ],
+     "print_label": "- Globules blancs (WBC)",
+     "unite": "x10^3/mm3",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [
+      {
+       "sexe": "X",
+       "age_min_days": 1826,
+       "age_max_days": null,
+       "min": 5.0,
+       "max": 10.0,
+       "display_text": "5,0 - 10,0"
+      },
+      {
+       "sexe": "X",
+       "age_min_days": null,
+       "age_max_days": 1825,
+       "min": 5.0,
+       "max": 15.0,
+       "display_text": "5,0 - 15,0"
+      }
+     ],
+     "norm_text": "ADULTE: 5,0 - 10,0 / ENFT < 5ans: 5,0 - 15,0",
+     "variants": "",
+     "group": "NUMERATION GLOBULAIRE"
+    },
+    {
+     "name": "Taux d'HB (Hb)",
+     "match": [
+      "Hémoglobine"
+     ],
+     "print_label": "- Taux d'HB (Hb)",
+     "unite": "g/dl",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [
+      {
+       "sexe": "M",
+       "age_min_days": null,
+       "age_max_days": null,
+       "min": 12,
+       "max": 17,
+       "display_text": "12 - 17"
+      },
+      {
+       "sexe": "F",
+       "age_min_days": null,
+       "age_max_days": null,
+       "min": 12,
+       "max": 15,
+       "display_text": "12 - 15"
+      },
+      {
+       "sexe": "X",
+       "age_min_days": null,
+       "age_max_days": 28,
+       "min": 16,
+       "max": 21.5,
+       "display_text": "16 - 21,5"
+      }
+     ],
+     "norm_text": "H: 12 - 17 F: 12 - 15 / Nouveau-né: 16 - 21,5",
+     "variants": "une fiche imprime g/L (erreur), retenu g/dl",
+     "group": "NUMERATION GLOBULAIRE"
+    },
+    {
+     "name": "Taux de Réticulocytes (RC)",
+     "match": [],
+     "print_label": "- Taux de Réticulocytes (RC)",
+     "unite": "%",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [
+      {
+       "sexe": "X",
+       "age_min_days": 1826,
+       "age_max_days": null,
+       "min": 0.5,
+       "max": 2.5,
+       "display_text": "0,5 - 2,5"
+      },
+      {
+       "sexe": "X",
+       "age_min_days": null,
+       "age_max_days": 28,
+       "min": 2,
+       "max": 6,
+       "display_text": "2 - 6"
+      }
+     ],
+     "norm_text": "ADULT: 0,5 - 2,5 / Nouveau-né: 2 - 6",
+     "variants": "position apres l'hematocrite sur certaines fiches",
+     "group": "NUMERATION GLOBULAIRE"
+    },
+    {
+     "name": "Hématocrite (HTC)",
+     "match": [
+      "Hématocrite"
+     ],
+     "print_label": "- Hématocrite (HTC)",
+     "unite": "%",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [
+      {
+       "sexe": "M",
+       "age_min_days": null,
+       "age_max_days": null,
+       "min": 40,
+       "max": 54,
+       "display_text": "40 - 54"
+      },
+      {
+       "sexe": "F",
+       "age_min_days": null,
+       "age_max_days": null,
+       "min": 36,
+       "max": 52,
+       "display_text": "36 - 52"
+      }
+     ],
+     "norm_text": "H: 40 - 54 F: 36 - 52",
+     "variants": "H: 40 - 50 (fiche Hb 2021)",
+     "group": "NUMERATION GLOBULAIRE"
+    },
+    {
+     "name": "T.C.M.H. (MCH)",
+     "match": [
+      "TCMH"
+     ],
+     "print_label": "- T.C.M.H. (MCH)",
+     "unite": "pg",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [
+      {
+       "sexe": "X",
+       "age_min_days": null,
+       "age_max_days": null,
+       "min": 27,
+       "max": 32,
+       "display_text": "27 - 32"
+      }
+     ],
+     "norm_text": "27 - 32",
+     "variants": "",
+     "group": "NUMERATION GLOBULAIRE"
+    },
+    {
+     "name": "V.G.M. (MCV)",
+     "match": [
+      "VGM"
+     ],
+     "print_label": "- V.G.M. (MCV)",
+     "unite": "fl",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [
+      {
+       "sexe": "M",
+       "age_min_days": null,
+       "age_max_days": null,
+       "min": 76,
+       "max": 96,
+       "display_text": "76 - 96"
+      },
+      {
+       "sexe": "F",
+       "age_min_days": null,
+       "age_max_days": null,
+       "min": 76,
+       "max": 100,
+       "display_text": "76 - 100"
+      }
+     ],
+     "norm_text": "H: 76 - 96 F: 76 - 100",
+     "variants": "",
+     "group": "NUMERATION GLOBULAIRE"
+    },
+    {
+     "name": "C.C.M.H. (MCHC)",
+     "match": [
+      "CCMH"
+     ],
+     "print_label": "- C.C.M.H. (MCHC)",
+     "unite": "g/100ml",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [
+      {
+       "sexe": "X",
+       "age_min_days": null,
+       "age_max_days": null,
+       "min": 30,
+       "max": 35,
+       "display_text": "30 - 35"
+      }
+     ],
+     "norm_text": "30 - 35",
+     "variants": "",
+     "group": "NUMERATION GLOBULAIRE"
+    },
+    {
+     "name": "Plaquettes (Platelets)",
+     "match": [
+      "Plaquettes"
+     ],
+     "print_label": "- Plaquettes (Platelets)",
+     "unite": "x10^3/mm3",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [
+      {
+       "sexe": "X",
+       "age_min_days": null,
+       "age_max_days": null,
+       "min": 150,
+       "max": 400,
+       "display_text": "150 - 400"
+      }
+     ],
+     "norm_text": "150 - 400",
+     "variants": "",
+     "group": "NUMERATION GLOBULAIRE"
+    },
+    {
+     "name": "PN Neutrophiles %",
+     "match": [],
+     "print_label": "- PN Neutrophiles",
+     "unite": "%",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [
+      {
+       "sexe": "X",
+       "age_min_days": null,
+       "age_max_days": null,
+       "min": 40,
+       "max": 74,
+       "display_text": "40 - 74"
+      }
+     ],
+     "norm_text": "40 - 74",
+     "variants": "",
+     "group": "FORMULE SANGUINE (Coloration MGG)"
+    },
+    {
+     "name": "PN Neutrophiles V.A.M.",
+     "match": [
+      "Neutrophiles"
+     ],
+     "print_label": "V.A.M. PN Neutrophiles",
+     "unite": "/mm3",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [
+      {
+       "sexe": "X",
+       "age_min_days": null,
+       "age_max_days": null,
+       "min": 1800,
+       "max": 7000,
+       "display_text": "1800 - 7000"
+      }
+     ],
+     "norm_text": "1800 - 7000",
+     "variants": "valeur absolue = % x GB",
+     "group": "FORMULE SANGUINE (Coloration MGG)"
+    },
+    {
+     "name": "PN Eosinophiles %",
+     "match": [],
+     "print_label": "- PN Eosinophiles",
+     "unite": "%",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [
+      {
+       "sexe": "X",
+       "age_min_days": null,
+       "age_max_days": null,
+       "min": 1,
+       "max": 4,
+       "display_text": "1 - 4"
+      }
+     ],
+     "norm_text": "1 - 4",
+     "variants": "",
+     "group": "FORMULE SANGUINE (Coloration MGG)"
+    },
+    {
+     "name": "PN Eosinophiles V.A.M.",
+     "match": [
+      "Eosinophiles"
+     ],
+     "print_label": "V.A.M. PN Eosinophiles",
+     "unite": "/mm3",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [
+      {
+       "sexe": "X",
+       "age_min_days": null,
+       "age_max_days": null,
+       "min": 0,
+       "max": 500,
+       "display_text": "< 500"
+      }
+     ],
+     "norm_text": "< 500",
+     "variants": "",
+     "group": "FORMULE SANGUINE (Coloration MGG)"
+    },
+    {
+     "name": "PN Basophiles %",
+     "match": [],
+     "print_label": "- PN Basophiles",
+     "unite": "%",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [
+      {
+       "sexe": "X",
+       "age_min_days": null,
+       "age_max_days": null,
+       "min": 0,
+       "max": 2,
+       "display_text": "0 - 2"
+      }
+     ],
+     "norm_text": "0 - 2",
+     "variants": "",
+     "group": "FORMULE SANGUINE (Coloration MGG)"
+    },
+    {
+     "name": "PN Basophiles V.A.M.",
+     "match": [
+      "Basophiles"
+     ],
+     "print_label": "V.A.M. PN Basophiles",
+     "unite": "/mm3",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [
+      {
+       "sexe": "X",
+       "age_min_days": null,
+       "age_max_days": null,
+       "min": 0,
+       "max": 100,
+       "display_text": "< 100"
+      }
+     ],
+     "norm_text": "< 100",
+     "variants": "",
+     "group": "FORMULE SANGUINE (Coloration MGG)"
+    },
+    {
+     "name": "Lymphocytes %",
+     "match": [],
+     "print_label": "- Lymphocytes",
+     "unite": "%",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [
+      {
+       "sexe": "X",
+       "age_min_days": null,
+       "age_max_days": null,
+       "min": 19,
+       "max": 48,
+       "display_text": "19 - 48"
+      }
+     ],
+     "norm_text": "19 - 48",
+     "variants": "",
+     "group": "FORMULE SANGUINE (Coloration MGG)"
+    },
+    {
+     "name": "Lymphocytes V.A.M.",
+     "match": [
+      "Lymphocytes"
+     ],
+     "print_label": "V.A.M. Lymphocytes",
+     "unite": "/mm3",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [
+      {
+       "sexe": "X",
+       "age_min_days": null,
+       "age_max_days": null,
+       "min": 1500,
+       "max": 4000,
+       "display_text": "1500 - 4000"
+      }
+     ],
+     "norm_text": "1500 - 4000",
+     "variants": "",
+     "group": "FORMULE SANGUINE (Coloration MGG)"
+    },
+    {
+     "name": "Monocytes %",
+     "match": [],
+     "print_label": "- Monocytes",
+     "unite": "%",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [
+      {
+       "sexe": "X",
+       "age_min_days": null,
+       "age_max_days": null,
+       "min": 2,
+       "max": 10,
+       "display_text": "2 - 10"
+      }
+     ],
+     "norm_text": "2 - 10",
+     "variants": "",
+     "group": "FORMULE SANGUINE (Coloration MGG)"
+    },
+    {
+     "name": "Monocytes V.A.M.",
+     "match": [
+      "Monocytes"
+     ],
+     "print_label": "V.A.M. Monocytes",
+     "unite": "/mm3",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [
+      {
+       "sexe": "X",
+       "age_min_days": null,
+       "age_max_days": null,
+       "min": 100,
+       "max": 1000,
+       "display_text": "100 - 1000"
+      }
+     ],
+     "norm_text": "100 - 1000",
+     "variants": "",
+     "group": "FORMULE SANGUINE (Coloration MGG)"
+    }
+   ],
+   "deactivate": [
+    "RDW"
+   ],
+   "note": "",
+   "fixed_notes": [
+    {
+     "position": "before_body",
+     "text": "NUMERATION FORMULE SANGUINE (N.F.S)",
+     "style": "bold"
+    }
+   ]
+  },
+  {
+   "code": "HB",
+   "existing_code": true,
+   "match_names": [],
+   "nom": "Taux d'hémoglobine simple",
+   "categorie": "Hematologie",
+   "section": "LABORATOIRE D'HEMATOLOGIE",
+   "print_title": "TAUX D'HEMOGLOBINE",
+   "layout_family": "three_columns",
+   "method": null,
+   "signature_label": "Le Biologiste",
+   "sort_order": 20,
+   "parameters": [
+    {
+     "name": "Taux d'hémoglobine",
+     "match": [
+      "Hémoglobine"
+     ],
+     "print_label": "TAUX d'HEMOGLOBINE",
+     "unite": "g/dl",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [
+      {
+       "sexe": "X",
+       "age_min_days": null,
+       "age_max_days": null,
+       "min": 12,
+       "max": 17,
+       "display_text": "12 - 17"
+      }
+     ],
+     "norm_text": "12 - 17 g/dl",
+     "variants": "fiche 2021: Homme 12-17, Femme 12-15, Nouveau-né 16-21,5 (g/L imprime par erreur)"
+    },
+    {
+     "name": "Hématocrite",
+     "match": [],
+     "print_label": "HEMATOCRITE",
+     "unite": "%",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [
+      {
+       "sexe": "M",
+       "age_min_days": null,
+       "age_max_days": null,
+       "min": 40,
+       "max": 54,
+       "display_text": "40 - 54"
+      },
+      {
+       "sexe": "F",
+       "age_min_days": null,
+       "age_max_days": null,
+       "min": 36,
+       "max": 52,
+       "display_text": "36 - 52"
+      }
+     ],
+     "norm_text": "F 36 - 52% / M 40 - 54%",
+     "variants": "fiche 2021: Homme 40-50%"
+    }
+   ],
+   "deactivate": [],
+   "note": "",
+   "fixed_notes": []
+  },
+  {
+   "code": "VS",
+   "existing_code": true,
+   "match_names": [],
+   "nom": "Vitesse de Sédimentation",
+   "categorie": "Hematologie",
+   "section": "HEMATOLOGIE",
+   "print_title": "VITESSE DE SEDIMENTATION (VS)",
+   "layout_family": "three_columns",
+   "method": null,
+   "signature_label": "Le Biologiste",
+   "sort_order": 30,
+   "parameters": [
+    {
+     "name": "VS 1re heure",
+     "match": [
+      "VS à 1h"
+     ],
+     "print_label": "1ER Heure",
+     "unite": "mm",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [
+      {
+       "sexe": "X",
+       "age_min_days": null,
+       "age_max_days": null,
+       "min": 0,
+       "max": 15,
+       "display_text": "< 15"
+      }
+     ],
+     "norm_text": "< 15mm",
+     "variants": ""
+    },
+    {
+     "name": "VS 2e heure",
+     "match": [],
+     "print_label": "2E Heure",
+     "unite": "mm",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [
+      {
+       "sexe": "X",
+       "age_min_days": null,
+       "age_max_days": null,
+       "min": 0,
+       "max": 20,
+       "display_text": "< 20"
+      }
+     ],
+     "norm_text": "< 20mm",
+     "variants": ""
+    }
+   ],
+   "deactivate": [],
+   "note": "",
+   "fixed_notes": []
+  },
+  {
+   "code": "ELECTRO_HB",
+   "existing_code": true,
+   "match_names": [],
+   "nom": "Électrophorèse de l'hémoglobine",
+   "categorie": "Hematologie",
+   "section": "HEMATOLOGIE",
+   "print_title": "ELECTROPHORESE DE L'HEMOGLOBINE",
+   "layout_family": "narrative",
+   "method": "Méthode utilisée: Technique de migration des hémoglobines sur plaque d'acétate de cellulose dans la cuve électrolytique, de la cathode vers l'anode.\nAppareillage :\n- Générateur de tension titan plus de type helena (marque OSI Labo), Electrophoresis power supply\n- Cuve électrolytique Helena (Zip-Zone chamber)\n- Applicateur de type Helena\n- Plaque d'acétate de cellulose.",
+   "signature_label": "LE RESPONSABLE DE LABORATOIRE",
+   "sort_order": 40,
+   "parameters": [
+    {
+     "name": "Hémoglobine (phénotype)",
+     "match": [],
+     "print_label": "HEMOGLOBINE",
+     "unite": "",
+     "result_kind": "choice",
+     "choices": [
+      "AA",
+      "AS",
+      "SS",
+      "SC",
+      "AC",
+      "MONOZYGOTE AA"
+     ],
+     "ranges": [],
+     "norm_text": "",
+     "variants": "texte libre sur les fiches (AA, AS, MONOZYGOTE AA)"
+    }
+   ],
+   "deactivate": [
+    "HbA (%)",
+    "HbA2 (%)",
+    "HbF (%)"
+   ],
+   "note": "",
+   "fixed_notes": []
+  },
+  {
+   "code": "GR_ABO_RH",
+   "existing_code": true,
+   "match_names": [],
+   "nom": "Groupe Sanguin ABO + Rhésus",
+   "categorie": "Hematologie",
+   "section": "HEMATOLOGIE",
+   "print_title": "GROUPAGE SANGUIN",
+   "layout_family": "label_value",
+   "method": null,
+   "signature_label": "LE RESPONSABLE DE LABORATOIRE",
+   "sort_order": 50,
+   "parameters": [
+    {
+     "name": "GS",
+     "match": [
+      "ABO"
+     ],
+     "print_label": "GS",
+     "unite": "",
+     "result_kind": "choice",
+     "choices": [
+      "A",
+      "B",
+      "AB",
+      "O"
+     ],
+     "ranges": [],
+     "norm_text": "",
+     "variants": ""
+    },
+    {
+     "name": "Rhésus",
+     "match": [
+      "Rhésus (D)"
+     ],
+     "print_label": "Rhésus",
+     "unite": "",
+     "result_kind": "pos_neg",
+     "choices": [
+      "POSITIF",
+      "NEGATIF"
+     ],
+     "ranges": [],
+     "norm_text": "",
+     "variants": ""
+    }
+   ],
+   "deactivate": [],
+   "note": "",
+   "fixed_notes": []
+  },
+  {
+   "code": "TP_TCA",
+   "existing_code": true,
+   "match_names": [],
+   "nom": "TP / TCA",
+   "categorie": "Hematologie",
+   "section": null,
+   "print_title": "HEMOSTASE-COAGULATION",
+   "layout_family": "label_value",
+   "method": "Méthode utilisée : Système de détection basé sur les capteurs électromagnétiques.\nAppareillage : Coagulomètre DIAGNOSTICA ST4 STAGO à quatre canaux compacts\nRéactifs : Gamme complète STAGO (STAGO TP, STAGO TCK, STAGO TT)",
+   "signature_label": "LE RESPONSABLE DE LABORATOIRE",
+   "sort_order": 60,
+   "parameters": [
+    {
+     "name": "TP temps du témoin",
+     "match": [],
+     "print_label": "Temps du témoin",
+     "unite": "s",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "TAUX DE PROTHROMBINE / TEMPS DE QUICK"
+    },
+    {
+     "name": "TP temps du sujet",
+     "match": [],
+     "print_label": "Temps du Sujet",
+     "unite": "s",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "TAUX DE PROTHROMBINE / TEMPS DE QUICK"
+    },
+    {
+     "name": "Taux de Prothrombine",
+     "match": [
+      "TP (%)"
+     ],
+     "print_label": "Taux de Prothrombine",
+     "unite": "%",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [
+      {
+       "sexe": "X",
+       "age_min_days": null,
+       "age_max_days": null,
+       "min": 70,
+       "max": 100,
+       "display_text": null
+      }
+     ],
+     "norm_text": "VN >/= 70%",
+     "variants": "borne haute 100 ajoutee (la fiche n'imprime que >= 70)"
+    },
+    {
+     "name": "INR",
+     "match": [
+      "INR"
+     ],
+     "print_label": "INR",
+     "unite": "",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [
+      {
+       "sexe": "X",
+       "age_min_days": null,
+       "age_max_days": null,
+       "min": 0.8,
+       "max": 1.2,
+       "display_text": "0,8 - 1,2"
+      }
+     ],
+     "norm_text": "VN 0,8 - 1,2",
+     "variants": "zones therapeutiques fixes: 2,0-3,0 / 2,0-4,0 / 2,0-4,0 / 3,0-4,5"
+    },
+    {
+     "name": "TCA temps du témoin",
+     "match": [],
+     "print_label": "Temps du témoin",
+     "unite": "s",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "TEMPS DE CEPHALINE ACTIVEE"
+    },
+    {
+     "name": "TCA temps du sujet",
+     "match": [
+      "TCA (s)"
+     ],
+     "print_label": "Temps du sujet",
+     "unite": "s",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [
+      {
+       "sexe": "X",
+       "age_min_days": null,
+       "age_max_days": null,
+       "min": 27.1,
+       "max": 36.6,
+       "display_text": "27,1 - 36,6"
+      }
+     ],
+     "norm_text": "VN 27,1 - 36,6",
+     "variants": "Valeurs usuelles: témoin + ou - 10s (une fiche: +/- 5)",
+     "group": "TEMPS DE CEPHALINE ACTIVEE"
+    }
+   ],
+   "deactivate": [],
+   "note": "",
+   "fixed_notes": [
+    {
+     "position": "after_body",
+     "text": "Zones thérapeutiques :",
+     "style": "bold"
+    },
+    {
+     "position": "after_body",
+     "text": "Prévention de thromboses veineuses : 2,0 - 3,0",
+     "style": "normal"
+    },
+    {
+     "position": "after_body",
+     "text": "Prévention de thromboses récidivantes : 2,0 - 4,0",
+     "style": "normal"
+    },
+    {
+     "position": "after_body",
+     "text": "Phlébites, embolies pulmonaire : 2,0 - 4,0",
+     "style": "normal"
+    },
+    {
+     "position": "after_body",
+     "text": "Prophylaxie artérielle, valve cardiaque : 3,0 - 4,5",
+     "style": "normal"
+    },
+    {
+     "position": "after_body",
+     "text": "Valeurs usuelles : Temps du témoin + ou - 10s",
+     "style": "normal"
+    }
+   ]
+  },
+  {
+   "code": "GLY_JEUN",
+   "existing_code": true,
+   "match_names": [],
+   "nom": "Glycémie à jeun",
+   "categorie": "Biochimie",
+   "section": "BIOCHIMIE SANGUINE",
+   "print_title": "GLYCEMIE A JEUN",
+   "layout_family": "three_columns",
+   "method": null,
+   "signature_label": "Le Biologiste",
+   "sort_order": 70,
+   "parameters": [
+    {
+     "name": "Glycémie à jeun",
+     "match": [
+      "Glucose à jeun"
+     ],
+     "print_label": "GLYCEMIE A JEUN",
+     "unite": "g/l",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [
+      {
+       "sexe": "X",
+       "age_min_days": null,
+       "age_max_days": null,
+       "min": 0.6,
+       "max": 1.2,
+       "display_text": "0,60 - 1,2"
+      }
+     ],
+     "norm_text": "0,60 - 1,2 g/L",
+     "variants": "0,60 - 1,10 g/l (liste maitresse)"
+    }
+   ],
+   "deactivate": [
+    "Glucose"
+   ],
+   "note": "",
+   "fixed_notes": []
+  },
+  {
+   "code": "GLY_PP",
+   "existing_code": true,
+   "match_names": [],
+   "nom": "Glycémie postprandiale",
+   "categorie": "Biochimie",
+   "section": "BIOCHIMIE SANGUINE",
+   "print_title": "GLYCEMIE POST PRANDIALE",
+   "layout_family": "three_columns",
+   "method": null,
+   "signature_label": "Le Biologiste",
+   "sort_order": 80,
+   "parameters": [
+    {
+     "name": "Glycémie post prandiale",
+     "match": [
+      "Glucose postprandial"
+     ],
+     "print_label": "GLYCEMIE POST PRANDIALE",
+     "unite": "g/l",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [
+      {
+       "sexe": "X",
+       "age_min_days": null,
+       "age_max_days": null,
+       "min": 0.9,
+       "max": 1.4,
+       "display_text": "0,90 - 1,4"
+      }
+     ],
+     "norm_text": "0,90 - 1,4 g/L",
+     "variants": ""
+    }
+   ],
+   "deactivate": [],
+   "note": "",
+   "fixed_notes": []
+  },
+  {
+   "code": "HB1C",
+   "existing_code": true,
+   "match_names": [],
+   "nom": "Hémoglobine glyquée (HbA1c)",
+   "categorie": "Biochimie",
+   "section": "BIOCHIMIE SANGUINE",
+   "print_title": "HEMOGLOBINE GLYQUEE (HbA1c)",
+   "layout_family": "three_columns",
+   "method": "Méthode Utilisée : Ion - exchange High Performance Liquid Chromatography (HPLC)",
+   "signature_label": "Le Biologiste",
+   "sort_order": 90,
+   "parameters": [
+    {
+     "name": "HbA1c %",
+     "match": [
+      "HbA1c"
+     ],
+     "print_label": "HbA1c %",
+     "unite": "%",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [
+      {
+       "sexe": "X",
+       "age_min_days": null,
+       "age_max_days": null,
+       "min": 4.5,
+       "max": 7.0,
+       "display_text": "4,5 - 7,0"
+      }
+     ],
+     "norm_text": "4,5 - 7,0 %",
+     "variants": "ancienne grille: non diabetique 6-8%, diabetique 7,5-9%, critique 9-10%, non stabilise > 10%"
+    },
+    {
+     "name": "HbA1c mmol/mol",
+     "match": [],
+     "print_label": "HbA1c mmol/mol",
+     "unite": "mmol/mol",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [
+      {
+       "sexe": "X",
+       "age_min_days": null,
+       "age_max_days": null,
+       "min": 35,
+       "max": 48,
+       "display_text": "35 - 48"
+      }
+     ],
+     "norm_text": "35 - 48 mmol/mol",
+     "variants": ""
+    }
+   ],
+   "deactivate": [],
+   "note": "",
+   "fixed_notes": []
+  },
+  {
+   "code": "UREE",
+   "existing_code": true,
+   "match_names": [],
+   "nom": "Urée sanguine",
+   "categorie": "Biochimie",
+   "section": "BIOCHIMIE SANGUINE",
+   "print_title": "AZOTEMIE",
+   "layout_family": "three_columns",
+   "method": null,
+   "signature_label": "Le Biologiste",
+   "sort_order": 100,
+   "parameters": [
+    {
+     "name": "Urée",
+     "match": [
+      "Urée sanguine"
+     ],
+     "print_label": "UREE",
+     "unite": "mg/dl",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [
+      {
+       "sexe": "X",
+       "age_min_days": null,
+       "age_max_days": null,
+       "min": 10,
+       "max": 50,
+       "display_text": "10 - 50"
+      }
+     ],
+     "norm_text": "10 - 50 mg/dl",
+     "variants": "0,10 - 0,50 g/l (liste maitresse) ; regle mg/dl"
+    }
+   ],
+   "deactivate": [],
+   "note": "",
+   "fixed_notes": []
+  },
+  {
+   "code": "CREAT",
+   "existing_code": true,
+   "match_names": [],
+   "nom": "Créatinine",
+   "categorie": "Biochimie",
+   "section": "BIOCHIMIE SANGUINE",
+   "print_title": "AZOTEMIE",
+   "layout_family": "three_columns",
+   "method": null,
+   "signature_label": "Le Biologiste",
+   "sort_order": 110,
+   "parameters": [
+    {
+     "name": "Créatinine",
+     "match": [
+      "Créatinine"
+     ],
+     "print_label": "CREAT",
+     "unite": "mg/dl",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [
+      {
+       "sexe": "X",
+       "age_min_days": null,
+       "age_max_days": null,
+       "min": 0.6,
+       "max": 1.3,
+       "display_text": "0,6 - 1,3"
+      }
+     ],
+     "norm_text": "0,6 - 1,3 mg/dl",
+     "variants": "0,9 - 1,3 mg/dl (1 fiche) ; 5 - 14 mg/l (liste maitresse) ; regle mg/dl"
+    },
+    {
+     "name": "DFG (GFR)",
+     "match": [],
+     "print_label": "DFG (GFR)",
+     "unite": "ml/mn",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [
+      {
+       "sexe": "X",
+       "age_min_days": null,
+       "age_max_days": null,
+       "min": 90,
+       "max": 120,
+       "display_text": "90 - 120"
+      }
+     ],
+     "norm_text": "90 - 120 (+/-20ml/mn)",
+     "variants": "valeur calculee"
+    },
+    {
+     "name": "BUN RATIO",
+     "match": [],
+     "print_label": "BUN RATIO",
+     "unite": "",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [
+      {
+       "sexe": "X",
+       "age_min_days": null,
+       "age_max_days": null,
+       "min": 10,
+       "max": 20,
+       "display_text": null
+      }
+     ],
+     "norm_text": "10:1 - 20:1",
+     "variants": "rapport, stocke 10 - 20"
+    }
+   ],
+   "deactivate": [],
+   "note": "",
+   "fixed_notes": []
+  },
+  {
+   "code": "ASAT",
+   "existing_code": true,
+   "match_names": [],
+   "nom": "ASAT (SGOT)",
+   "categorie": "Biochimie",
+   "section": "BIOCHIMIE SANGUINE",
+   "print_title": "LES TRANSAMINASES",
+   "layout_family": "three_columns",
+   "method": null,
+   "signature_label": "Le Biologiste",
+   "sort_order": 120,
+   "parameters": [
+    {
+     "name": "ASAT (SGOT)",
+     "match": [
+      "ASAT (SGOT)"
+     ],
+     "print_label": "ASAT (SGOT)",
+     "unite": "UI/l",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [
+      {
+       "sexe": "X",
+       "age_min_days": null,
+       "age_max_days": null,
+       "min": 10,
+       "max": 40,
+       "display_text": "10 - 40"
+      }
+     ],
+     "norm_text": "10 - 40 UI/l",
+     "variants": "10 - 35 ; 1 - 37 UI/l"
+    }
+   ],
+   "deactivate": [],
+   "note": "",
+   "fixed_notes": []
+  },
+  {
+   "code": "ALAT",
+   "existing_code": true,
+   "match_names": [],
+   "nom": "ALAT (SGPT)",
+   "categorie": "Biochimie",
+   "section": "BIOCHIMIE SANGUINE",
+   "print_title": "LES TRANSAMINASES",
+   "layout_family": "three_columns",
+   "method": null,
+   "signature_label": "Le Biologiste",
+   "sort_order": 130,
+   "parameters": [
+    {
+     "name": "ALAT (SGPT)",
+     "match": [
+      "ALAT (SGPT)"
+     ],
+     "print_label": "ALAT (SGPT)",
+     "unite": "UI/l",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [
+      {
+       "sexe": "X",
+       "age_min_days": null,
+       "age_max_days": null,
+       "min": 10,
+       "max": 35,
+       "display_text": "10 - 35"
+      }
+     ],
+     "norm_text": "10 - 35 UI/l",
+     "variants": "10 - 40 ; 8 - 41 ; 1 - 40 UI/l"
+    }
+   ],
+   "deactivate": [],
+   "note": "",
+   "fixed_notes": []
+  },
+  {
+   "code": "IONO",
+   "existing_code": true,
+   "match_names": [],
+   "nom": "Ionogramme (Na, K, Cl)",
+   "categorie": "Biochimie",
+   "section": "BIOCHIMIE SANGUINE",
+   "print_title": "IONOGRAMME SIMPLE",
+   "layout_family": "three_columns",
+   "method": null,
+   "signature_label": "Le Biologiste",
+   "sort_order": 140,
+   "parameters": [
+    {
+     "name": "Chloride",
+     "match": [
+      "Chlorures"
+     ],
+     "print_label": "CHLORIDE",
+     "unite": "mmol/l",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [
+      {
+       "sexe": "X",
+       "age_min_days": null,
+       "age_max_days": null,
+       "min": 98,
+       "max": 110,
+       "display_text": "98 - 110"
+      }
+     ],
+     "norm_text": "98 - 110 mmol/L",
+     "variants": "98 - 107 mE/l (liste maitresse)"
+    },
+    {
+     "name": "Sodium",
+     "match": [
+      "Sodium"
+     ],
+     "print_label": "SODIUM",
+     "unite": "mmol/l",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [
+      {
+       "sexe": "X",
+       "age_min_days": null,
+       "age_max_days": null,
+       "min": 135,
+       "max": 155,
+       "display_text": "135 - 155"
+      }
+     ],
+     "norm_text": "135 - 155 mmol/L",
+     "variants": "135 - 148 mE/l (liste maitresse)"
+    },
+    {
+     "name": "Potassium",
+     "match": [
+      "Potassium"
+     ],
+     "print_label": "POTASSIUM",
+     "unite": "mmol/l",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [
+      {
+       "sexe": "X",
+       "age_min_days": null,
+       "age_max_days": null,
+       "min": 3.6,
+       "max": 5.5,
+       "display_text": "3,6 - 5,5"
+      }
+     ],
+     "norm_text": "3,6 - 5,5 mmol/L",
+     "variants": "3,5 - 5,3 mE/l (liste maitresse)"
+    }
+   ],
+   "deactivate": [],
+   "note": "",
+   "fixed_notes": []
+  },
+  {
+   "code": "IONO_EXT",
+   "existing_code": true,
+   "match_names": [],
+   "nom": "Ionogramme complet",
+   "categorie": "Biochimie",
+   "section": "BIOCHIMIE SANGUINE",
+   "print_title": "IONOGRAMME COMPLET",
+   "layout_family": "three_columns",
+   "method": null,
+   "signature_label": "Le Biologiste",
+   "sort_order": 150,
+   "parameters": [
+    {
+     "name": "Chloride",
+     "match": [],
+     "print_label": "CHLORIDE",
+     "unite": "mmol/l",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [
+      {
+       "sexe": "X",
+       "age_min_days": null,
+       "age_max_days": null,
+       "min": 98,
+       "max": 110,
+       "display_text": "98 - 110"
+      }
+     ],
+     "norm_text": "98 - 110",
+     "variants": "unite imprimee mg/dl par erreur dans l'iono complet"
+    },
+    {
+     "name": "Sodium",
+     "match": [],
+     "print_label": "SODIUM",
+     "unite": "mmol/l",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [
+      {
+       "sexe": "X",
+       "age_min_days": null,
+       "age_max_days": null,
+       "min": 135,
+       "max": 155,
+       "display_text": "135 - 155"
+      }
+     ],
+     "norm_text": "135 - 155 mmol/L",
+     "variants": ""
+    },
+    {
+     "name": "Kaliémie",
+     "match": [],
+     "print_label": "KALIEMIE",
+     "unite": "mmol/l",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [
+      {
+       "sexe": "X",
+       "age_min_days": null,
+       "age_max_days": null,
+       "min": 3.6,
+       "max": 5.5,
+       "display_text": "3,6 - 5,5"
+      }
+     ],
+     "norm_text": "3,6 - 5,5 mmol/L",
+     "variants": ""
+    },
+    {
+     "name": "Calcémie",
+     "match": [
+      "Calcium"
+     ],
+     "print_label": "CALCEMIE",
+     "unite": "mg/dl",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [
+      {
+       "sexe": "X",
+       "age_min_days": null,
+       "age_max_days": null,
+       "min": 8.0,
+       "max": 10.5,
+       "display_text": "8,0 - 10,5"
+      }
+     ],
+     "norm_text": "8,0 - 10,5 mg/dl",
+     "variants": "8,5 - 10,5 mg/dl ; 80 - 105 mg/l"
+    },
+    {
+     "name": "Magnésémie",
+     "match": [
+      "Magnésium"
+     ],
+     "print_label": "MAGNESEMIE",
+     "unite": "mg/dl",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [
+      {
+       "sexe": "X",
+       "age_min_days": null,
+       "age_max_days": null,
+       "min": 1.9,
+       "max": 2.5,
+       "display_text": "1,9 - 2,5"
+      }
+     ],
+     "norm_text": "1,9 - 2,5 mg/dl",
+     "variants": "15 - 26 mg/l (liste maitresse)"
+    },
+    {
+     "name": "Phosphore",
+     "match": [],
+     "print_label": "PHOSPHORE",
+     "unite": "mg/dl",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [
+      {
+       "sexe": "X",
+       "age_min_days": null,
+       "age_max_days": null,
+       "min": 2.5,
+       "max": 5.0,
+       "display_text": "2,5 - 5,0"
+      }
+     ],
+     "norm_text": "2,5 - 5,0 mg/dl",
+     "variants": "20 - 50 mg/l"
+    }
+   ],
+   "deactivate": [],
+   "note": "",
+   "fixed_notes": []
+  },
+  {
+   "code": "CALCIUM",
+   "existing_code": true,
+   "match_names": [],
+   "nom": "Calcium",
+   "categorie": "Biochimie",
+   "section": "BIOCHIMIE SANGUINE",
+   "print_title": "CALCEMIE",
+   "layout_family": "three_columns",
+   "method": null,
+   "signature_label": "Le Biologiste",
+   "sort_order": 160,
+   "parameters": [
+    {
+     "name": "Calcémie",
+     "match": [
+      "Calcium ionisé"
+     ],
+     "print_label": "CALCEMIE",
+     "unite": "mg/dl",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [
+      {
+       "sexe": "X",
+       "age_min_days": null,
+       "age_max_days": null,
+       "min": 8.0,
+       "max": 10.5,
+       "display_text": "8,0 - 10,5"
+      }
+     ],
+     "norm_text": "8,0 - 10,5 mg/dl",
+     "variants": "8,5 - 10,5 mg/dl ; 80 - 105 mg/l ; le catalogue avait le calcium ionise en mmol/L"
+    }
+   ],
+   "deactivate": [],
+   "note": "",
+   "fixed_notes": []
+  },
+  {
+   "code": "MAGNESIUM",
+   "existing_code": true,
+   "match_names": [],
+   "nom": "Magnésium",
+   "categorie": "Biochimie",
+   "section": "BIOCHIMIE SANGUINE",
+   "print_title": "MAGNESEMIE",
+   "layout_family": "three_columns",
+   "method": null,
+   "signature_label": "Le Biologiste",
+   "sort_order": 170,
+   "parameters": [
+    {
+     "name": "Magnésémie",
+     "match": [
+      "Magnésium"
+     ],
+     "print_label": "MAGNESEMIE",
+     "unite": "mg/dl",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [
+      {
+       "sexe": "X",
+       "age_min_days": null,
+       "age_max_days": null,
+       "min": 1.9,
+       "max": 2.5,
+       "display_text": "1,9 - 2,5"
+      }
+     ],
+     "norm_text": "1,9 - 2,5 mg/dl",
+     "variants": "15 - 26 mg/l"
+    }
+   ],
+   "deactivate": [],
+   "note": "",
+   "fixed_notes": []
+  },
+  {
+   "code": "PHOSPHORE",
+   "existing_code": true,
+   "match_names": [],
+   "nom": "Phosphore",
+   "categorie": "Biochimie",
+   "section": "BIOCHIMIE SANGUINE",
+   "print_title": "PHOSPHORE",
+   "layout_family": "three_columns",
+   "method": null,
+   "signature_label": "Le Biologiste",
+   "sort_order": 180,
+   "parameters": [
+    {
+     "name": "Phosphore",
+     "match": [
+      "Phosphore"
+     ],
+     "print_label": "PHOSPHORE",
+     "unite": "mg/dl",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [
+      {
+       "sexe": "X",
+       "age_min_days": null,
+       "age_max_days": null,
+       "min": 2.5,
+       "max": 5.0,
+       "display_text": "2,5 - 5,0"
+      }
+     ],
+     "norm_text": "2,5 - 5,0 mg/dl",
+     "variants": "20 - 50 mg/l"
+    }
+   ],
+   "deactivate": [],
+   "note": "",
+   "fixed_notes": []
+  },
+  {
+   "code": "ACIDE_URIQUE",
+   "existing_code": true,
+   "match_names": [],
+   "nom": "Acide urique",
+   "categorie": "Biochimie",
+   "section": "BIOCHIMIE SANGUINE",
+   "print_title": "ACIDE URIQUE",
+   "layout_family": "three_columns",
+   "method": null,
+   "signature_label": "Le Biologiste",
+   "sort_order": 190,
+   "parameters": [
+    {
+     "name": "Acide urique",
+     "match": [
+      "Acide urique"
+     ],
+     "print_label": "Acide Urique",
+     "unite": "mg/dl",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [
+      {
+       "sexe": "X",
+       "age_min_days": null,
+       "age_max_days": null,
+       "min": 3.4,
+       "max": 7.0,
+       "display_text": "3,4 - 7,0"
+      }
+     ],
+     "norm_text": "3,4 - 7,0 mg/dl",
+     "variants": "30 - 70 mg/l ; le catalogue etait en umol/L"
+    }
+   ],
+   "deactivate": [],
+   "note": "",
+   "fixed_notes": []
+  },
+  {
+   "code": "ALBUMINE",
+   "existing_code": true,
+   "match_names": [],
+   "nom": "Albumine sérique",
+   "categorie": "Biochimie",
+   "section": "BIOCHIMIE SANGUINE",
+   "print_title": "ALBUMINEMIE",
+   "layout_family": "three_columns",
+   "method": null,
+   "signature_label": "Le Biologiste",
+   "sort_order": 200,
+   "parameters": [
+    {
+     "name": "Albuminémie",
+     "match": [
+      "Albumine sérique"
+     ],
+     "print_label": "Albuminémie",
+     "unite": "g/l",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [
+      {
+       "sexe": "X",
+       "age_min_days": null,
+       "age_max_days": null,
+       "min": 38,
+       "max": 48,
+       "display_text": "38 - 48"
+      }
+     ],
+     "norm_text": "38 - 48 g/L",
+     "variants": "38,1 - 46,5 g/l (liste maitresse) ; le catalogue etait en g/dL"
+    }
+   ],
+   "deactivate": [],
+   "note": "",
+   "fixed_notes": []
+  },
+  {
+   "code": "LIPIDES",
+   "existing_code": true,
+   "match_names": [],
+   "nom": "Profil lipidique",
+   "categorie": "Biochimie",
+   "section": "BIOCHIMIE SANGUINE",
+   "print_title": "PROFILE LIPIDIQUE",
+   "layout_family": "three_columns",
+   "method": null,
+   "signature_label": "Le Biologiste",
+   "sort_order": 210,
+   "parameters": [
+    {
+     "name": "Cholestérol",
+     "match": [
+      "Cholestérol total"
+     ],
+     "print_label": "CHOLESTEROL",
+     "unite": "mg/dl",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [
+      {
+       "sexe": "X",
+       "age_min_days": null,
+       "age_max_days": null,
+       "min": 0,
+       "max": 200,
+       "display_text": "< 200"
+      }
+     ],
+     "norm_text": "< 200 mg/dl",
+     "variants": "140 - 265 mg/dl (autant de fiches) ; 135 - 250 mg/dl (2023) ; 1,4 - 2,7 g/l"
+    },
+    {
+     "name": "HDL",
+     "match": [
+      "HDL-cholestérol"
+     ],
+     "print_label": "HDL",
+     "unite": "mg/dl",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [
+      {
+       "sexe": "X",
+       "age_min_days": null,
+       "age_max_days": null,
+       "min": 50,
+       "max": 82,
+       "display_text": "50 - 82"
+      }
+     ],
+     "norm_text": "50 - 82 mg/dl",
+     "variants": "> 55 normal / 35 - 55 risque modere / < 35 risque eleve (autant de fiches) ; 40 - 82 ; 42 - 65 mg/dl ; 0,3 - 0,8 g/l"
+    },
+    {
+     "name": "LDL",
+     "match": [
+      "LDL-cholestérol"
+     ],
+     "print_label": "LDL",
+     "unite": "mg/dl",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [
+      {
+       "sexe": "X",
+       "age_min_days": null,
+       "age_max_days": null,
+       "min": 0,
+       "max": 100,
+       "display_text": "< 100"
+      }
+     ],
+     "norm_text": "< 100 mg/dl",
+     "variants": "100 - 150 mg/dl ; 1 - 1,9 g/l"
+    },
+    {
+     "name": "Triglycérides",
+     "match": [
+      "Triglycérides"
+     ],
+     "print_label": "TRIGLICERIDES",
+     "unite": "mg/dl",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [
+      {
+       "sexe": "X",
+       "age_min_days": null,
+       "age_max_days": null,
+       "min": 45,
+       "max": 175,
+       "display_text": "45 - 175"
+      }
+     ],
+     "norm_text": "45 - 175 mg/dl",
+     "variants": "40 - 140 mg/dl ; 35 - 140 mg/dl ; 0,5 - 1,5 g/l"
+    }
+   ],
+   "deactivate": [],
+   "note": "",
+   "fixed_notes": []
+  },
+  {
+   "code": "BIL_TOTAL",
+   "existing_code": true,
+   "match_names": [],
+   "nom": "Bilirubine totale",
+   "categorie": "Biochimie",
+   "section": "BIOCHIMIE SANGUINE",
+   "print_title": "BILIRUBINE TOTALE",
+   "layout_family": "three_columns",
+   "method": null,
+   "signature_label": "Le Biologiste",
+   "sort_order": 220,
+   "parameters": [
+    {
+     "name": "Bilirubine totale",
+     "match": [
+      "Bilirubine totale"
+     ],
+     "print_label": "BILIRUBINE TOTALE",
+     "unite": "mg/dl",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [
+      {
+       "sexe": "X",
+       "age_min_days": null,
+       "age_max_days": null,
+       "min": 0,
+       "max": 1.2,
+       "display_text": null
+      }
+     ],
+     "norm_text": "Up to 1,2 mg/dl",
+     "variants": "1 - 15 mg/l (liste maitresse)"
+    }
+   ],
+   "deactivate": [],
+   "note": "",
+   "fixed_notes": []
+  },
+  {
+   "code": "BIL_DIRECT",
+   "existing_code": true,
+   "match_names": [],
+   "nom": "Bilirubine directe",
+   "categorie": "Biochimie",
+   "section": "BIOCHIMIE SANGUINE",
+   "print_title": "BILIRUBINE DIRECTE",
+   "layout_family": "three_columns",
+   "method": null,
+   "signature_label": "Le Biologiste",
+   "sort_order": 230,
+   "parameters": [
+    {
+     "name": "Bilirubine directe",
+     "match": [
+      "Bilirubine directe"
+     ],
+     "print_label": "BILIRUBINE DIRECTE",
+     "unite": "mg/dl",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [
+      {
+       "sexe": "X",
+       "age_min_days": null,
+       "age_max_days": null,
+       "min": 0,
+       "max": 0.35,
+       "display_text": null
+      }
+     ],
+     "norm_text": "Up to 0,35 mg/dl",
+     "variants": "1 - 5 mg/l (liste maitresse)"
+    }
+   ],
+   "deactivate": [],
+   "note": "",
+   "fixed_notes": []
+  },
+  {
+   "code": "PROTEINES",
+   "existing_code": true,
+   "match_names": [],
+   "nom": "Protéines totales",
+   "categorie": "Biochimie",
+   "section": "BIOCHIMIE SANGUINE",
+   "print_title": "PROTEINES TOTALES",
+   "layout_family": "three_columns",
+   "method": null,
+   "signature_label": "Le Biologiste",
+   "sort_order": 240,
+   "parameters": [
+    {
+     "name": "Protéines totales",
+     "match": [
+      "Protéines totales"
+     ],
+     "print_label": "PROTEINES TOTALES",
+     "unite": "g/dL",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": ""
+    }
+   ],
+   "deactivate": [],
+   "note": "aucune fiche : examen du catalogue seulement",
+   "fixed_notes": []
+  },
+  {
+   "code": "G_TEST",
+   "existing_code": false,
+   "match_names": [],
+   "nom": "G-TEST (test de grossesse)",
+   "categorie": "Biochimie",
+   "section": "BIOCHIMIE SANGUINE",
+   "print_title": "G-TEST",
+   "layout_family": "label_value",
+   "method": null,
+   "signature_label": "Le Biologiste",
+   "sort_order": 250,
+   "parameters": [
+    {
+     "name": "G-TEST",
+     "match": [],
+     "print_label": "G-TEST",
+     "unite": "",
+     "result_kind": "pos_neg",
+     "choices": [
+      "POSITIF",
+      "NEGATIF"
+     ],
+     "ranges": [],
+     "norm_text": "",
+     "variants": ""
+    }
+   ],
+   "deactivate": [],
+   "note": "",
+   "fixed_notes": []
+  },
+  {
+   "code": "AMYLASE",
+   "existing_code": false,
+   "match_names": [],
+   "nom": "Amylasémie",
+   "categorie": "Biochimie",
+   "section": "BIOCHIMIE SANGUINE",
+   "print_title": "AMYLASEMIE",
+   "layout_family": "three_columns",
+   "method": null,
+   "signature_label": "Le Biologiste",
+   "sort_order": 260,
+   "parameters": [
+    {
+     "name": "Amylasémie",
+     "match": [],
+     "print_label": "AMYLASEMIE",
+     "unite": "UI/ml",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [
+      {
+       "sexe": "X",
+       "age_min_days": null,
+       "age_max_days": null,
+       "min": 7,
+       "max": 80,
+       "display_text": "7 - 80"
+      }
+     ],
+     "norm_text": "7 - 80 UI/ml",
+     "variants": "unite imprimee UI/ml, a verifier (UI/l ?)"
+    }
+   ],
+   "deactivate": [],
+   "note": "",
+   "fixed_notes": []
+  },
+  {
+   "code": "PAL",
+   "existing_code": false,
+   "match_names": [],
+   "nom": "Phosphatases alcalines",
+   "categorie": "Biochimie",
+   "section": "BIOCHIMIE SANGUINE",
+   "print_title": "PHOSPHATASES ALCALINES",
+   "layout_family": "three_columns",
+   "method": null,
+   "signature_label": "Le Biologiste",
+   "sort_order": 270,
+   "parameters": [
+    {
+     "name": "Phosphatases alcalines",
+     "match": [],
+     "print_label": "Phosphatases alcalines",
+     "unite": "UI/l",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [
+      {
+       "sexe": "X",
+       "age_min_days": null,
+       "age_max_days": null,
+       "min": 30,
+       "max": 280,
+       "display_text": "30 - 280"
+      }
+     ],
+     "norm_text": "30 - 280 UI/l",
+     "variants": ""
+    }
+   ],
+   "deactivate": [],
+   "note": "",
+   "fixed_notes": []
+  },
+  {
+   "code": "GGT",
+   "existing_code": false,
+   "match_names": [],
+   "nom": "Gamma GT",
+   "categorie": "Biochimie",
+   "section": "BIOCHIMIE SANGUINE",
+   "print_title": "GAMMA GT",
+   "layout_family": "three_columns",
+   "method": null,
+   "signature_label": "Le Biologiste",
+   "sort_order": 280,
+   "parameters": [
+    {
+     "name": "Gamma GT",
+     "match": [],
+     "print_label": "GAMA GT",
+     "unite": "UI/l",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [
+      {
+       "sexe": "X",
+       "age_min_days": null,
+       "age_max_days": null,
+       "min": 7,
+       "max": 60,
+       "display_text": "7 - 60"
+      }
+     ],
+     "norm_text": "7 - 60 UI/l",
+     "variants": ""
+    }
+   ],
+   "deactivate": [],
+   "note": "",
+   "fixed_notes": []
+  },
+  {
+   "code": "AFP",
+   "existing_code": false,
+   "match_names": [],
+   "nom": "Alpha foetoprotéine",
+   "categorie": "Biochimie",
+   "section": "BIOCHIMIE SANGUINE",
+   "print_title": "ALPHA FOETOPROTEINE",
+   "layout_family": "three_columns",
+   "method": null,
+   "signature_label": "Le Biologiste",
+   "sort_order": 290,
+   "parameters": [
+    {
+     "name": "Alpha foetoprotéine",
+     "match": [],
+     "print_label": "ALPHA FOETOPROTEINE",
+     "unite": "UI/ml",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [
+      {
+       "sexe": "X",
+       "age_min_days": null,
+       "age_max_days": null,
+       "min": 0,
+       "max": 10,
+       "display_text": "< 10"
+      }
+     ],
+     "norm_text": "< 10 UI/ml",
+     "variants": ""
+    }
+   ],
+   "deactivate": [],
+   "note": "",
+   "fixed_notes": []
+  },
+  {
+   "code": "PSA",
+   "existing_code": false,
+   "match_names": [],
+   "nom": "PSA total",
+   "categorie": "Biochimie",
+   "section": "DOSAGE D'HORMONES",
+   "print_title": "RECHERCHE DE L'ANTIGENE PROSTATIQUE SPECIFIQUE",
+   "layout_family": "three_columns",
+   "method": "Taux de PSA TOTALE (Electrochimiluminescence (Cobas E411 Roche))",
+   "signature_label": "LE RESPONSABLE DU LABORATOIRE",
+   "sort_order": 300,
+   "parameters": [
+    {
+     "name": "PSA total",
+     "match": [],
+     "print_label": "PSA T",
+     "unite": "ng/ml",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [
+      {
+       "sexe": "M",
+       "age_min_days": null,
+       "age_max_days": 18249,
+       "min": 0,
+       "max": 2.5,
+       "display_text": "< 2,5"
+      },
+      {
+       "sexe": "M",
+       "age_min_days": 18250,
+       "age_max_days": null,
+       "min": 0,
+       "max": 4.0,
+       "display_text": "< 4,0"
+      }
+     ],
+     "norm_text": "Valeurs normal < 4ng/ml",
+     "variants": ""
+    }
+   ],
+   "deactivate": [],
+   "note": "",
+   "fixed_notes": [
+    {
+     "position": "after_body",
+     "text": "Interprétations :",
+     "style": "bold"
+    },
+    {
+     "position": "after_body",
+     "text": "> 50 ans : 4,0 ng/ml",
+     "style": "normal"
+    },
+    {
+     "position": "after_body",
+     "text": "< 50 ans : 2,5 ng/ml",
+     "style": "normal"
+    }
+   ]
+  },
+  {
+   "code": "PROLACTINE",
+   "existing_code": false,
+   "match_names": [],
+   "nom": "Prolactine",
+   "categorie": "Biochimie",
+   "section": null,
+   "print_title": "DOSAGE D'HORMONE",
+   "layout_family": "table",
+   "method": null,
+   "signature_label": "LE RESPONSABLE DU LABORATOIRE",
+   "sort_order": 310,
+   "parameters": [
+    {
+     "name": "Prolactine",
+     "match": [],
+     "print_label": "PROLACTINE",
+     "unite": "ng/ml",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [
+      {
+       "sexe": "M",
+       "age_min_days": null,
+       "age_max_days": null,
+       "min": 2,
+       "max": 15,
+       "display_text": "2 - 15"
+      },
+      {
+       "sexe": "F",
+       "age_min_days": null,
+       "age_max_days": null,
+       "min": 2,
+       "max": 20,
+       "display_text": "2 - 20"
+      }
+     ],
+     "norm_text": "HOMME 2 - 15 / FEMME 2 - 20",
+     "variants": "colonnes FEMME par phase (folliculaire, pic ovulation, luteale, post menopause) vides sur la fiche"
+    }
+   ],
+   "deactivate": [],
+   "note": "",
+   "fixed_notes": []
+  },
+  {
+   "code": "BANDE_UR",
+   "existing_code": true,
+   "match_names": [],
+   "nom": "Bandelette urinaire",
+   "categorie": "Biochimie",
+   "section": null,
+   "print_title": "CHIMIE URINAIRE (URS 11)",
+   "layout_family": "label_value",
+   "method": null,
+   "signature_label": "Le Biologiste",
+   "sort_order": 320,
+   "parameters": [
+    {
+     "name": "Aspect",
+     "match": [],
+     "print_label": "Aspect",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": ""
+    },
+    {
+     "name": "Hématies",
+     "match": [
+      "Sang occulte"
+     ],
+     "print_label": "Hématies",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": ""
+    },
+    {
+     "name": "Urobilinogène",
+     "match": [
+      "Urobilinogen"
+     ],
+     "print_label": "Urobilinogène",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": ""
+    },
+    {
+     "name": "Bilirubine",
+     "match": [
+      "Bilirubin"
+     ],
+     "print_label": "Bilirubine",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": ""
+    },
+    {
+     "name": "Sucres (glucose)",
+     "match": [
+      "Glucose"
+     ],
+     "print_label": "Sucres (glucose)",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": ""
+    },
+    {
+     "name": "Protéine",
+     "match": [
+      "Protéines"
+     ],
+     "print_label": "Protéine",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": ""
+    },
+    {
+     "name": "Nitrites",
+     "match": [
+      "Nitrite"
+     ],
+     "print_label": "Nitrites",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": ""
+    },
+    {
+     "name": "Acide ascorbique",
+     "match": [],
+     "print_label": "Acide ascorbique",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": ""
+    },
+    {
+     "name": "Leucocytes",
+     "match": [
+      "Leukocytes"
+     ],
+     "print_label": "Leucocytes",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": ""
+    },
+    {
+     "name": "PH",
+     "match": [
+      "pH"
+     ],
+     "print_label": "PH",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": ""
+    },
+    {
+     "name": "Densité",
+     "match": [
+      "Specific Gravity"
+     ],
+     "print_label": "Densité",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": ""
+    },
+    {
+     "name": "Kétones",
+     "match": [
+      "Ketone"
+     ],
+     "print_label": "Ketones",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": ""
+    }
+   ],
+   "deactivate": [
+    "Corps cétoniques"
+   ],
+   "note": "valeurs: Negatif, Normal, Positif (intensite) ; Ketones parfois en 2e position",
+   "fixed_notes": []
+  },
+  {
+   "code": "ALB_SUCRE_UR",
+   "existing_code": false,
+   "match_names": [],
+   "nom": "Albumine et sucre urinaires",
+   "categorie": "Biochimie",
+   "section": "BIOCHIMIE URINAIRE",
+   "print_title": "EXAMEN: ALBUMINE/SUCRE",
+   "layout_family": "label_value",
+   "method": null,
+   "signature_label": "Le Biologiste",
+   "sort_order": 330,
+   "parameters": [
+    {
+     "name": "Albumine",
+     "match": [],
+     "print_label": "Albumine",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": ""
+    },
+    {
+     "name": "Sucre",
+     "match": [],
+     "print_label": "Sucre",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": ""
+    }
+   ],
+   "deactivate": [],
+   "note": "normale imprimee NEGATIF ; titre d'origine ALBUINE/SUCRE (faute)",
+   "fixed_notes": []
+  },
+  {
+   "code": "ECBU",
+   "existing_code": true,
+   "match_names": [],
+   "nom": "ECBU (culot urinaire)",
+   "categorie": "Bacteriologie",
+   "section": "LABORATOIRE DE BACTERIOLOGIE",
+   "print_title": "EXAMEN CYTOBACTERIOLOGIQUE DES URINES / ATB",
+   "layout_family": "narrative",
+   "method": null,
+   "signature_label": "LE RESPONSABLE DE LABORATOIRE",
+   "sort_order": 340,
+   "parameters": [
+    {
+     "name": "Aspect",
+     "match": [],
+     "print_label": "ASPECT",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": ""
+    },
+    {
+     "name": "PH",
+     "match": [],
+     "print_label": "PH",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": ""
+    },
+    {
+     "name": "Hématies",
+     "match": [],
+     "print_label": "Hématies",
+     "unite": "/mm3",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "CYTOLOGIE"
+    },
+    {
+     "name": "Leucocytes",
+     "match": [],
+     "print_label": "Leucocytes",
+     "unite": "/mm3",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "CYTOLOGIE"
+    },
+    {
+     "name": "Cytologie (autres éléments)",
+     "match": [],
+     "print_label": "CYTOLOGIE",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "CYTOLOGIE"
+    },
+    {
+     "name": "Examen Gram",
+     "match": [],
+     "print_label": "EXAMEN GRAM",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": ""
+    },
+    {
+     "name": "Culture",
+     "match": [],
+     "print_label": "CULTURE",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": ""
+    },
+    {
+     "name": "Bactériurie quantitative",
+     "match": [],
+     "print_label": "BACTERIURIE QUANTITATIVE",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": ""
+    },
+    {
+     "name": "Germe isolé",
+     "match": [
+      "Germe isolé"
+     ],
+     "print_label": "GERME ISOLE",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": ""
+    },
+    {
+     "name": "Sensible à",
+     "match": [
+      "Sensibilité ATB"
+     ],
+     "print_label": "Sensible à",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "ANTIBIOGRAMME (ATB)"
+    },
+    {
+     "name": "Intermédiaire à",
+     "match": [],
+     "print_label": "Intermédiaire à",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "ANTIBIOGRAMME (ATB)"
+    },
+    {
+     "name": "Résistant à",
+     "match": [],
+     "print_label": "Résistant à",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "ANTIBIOGRAMME (ATB)"
+    }
+   ],
+   "deactivate": [],
+   "note": "variante de titre: EXAMEN : ECBU + ATB (Examen Cytobactériologique des Urines + Antibiogramme)",
+   "fixed_notes": []
+  },
+  {
+   "code": "CULOT_UR",
+   "existing_code": false,
+   "match_names": [],
+   "nom": "Culot urinaire",
+   "categorie": "Bacteriologie",
+   "section": "LABORATOIRE DE BACTERIOLOGIE",
+   "print_title": "EXAMEN : CULOT URINAIRE",
+   "layout_family": "narrative",
+   "method": null,
+   "signature_label": "LE RESPONSABLE DE LABORATOIRE",
+   "sort_order": 350,
+   "parameters": [
+    {
+     "name": "Aspect",
+     "match": [],
+     "print_label": "ASPECT",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": ""
+    },
+    {
+     "name": "PH",
+     "match": [],
+     "print_label": "PH",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": ""
+    },
+    {
+     "name": "Hématies",
+     "match": [],
+     "print_label": "Hématies",
+     "unite": "/mm3",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": ""
+    },
+    {
+     "name": "Leucocytes",
+     "match": [],
+     "print_label": "Leucocytes",
+     "unite": "/mm3",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": ""
+    },
+    {
+     "name": "Cytologie (autres éléments)",
+     "match": [],
+     "print_label": "CYTOLOGIE",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": ""
+    }
+   ],
+   "deactivate": [],
+   "note": "",
+   "fixed_notes": []
+  },
+  {
+   "code": "PCV",
+   "existing_code": false,
+   "match_names": [],
+   "nom": "Prélèvement cervico-vaginal + ATB",
+   "categorie": "Bacteriologie",
+   "section": "LABORATOIRE DE BACTERIOLOGIE",
+   "print_title": "EXAMEN : PRELEVEMENT CERVICO-VAGINAL (PCV + ATB)",
+   "layout_family": "narrative",
+   "method": null,
+   "signature_label": "LE RESPONSABLE DE LABORATOIRE",
+   "sort_order": 360,
+   "parameters": [
+    {
+     "name": "Aspect",
+     "match": [],
+     "print_label": "ASPECT",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "EXAMEN MACROSCOPIQUE"
+    },
+    {
+     "name": "Examen microscopique",
+     "match": [],
+     "print_label": "EXAMEN MICROSCOPIQUE",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "EXAMEN MICROSCOPIQUE"
+    },
+    {
+     "name": "Examen Gram",
+     "match": [],
+     "print_label": "EXAMEN GRAM",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "EXAMEN GRAM"
+    },
+    {
+     "name": "Flore",
+     "match": [],
+     "print_label": "Flore",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "EXAMEN GRAM"
+    },
+    {
+     "name": "Culture",
+     "match": [],
+     "print_label": "CULTURE",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "CULTURE"
+    },
+    {
+     "name": "Germe(s) isolé(s)",
+     "match": [],
+     "print_label": "GERME(S) ISOLE(S)",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "CULTURE"
+    },
+    {
+     "name": "Sensible à",
+     "match": [],
+     "print_label": "Sensible à",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "ANTIBIOGRAMME (ATB)"
+    },
+    {
+     "name": "Intermédiaire à",
+     "match": [],
+     "print_label": "Intermédiaire à",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "ANTIBIOGRAMME (ATB)"
+    },
+    {
+     "name": "Résistant à",
+     "match": [],
+     "print_label": "Résistant à",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "ANTIBIOGRAMME (ATB)"
+    },
+    {
+     "name": "Antifongigramme (AFG)",
+     "match": [],
+     "print_label": "ANTIFONGIGRAMME (AFG)",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": ""
+    }
+   ],
+   "deactivate": [],
+   "note": "variante PCV SIMPLE (sans ATB)",
+   "fixed_notes": []
+  },
+  {
+   "code": "PU",
+   "existing_code": false,
+   "match_names": [],
+   "nom": "Prélèvement urétral + ATB",
+   "categorie": "Bacteriologie",
+   "section": "LABORATOIRE DE BACTERIOLOGIE",
+   "print_title": "PRELEVEMENT URETHRAL (PU) + ANTIBIOGRAMME (ATB)",
+   "layout_family": "narrative",
+   "method": null,
+   "signature_label": "LE RESPONSABLE DE LABORATOIRE",
+   "sort_order": 370,
+   "parameters": [
+    {
+     "name": "Aspect",
+     "match": [],
+     "print_label": "ASPECT",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "EXAMEN MACROSCOPIQUE"
+    },
+    {
+     "name": "Examen microscopique",
+     "match": [],
+     "print_label": "EXAMEN MICROSCOPIQUE",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "EXAMEN MICROSCOPIQUE"
+    },
+    {
+     "name": "Examen Gram",
+     "match": [],
+     "print_label": "EXAMEN GRAM",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "EXAMEN GRAM"
+    },
+    {
+     "name": "Culture",
+     "match": [],
+     "print_label": "CULTURE",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "CULTURE"
+    },
+    {
+     "name": "Germe(s) isolé(s)",
+     "match": [],
+     "print_label": "GERME(S) ISOLE(S)",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "CULTURE"
+    },
+    {
+     "name": "Sensible à",
+     "match": [],
+     "print_label": "Sensible à",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "ANTIBIOGRAMME (ATB)"
+    },
+    {
+     "name": "Intermédiaire à",
+     "match": [],
+     "print_label": "Intermédiaire à",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "ANTIBIOGRAMME (ATB)"
+    },
+    {
+     "name": "Résistant à",
+     "match": [],
+     "print_label": "Résistant à",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "ANTIBIOGRAMME (ATB)"
+    },
+    {
+     "name": "Antifongigramme (AFG)",
+     "match": [],
+     "print_label": "ANTIFONGIGRAMME (AFG)",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": ""
+    }
+   ],
+   "deactivate": [],
+   "note": "",
+   "fixed_notes": []
+  },
+  {
+   "code": "CULT_SIMPLE",
+   "existing_code": true,
+   "match_names": [],
+   "nom": "Culture simple (sans ATB)",
+   "categorie": "Bacteriologie",
+   "section": "LABORATOIRE DE BACTERIOLOGIE",
+   "print_title": "PRELEVEMENT ET ANALYSE CYTOBACTERIOLOGIQUE",
+   "layout_family": "narrative",
+   "method": null,
+   "signature_label": "LE RESPONSABLE DE LABORATOIRE",
+   "sort_order": 380,
+   "parameters": [
+    {
+     "name": "Aspect",
+     "match": [],
+     "print_label": "ASPECT",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "EXAMEN MACROSCOPIQUE"
+    },
+    {
+     "name": "Examen microscopique",
+     "match": [],
+     "print_label": "EXAMEN MICROSCOPIQUE",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": ""
+    },
+    {
+     "name": "Examen Gram",
+     "match": [
+      "Commentaire Gram"
+     ],
+     "print_label": "EXAMEN GRAM",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": ""
+    },
+    {
+     "name": "Culture",
+     "match": [],
+     "print_label": "CULTURE",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": ""
+    },
+    {
+     "name": "Germe(s) isolé(s)",
+     "match": [
+      "Germe isolé"
+     ],
+     "print_label": "GERME(S) ISOLE(S)",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": ""
+    }
+   ],
+   "deactivate": [],
+   "note": "",
+   "fixed_notes": []
+  },
+  {
+   "code": "CULT_ATB",
+   "existing_code": true,
+   "match_names": [],
+   "nom": "Culture + antibiogramme",
+   "categorie": "Bacteriologie",
+   "section": "LABORATOIRE DE BACTERIOLOGIE",
+   "print_title": "PRELEVEMENT ET ANALYSE CYTOBACTERIOLOGIQUE PLUS ATB",
+   "layout_family": "narrative",
+   "method": null,
+   "signature_label": "LE RESPONSABLE DE LABORATOIRE",
+   "sort_order": 390,
+   "parameters": [
+    {
+     "name": "Aspect",
+     "match": [],
+     "print_label": "ASPECT",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "EXAMEN MACROSCOPIQUE"
+    },
+    {
+     "name": "Examen microscopique",
+     "match": [],
+     "print_label": "EXAMEN MICROSCOPIQUE",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "EXAMEN MICROSCOPIQUE"
+    },
+    {
+     "name": "Examen Gram",
+     "match": [],
+     "print_label": "EXAMEN GRAM",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "EXAMEN GRAM"
+    },
+    {
+     "name": "Culture",
+     "match": [],
+     "print_label": "CULTURE",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "CULTURE"
+    },
+    {
+     "name": "Germe(s) isolé(s)",
+     "match": [
+      "Germe isolé"
+     ],
+     "print_label": "GERME(S) ISOLE(S)",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "CULTURE"
+    },
+    {
+     "name": "Sensible à",
+     "match": [
+      "Sensibilité ATB"
+     ],
+     "print_label": "Sensible à",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "ANTIBIOGRAMME (ATB)"
+    },
+    {
+     "name": "Intermédiaire à",
+     "match": [],
+     "print_label": "Intermédiaire à",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "ANTIBIOGRAMME (ATB)"
+    },
+    {
+     "name": "Résistant à",
+     "match": [],
+     "print_label": "Résistant à",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "ANTIBIOGRAMME (ATB)"
+    },
+    {
+     "name": "Antifongigramme (AFG)",
+     "match": [],
+     "print_label": "ANTIFONGIGRAMME (AFG)",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": ""
+    }
+   ],
+   "deactivate": [],
+   "note": "aussi CULTURE DES CRACHATS",
+   "fixed_notes": []
+  },
+  {
+   "code": "SPH_PUS",
+   "existing_code": true,
+   "match_names": [],
+   "nom": "Prélèvement gorge / pus",
+   "categorie": "Bacteriologie",
+   "section": "LABORATOIRE DE BACTERIOLOGIE",
+   "print_title": "PUS / ATB",
+   "layout_family": "narrative",
+   "method": null,
+   "signature_label": "LE RESPONSABLE DE LABORATOIRE",
+   "sort_order": 400,
+   "parameters": [
+    {
+     "name": "Aspect",
+     "match": [],
+     "print_label": "ASPECT",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "EXAMEN MACROSCOPIQUE"
+    },
+    {
+     "name": "Examen microscopique",
+     "match": [],
+     "print_label": "EXAMEN MICROSCOPIQUE",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "EXAMEN MICROSCOPIQUE"
+    },
+    {
+     "name": "Examen Gram",
+     "match": [],
+     "print_label": "EXAMEN GRAM",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "EXAMEN GRAM"
+    },
+    {
+     "name": "Culture",
+     "match": [],
+     "print_label": "CULTURE",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "CULTURE"
+    },
+    {
+     "name": "Germe(s) isolé(s)",
+     "match": [
+      "Germe isolé"
+     ],
+     "print_label": "GERME(S) ISOLE(S)",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "CULTURE"
+    },
+    {
+     "name": "Sensible à",
+     "match": [
+      "Sensibilité ATB"
+     ],
+     "print_label": "Sensible à",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "ANTIBIOGRAMME (ATB)"
+    },
+    {
+     "name": "Intermédiaire à",
+     "match": [],
+     "print_label": "Intermédiaire à",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "ANTIBIOGRAMME (ATB)"
+    },
+    {
+     "name": "Résistant à",
+     "match": [],
+     "print_label": "Résistant à",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "ANTIBIOGRAMME (ATB)"
+    },
+    {
+     "name": "Antifongigramme (AFG)",
+     "match": [],
+     "print_label": "ANTIFONGIGRAMME (AFG)",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": ""
+    }
+   ],
+   "deactivate": [],
+   "note": "",
+   "fixed_notes": []
+  },
+  {
+   "code": "PLAIE_ATB",
+   "existing_code": false,
+   "match_names": [],
+   "nom": "Écouvillonnage de plaie + ATB",
+   "categorie": "Bacteriologie",
+   "section": "LABORATOIRE DE BACTERIOLOGIE",
+   "print_title": "ECOUVILLONAGE ET CULTURE DE BLESSURE",
+   "layout_family": "narrative",
+   "method": null,
+   "signature_label": "LE RESPONSABLE DE LABORATOIRE",
+   "sort_order": 410,
+   "parameters": [
+    {
+     "name": "Aspect",
+     "match": [],
+     "print_label": "ASPECT",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "EXAMEN MACROSCOPIQUE"
+    },
+    {
+     "name": "Examen microscopique",
+     "match": [],
+     "print_label": "EXAMEN MICROSCOPIQUE",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "EXAMEN MICROSCOPIQUE"
+    },
+    {
+     "name": "Examen Gram",
+     "match": [],
+     "print_label": "EXAMEN GRAM",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "EXAMEN GRAM"
+    },
+    {
+     "name": "Culture",
+     "match": [],
+     "print_label": "CULTURE",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "CULTURE"
+    },
+    {
+     "name": "Germe(s) isolé(s)",
+     "match": [],
+     "print_label": "GERME(S) ISOLE(S)",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "CULTURE"
+    },
+    {
+     "name": "Sensible à",
+     "match": [],
+     "print_label": "Sensible à",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "ANTIBIOGRAMME (ATB)"
+    },
+    {
+     "name": "Intermédiaire à",
+     "match": [],
+     "print_label": "Intermédiaire à",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "ANTIBIOGRAMME (ATB)"
+    },
+    {
+     "name": "Résistant à",
+     "match": [],
+     "print_label": "Résistant à",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "ANTIBIOGRAMME (ATB)"
+    },
+    {
+     "name": "Antifongigramme (AFG)",
+     "match": [],
+     "print_label": "ANTIFONGIGRAMME (AFG)",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": ""
+    }
+   ],
+   "deactivate": [],
+   "note": "",
+   "fixed_notes": []
+  },
+  {
+   "code": "OEIL_ATB",
+   "existing_code": false,
+   "match_names": [],
+   "nom": "Écoulement oculaire + ATB",
+   "categorie": "Bacteriologie",
+   "section": "LABORATOIRE DE BACTERIOLOGIE",
+   "print_title": "ECOULEMENT DES YEUX / ATB",
+   "layout_family": "narrative",
+   "method": null,
+   "signature_label": "LE RESPONSABLE DE LABORATOIRE",
+   "sort_order": 420,
+   "parameters": [
+    {
+     "name": "Aspect",
+     "match": [],
+     "print_label": "ASPECT",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "EXAMEN MACROSCOPIQUE"
+    },
+    {
+     "name": "Examen microscopique",
+     "match": [],
+     "print_label": "EXAMEN MICROSCOPIQUE",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "EXAMEN MICROSCOPIQUE"
+    },
+    {
+     "name": "Examen Gram",
+     "match": [],
+     "print_label": "EXAMEN GRAM",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "EXAMEN GRAM"
+    },
+    {
+     "name": "Culture",
+     "match": [],
+     "print_label": "CULTURE",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "CULTURE"
+    },
+    {
+     "name": "Germe(s) isolé(s)",
+     "match": [],
+     "print_label": "GERME(S) ISOLE(S)",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "CULTURE"
+    },
+    {
+     "name": "Sensible à",
+     "match": [],
+     "print_label": "Sensible à",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "ANTIBIOGRAMME (ATB)"
+    },
+    {
+     "name": "Intermédiaire à",
+     "match": [],
+     "print_label": "Intermédiaire à",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "ANTIBIOGRAMME (ATB)"
+    },
+    {
+     "name": "Résistant à",
+     "match": [],
+     "print_label": "Résistant à",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "ANTIBIOGRAMME (ATB)"
+    },
+    {
+     "name": "Antifongigramme (AFG)",
+     "match": [],
+     "print_label": "ANTIFONGIGRAMME (AFG)",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": ""
+    }
+   ],
+   "deactivate": [],
+   "note": "",
+   "fixed_notes": []
+  },
+  {
+   "code": "HEMOCULTURE",
+   "existing_code": true,
+   "match_names": [],
+   "nom": "Hémoculture",
+   "categorie": "Bacteriologie",
+   "section": "LABORATOIRE DE BACTERIOLOGIE",
+   "print_title": "HEMOCULTURE + ATB",
+   "layout_family": "narrative",
+   "method": null,
+   "signature_label": "LE RESPONSABLE DE LABORATOIRE",
+   "sort_order": 430,
+   "parameters": [
+    {
+     "name": "Prélèvement",
+     "match": [],
+     "print_label": "PRELEVEMENT",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": ""
+    },
+    {
+     "name": "Etat du compte rendu",
+     "match": [],
+     "print_label": "RESULTATS",
+     "unite": "",
+     "result_kind": "choice",
+     "choices": [
+      "RESULTATS PRELIMINAIRES",
+      "RESULTATS DEFINITIFS"
+     ],
+     "ranges": [],
+     "norm_text": "",
+     "variants": ""
+    },
+    {
+     "name": "Aspect",
+     "match": [],
+     "print_label": "ASPECT",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "EXAMEN MACROSCOPIQUE"
+    },
+    {
+     "name": "Examen microscopique",
+     "match": [],
+     "print_label": "EXAMEN MICROSCOPIQUE",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "EXAMEN MICROSCOPIQUE"
+    },
+    {
+     "name": "Examen Gram",
+     "match": [],
+     "print_label": "EXAMEN GRAM",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "EXAMEN GRAM"
+    },
+    {
+     "name": "Culture",
+     "match": [],
+     "print_label": "CULTURE",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "CULTURE"
+    },
+    {
+     "name": "Germe(s) isolé(s)",
+     "match": [
+      "Germe isolé"
+     ],
+     "print_label": "GERME(S) ISOLE(S)",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "CULTURE"
+    },
+    {
+     "name": "Sensible à",
+     "match": [
+      "Sensibilité ATB"
+     ],
+     "print_label": "Sensible à",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "ANTIBIOGRAMME (ATB)"
+    },
+    {
+     "name": "Intermédiaire à",
+     "match": [],
+     "print_label": "Intermédiaire à",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "ANTIBIOGRAMME (ATB)"
+    },
+    {
+     "name": "Résistant à",
+     "match": [],
+     "print_label": "Résistant à",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "ANTIBIOGRAMME (ATB)"
+    },
+    {
+     "name": "Antifongigramme (AFG)",
+     "match": [],
+     "print_label": "ANTIFONGIGRAMME (AFG)",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": ""
+    }
+   ],
+   "deactivate": [],
+   "note": "ligne fixe: Sang veineux prélevé sur bouillon castaneda.",
+   "fixed_notes": []
+  },
+  {
+   "code": "SPERMOCULTURE",
+   "existing_code": true,
+   "match_names": [],
+   "nom": "Spermoculture + antibiogramme",
+   "categorie": "Bacteriologie",
+   "section": "LABORATOIRE DE BACTERIOLOGIE",
+   "print_title": "SPERMOCULTURE + ANTIBIOGRAMME (ATB)",
+   "layout_family": "narrative",
+   "method": null,
+   "signature_label": "LE RESPONSABLE DE LABORATOIRE",
+   "sort_order": 440,
+   "parameters": [
+    {
+     "name": "Aspect",
+     "match": [],
+     "print_label": "ASPECT",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "EXAMEN MACROSCOPIQUE"
+    },
+    {
+     "name": "Examen microscopique",
+     "match": [],
+     "print_label": "EXAMEN MICROSCOPIQUE",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "EXAMEN MICROSCOPIQUE"
+    },
+    {
+     "name": "Examen Gram",
+     "match": [],
+     "print_label": "EXAMEN GRAM",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "EXAMEN GRAM"
+    },
+    {
+     "name": "Culture",
+     "match": [],
+     "print_label": "CULTURE",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "CULTURE"
+    },
+    {
+     "name": "Germe(s) isolé(s)",
+     "match": [
+      "Germe isolé"
+     ],
+     "print_label": "GERME(S) ISOLE(S)",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "CULTURE"
+    },
+    {
+     "name": "Sensible à",
+     "match": [
+      "Sensibilité ATB"
+     ],
+     "print_label": "Sensible à",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "ANTIBIOGRAMME (ATB)"
+    },
+    {
+     "name": "Intermédiaire à",
+     "match": [],
+     "print_label": "Intermédiaire à",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "ANTIBIOGRAMME (ATB)"
+    },
+    {
+     "name": "Résistant à",
+     "match": [],
+     "print_label": "Résistant à",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "ANTIBIOGRAMME (ATB)"
+    },
+    {
+     "name": "Antifongigramme (AFG)",
+     "match": [],
+     "print_label": "ANTIFONGIGRAMME (AFG)",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": ""
+    }
+   ],
+   "deactivate": [],
+   "note": "",
+   "fixed_notes": []
+  },
+  {
+   "code": "CRACHAT_BAAR",
+   "existing_code": true,
+   "match_names": [],
+   "nom": "Crachats BAAR",
+   "categorie": "Bacteriologie",
+   "section": "LABORATOIRE DE BACTERIOLOGIE",
+   "print_title": "CRACHATS - BAAR",
+   "layout_family": "table",
+   "method": "METHODE UTILISEE : COLORATION ZIEHL NEELSEN",
+   "signature_label": "LE RESPONSABLE DE LABORATOIRE",
+   "sort_order": 450,
+   "parameters": [
+    {
+     "name": "Échantillon 1 date",
+     "match": [],
+     "print_label": "DATE",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "ECHANTILLON 1"
+    },
+    {
+     "name": "Échantillon 1 aspect",
+     "match": [],
+     "print_label": "ASPECT",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "ECHANTILLON 1"
+    },
+    {
+     "name": "Échantillon 1 résultat",
+     "match": [
+      "BAAR (Zielh)"
+     ],
+     "print_label": "RESULTATS",
+     "unite": "",
+     "result_kind": "choice",
+     "choices": [
+      "NEG",
+      "1 - 9",
+      "+",
+      "++",
+      "+++"
+     ],
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "ECHANTILLON 1"
+    },
+    {
+     "name": "Échantillon 2 date",
+     "match": [],
+     "print_label": "DATE",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "ECHANTILLON 2"
+    },
+    {
+     "name": "Échantillon 2 aspect",
+     "match": [],
+     "print_label": "ASPECT",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "ECHANTILLON 2"
+    },
+    {
+     "name": "Échantillon 2 résultat",
+     "match": [],
+     "print_label": "RESULTATS",
+     "unite": "",
+     "result_kind": "choice",
+     "choices": [
+      "NEG",
+      "1 - 9",
+      "+",
+      "++",
+      "+++"
+     ],
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "ECHANTILLON 2"
+    },
+    {
+     "name": "Échantillon 3 date",
+     "match": [],
+     "print_label": "DATE",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "ECHANTILLON 3"
+    },
+    {
+     "name": "Échantillon 3 aspect",
+     "match": [],
+     "print_label": "ASPECT",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "ECHANTILLON 3"
+    },
+    {
+     "name": "Échantillon 3 résultat",
+     "match": [],
+     "print_label": "RESULTATS",
+     "unite": "",
+     "result_kind": "choice",
+     "choices": [
+      "NEG",
+      "1 - 9",
+      "+",
+      "++",
+      "+++"
+     ],
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "ECHANTILLON 3"
+    }
+   ],
+   "deactivate": [],
+   "note": "",
+   "fixed_notes": []
+  },
+  {
+   "code": "MYCOPLASMES",
+   "existing_code": false,
+   "match_names": [],
+   "nom": "Mycoplasmes uro-génitaux",
+   "categorie": "Bacteriologie",
+   "section": null,
+   "print_title": "RECHERCHE DE MYCOPLASMES Uro-Génitaux",
+   "layout_family": "narrative",
+   "method": "METHODE UTILISEE: Mycoplasma IST BIOMERIEUX (Diagnostic, Culture, Identification, Numération et antibiogramme des Mycoplasmes urogénitaux)",
+   "signature_label": "LE RESPONSABLE DE LABORATOIRE",
+   "sort_order": 460,
+   "parameters": [
+    {
+     "name": "Recherche de Mycoplasmes",
+     "match": [],
+     "print_label": "Recherche de Mycoplasmes",
+     "unite": "",
+     "result_kind": "pos_neg",
+     "choices": [
+      "POSITIF",
+      "NEGATIF"
+     ],
+     "ranges": [],
+     "norm_text": "NEGATIF",
+     "variants": ""
+    },
+    {
+     "name": "Ureaplasma urealyticum",
+     "match": [],
+     "print_label": "Ureaplasma urealyticum",
+     "unite": "",
+     "result_kind": "pos_neg",
+     "choices": [
+      "POSITIF",
+      "NEGATIF"
+     ],
+     "ranges": [],
+     "norm_text": "NEGATIF",
+     "variants": ""
+    },
+    {
+     "name": "Mycoplasma hominis",
+     "match": [],
+     "print_label": "Mycoplasma hominis",
+     "unite": "",
+     "result_kind": "pos_neg",
+     "choices": [
+      "POSITIF",
+      "NEGATIF"
+     ],
+     "ranges": [],
+     "norm_text": "NEGATIF",
+     "variants": ""
+    },
+    {
+     "name": "Sensible à",
+     "match": [],
+     "print_label": "Sensible à",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "ANTIBIOGRAMME (ATB)"
+    },
+    {
+     "name": "Intermédiaire à",
+     "match": [],
+     "print_label": "Intermédiaire à",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "ANTIBIOGRAMME (ATB)"
+    },
+    {
+     "name": "Résistant à",
+     "match": [],
+     "print_label": "Résistant à",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "ANTIBIOGRAMME (ATB)"
+    }
+   ],
+   "deactivate": [],
+   "note": "",
+   "fixed_notes": []
+  },
+  {
+   "code": "COPRO",
+   "existing_code": true,
+   "match_names": [],
+   "nom": "Coprologie (KOAP) selles",
+   "categorie": "Parasitologie",
+   "section": null,
+   "print_title": "COPROLOGIE / KOAP (Kystes Oeufs Amibes Parasites)",
+   "layout_family": "narrative",
+   "method": null,
+   "signature_label": "LE RESPONSABLE DE LABORATOIRE",
+   "sort_order": 470,
+   "parameters": [
+    {
+     "name": "Consistance",
+     "match": [],
+     "print_label": "Consistance",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "EXAMEN MACROSCOPIQUE"
+    },
+    {
+     "name": "Examen microscopique direct",
+     "match": [
+      "Œufs détectés"
+     ],
+     "print_label": "EXAMEN MICROSCOPIQUE DIRECT",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": ""
+    }
+   ],
+   "deactivate": [],
+   "note": "titre d'origine COPOROLOGIE (faute) ; bloc patient: Examen prescrit Par",
+   "fixed_notes": []
+  },
+  {
+   "code": "COPROCULTURE",
+   "existing_code": false,
+   "match_names": [],
+   "nom": "Coproculture",
+   "categorie": "Bacteriologie",
+   "section": "COPROCULTURE / COPROLOGIE",
+   "print_title": "COPROCULTURE",
+   "layout_family": "narrative",
+   "method": null,
+   "signature_label": "LE RESPONSABLE DE LABORATOIRE",
+   "sort_order": 480,
+   "parameters": [
+    {
+     "name": "Consistance",
+     "match": [],
+     "print_label": "- Consistance",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "EXAMEN MACROSCOPIQUE"
+    },
+    {
+     "name": "Couleur",
+     "match": [],
+     "print_label": "- Couleur",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "EXAMEN MACROSCOPIQUE"
+    },
+    {
+     "name": "Examen microscopique direct",
+     "match": [],
+     "print_label": "EXAMEN MICROSCOPIQUE DIRECT",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": ""
+    },
+    {
+     "name": "Bacilles gram positif",
+     "match": [],
+     "print_label": "Bacilles gram positif",
+     "unite": "%",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "GRAM"
+    },
+    {
+     "name": "Bacilles gram négatif",
+     "match": [],
+     "print_label": "Bacilles gram négatif",
+     "unite": "%",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "GRAM"
+    },
+    {
+     "name": "Cocci gram positif",
+     "match": [],
+     "print_label": "Cocci gram positif",
+     "unite": "%",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "GRAM"
+    },
+    {
+     "name": "Culture",
+     "match": [],
+     "print_label": "CULTURE",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": ""
+    },
+    {
+     "name": "Germes isolés",
+     "match": [],
+     "print_label": "GERMES ISOLES",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": ""
+    },
+    {
+     "name": "Sensible à",
+     "match": [],
+     "print_label": "Sensible à",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "ANTIBIOGRAMME (ATB)"
+    },
+    {
+     "name": "Intermédiaire à",
+     "match": [],
+     "print_label": "Intermédiaire à",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "ANTIBIOGRAMME (ATB)"
+    },
+    {
+     "name": "Résistant à",
+     "match": [],
+     "print_label": "Résistant à",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "ANTIBIOGRAMME (ATB)"
+    },
+    {
+     "name": "Antifongigramme (AFG)",
+     "match": [],
+     "print_label": "ANTIFONGIGRAMME",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": ""
+    }
+   ],
+   "deactivate": [],
+   "note": "",
+   "fixed_notes": []
+  },
+  {
+   "code": "GE",
+   "existing_code": true,
+   "match_names": [],
+   "nom": "Goutte épaisse",
+   "categorie": "Parasitologie",
+   "section": "LABORATOIRE DE PARASITOLOGIE",
+   "print_title": "GE (GOUTTE EPAISSE, Paludisme)",
+   "layout_family": "label_value",
+   "method": null,
+   "signature_label": "LE RESPONSABLE DE LABORATOIRE",
+   "sort_order": 490,
+   "parameters": [
+    {
+     "name": "Résultat",
+     "match": [],
+     "print_label": "RESULTAT",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": ""
+    },
+    {
+     "name": "Parasitémie",
+     "match": [
+      "Parasites count"
+     ],
+     "print_label": "Parasitemie",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": ""
+    }
+   ],
+   "deactivate": [],
+   "note": "variantes de titre: GE : (Paludisme) ; EXAMEN: RECHERCHE D'HEMOPARASITES (GE)",
+   "fixed_notes": []
+  },
+  {
+   "code": "TDR_PALU",
+   "existing_code": false,
+   "match_names": [],
+   "nom": "TDR paludisme",
+   "categorie": "Parasitologie",
+   "section": "LABORATOIRE DE PARASITOLOGIE",
+   "print_title": "TDR (Paludisme)",
+   "layout_family": "label_value",
+   "method": null,
+   "signature_label": "LE RESPONSABLE DE LABORATOIRE",
+   "sort_order": 500,
+   "parameters": [
+    {
+     "name": "TDR paludisme",
+     "match": [],
+     "print_label": "RESULTAT",
+     "unite": "",
+     "result_kind": "pos_neg",
+     "choices": [
+      "POSITIF",
+      "NEGATIF"
+     ],
+     "ranges": [],
+     "norm_text": "NEGATIF",
+     "variants": ""
+    }
+   ],
+   "deactivate": [],
+   "note": "",
+   "fixed_notes": []
+  },
+  {
+   "code": "HEMOPARA",
+   "existing_code": true,
+   "match_names": [],
+   "nom": "Hémoparasites",
+   "categorie": "Parasitologie",
+   "section": "LABORATOIRE DE PARASITOLOGIE",
+   "print_title": "EXAMEN: RECHERCHE D'HEMOPARASITES",
+   "layout_family": "label_value",
+   "method": null,
+   "signature_label": "LE RESPONSABLE DE LABORATOIRE",
+   "sort_order": 510,
+   "parameters": [
+    {
+     "name": "Résultat",
+     "match": [
+      "Micro-organismes détectés"
+     ],
+     "print_label": "RESULTAT",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": ""
+    },
+    {
+     "name": "Parasitémie",
+     "match": [],
+     "print_label": "Parasitemie",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": ""
+    }
+   ],
+   "deactivate": [],
+   "note": "",
+   "fixed_notes": []
+  },
+  {
+   "code": "MICROFIL",
+   "existing_code": false,
+   "match_names": [],
+   "nom": "Microfilaires sanguicoles",
+   "categorie": "Parasitologie",
+   "section": "LABORATOIRE DE PARASITOLOGIE",
+   "print_title": "RECHERCHE DES MICROFILAIRES SANGUICOLES",
+   "layout_family": "label_value",
+   "method": null,
+   "signature_label": "LE RESPONSABLE DE LABORATOIRE",
+   "sort_order": 520,
+   "parameters": [
+    {
+     "name": "Résultat",
+     "match": [],
+     "print_label": "RESULTAT",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": ""
+    },
+    {
+     "name": "Parasitémie",
+     "match": [],
+     "print_label": "PARASITEMIE",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": ""
+    }
+   ],
+   "deactivate": [],
+   "note": "",
+   "fixed_notes": []
+  },
+  {
+   "code": "SKIN_SNIP",
+   "existing_code": true,
+   "match_names": [],
+   "nom": "Skin snip test",
+   "categorie": "Parasitologie",
+   "section": "LABORATOIRE DE PARASITOLOGIE",
+   "print_title": "SKIN SNIP TEST",
+   "layout_family": "label_value",
+   "method": null,
+   "signature_label": "LE RESPONSABLE DE LABORATOIRE",
+   "sort_order": 530,
+   "parameters": [
+    {
+     "name": "Résultat",
+     "match": [
+      "Microfilaires"
+     ],
+     "print_label": "RESULTAT",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": ""
+    },
+    {
+     "name": "Parasitémie",
+     "match": [],
+     "print_label": "PARASITEMIE",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": ""
+    }
+   ],
+   "deactivate": [],
+   "note": "parasitemie en microfilaires /cm2, /ul ou 1-3/ch",
+   "fixed_notes": []
+  },
+  {
+   "code": "SCOTCH",
+   "existing_code": true,
+   "match_names": [],
+   "nom": "Test Scotch anal",
+   "categorie": "Parasitologie",
+   "section": "LABORATOIRE DE PARASITOLOGIE",
+   "print_title": "TEST SCOTCH ANAL",
+   "layout_family": "label_value",
+   "method": null,
+   "signature_label": "LE RESPONSABLE DE LABORATOIRE",
+   "sort_order": 540,
+   "parameters": [
+    {
+     "name": "Œufs Oxyures",
+     "match": [
+      "Œufs Oxyures"
+     ],
+     "print_label": "Oeufs d'oxyures",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": ""
+    }
+   ],
+   "deactivate": [],
+   "note": "aucune fiche : examen du catalogue seulement",
+   "fixed_notes": []
+  },
+  {
+   "code": "TYPHOIDE",
+   "existing_code": true,
+   "match_names": [],
+   "nom": "Typhoïde (IgG / IgM)",
+   "categorie": "Serologie",
+   "section": "IMMUNO-SEROLOGIE",
+   "print_title": "DIAGNOSTIC DE TYPHOIDE : ANTICORPS IgG/IgM",
+   "layout_family": "label_value",
+   "method": "METHODE UTILISEE : Technique rapide par immunochromatographie.",
+   "signature_label": "LE RESPONSABLE DU LABORATOIRE",
+   "sort_order": 550,
+   "parameters": [
+    {
+     "name": "Anticorps Typhoïde IgG",
+     "match": [
+      "IgG Typhoïde"
+     ],
+     "print_label": "Anticorps Typhoide IgG",
+     "unite": "",
+     "result_kind": "pos_neg",
+     "choices": [
+      "POSITIF",
+      "NEGATIF"
+     ],
+     "ranges": [],
+     "norm_text": "NEGATIF",
+     "variants": ""
+    },
+    {
+     "name": "Anticorps Typhoïde IgM",
+     "match": [
+      "IgM Typhoïde"
+     ],
+     "print_label": "Anticorps Typhoide IgM",
+     "unite": "",
+     "result_kind": "pos_neg",
+     "choices": [
+      "POSITIF",
+      "NEGATIF"
+     ],
+     "ranges": [],
+     "norm_text": "NEGATIF",
+     "variants": ""
+    }
+   ],
+   "deactivate": [],
+   "note": "NB toujours imprime: Une réaction positive peut correspondre à une infection récente ou ancienne.",
+   "fixed_notes": [
+    {
+     "position": "after_conclusion",
+     "text": "NB : Une réaction positive peut correspondre à une infection récente ou ancienne.",
+     "style": "normal"
+    }
+   ]
+  },
+  {
+   "code": "ASLO",
+   "existing_code": true,
+   "match_names": [],
+   "nom": "ASLO",
+   "categorie": "Serologie",
+   "section": "IMMUNO-SEROLOGIE",
+   "print_title": "A.S.L.O (Antistreptolysine O)",
+   "layout_family": "label_value",
+   "method": null,
+   "signature_label": "LE RESPONSABLE DU LABORATOIRE",
+   "sort_order": 560,
+   "parameters": [
+    {
+     "name": "ASLO",
+     "match": [
+      "Titre ASLO"
+     ],
+     "print_label": "Valeur du malade",
+     "unite": "UI/ml",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [
+      {
+       "sexe": "X",
+       "age_min_days": null,
+       "age_max_days": null,
+       "min": 0,
+       "max": 200,
+       "display_text": "< 200"
+      }
+     ],
+     "norm_text": "(V.N. <= 200 UI/mL)",
+     "variants": "unites imprimees mg/l, IU/ml, UI/L"
+    }
+   ],
+   "deactivate": [],
+   "note": "",
+   "fixed_notes": []
+  },
+  {
+   "code": "RHUMATO",
+   "existing_code": true,
+   "match_names": [],
+   "nom": "Facteur rhumatoïde",
+   "categorie": "Serologie",
+   "section": "IMMUNO-SEROLOGIE",
+   "print_title": "FR (Facteur Rhumatoïde)",
+   "layout_family": "label_value",
+   "method": null,
+   "signature_label": "LE RESPONSABLE DU LABORATOIRE",
+   "sort_order": 570,
+   "parameters": [
+    {
+     "name": "Facteur rhumatoïde",
+     "match": [
+      "Titre FR"
+     ],
+     "print_label": "Valeur du malade",
+     "unite": "UI/ml",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [
+      {
+       "sexe": "X",
+       "age_min_days": null,
+       "age_max_days": null,
+       "min": 0,
+       "max": 8,
+       "display_text": "< 8"
+      }
+     ],
+     "norm_text": "(V.N. <= 8 IU/l) ou (< 08 IU/ml)",
+     "variants": ""
+    }
+   ],
+   "deactivate": [],
+   "note": "",
+   "fixed_notes": []
+  },
+  {
+   "code": "CRP",
+   "existing_code": true,
+   "match_names": [],
+   "nom": "Protéine C-Réactive (CRP)",
+   "categorie": "Serologie",
+   "section": "IMMUNO-SEROLOGIE",
+   "print_title": "DOSAGE DE LA C.R.P : Protéine C-Réactive",
+   "layout_family": "label_value",
+   "method": "TECHNIQUE UTILISEE : Agglutination sur latex",
+   "signature_label": "LE RESPONSABLE DU LABORATOIRE",
+   "sort_order": 580,
+   "parameters": [
+    {
+     "name": "CRP",
+     "match": [
+      "CRP"
+     ],
+     "print_label": "Valeur du malade",
+     "unite": "mg/l",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [
+      {
+       "sexe": "X",
+       "age_min_days": null,
+       "age_max_days": null,
+       "min": 0,
+       "max": 6,
+       "display_text": "< 6"
+      }
+     ],
+     "norm_text": "(V.N. <= 6 mg/L)",
+     "variants": "resultat parfois rendu < 6"
+    }
+   ],
+   "deactivate": [],
+   "note": "",
+   "fixed_notes": [
+    {
+     "position": "before_body",
+     "text": "C.R.P (Protéine C - Réactive)",
+     "style": "normal"
+    },
+    {
+     "position": "before_body",
+     "text": "Valeur Seuil = 6 mg/l",
+     "style": "normal"
+    },
+    {
+     "position": "before_body",
+     "text": "Valeur à 20 mg/l si syndrome inflammatoire",
+     "style": "normal"
+    }
+   ]
+  },
+  {
+   "code": "HEPB_AGHBS",
+   "existing_code": false,
+   "match_names": [],
+   "nom": "Hépatite B (AgHBs)",
+   "categorie": "Serologie",
+   "section": "SEROLOGIE VIRALE",
+   "print_title": "HEPATITE VIRALE B",
+   "layout_family": "label_value",
+   "method": null,
+   "signature_label": "LE RESPONSABLE DU LABORATOIRE",
+   "sort_order": 590,
+   "parameters": [
+    {
+     "name": "AgHBs",
+     "match": [],
+     "print_label": "AgHBs",
+     "unite": "",
+     "result_kind": "pos_neg",
+     "choices": [
+      "POSITIF",
+      "NEGATIF"
+     ],
+     "ranges": [],
+     "norm_text": "NEGATIF",
+     "variants": ""
+    }
+   ],
+   "deactivate": [],
+   "note": "",
+   "fixed_notes": []
+  },
+  {
+   "code": "HEPC",
+   "existing_code": true,
+   "match_names": [],
+   "nom": "Hépatite C",
+   "categorie": "Serologie",
+   "section": "SEROLOGIE VIRALE",
+   "print_title": "HEPATITE VIRALE C",
+   "layout_family": "label_value",
+   "method": null,
+   "signature_label": "LE RESPONSABLE DU LABORATOIRE",
+   "sort_order": 600,
+   "parameters": [
+    {
+     "name": "AcHCV",
+     "match": [
+      "Anti-VHC"
+     ],
+     "print_label": "AcHCV",
+     "unite": "",
+     "result_kind": "pos_neg",
+     "choices": [
+      "POSITIF",
+      "NEGATIF"
+     ],
+     "ranges": [],
+     "norm_text": "NEGATIF",
+     "variants": ""
+    }
+   ],
+   "deactivate": [],
+   "note": "",
+   "fixed_notes": []
+  },
+  {
+   "code": "HEPB_5EN1",
+   "existing_code": true,
+   "match_names": [
+    "Hépatite B – bilan 5 en 1"
+   ],
+   "nom": "Hépatite B - bilan 5 en 1",
+   "categorie": "Serologie",
+   "section": "IMMUNO-SEROLOGIE",
+   "print_title": "HBV 5-IN-1 HEPATITIS B VIRUS MARKERS RAPID TEST",
+   "layout_family": "table",
+   "method": "TECHNIQUE UTILISEE: Double Antibody Sandwich and Gold Immuno-chromatography Assay",
+   "signature_label": "LE RESPONSABLE DU LABORATOIRE",
+   "sort_order": 610,
+   "parameters": [
+    {
+     "name": "HBs Ag",
+     "match": [
+      "HBsAg"
+     ],
+     "print_label": "HBs Ag",
+     "unite": "",
+     "result_kind": "pos_neg",
+     "choices": [
+      "POSITIF",
+      "NEGATIF"
+     ],
+     "ranges": [],
+     "norm_text": "NEGATIF",
+     "variants": ""
+    },
+    {
+     "name": "HBs Ab",
+     "match": [
+      "Anti-HBs"
+     ],
+     "print_label": "HBs Ab",
+     "unite": "",
+     "result_kind": "pos_neg",
+     "choices": [
+      "POSITIF",
+      "NEGATIF"
+     ],
+     "ranges": [],
+     "norm_text": "NEGATIF",
+     "variants": ""
+    },
+    {
+     "name": "HBe Ag",
+     "match": [],
+     "print_label": "HBe Ag",
+     "unite": "",
+     "result_kind": "pos_neg",
+     "choices": [
+      "POSITIF",
+      "NEGATIF"
+     ],
+     "ranges": [],
+     "norm_text": "NEGATIF",
+     "variants": ""
+    },
+    {
+     "name": "HBe Ab",
+     "match": [],
+     "print_label": "HBe Ab",
+     "unite": "",
+     "result_kind": "pos_neg",
+     "choices": [
+      "POSITIF",
+      "NEGATIF"
+     ],
+     "ranges": [],
+     "norm_text": "NEGATIF",
+     "variants": ""
+    },
+    {
+     "name": "HBc Ab",
+     "match": [
+      "Anti-HBc IgG"
+     ],
+     "print_label": "HBc Ab",
+     "unite": "",
+     "result_kind": "pos_neg",
+     "choices": [
+      "POSITIF",
+      "NEGATIF"
+     ],
+     "ranges": [],
+     "norm_text": "NEGATIF",
+     "variants": ""
+    }
+   ],
+   "deactivate": [
+    "Anti-HBc IgM"
+   ],
+   "note": "",
+   "fixed_notes": []
+  },
+  {
+   "code": "SYPHILIS",
+   "existing_code": true,
+   "match_names": [],
+   "nom": "Syphilis (TPHA / VDRL)",
+   "categorie": "Serologie",
+   "section": "IMMUNO-SEROLOGIE",
+   "print_title": "SEROLOGIES SYPHILITIQUES",
+   "layout_family": "label_value",
+   "method": null,
+   "signature_label": "LE RESPONSABLE DU LABORATOIRE",
+   "sort_order": 620,
+   "parameters": [
+    {
+     "name": "T.P.H.A",
+     "match": [
+      "TPHA Titre"
+     ],
+     "print_label": "T.P.H.A",
+     "unite": "",
+     "result_kind": "pos_neg",
+     "choices": [
+      "POSITIF",
+      "NEGATIF"
+     ],
+     "ranges": [],
+     "norm_text": "NEGATIF",
+     "variants": ""
+    },
+    {
+     "name": "V.D.R.L",
+     "match": [
+      "VDRL Titre"
+     ],
+     "print_label": "V.D.R.L",
+     "unite": "",
+     "result_kind": "pos_neg",
+     "choices": [
+      "POSITIF",
+      "NEGATIF"
+     ],
+     "ranges": [],
+     "norm_text": "NEGATIF",
+     "variants": ""
+    }
+   ],
+   "deactivate": [],
+   "note": "titre d'origine SYPHILYTIQUES (faute)",
+   "fixed_notes": []
+  },
+  {
+   "code": "TOXO",
+   "existing_code": true,
+   "match_names": [],
+   "nom": "Toxoplasmose (IgG / IgM)",
+   "categorie": "Serologie",
+   "section": "IMMUNO-SEROLOGIE",
+   "print_title": "EXAMEN: TOXOPLASMOSE",
+   "layout_family": "label_value",
+   "method": "Méthode utilisée : Immunocomb",
+   "signature_label": "LE RESPONSABLE DU LABORATOIRE",
+   "sort_order": 630,
+   "parameters": [
+    {
+     "name": "IgG",
+     "match": [],
+     "print_label": "IgG",
+     "unite": "",
+     "result_kind": "pos_neg",
+     "choices": [
+      "POSITIF",
+      "NEGATIF"
+     ],
+     "ranges": [],
+     "norm_text": "NEGATIF",
+     "variants": ""
+    },
+    {
+     "name": "IgM",
+     "match": [],
+     "print_label": "IgM",
+     "unite": "",
+     "result_kind": "pos_neg",
+     "choices": [
+      "POSITIF",
+      "NEGATIF"
+     ],
+     "ranges": [],
+     "norm_text": "NEGATIF",
+     "variants": ""
+    },
+    {
+     "name": "Taux d'anticorps IgG",
+     "match": [
+      "IgG Toxoplasmose"
+     ],
+     "print_label": "Taux d'anticorps IgG",
+     "unite": "UI/ml",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [
+      {
+       "sexe": "X",
+       "age_min_days": null,
+       "age_max_days": null,
+       "min": 0,
+       "max": 10,
+       "display_text": "< 10"
+      }
+     ],
+     "norm_text": "< 10 UI/ml",
+     "variants": "norme standard du reactif (min-max serologie)"
+    },
+    {
+     "name": "Taux d'anticorps IgM",
+     "match": [
+      "IgM Toxoplasmose"
+     ],
+     "print_label": "Taux d'anticorps IgM",
+     "unite": "UI/ml",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [
+      {
+       "sexe": "X",
+       "age_min_days": null,
+       "age_max_days": null,
+       "min": 0,
+       "max": 10,
+       "display_text": "< 10"
+      }
+     ],
+     "norm_text": "< 10 UI/ml",
+     "variants": ""
+    }
+   ],
+   "deactivate": [],
+   "note": "texte fixe INFORMATIONS (3 paragraphes) apres la signature",
+   "fixed_notes": [
+    {
+     "position": "after_conclusion",
+     "text": "INFORMATIONS",
+     "style": "bold"
+    },
+    {
+     "position": "after_conclusion",
+     "text": "La Toxoplasmose est une maladie systémique causée par le protozoaire Toxoplasma gondii. Ce parasite est capable d'infecter l'homme, plus fréquemment dans les zones tropicales. Les moyens de transmission sont soit par voie orale, soit par voie congénitale, soit par contact avec le sang contaminé. Les manifestations cliniques sont généralement une simple lymphadénopathie et une fièvre auto-limitante. Par contre, l'infection chez le malade immunodéprimé ou chez le fœtus peut avoir les conséquences sévères telles les encéphalites, les pneumonies, les myocardies. L'infection peut se propager vers le système nerveux central. Elle peut provoquer des fausses couches, des accouchements prématurés chez les femmes enceintes.",
+     "style": "normal"
+    },
+    {
+     "position": "after_conclusion",
+     "text": "La détermination quantitative des anticorps IgG peut fournir une détermination du statut immunitaire chez la femme enceinte et le nouveau-né.",
+     "style": "normal"
+    },
+    {
+     "position": "after_conclusion",
+     "text": "Du fait de la persistance des anticorps anti-toxo IgG tout au long de la vie, seule une augmentation du titre au delà de quatre fois supérieure au titre précédant peut permettre de diagnostiquer une infection active.",
+     "style": "normal"
+    }
+   ]
+  },
+  {
+   "code": "RUBE",
+   "existing_code": true,
+   "match_names": [],
+   "nom": "Rubéole (IgG / IgM)",
+   "categorie": "Serologie",
+   "section": "IMMUNO-SEROLOGIE",
+   "print_title": "EXAMEN: RUBEOLE",
+   "layout_family": "label_value",
+   "method": "Méthode utilisée : Immunocomb",
+   "signature_label": "LE RESPONSABLE DU LABORATOIRE",
+   "sort_order": 640,
+   "parameters": [
+    {
+     "name": "IgG",
+     "match": [],
+     "print_label": "IgG",
+     "unite": "",
+     "result_kind": "pos_neg",
+     "choices": [
+      "POSITIF",
+      "NEGATIF"
+     ],
+     "ranges": [],
+     "norm_text": "NEGATIF",
+     "variants": ""
+    },
+    {
+     "name": "IgM",
+     "match": [],
+     "print_label": "IgM",
+     "unite": "",
+     "result_kind": "pos_neg",
+     "choices": [
+      "POSITIF",
+      "NEGATIF"
+     ],
+     "ranges": [],
+     "norm_text": "NEGATIF",
+     "variants": ""
+    },
+    {
+     "name": "Taux d'anticorps IgG",
+     "match": [
+      "IgG Rubéole"
+     ],
+     "print_label": "Taux d'anticorps IgG",
+     "unite": "UI/ml",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [
+      {
+       "sexe": "X",
+       "age_min_days": null,
+       "age_max_days": null,
+       "min": 0,
+       "max": 10,
+       "display_text": "< 10"
+      }
+     ],
+     "norm_text": "Vn : <= 10 UI/ml",
+     "variants": ""
+    },
+    {
+     "name": "Taux d'anticorps IgM",
+     "match": [
+      "IgM Rubéole"
+     ],
+     "print_label": "Taux d'anticorps IgM",
+     "unite": "UI/ml",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [
+      {
+       "sexe": "X",
+       "age_min_days": null,
+       "age_max_days": null,
+       "min": 0,
+       "max": 10,
+       "display_text": "< 10"
+      }
+     ],
+     "norm_text": "Vn : <= 10 UI/ml",
+     "variants": ""
+    }
+   ],
+   "deactivate": [],
+   "note": "",
+   "fixed_notes": []
+  },
+  {
+   "code": "HPYLORI",
+   "existing_code": true,
+   "match_names": [],
+   "nom": "H. pylori (sérologie)",
+   "categorie": "Serologie",
+   "section": "LABORATOIRE D'IMMUNO-SEROLOGIE",
+   "print_title": "HELICOBACTER PYLORI",
+   "layout_family": "label_value",
+   "method": "METHODE UTILISEE: IMMUNOCHROMATOGRAPHIE (BIOLINE)",
+   "signature_label": "LE RESPONSABLE DU LABORATOIRE",
+   "sort_order": 650,
+   "parameters": [
+    {
+     "name": "Helicobacter pylori",
+     "match": [
+      "Anti-H.pylori"
+     ],
+     "print_label": "HELICOBACTER PYLORI",
+     "unite": "",
+     "result_kind": "pos_neg",
+     "choices": [
+      "POSITIF",
+      "NEGATIF"
+     ],
+     "ranges": [],
+     "norm_text": "NEGATIF",
+     "variants": ""
+    }
+   ],
+   "deactivate": [],
+   "note": "rendu REACTION POSITIVE / NEGATIVE",
+   "fixed_notes": []
+  },
+  {
+   "code": "CHLAMYDIA",
+   "existing_code": true,
+   "match_names": [],
+   "nom": "Chlamydia (IgG / IgM)",
+   "categorie": "Serologie",
+   "section": null,
+   "print_title": "SERODIAGNOSTIC DES CHLAMYDIAE",
+   "layout_family": "boxed",
+   "method": "METHODE UTILISEE: IMMUNOPEROXIDASE INDIRECTE (IPAzyme)",
+   "signature_label": "LE RESPONSABLE DE LABORATOIRE",
+   "sort_order": 660,
+   "parameters": [
+    {
+     "name": "N° de l'examen antérieur",
+     "match": [],
+     "print_label": "N° de l'examen antérieur",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": ""
+    },
+    {
+     "name": "Titre IgG",
+     "match": [
+      "IgG Chlamydia"
+     ],
+     "print_label": "Titre en IgG",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": ""
+    },
+    {
+     "name": "Titre IgM",
+     "match": [
+      "IgM Chlamydia"
+     ],
+     "print_label": "Titre en IgM",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": ""
+    },
+    {
+     "name": "Titre IgA",
+     "match": [],
+     "print_label": "Titre en IgA",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": ""
+    },
+    {
+     "name": "Validation",
+     "match": [],
+     "print_label": "Validation",
+     "unite": "",
+     "result_kind": "choice",
+     "choices": [
+      "Sérologie négative",
+      "Sérologie faiblement positive",
+      "Sérologie moyennement positive"
+     ],
+     "ranges": [],
+     "norm_text": "",
+     "variants": ""
+    }
+   ],
+   "deactivate": [],
+   "note": "titre de page RESULTAT D'ANALYSE DE BIOLOGIE CLINIQUE ; interpretation fixe: < 8 negative, 8-63 faiblement positive, 64-255 moyennement positive",
+   "fixed_notes": [
+    {
+     "position": "after_body",
+     "text": "INTERPRETATION",
+     "style": "bold"
+    },
+    {
+     "position": "after_body",
+     "text": "Titre < 8 ou immuno peroxydase négative : Sérologie négative.",
+     "style": "normal"
+    },
+    {
+     "position": "after_body",
+     "text": "Titre compris entre 8 et 63 ou immuno peroxydase+ : Sérologie faiblement positif.",
+     "style": "normal"
+    },
+    {
+     "position": "after_body",
+     "text": "Titre compris entre 64 et 255 ou immuno peroxydase++ : sérologie moyennement positive. Cette valeur peut correspondre à une infection active ou une cicatrice sérologique. Faire pratiquer un 2ème examen deux à quatre semaines plus tard.",
+     "style": "normal"
+    },
+    {
+     "position": "after_body",
+     "text": "N.B : Les anticorps ainsi décelés peuvent persister longtemps, même après la guérison.",
+     "style": "normal"
+    }
+   ]
+  },
+  {
+   "code": "HIV",
+   "existing_code": true,
+   "match_names": [],
+   "nom": "VIH",
+   "categorie": "Serologie",
+   "section": null,
+   "print_title": "SEROLOGIE HIV",
+   "layout_family": "label_value",
+   "method": "Dépistage des anticorps anti-HIV1 et anti-HIV2 dans le sérum ou le plasma",
+   "signature_label": "LE RESPONSABLE DU LABORATOIRE",
+   "sort_order": 670,
+   "parameters": [
+    {
+     "name": "Renseignements cliniques",
+     "match": [],
+     "print_label": "Renseignements cliniques",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "EXAMEN CLINIQUE"
+    },
+    {
+     "name": "Manifestations cliniques",
+     "match": [],
+     "print_label": "Manifestations cliniques",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "EXAMEN CLINIQUE"
+    },
+    {
+     "name": "Méthodes utilisées",
+     "match": [],
+     "print_label": "METHODES UTILISEES",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": ""
+    },
+    {
+     "name": "Validation",
+     "match": [
+      "VIH Résultat"
+     ],
+     "print_label": "Validation",
+     "unite": "",
+     "result_kind": "choice",
+     "choices": [
+      "NEGATIF",
+      "POSITIF",
+      "NON REACTIVE",
+      "REACTIVE"
+     ],
+     "ranges": [],
+     "norm_text": "",
+     "variants": ""
+    }
+   ],
+   "deactivate": [],
+   "note": "kits: HIV1 et 2 (Abbott Determine), First Response CARD TEST Version 2.0",
+   "fixed_notes": []
+  },
+  {
+   "code": "HIV_ORAL",
+   "existing_code": true,
+   "match_names": [],
+   "nom": "VIH oral rapide",
+   "categorie": "Biochimie",
+   "section": null,
+   "print_title": "SEROLOGIE HIV",
+   "layout_family": "label_value",
+   "method": "Dépistage des anticorps anti-HIV1 et anti-HIV2 dans le fluide oral (OraQuick)",
+   "signature_label": "LE RESPONSABLE DU LABORATOIRE",
+   "sort_order": 680,
+   "parameters": [
+    {
+     "name": "Renseignements cliniques",
+     "match": [],
+     "print_label": "Renseignements cliniques",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "EXAMEN CLINIQUE"
+    },
+    {
+     "name": "Manifestations cliniques",
+     "match": [],
+     "print_label": "Manifestations cliniques",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "EXAMEN CLINIQUE"
+    },
+    {
+     "name": "Méthodes utilisées",
+     "match": [],
+     "print_label": "METHODES UTILISEES",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": ""
+    },
+    {
+     "name": "Validation",
+     "match": [
+      "VIH oral résultat"
+     ],
+     "print_label": "Validation",
+     "unite": "",
+     "result_kind": "choice",
+     "choices": [
+      "NEGATIF",
+      "POSITIF",
+      "NON REACTIVE",
+      "REACTIVE"
+     ],
+     "ranges": [],
+     "norm_text": "",
+     "variants": ""
+    }
+   ],
+   "deactivate": [],
+   "note": "",
+   "fixed_notes": []
+  },
+  {
+   "code": "HIV_SYPH",
+   "existing_code": false,
+   "match_names": [],
+   "nom": "VIH 1 et 2 / Syphilis (combo)",
+   "categorie": "Serologie",
+   "section": null,
+   "print_title": "SEROLOGIE HIV",
+   "layout_family": "label_value",
+   "method": "METHODES UTILISEES : HIV1 et 2 / SYPHILIS Combo Card Test (FIRST RESPONSE)",
+   "signature_label": "LE RESPONSABLE DU LABORATOIRE",
+   "sort_order": 690,
+   "parameters": [
+    {
+     "name": "Renseignements cliniques",
+     "match": [],
+     "print_label": "Renseignements cliniques",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "EXAMEN CLINIQUE"
+    },
+    {
+     "name": "Manifestations cliniques",
+     "match": [],
+     "print_label": "Manifestations cliniques",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "EXAMEN CLINIQUE"
+    },
+    {
+     "name": "Validation HIV 1 et 2",
+     "match": [],
+     "print_label": "HIV 1 et 2",
+     "unite": "",
+     "result_kind": "choice",
+     "choices": [
+      "NEGATIF",
+      "POSITIF",
+      "NON REACTIVE",
+      "REACTIVE"
+     ],
+     "ranges": [],
+     "norm_text": "",
+     "variants": ""
+    },
+    {
+     "name": "Validation SYPHILIS",
+     "match": [],
+     "print_label": "SYPHILIS",
+     "unite": "",
+     "result_kind": "choice",
+     "choices": [
+      "NEGATIF",
+      "POSITIF",
+      "NON REACTIVE",
+      "REACTIVE"
+     ],
+     "ranges": [],
+     "norm_text": "",
+     "variants": ""
+    }
+   ],
+   "deactivate": [],
+   "note": "",
+   "fixed_notes": []
+  },
+  {
+   "code": "TOXICO_UR",
+   "existing_code": false,
+   "match_names": [],
+   "nom": "Toxicologie urinaire (13 drogues)",
+   "categorie": "Toxicologie",
+   "section": null,
+   "print_title": "RECHERCHE DES DROGUES (TOXICOLOGIE URINAIRE)",
+   "layout_family": "table",
+   "method": "Technique utilisée : Immunochromatographie",
+   "signature_label": "LE RESPONSABLE DU LABORATOIRE",
+   "sort_order": 700,
+   "parameters": [
+    {
+     "name": "CANNABIS (THC)",
+     "match": [],
+     "print_label": "CANNABIS (THC)",
+     "unite": "",
+     "result_kind": "pos_neg",
+     "choices": [
+      "POSITIF",
+      "NEGATIF"
+     ],
+     "ranges": [],
+     "norm_text": "Négatif",
+     "variants": ""
+    },
+    {
+     "name": "TRAMADOL (TRA)",
+     "match": [],
+     "print_label": "TRAMADOL (TRA)",
+     "unite": "",
+     "result_kind": "pos_neg",
+     "choices": [
+      "POSITIF",
+      "NEGATIF"
+     ],
+     "ranges": [],
+     "norm_text": "Négatif",
+     "variants": ""
+    },
+    {
+     "name": "BENZODIAZEPINE (BZO)",
+     "match": [],
+     "print_label": "BENZODIAZEPINE (BZO)",
+     "unite": "",
+     "result_kind": "pos_neg",
+     "choices": [
+      "POSITIF",
+      "NEGATIF"
+     ],
+     "ranges": [],
+     "norm_text": "Négatif",
+     "variants": ""
+    },
+    {
+     "name": "METAPHETAMINE (MAMP)",
+     "match": [],
+     "print_label": "METAPHETAMINE (MAMP)",
+     "unite": "",
+     "result_kind": "pos_neg",
+     "choices": [
+      "POSITIF",
+      "NEGATIF"
+     ],
+     "ranges": [],
+     "norm_text": "Négatif",
+     "variants": ""
+    },
+    {
+     "name": "AMPHETAMINE (AMP)",
+     "match": [],
+     "print_label": "AMPHETAMINE (AMP)",
+     "unite": "",
+     "result_kind": "pos_neg",
+     "choices": [
+      "POSITIF",
+      "NEGATIF"
+     ],
+     "ranges": [],
+     "norm_text": "Négatif",
+     "variants": ""
+    },
+    {
+     "name": "COCAINE (COC)",
+     "match": [],
+     "print_label": "COCAINE (COC)",
+     "unite": "",
+     "result_kind": "pos_neg",
+     "choices": [
+      "POSITIF",
+      "NEGATIF"
+     ],
+     "ranges": [],
+     "norm_text": "Négatif",
+     "variants": ""
+    },
+    {
+     "name": "BARBITURATE (BAR)",
+     "match": [],
+     "print_label": "BARBITURATE (BAR)",
+     "unite": "",
+     "result_kind": "pos_neg",
+     "choices": [
+      "POSITIF",
+      "NEGATIF"
+     ],
+     "ranges": [],
+     "norm_text": "Négatif",
+     "variants": ""
+    },
+    {
+     "name": "COTININE (COT)",
+     "match": [],
+     "print_label": "COTININE (COT)",
+     "unite": "",
+     "result_kind": "pos_neg",
+     "choices": [
+      "POSITIF",
+      "NEGATIF"
+     ],
+     "ranges": [],
+     "norm_text": "Négatif",
+     "variants": ""
+    },
+    {
+     "name": "KETAMINE (KET)",
+     "match": [],
+     "print_label": "KETAMINE (KET)",
+     "unite": "",
+     "result_kind": "pos_neg",
+     "choices": [
+      "POSITIF",
+      "NEGATIF"
+     ],
+     "ranges": [],
+     "norm_text": "Négatif",
+     "variants": ""
+    },
+    {
+     "name": "OPIATES/ MORPHINE/ HEROINE (MOP)",
+     "match": [],
+     "print_label": "OPIATES/ MORPHINE/ HEROINE (MOP)",
+     "unite": "",
+     "result_kind": "pos_neg",
+     "choices": [
+      "POSITIF",
+      "NEGATIF"
+     ],
+     "ranges": [],
+     "norm_text": "Négatif",
+     "variants": ""
+    },
+    {
+     "name": "OPIATES II (OPI 2000)",
+     "match": [],
+     "print_label": "OPIATES II (OPI 2000)",
+     "unite": "",
+     "result_kind": "pos_neg",
+     "choices": [
+      "POSITIF",
+      "NEGATIF"
+     ],
+     "ranges": [],
+     "norm_text": "Négatif",
+     "variants": ""
+    },
+    {
+     "name": "PHENCYCLIDINE (PCP)",
+     "match": [],
+     "print_label": "PHENCYCLIDINE (PCP)",
+     "unite": "",
+     "result_kind": "pos_neg",
+     "choices": [
+      "POSITIF",
+      "NEGATIF"
+     ],
+     "ranges": [],
+     "norm_text": "Négatif",
+     "variants": ""
+    },
+    {
+     "name": "TRICYCLIC ANTIDEPRESSANTS (TCA)",
+     "match": [],
+     "print_label": "TRICYCLIC ANTIDEPRESSANTS (TCA)",
+     "unite": "",
+     "result_kind": "pos_neg",
+     "choices": [
+      "POSITIF",
+      "NEGATIF"
+     ],
+     "ranges": [],
+     "norm_text": "Négatif",
+     "variants": ""
+    }
+   ],
+   "deactivate": [],
+   "note": "TRAMADOL present sur une seule fiche",
+   "fixed_notes": []
+  },
+  {
+   "code": "SPERMOGRAMME",
+   "existing_code": true,
+   "match_names": [],
+   "nom": "Spermogramme",
+   "categorie": "Bacteriologie",
+   "section": null,
+   "print_title": "COMPTE RENDU D'EXAMEN D'HISTO-CYTO-PATHOLOGIE DU SPERMOGRAMME",
+   "layout_family": "table",
+   "method": null,
+   "signature_label": "LE RESPONSABLE DE LABORATOIRE",
+   "sort_order": 710,
+   "parameters": [
+    {
+     "name": "Motif",
+     "match": [],
+     "print_label": "Motif",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "RENSEIGNEMENTS GENERAUX"
+    },
+    {
+     "name": "Nombre d'enfants",
+     "match": [],
+     "print_label": "Nombre d'enfants",
+     "unite": "",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "RENSEIGNEMENTS GENERAUX"
+    },
+    {
+     "name": "Délai d'abstinence",
+     "match": [],
+     "print_label": "Délai d'abstinence",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "RENSEIGNEMENTS GENERAUX"
+    },
+    {
+     "name": "Temps entre éjaculation et début analyses",
+     "match": [],
+     "print_label": "Temps entre éjaculation et début Analyses",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "RENSEIGNEMENTS GENERAUX"
+    },
+    {
+     "name": "Viscosité",
+     "match": [],
+     "print_label": "-Viscosité",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "II) ETUDE PHYSICO - CHIMIQUE"
+    },
+    {
+     "name": "Couleur",
+     "match": [],
+     "print_label": "-Couleur",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "II) ETUDE PHYSICO - CHIMIQUE"
+    },
+    {
+     "name": "Liquéfaction",
+     "match": [],
+     "print_label": "-Liquéfaction",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "II) ETUDE PHYSICO - CHIMIQUE"
+    },
+    {
+     "name": "Volume",
+     "match": [],
+     "print_label": "-Volume",
+     "unite": "ml",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "II) ETUDE PHYSICO - CHIMIQUE"
+    },
+    {
+     "name": "PH",
+     "match": [],
+     "print_label": "-PH",
+     "unite": "",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "II) ETUDE PHYSICO - CHIMIQUE"
+    },
+    {
+     "name": "Immobiles 0H",
+     "match": [],
+     "print_label": "Immobiles 0H",
+     "unite": "%",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "III) ETUDE DYNAMIQUE"
+    },
+    {
+     "name": "Immobiles 1H",
+     "match": [],
+     "print_label": "Immobiles 1H",
+     "unite": "%",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "III) ETUDE DYNAMIQUE"
+    },
+    {
+     "name": "Immobiles 2H",
+     "match": [],
+     "print_label": "Immobiles 2H",
+     "unite": "%",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "III) ETUDE DYNAMIQUE"
+    },
+    {
+     "name": "Immobiles 6H",
+     "match": [],
+     "print_label": "Immobiles 6H",
+     "unite": "%",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "III) ETUDE DYNAMIQUE"
+    },
+    {
+     "name": "Immobiles 12H",
+     "match": [],
+     "print_label": "Immobiles 12H",
+     "unite": "%",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "III) ETUDE DYNAMIQUE"
+    },
+    {
+     "name": "Immobiles 24H",
+     "match": [],
+     "print_label": "Immobiles 24H",
+     "unite": "%",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "III) ETUDE DYNAMIQUE"
+    },
+    {
+     "name": "Rapide progressive 0H",
+     "match": [],
+     "print_label": "Rapide progressive 0H",
+     "unite": "%",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "III) ETUDE DYNAMIQUE"
+    },
+    {
+     "name": "Rapide progressive 1H",
+     "match": [],
+     "print_label": "Rapide progressive 1H",
+     "unite": "%",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "III) ETUDE DYNAMIQUE"
+    },
+    {
+     "name": "Rapide progressive 2H",
+     "match": [],
+     "print_label": "Rapide progressive 2H",
+     "unite": "%",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "III) ETUDE DYNAMIQUE"
+    },
+    {
+     "name": "Rapide progressive 6H",
+     "match": [],
+     "print_label": "Rapide progressive 6H",
+     "unite": "%",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "III) ETUDE DYNAMIQUE"
+    },
+    {
+     "name": "Rapide progressive 12H",
+     "match": [],
+     "print_label": "Rapide progressive 12H",
+     "unite": "%",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "III) ETUDE DYNAMIQUE"
+    },
+    {
+     "name": "Rapide progressive 24H",
+     "match": [],
+     "print_label": "Rapide progressive 24H",
+     "unite": "%",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "III) ETUDE DYNAMIQUE"
+    },
+    {
+     "name": "Lente progressive 0H",
+     "match": [],
+     "print_label": "Lente progressive 0H",
+     "unite": "%",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "III) ETUDE DYNAMIQUE"
+    },
+    {
+     "name": "Lente progressive 1H",
+     "match": [],
+     "print_label": "Lente progressive 1H",
+     "unite": "%",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "III) ETUDE DYNAMIQUE"
+    },
+    {
+     "name": "Lente progressive 2H",
+     "match": [],
+     "print_label": "Lente progressive 2H",
+     "unite": "%",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "III) ETUDE DYNAMIQUE"
+    },
+    {
+     "name": "Lente progressive 6H",
+     "match": [],
+     "print_label": "Lente progressive 6H",
+     "unite": "%",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "III) ETUDE DYNAMIQUE"
+    },
+    {
+     "name": "Lente progressive 12H",
+     "match": [],
+     "print_label": "Lente progressive 12H",
+     "unite": "%",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "III) ETUDE DYNAMIQUE"
+    },
+    {
+     "name": "Lente progressive 24H",
+     "match": [],
+     "print_label": "Lente progressive 24H",
+     "unite": "%",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "III) ETUDE DYNAMIQUE"
+    },
+    {
+     "name": "Mobilité non progressive 0H",
+     "match": [],
+     "print_label": "Mobilité non progressive 0H",
+     "unite": "%",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "III) ETUDE DYNAMIQUE"
+    },
+    {
+     "name": "Mobilité non progressive 1H",
+     "match": [],
+     "print_label": "Mobilité non progressive 1H",
+     "unite": "%",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "III) ETUDE DYNAMIQUE"
+    },
+    {
+     "name": "Mobilité non progressive 2H",
+     "match": [],
+     "print_label": "Mobilité non progressive 2H",
+     "unite": "%",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "III) ETUDE DYNAMIQUE"
+    },
+    {
+     "name": "Mobilité non progressive 6H",
+     "match": [],
+     "print_label": "Mobilité non progressive 6H",
+     "unite": "%",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "III) ETUDE DYNAMIQUE"
+    },
+    {
+     "name": "Mobilité non progressive 12H",
+     "match": [],
+     "print_label": "Mobilité non progressive 12H",
+     "unite": "%",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "III) ETUDE DYNAMIQUE"
+    },
+    {
+     "name": "Mobilité non progressive 24H",
+     "match": [],
+     "print_label": "Mobilité non progressive 24H",
+     "unite": "%",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "III) ETUDE DYNAMIQUE"
+    },
+    {
+     "name": "Total mobiles 0H",
+     "match": [
+      "Mobilité (%)"
+     ],
+     "print_label": "Total mobiles 0H",
+     "unite": "%",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "III) ETUDE DYNAMIQUE"
+    },
+    {
+     "name": "Total mobiles 1H",
+     "match": [],
+     "print_label": "Total mobiles 1H",
+     "unite": "%",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "III) ETUDE DYNAMIQUE"
+    },
+    {
+     "name": "Total mobiles 2H",
+     "match": [],
+     "print_label": "Total mobiles 2H",
+     "unite": "%",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "III) ETUDE DYNAMIQUE"
+    },
+    {
+     "name": "Total mobiles 6H",
+     "match": [],
+     "print_label": "Total mobiles 6H",
+     "unite": "%",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "III) ETUDE DYNAMIQUE"
+    },
+    {
+     "name": "Total mobiles 12H",
+     "match": [],
+     "print_label": "Total mobiles 12H",
+     "unite": "%",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "III) ETUDE DYNAMIQUE"
+    },
+    {
+     "name": "Total mobiles 24H",
+     "match": [],
+     "print_label": "Total mobiles 24H",
+     "unite": "%",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "III) ETUDE DYNAMIQUE"
+    },
+    {
+     "name": "Vitalité vivants",
+     "match": [],
+     "print_label": "Vitalité vivants",
+     "unite": "%",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "III) ETUDE DYNAMIQUE"
+    },
+    {
+     "name": "Vitalité morts",
+     "match": [],
+     "print_label": "morts",
+     "unite": "%",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "III) ETUDE DYNAMIQUE"
+    },
+    {
+     "name": "Agglutination",
+     "match": [],
+     "print_label": "Agglutination",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "III) ETUDE DYNAMIQUE"
+    },
+    {
+     "name": "Formes normales",
+     "match": [
+      "Morphologie (%)"
+     ],
+     "print_label": "Formes normales",
+     "unite": "%",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "IV) CYTOLOGIE - Morphologie des spermatozoïdes"
+    },
+    {
+     "name": "Anomalie tête",
+     "match": [],
+     "print_label": "Anomalie tête",
+     "unite": "%",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "IV) CYTOLOGIE - Morphologie des spermatozoïdes"
+    },
+    {
+     "name": "Macrocéphales",
+     "match": [],
+     "print_label": "Macrocéphales",
+     "unite": "%",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "IV) CYTOLOGIE - Morphologie des spermatozoïdes"
+    },
+    {
+     "name": "Sans tête",
+     "match": [],
+     "print_label": "Sans tête",
+     "unite": "%",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "IV) CYTOLOGIE - Morphologie des spermatozoïdes"
+    },
+    {
+     "name": "Têtes effilées",
+     "match": [],
+     "print_label": "Têtes effilées",
+     "unite": "%",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "IV) CYTOLOGIE - Morphologie des spermatozoïdes"
+    },
+    {
+     "name": "Têtes dupliquées",
+     "match": [],
+     "print_label": "Têtes dupliquées",
+     "unite": "%",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "IV) CYTOLOGIE - Morphologie des spermatozoïdes"
+    },
+    {
+     "name": "Microcéphales",
+     "match": [],
+     "print_label": "Microcéphales",
+     "unite": "%",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "IV) CYTOLOGIE - Morphologie des spermatozoïdes"
+    },
+    {
+     "name": "Anomalie pièce intermédiaire",
+     "match": [],
+     "print_label": "Anomalie pièce intermédiaire",
+     "unite": "%",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "IV) CYTOLOGIE - Morphologie des spermatozoïdes"
+    },
+    {
+     "name": "Anomalie flagelle",
+     "match": [],
+     "print_label": "Anomalie flagelle",
+     "unite": "%",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "IV) CYTOLOGIE - Morphologie des spermatozoïdes"
+    },
+    {
+     "name": "Double flagelle",
+     "match": [],
+     "print_label": "Double flagelle",
+     "unite": "%",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "IV) CYTOLOGIE - Morphologie des spermatozoïdes"
+    },
+    {
+     "name": "Sans flagelle",
+     "match": [],
+     "print_label": "Sans flagelle",
+     "unite": "%",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "IV) CYTOLOGIE - Morphologie des spermatozoïdes"
+    },
+    {
+     "name": "Cellules rondes",
+     "match": [],
+     "print_label": "Cellules rondes",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "IV) CYTOLOGIE"
+    },
+    {
+     "name": "Leucocytes",
+     "match": [],
+     "print_label": "Leucocytes",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "IV) CYTOLOGIE"
+    },
+    {
+     "name": "Hématies",
+     "match": [],
+     "print_label": "Hématies",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "IV) CYTOLOGIE"
+    },
+    {
+     "name": "Polynucléaires",
+     "match": [],
+     "print_label": "Polynucléaires",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "IV) CYTOLOGIE"
+    },
+    {
+     "name": "Cellules épithéliales",
+     "match": [],
+     "print_label": "Cellules épithéliales",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "IV) CYTOLOGIE"
+    },
+    {
+     "name": "Lymphocytes",
+     "match": [],
+     "print_label": "Lymphocytes",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": "",
+     "group": "IV) CYTOLOGIE"
+    },
+    {
+     "name": "Concentration",
+     "match": [
+      "Numération"
+     ],
+     "print_label": "V) CONCENTRATION",
+     "unite": "million/ml",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "VN > 20 M/ml",
+     "variants": "borne basse seule : non stockee en plage (valeur_max obligatoire)"
+    },
+    {
+     "name": "Indice de fertilité spermatique",
+     "match": [],
+     "print_label": "VI) INDICE DE FERTILITE SPERMATIQUE",
+     "unite": "",
+     "result_kind": "numeric",
+     "choices": null,
+     "ranges": [
+      {
+       "sexe": "X",
+       "age_min_days": null,
+       "age_max_days": null,
+       "min": 1,
+       "max": 7,
+       "display_text": "1 - 7"
+      }
+     ],
+     "norm_text": "VN : 1 - 7",
+     "variants": ""
+    }
+   ],
+   "deactivate": [],
+   "note": "",
+   "fixed_notes": []
+  },
+  {
+   "code": "FCU",
+   "existing_code": false,
+   "match_names": [],
+   "nom": "Frottis cervico-utérin",
+   "categorie": "Anatomie pathologique",
+   "section": "LABORATOIRE D'ANATOMIE PATHOLOGIE",
+   "print_title": "FROTTIS CERVICO-UTERIN (TEST DE PAPANICOLAOU)",
+   "layout_family": "narrative",
+   "method": null,
+   "signature_label": "LE RESPONSABLE DE LABORATOIRE",
+   "sort_order": 720,
+   "parameters": [
+    {
+     "name": "Echantillon",
+     "match": [],
+     "print_label": "Echantillon",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": ""
+    },
+    {
+     "name": "Résultats microscopiques",
+     "match": [],
+     "print_label": "Résultats microscopiques",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": ""
+    }
+   ],
+   "deactivate": [],
+   "note": "",
+   "fixed_notes": []
+  },
+  {
+   "code": "CYTO_SANG",
+   "existing_code": false,
+   "match_names": [],
+   "nom": "Cytologie du sang",
+   "categorie": "Hematologie",
+   "section": null,
+   "print_title": "EXAMEN CYTOLOGIE DU SANG",
+   "layout_family": "narrative",
+   "method": "COLORATION: May Grunwald Giemsa (MGG)",
+   "signature_label": "LE RESPONSABLE DE LABORATOIRE",
+   "sort_order": 730,
+   "parameters": [
+    {
+     "name": "Cytologie",
+     "match": [],
+     "print_label": "CYTOLOGIE",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": ""
+    },
+    {
+     "name": "Gram",
+     "match": [],
+     "print_label": "GRAM",
+     "unite": "",
+     "result_kind": "text",
+     "choices": null,
+     "ranges": [],
+     "norm_text": "",
+     "variants": ""
+    }
+   ],
+   "deactivate": [],
+   "note": "",
+   "fixed_notes": []
+  }
+ ]
+}

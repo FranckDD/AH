@@ -23,6 +23,13 @@ try:
 except ImportError:
     task_notify_new_patient = None # type: ignore
 
+from fastapi import HTTPException
+from utils.pregnancy_visibility import (
+    PATIENT_PREGNANCY_FIELDS, clean_pregnancy_input, has_pregnancy_input,
+    clean_clear_fields, can_write_pregnancy, FORBIDDEN_WRITE_DETAIL, DEFAULT_PREGNANCY_STATUS,
+    require_pregnancy_write, strip_pregnancy_fields_always,
+)
+
 # Config Redis
 load_dotenv()
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
@@ -87,17 +94,24 @@ class PatientController:
         # defautent a False, jamais None (patients_schemas.py) - la
         # condition 'is None' n'etait donc jamais vraie.
 
+        # Grossesse : 403 pour un role non ecrivain (secretaire...), 400 si une valeur est invalide.
+        require_pregnancy_write(self.user, data)
+        preg = clean_pregnancy_input(data)
+
         result = self.repo.create_patient(data, self.user)
         patient_id, patient_code = result
+        if preg:
+            self.repo.set_pregnancy(patient_id, preg)
         
         if self.audit_repo and self.user:
+            # Les valeurs de grossesse n'entrent jamais dans le journal d'audit (donnee sensible).
             self.audit_repo.log_user_action(
                 current_user=self.user,
                 resource_type="Patient",
                 action_performed="CREATE",
                 resource_id=patient_id,
                 details=f"Nom: {data.get('last_name')} {data.get('first_name')}",
-                new_values=data 
+                new_values=strip_pregnancy_fields_always(data)
             )
         
         return patient_id, patient_code
@@ -117,18 +131,32 @@ class PatientController:
         # 3 colonnes ne sont de toute facon plus une source de verite
         # depuis le chantier 6 (compute_domain_flags, calcul a la lecture).
 
+        require_pregnancy_write(self.user, data)
+        # Effacement explicite d'un champ de grossesse : meme droit que l'ecriture (403 sinon).
+        clear_fields = clean_clear_fields(data)
+        data = {k: v for k, v in data.items() if k != 'clear_pregnancy_fields'}
+        if clear_fields and not can_write_pregnancy(self.user):
+            raise HTTPException(status_code=403, detail=FORBIDDEN_WRITE_DETAIL)
+        preg = clean_pregnancy_input(data)
+        for f in clear_fields:
+            preg[f] = DEFAULT_PREGNANCY_STATUS if f == 'pregnancy_status' else None
+
         old_values = {k: existing_patient.get(k) for k in data.keys() if k in existing_patient}
 
         self.repo.update_patient(patient_id, data, self.user)
+        if preg:
+            self.repo.set_pregnancy(patient_id, preg)
         
         if self.audit_repo and self.user:
+            # Les valeurs de grossesse n'entrent jamais dans le journal d'audit (donnee sensible).
             self.audit_repo.log_user_action(
                 current_user=self.user,
                 resource_type="Patient",
                 action_performed="UPDATE",
                 resource_id=patient_id,
-                old_values=old_values, 
-                new_values=data
+                details=("Suivi de grossesse mis a jour" if (has_pregnancy_input(data, PATIENT_PREGNANCY_FIELDS) or clear_fields) else None),
+                old_values=strip_pregnancy_fields_always(old_values),
+                new_values=strip_pregnancy_fields_always(data)
             )
             
         return patient_id, existing_patient['code_patient']

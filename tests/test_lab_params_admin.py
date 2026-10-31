@@ -84,3 +84,36 @@ def test_delete_exam_used_by_results_is_409_with_code(db_session, api_client):
     assert resp.status_code == 409, resp.text
     assert resp.json()["detail"]["code"] == "exam_in_use"
     assert resp.json()["detail"]["message"]
+
+
+def test_add_range_with_days_and_ga_columns(db_session, api_client):
+    from models.lab import ReferenceRange
+    client, headers, exam_id = _setup(db_session, api_client)
+    pid = client.post(f"/labo/exams/{exam_id}/params", json={"nom_parametre": "Hb", "unite": "u", "type_valeur": "numeric"}, headers=headers).json()["id"]
+    # jours + SA : les annees heritees ne sont PAS inventees
+    r = client.post(f"/labo/params/{pid}/ranges", json={"sexe": "F", "age_min_days": 0, "age_max_days": 28, "ga_min_weeks": 14, "ga_max_weeks": 27,
+                                                         "valeur_min": 1, "valeur_max": 2}, headers=headers)
+    assert r.status_code == 201, r.text
+    row = db_session.get(ReferenceRange, r.json()["id"])
+    assert (row.age_min_days, row.age_max_days, row.ga_min_weeks, row.ga_max_weeks) == (0, 28, 14, 27)
+    assert row.age_min is None and row.age_max is None
+    # annees seules : colonnes heritees ecrites comme avant (defauts 0 / 150)
+    r = client.post(f"/labo/params/{pid}/ranges", json={"sexe": "M", "valeur_min": 1, "valeur_max": 2}, headers=headers)
+    row = db_session.get(ReferenceRange, r.json()["id"])
+    assert (row.age_min, row.age_max, row.age_min_days, row.ga_min_weeks) == (0, 150, None, None)
+    # bornes incoherentes
+    bad = client.post(f"/labo/params/{pid}/ranges", json={"sexe": "X", "age_min_days": 10, "age_max_days": 5, "valeur_min": 1, "valeur_max": 2}, headers=headers)
+    assert bad.status_code == 422
+    bad = client.post(f"/labo/params/{pid}/ranges", json={"sexe": "X", "ga_min_weeks": 20, "ga_max_weeks": 10, "valeur_min": 1, "valeur_max": 2}, headers=headers)
+    assert bad.status_code == 422
+    bad = client.post(f"/labo/params/{pid}/ranges", json={"sexe": "X", "ga_max_weeks": 46, "valeur_min": 1, "valeur_max": 2}, headers=headers)
+    assert bad.status_code == 422
+
+
+def test_range_schemas_accept_day_only_rows():
+    from api_backend.backend_app.routes.labo.labo_schemas import ReferenceRangeOut
+    from types import SimpleNamespace
+    row = SimpleNamespace(id=1, parametre_id=2, sexe="X", age_min=None, age_max=None, age_min_days=0, age_max_days=28,
+                          ga_min_weeks=None, ga_max_weeks=None, valeur_min=1, valeur_max=2)
+    out = ReferenceRangeOut.model_validate(row)
+    assert out.age_min is None and out.age_max_days == 28
