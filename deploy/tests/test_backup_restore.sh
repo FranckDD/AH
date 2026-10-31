@@ -200,7 +200,12 @@ Copy-Item -Path (Join-Path $local '*') -Destination $dest -Recurse -Force
 if ($mode -eq 'torn') { Get-ChildItem -LiteralPath (Join-Path $dest 'data') -Recurse -File | Select-Object -First 1 | Remove-Item -Force }
 exit 0
 PSEOF
-  printf '@echo off\r\npowershell.exe -NoProfile -ExecutionPolicy Bypass -File "%%~dp0fake_scp.ps1" %%*\r\nexit /b %%ERRORLEVEL%%\r\n' > "$PULLT/scp.cmd"
+  cat > "$PULLT/scp.cmd" <<'CMDEOF'
+@echo off
+"%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -File "%~dp0fake_scp.ps1" %*
+exit /b %ERRORLEVEL%
+CMDEOF
+  sed -i 's/$/\r/' "$PULLT/scp.cmd"
   mk_remote() { # mk_remote <ko> <marqueur> : faux depot fige cote serveur (+ manifeste)
     local R="$PULLT/remote/.pull" n
     rm -rf "$R"; mkdir -p "$R/keys" "$R/data/00" "$R/snapshots" "$R/index"
@@ -327,30 +332,60 @@ eq "1 export horaire initial" "1" "$(nsnap hourly)"
 eq "tag db sur l'export" "1" "$(BK sh -c "restic snapshots --tag hourly,db --json | jq length" | tr -d '\r\n')"
 
 # --- 3. hourly (H1) puis ecritures, nightly (N), ecriture, hourly (H2) -----------------------
-section "3. hourly / nightly"
+section "3. hourly / nightly (un snapshot unique = base + fichiers)"
 need BK /opt/backup/hourly.sh >/dev/null 2>&1; pass "hourly.sh (H1)" "last_success_hourly=$(statusval last_success_hourly)"
 H1="$(BK sh -c 'restic snapshots --tag hourly --json | jq -r "sort_by(.time)|last|.id"' | tr -d '\r\n')"
+eq "H1 porte les etiquettes hourly,db,files" "db,files,hourly" "$(BK sh -c "restic snapshots $H1 --json | jq -r '.[0].tags | sort | join(\",\")'" | tr -d '\r\n')"
+eq "H1 contient les 5 fichiers de depart" "5" "$(BK sh -c "restic ls $H1 | grep -cE '[.](bin|txt|jpg|pdf)\$'" | tr -d '\r\n')"
 psqld -c "INSERT INTO patients(first_name,last_name,birth_date,created_by_name) SELECT 'NuitAvant'||g,'N',date '1991-01-01','seed' FROM generate_series(1,5) g" >/dev/null
 need vr 'cd /data; head -c 65536 /dev/urandom > uploads/after_h1.bin; head -c 5000 /dev/urandom > consents/2026/10/consent2.pdf; chown -R 10001:10001 /data' >/dev/null
 need bkenv "PRUNE=1" /opt/backup/nightly.sh >/dev/null 2>&1; pass "nightly.sh (N, avec prune)" "last_success_nightly=$(statusval last_success_nightly)"
-eq "nightly : 1 snapshot db + 1 snapshot files" "2" "$(nsnap nightly)"
-M2="$(vr "$MANIFEST" | tr -d '\r')"; eq "fichiers apres la nightly" "7" "$(echo "$M2" | wc -l | tr -d ' ')"
+eq "nightly : UN snapshot (nightly,db,files)" "1" "$(nsnap nightly)"
+eq "nightly : etiquettes db et files sur le meme snapshot" "1" "$(BK sh -c "restic snapshots --tag nightly,db,files --json | jq length" | tr -d '\r\n')"
+MN="$(vr "$MANIFEST" | tr -d '\r')"; eq "fichiers apres la nightly" "7" "$(echo "$MN" | wc -l | tr -d ' ')"
 N_DB="$(BK sh -c 'restic snapshots --tag nightly,db --json | jq -r ".[0].id"' | tr -d '\r\n')"
+# ecritures APRES la nuit : une ligne ET une nouvelle photo
 need psqld -c "INSERT INTO patients(first_name,last_name,birth_date,created_by_name) VALUES ('APRES_NIGHTLY','Marqueur',date '1992-02-02','seed')" >/dev/null
-need BK /opt/backup/hourly.sh >/dev/null 2>&1; pass "hourly.sh (H2, apres une ecriture posterieure a la nightly)" "ok"
+need vr 'cd /data; head -c 120000 /dev/urandom > product_photos/2026/after_nightly_photo.jpg; chown -R 10001:10001 /data' >/dev/null
+KB0="$(BK sh -c 'du -sk /backups/repo | cut -f1' | tr -d '\r\n')"; T0="$(date +%s%N)"
+need BK /opt/backup/hourly.sh >/dev/null 2>&1; T1="$(date +%s%N)"; pass "hourly.sh (H2, apres une ecriture et une photo posterieures a la nightly)" "ok"
+KB1="$(BK sh -c 'du -sk /backups/repo | cut -f1' | tr -d '\r\n')"
+info "MESURE hourly avec changement (1 ligne, 1 photo de 120 Ko) : duree (docker exec compris)" "$(( (T1-T0)/1000000 )) ms ; depot $KB0 -> $KB1 Ko"
 H2="$(BK sh -c 'restic snapshots --tag hourly --json | jq -r "sort_by(.time)|last|.id"' | tr -d '\r\n')"
 ne "H2 est un nouveau snapshot" "$H1" "$H2"
+M2="$(vr "$MANIFEST" | tr -d '\r')"; eq "fichiers apres H2 (photo posterieure incluse)" "8" "$(echo "$M2" | wc -l | tr -d ' ')"
 C2="$(counts)"; info "lignes finales (a retrouver apres restauration)" "$(echo "$C2" | nonzero_counts | tr '\n' ' ')"
 eq "patients attendus" "patients=206" "$(echo "$C2" | grep '^patients=')"
 
-# restauration sans application dans un dossier : contenu des snapshots
-need BK /opt/backup/restore.sh latest /tmp/r1 >/dev/null 2>&1 && pass "restore.sh latest <dossier> (sans application)" "$(BK sh -c 'ls /tmp/r1 /tmp/r1/db' | tr '\n' ' ')"
+# restauration sans application dans un dossier : base ET fichiers du MEME snapshot
+RO="$(BK /opt/backup/restore.sh latest /tmp/r1 2>&1)"; RRC=$?
+eq "restore.sh latest <dossier> (sans application) : code 0" "0" "$RRC"
+IDDB="$(echo "$RO" | sed -n 's/.*export de base (snapshot \([0-9a-f]*\)).*/\1/p' | head -1)"
+IDFI="$(echo "$RO" | sed -n 's/.*des fichiers (snapshot \([0-9a-f]*\)).*/\1/p' | head -1)"
+eq "latest : la base et les fichiers viennent du MEME snapshot" "$IDDB" "$IDFI"
+eq "latest : ce snapshot est H2 (le plus recent)" "${H2:0:8}" "${IDDB:0:8}"
 R1="$(BK sh -c "cd /tmp/r1/files/data && find uploads product_photos consents -type f | sort | while IFS= read -r f; do sha256sum \"\$f\"; done" | tr -d '\r')"
-eqs "restore latest : memes empreintes que la nuit" "$M2" "$R1"
+eqs "restore latest : memes empreintes que le volume au moment de H2 (photo posterieure comprise)" "$M2" "$R1"
 need BK /opt/backup/restore.sh "$N_DB" /tmp/r_n >/dev/null 2>&1; need BK /opt/backup/restore.sh "$H2" /tmp/r_h >/dev/null 2>&1
 dump_has() { BK sh -c "pg_restore --data-only --table=patients --file=- $1 | grep -c APRES_NIGHTLY" | tr -d '\r\n'; }
 eq "export de la NUIT ne contient pas l'ecriture posterieure" "0" "$(dump_has /tmp/r_n/db/ah2.dump)"
 eq "export HORAIRE (H2) contient l'ecriture posterieure" "1" "$(dump_has /tmp/r_h/db/ah2.dump)"
+BK test -e /tmp/r_n/files/data/product_photos/2026/after_nightly_photo.jpg && fail "snapshot de la NUIT : sans la photo posterieure" "presente" || pass "snapshot de la NUIT : sans la photo posterieure" "absente"
+BK test -e /tmp/r_h/files/data/product_photos/2026/after_nightly_photo.jpg && pass "snapshot H2 : avec la photo posterieure" "presente" || fail "snapshot H2 : photo" "absente"
+# hourly sans aucun changement : cout reel de l'ajout des fichiers a l'horaire
+KB2="$(BK sh -c 'du -sk /backups/repo | cut -f1' | tr -d '\r\n')"; T0="$(date +%s%N)"
+need BK /opt/backup/hourly.sh >/dev/null 2>&1; T1="$(date +%s%N)"; KB3="$(BK sh -c 'du -sk /backups/repo | cut -f1' | tr -d '\r\n')"
+info "MESURE hourly SANS changement (H3) : duree (docker exec compris)" "$(( (T1-T0)/1000000 )) ms ; depot $KB2 -> $KB3 Ko"
+# copie figee pour le PC : manifeste coherent, lisible par restic
+PM="$(BK cat /backups/repo/.pull/PULL_MANIFEST.json | tr -d '\r\n')"; PF="$(BK sh -c 'find /backups/repo/.pull -type f | wc -l' | tr -d '\r\n')"
+eq "copie pour le PC : le manifeste annonce le nombre de fichiers reel" "$(( PF - 1 ))" "$(BK jq .files /backups/repo/.pull/PULL_MANIFEST.json | tr -d '\r\n')"
+BK sh -c "restic -r /backups/repo/.pull --no-lock check --read-data" >/dev/null 2>&1 && pass "copie pour le PC : restic check --read-data complet reussi" "$PM" || fail "restic check de .pull" "echec"
+BK /opt/backup/pull_prepare.sh 2>&1 | grep -q "PULL_MANIFEST\|files" && pass "pull_prepare.sh (rafraichissement a la demande)" "ok" || fail "pull_prepare.sh" "echec"
+# horodatage : restic ecrit l'heure locale AVEC decalage (+01:00) ; la fonction ts doit la lire correctement
+TS1="$(BK bash -c '. /opt/backup/lib.sh; echo "\"2026-10-28T02:30:00.123456789+01:00\"" | jq -r "$JQ_DEFS ts"' | tr -d '\r\n')"
+eq "ts : 02:30 a +01:00 = 01:30 UTC" "1793151000" "$TS1"
+TS2="$(BK bash -c '. /opt/backup/lib.sh; echo "\"2026-10-28T01:30:00Z\"" | jq -r "$JQ_DEFS ts"' | tr -d '\r\n')"
+eq "ts : 01:30 Z = meme instant" "1793151000" "$TS2"
 
 # --- 4. echecs voulus ------------------------------------------------------------------------
 section "4. Mauvais mot de passe, export tronque ou vide"
@@ -409,7 +444,7 @@ if C exec -T backup /opt/backup/offsite.sh > "$WORK/off1.out" 2>&1; then pass "o
 ne "last_success_offsite ecrit" "none" "$(statusval last_success_offsite)"
 STATS1="$(BK cat /var/lib/ah2-status/offsite_stats.json | tr -d '\r\n')"; info "offsite_stats.json" "$STATS1"
 jqs() { BK jq "$1" /var/lib/ah2-status/offsite_stats.json | tr -d '\r\n'; }
-eq "depot distant : snapshots (2 nuit + 1 horaire)" "3" "$(jqs .snapshots)"
+eq "depot distant : snapshots (1 nuit + 1 horaire)" "2" "$(jqs .snapshots)"
 RF1="$(docker exec "$SSHD" sh -c 'find /home/hostinger/backups/ah2 -type f | wc -l' | tr -d '\r\n')"
 eq "fichiers comptes par le serveur = mesure du script" "$RF1" "$(jqs .files)"
 OS1="$(statusval last_success_offsite)"
@@ -417,15 +452,47 @@ bkenv "RESTIC_OFFSITE_PASSWORD=mauvais" /opt/backup/offsite.sh > "$WORK/offpw.ou
 eq "mot de passe distant incorrect : last_success_offsite inchange" "$OS1" "$(statusval last_success_offsite)"
 eq "mot de passe distant incorrect : depot distant inchange" "$RF1" "$(docker exec "$SSHD" sh -c 'find /home/hostinger/backups/ah2 -type f | wc -l' | tr -d '\r\n')"
 C exec -T backup /opt/backup/offsite.sh > "$WORK/off2.out" 2>&1 && pass "offsite.sh idempotent (2e envoi)" "snapshots distants: $(jqs .snapshots)" || fail "offsite 2e envoi" "$(tail -5 "$WORK/off2.out")"
-eq "2e envoi sans changement local : memes snapshots distants" "3" "$(jqs .snapshots)"
+eq "2e envoi sans changement local : memes snapshots distants" "2" "$(jqs .snapshots)"
 RF2="$(docker exec "$SSHD" sh -c 'find /home/hostinger/backups/ah2 -type f | wc -l' | tr -d '\r\n')"
 info "fichiers distants apres 1er/2e envoi (sans changement local)" "$RF1 -> $RF2"
 PEAK="$(BK sh -c 'cat /sys/fs/cgroup/memory.peak 2>/dev/null || echo 0' | tr -d '\r\n')"
 info "pic memoire du conteneur backup depuis son demarrage (limite 256 Mo)" "$((PEAK/1048576)) Mo"
 
+# --- 6b. erreurs de transport : jamais de creation de depot ; verrou partage ; coupure SFTP ---
+RFX="$(docker exec "$SSHD" sh -c 'find /home/hostinger/backups -type f | wc -l' | tr -d '\r\n')"
+bkenv "BACKUP_SFTP_HOST=nohost.invalid BACKUP_RETRY_TRIES=2 BACKUP_RETRY_DELAY=1" /opt/backup/offsite.sh > "$WORK/nh.out" 2>&1; ne "hote injoignable : echec" "0" "$?"
+grep -q "nouvel essai" "$WORK/nh.out" && pass "hote injoignable : reessaye" "$(grep -m1 'nouvel essai' "$WORK/nh.out" | cut -c1-110)" || fail "hote injoignable : reessaye" "$(tail -3 "$WORK/nh.out")"
+grep -q "initialisation" "$WORK/nh.out" && fail "hote injoignable : AUCUNE initialisation de depot" "init tentee" || pass "hote injoignable : aucune initialisation de depot" "ok"
+C exec -T backup sh -c 'ssh-keygen -q -t ed25519 -N "" -f /tmp/k_bad'
+bkenv "BACKUP_SFTP_KEY=/tmp/k_bad BACKUP_RETRY_TRIES=1" /opt/backup/offsite.sh > "$WORK/wk.out" 2>&1; ne "mauvaise cle SSH : echec" "0" "$?"
+grep -q "initialisation" "$WORK/wk.out" && fail "mauvaise cle : AUCUNE initialisation de depot" "init tentee" || pass "mauvaise cle : aucune initialisation de depot" "$(grep -m1 BACKUP-ECHEC "$WORK/wk.out" | cut -c1-130)"
+eq "hote injoignable / mauvaise cle : rien cree chez Hostinger" "$RFX" "$(docker exec "$SSHD" sh -c 'find /home/hostinger/backups -type f | wc -l' | tr -d '\r\n')"
+bkenv "STATUS_DIR=/tmp/st-vide BACKUP_SFTP_PATH=backups/vide" /opt/backup/offsite.sh > "$WORK/vide.out" 2>&1 && docker exec "$SSHD" test -f /home/hostinger/backups/vide/config && pass "chemin distant vraiment vide : depot cree (init)" "$(grep -m1 'initialisation' "$WORK/vide.out" | cut -c1-100)" || fail "chemin vide : init" "$(tail -4 "$WORK/vide.out")"
+# verrou partage : un hourly (simule) tient le verrou 25 s, offsite ATTEND puis reussit
+C exec -T backup sh -c 'flock /var/tmp/ah2-backup-repo.lock sleep 25' & HOLD=$!
+sleep 4; L0="$(date +%s)"; C exec -T backup /opt/backup/offsite.sh > "$WORK/lk.out" 2>&1; RC=$?; L1="$(date +%s)"; wait $HOLD
+eq "offsite lance pendant qu'un hourly tient le verrou : reussit" "0" "$RC"
+ge() { if [ "$3" -ge "$2" ] 2>/dev/null; then pass "$1" "$3"; else fail "$1" "attendu >= $2, obtenu $3"; fi; }
+ge "offsite a ATTENDU la fin du verrou (>= 18 s)" 18 "$((L1-L0))"
+# coupure SFTP passagere : le serveur est eteint 8 s, offsite reessaie puis reussit
+docker stop "$SSHD" >/dev/null
+( bkenv "BACKUP_RETRY_TRIES=5 BACKUP_RETRY_DELAY=6" /opt/backup/offsite.sh > "$WORK/rt.out" 2>&1; echo $? > "$WORK/rt.rc" ) & RP=$!
+sleep 8; docker start "$SSHD" >/dev/null; wait $RP
+eq "coupure SFTP passagere : offsite reessaie puis reussit" "0" "$(cat "$WORK/rt.rc")"
+grep -q "nouvel essai" "$WORK/rt.out" && pass "coupure SFTP : les essais sont journalises" "$(grep -m1 'nouvel essai' "$WORK/rt.out" | cut -c1-110)" || fail "coupure SFTP : essais" "$(tail -4 "$WORK/rt.out")"
+# hourly et nightly lances en meme temps : le verrou les serialise, les deux reussissent, depot sain
+( BK /opt/backup/hourly.sh >/dev/null 2>&1; echo $? > "$WORK/c1" ) & P1=$!
+( BK /opt/backup/nightly.sh >/dev/null 2>&1; echo $? > "$WORK/c2" ) & P2=$!
+wait $P1 $P2
+eq "hourly + nightly simultanes : les deux reussissent" "0/0" "$(cat "$WORK/c1")/$(cat "$WORK/c2")"
+BK restic check >/dev/null 2>&1 && pass "hourly + nightly simultanes : restic check du depot" "ok" || fail "restic check apres execution simultanee" "echec"
+need BK /opt/backup/offsite.sh >/dev/null 2>&1   # remet les statistiques distantes de la configuration normale
+
 # --- 7. verify.sh ----------------------------------------------------------------------------
 section "7. verify.sh"
 bkenv "BACKUP_CHECK_SUBSET=100%" /opt/backup/verify.sh > "$WORK/verify.out" 2>&1 && pass "verify.sh (restic check complet + relecture de l'export)" "$(grep -m1 'tables avec donnees' "$WORK/verify.out" | cut -c20-90)" || fail "verify.sh" "$(tail -5 "$WORK/verify.out")"
+AGE="$(sed -n 's/.*age \(-\{0,1\}[0-9][0-9]*\) s.*/\1/p' "$WORK/verify.out" | head -1)"
+if [ -n "$AGE" ] && [ "$AGE" -ge 0 ] && [ "$AGE" -le 3000 ]; then pass "verify : age du dernier export correct malgre le decalage horaire (+01:00)" "${AGE} s"; else fail "verify : age de l'export" "age=$AGE (negatif = decalage horaire mal lu)"; fi
 
 # --- 8. entrypoint : refus propres -----------------------------------------------------------
 section "8. Refus de l'entrypoint"
@@ -439,6 +506,16 @@ docker run --rm --user 0 --entrypoint sh -v "${PROJECT}_cronvol:/r" "$IMG" -c 'c
 docker run --rm -e RESTIC_PASSWORD=x -e BACKUP_HOURLY_CRON='toutes les heures' -v "${PROJECT}_cronvol:/backups/repo" "$IMG" > "$WORK/cr.out" 2>&1; RC=$?
 ne "horaire invalide : demarrage refuse" "0" "$RC"
 grep -q "BACKUP_HOURLY_CRON invalide" "$WORK/cr.out" && pass "message horaire invalide" "$(grep -m1 invalide "$WORK/cr.out" | cut -c1-100)" || fail "message horaire" "$(tail -3 "$WORK/cr.out")"
+docker run --rm -e RESTIC_PASSWORD=x -v "${PROJECT}_cronvol:/run/secrets/backup_sftp_key:ro" "$IMG" > "$WORK/sd.out" 2>&1; RC=$?
+eq "secret monte comme DOSSIER (fichier absent sur l'hote) : demarrage refuse (78)" "78" "$RC"
+grep -q "est un DOSSIER" "$WORK/sd.out" && pass "message clair pour un secret qui est un dossier" "$(grep -m1 DOSSIER "$WORK/sd.out" | cut -c1-120)" || fail "message secret-dossier" "$(cat "$WORK/sd.out")"
+docker run --rm -e RESTIC_PASSWORD=x -e BACKUP_SFTP_HOST=h.example "$IMG" > "$WORK/sm.out" 2>&1; RC=$?
+eq "envoi configure mais cle absente : demarrage refuse (78)" "78" "$RC"
+grep -q "absent ou vide" "$WORK/sm.out" && pass "message clair pour une cle absente" "$(grep -m1 'absent ou vide' "$WORK/sm.out" | cut -c1-120)" || fail "message cle absente" "$(cat "$WORK/sm.out")"
+# mot de passe par fichier (RESTIC_PASSWORD_FILE), sans RESTIC_PASSWORD
+BK sh -c 'printf %s "$RESTIC_PASSWORD" > /tmp/pwf; printf %s mauvais > /tmp/pwf_bad'
+bkenv "RESTIC_PASSWORD= RESTIC_PASSWORD_FILE=/tmp/pwf" /opt/backup/hourly.sh >/dev/null 2>&1; eq "mot de passe lu dans RESTIC_PASSWORD_FILE : hourly reussit" "0" "$?"
+bkenv "RESTIC_PASSWORD= RESTIC_PASSWORD_FILE=/tmp/pwf_bad" /opt/backup/hourly.sh >/dev/null 2>&1; ne "mauvais mot de passe dans le fichier : refuse" "0" "$?"
 
 # --- 9. PERTE DE LA BASE ET DES VOLUMES : restauration depuis le depot local -----------------
 section "9. Destruction de la base et des 3 volumes, restauration (depot local)"
@@ -451,7 +528,7 @@ RESTORE_RUN() { # RESTORE_RUN "options" id
   # shellcheck disable=SC2046
   docker run --rm --user 0 --network "$NET" \
     -e RESTIC_PASSWORD="$RESTIC_PASSWORD" -e PGHOST=db -e PGUSER="$POSTGRES_USER" -e PGPASSWORD="$POSTGRES_PASSWORD" -e PGDATABASE="$POSTGRES_DB" \
-    -v "${PROJECT}_bk_repo:/backups/repo" \
+    -v "${PROJECT}_bk_repo:/backups/repo" -v "${PROJECT}_safety:/tmp/restore" \
     -v "${PROJECT}_uploads:/apply/data/uploads" -v "${PROJECT}_product_photos:/apply/data/product_photos" -v "${PROJECT}_consents:/apply/data/consents" \
     "$IMG" /opt/backup/restore.sh $1 "$2" /tmp/restore
 }
@@ -467,6 +544,17 @@ info "role powersync_repl et publication" "$(psqld -c "select count(*) from pg_p
 # l'application ne tourne pas ici : on verifie que le service backup repart et se declare sain
 need C up -d backup >/dev/null 2>&1; wait_healthy backup 180 && pass "service backup relance sur la base restauree : healthy" "export horaire OK" || fail "backup apres restauration" "$(C logs --tail 10 backup 2>&1 | tr '\n' '|')"
 info "exports horaires dans le depot local apres restauration" "$(nsnap hourly)"
+
+C3B="$(counts)"
+# restauration sur une base NON vide (meme serveur) : export de securite de l'etat actuel d'abord
+psqld -c "INSERT INTO patients(first_name,last_name,birth_date,created_by_name) VALUES ('POST_RESTORE_MARKER','X',date '2001-01-01','t')" >/dev/null
+if RESTORE_RUN "--apply-to-stack --force" latest > "$WORK/apply3.out" 2>&1; then pass "restore.sh --apply-to-stack sur une base NON vide" "$(grep -m1 'export de securite' "$WORK/apply3.out" | sed 's/^[0-9: -]*//' | cut -c1-110)"; else fail "restore sur base non vide" "$(tail -8 "$WORK/apply3.out")"; fi
+grep -q "base vide : pas d'export de securite" "$WORK/apply.out" && pass "1re restauration (base vide) : pas d'export de securite" "ok" || fail "base vide : message" "$(grep -m2 securite "$WORK/apply.out")"
+SAFE_N="$(docker run --rm --user 0 --entrypoint sh -v "${PROJECT}_safety:/s" "$IMG" -c 'ls /s/safety/*.dump | wc -l' | tr -d '\r\n')"
+eq "un export de securite a ete ecrit" "1" "$SAFE_N"
+eq "l'export de securite contient l'etat AVANT (ligne POST_RESTORE_MARKER)" "1" "$(docker run --rm --user 0 --entrypoint sh -v "${PROJECT}_safety:/s" "$IMG" -c 'pg_restore --data-only --table=patients --file=- /s/safety/*.dump | grep -c POST_RESTORE_MARKER' | tr -d '\r\n')"
+eq "apres la 2e restauration la ligne posterieure a la sauvegarde a disparu" "0" "$(psqld -c "select count(*) from patients where first_name='POST_RESTORE_MARKER'" | tr -d '\r')"
+eqs "2e restauration : memes nombres de lignes qu'a la sauvegarde" "$C2" "$(counts)"
 
 # --- 10. PERTE TOTALE (serveur + depot local) : restauration depuis Hostinger (SFTP) ---------
 section "10. Perte totale : restauration depuis le depot distant (SFTP)"

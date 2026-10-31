@@ -159,6 +159,7 @@ bk = svcs["backup"]
 check(bk["image"] == "ghcr.io/%s/ah2-backup:%s" % (envfile["GHCR_OWNER"], envfile["IMAGE_TAG"]),
       "backup: image ah2-backup avec GHCR_OWNER et IMAGE_TAG")
 check(not bk.get("ports"), "backup: aucun port publie")
+check(bk.get("hostname") == "ah2-backup", "backup: hostname stable ah2-backup")
 check(mem_bytes(bk["mem_limit"]) == 256 * 1024**2, "backup: mem_limit 256m")
 bv = {v["target"]: v for v in bk["volumes"]}
 check(all(bv["/data/" + n].get("read_only") is True and bv["/data/" + n]["source"] == n

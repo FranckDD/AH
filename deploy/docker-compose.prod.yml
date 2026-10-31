@@ -347,6 +347,8 @@ services:
       retries: 3
       start_period: 10m
     stop_grace_period: 120s
+    # Nom stable : un verrou restic laisse par un arret brutal est reconnu comme perime apres recreation.
+    hostname: ah2-backup
     mem_limit: 256m
 
 networks:

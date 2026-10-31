@@ -44,13 +44,17 @@ while :; do
   if out="$(ro cat config 2>&1 >/dev/null)"; then break; fi
   case "$out" in
     *"wrong password"*|*"no key found"*) die "mot de passe du depot DISTANT incorrect : rien n'a ete ecrit" ;;
+    # erreur de TRANSPORT (hote, cle, empreinte, session sftp) : jamais une raison de creer un depot
+    *"unable to start the sftp"*|*"Could not resolve"*|*"Permission denied"*|*"Connection "*|*"Host key verification"*|*"timed out"*)
+      [ "$n" -lt "$tries" ] || die "depot distant inaccessible (reseau, cle ou empreinte) : $(printf '%s' "$out" | tail -n 2 | tr -s '[:space:]' ' ')"
+      log "depot distant injoignable (essai $n/$tries) : $(printf '%s' "$out" | tail -n 1) ; nouvel essai dans ${BACKUP_RETRY_DELAY:-60} s"
+      sleep "${BACKUP_RETRY_DELAY:-60}"; n=$((n+1)) ;;
     *"Is there a repository"*)
       log "depot distant absent : initialisation (memes parametres de decoupage que le depot local)"
       retry ro init --from-repo "$LOCAL" --copy-chunker-params || die "initialisation du depot distant impossible"
       break ;;
     *)
-      [ "$n" -lt "$tries" ] || die "depot distant inaccessible : $(printf '%s' "$out" | tail -n 2 | tr '
-' ' ')"
+      [ "$n" -lt "$tries" ] || die "depot distant inaccessible : $(printf '%s' "$out" | tr -s '[:space:]' ' ' | tail -c 300)"
       log "depot distant injoignable (essai $n/$tries) : $(printf '%s' "$out" | tail -n 1) ; nouvel essai dans ${BACKUP_RETRY_DELAY:-60} s"
       sleep "${BACKUP_RETRY_DELAY:-60}"; n=$((n+1)) ;;
   esac
