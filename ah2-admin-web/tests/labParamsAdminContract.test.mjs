@@ -21,11 +21,10 @@ test('gateway et store exposent modification et plages', () => {
     assert.ok(gw.includes('updateExamParam') && gw.includes('addRange') && gw.includes('deleteRange'));
     assert.ok(gw.includes('`/labo/params/${paramId}`'));
 });
-test('catalogue labo : prix, Modifier, Parametres', () => {
+test('catalogue labo : le nouvel ecran remplace le panneau (voir labCatalogueContract)', () => {
     const v = read('../src/views/modules/labo/LabConfig.vue');
-    assert.ok(v.includes('#cell-price'));
-    assert.ok(v.includes('ExamParamsPanel'));
-    assert.ok(v.includes('openModal(exam)'));
+    assert.ok(v.includes('CatalogueParamTable'));
+    assert.ok(!v.includes('ExamParamsPanel'));
 });
 test('libelles FR et EN identiques', () => {
     const keys = ['lab.config.col_price', 'lab.config.edit_exam', 'lab.config.params_button', 'labParams.title', 'labParams.add', 'labParams.name', 'labParams.unit',

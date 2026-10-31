@@ -64,6 +64,7 @@ export const useUserStore = defineStore('user', () => {
                     
                     isActive: u.is_active,
                     isHeadNurse: u.is_head_nurse || false,
+                    isHeadLab: u.is_head_lab || false,
                     seesOwnToxicoOnly: u.sees_own_toxico_only || false,
                     locked: u.locked === true,
                     originalData: u
@@ -113,6 +114,7 @@ export const useUserStore = defineStore('user', () => {
 
                 is_active: formData.is_active,
                 is_head_nurse: formData.is_head_nurse,
+                is_head_lab: formData.is_head_lab,
                 sees_own_toxico_only: formData.sees_own_toxico_only
             };
 
@@ -138,6 +140,7 @@ export const useUserStore = defineStore('user', () => {
                 specialty_id: formData.specialty_id,
                 is_active: formData.is_active,
                 is_head_nurse: formData.is_head_nurse,
+                is_head_lab: formData.is_head_lab,
                 sees_own_toxico_only: formData.sees_own_toxico_only
             };
 

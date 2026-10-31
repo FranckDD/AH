@@ -43,6 +43,11 @@ export const useAuthStore = defineStore('auth', {
             const role = (this.userRole || '').toLowerCase();
             return (allowedRoles || []).some((r) => (r || '').toLowerCase() === role);
         };
+    },
+    // Droit d'editer le catalogue du laboratoire (miroir de utils/lab_catalogue_access.py ; le serveur reste juge).
+    canEditLabCatalogue() {
+        const role = (this.userRole || '').toLowerCase();
+        return role === 'admin' || (role === 'laborantin' && !!this.user?.is_head_lab);
     }
   },
 

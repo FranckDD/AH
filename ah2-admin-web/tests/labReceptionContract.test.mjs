@@ -37,7 +37,7 @@ check('LabReception', view, [
     // modes
     "const mode = ref('internal');", "@click=\"setMode('internal')\"", "@click=\"setMode('external')\"", "mode === 'internal'", 'resetPatient();',
     // patient externe
-    'v-model="extForm.full_name"', 'v-model.number="extForm.age"', 'v-model="extForm.gender"', 'value="M"', 'value="F"', "extForm.value = { full_name: '', age: '', gender: 'M' };",
+    'v-model="extForm.full_name"', 'v-model="extForm.age_value"', 'v-model="extForm.gender"', 'value="M"', 'value="F"', 'extForm.value = newExtForm();',
     // prescripteur
     'v-model="selectedDoctorId"', ':value="null"', 'v-for="doc in doctors"', ':key="doc.user_id"', ':value="doc.user_id"', 'doc.full_name', 'doc.specialty_name',
     // panier
@@ -45,16 +45,16 @@ check('LabReception', view, [
     'const exam = labStore.exams.find(e => e.id === selectedExamId.value);', 'if (!cart.value.find(c => c.id === exam.id)) {', 'cart.value.push({ ...exam, is_prescribed: false });',
     'selectedExamId.value = null;', 'const removeFromCart = (index) => {', 'cart.value.splice(index, 1);', 'item.is_prescribed', 'cart.length > 0',
     // validation et envoi
-    'const hasExam = cart.value.length > 0;', "mode.value === 'internal'", '? !!selectedPatient.value', ': (extForm.value.full_name && extForm.value.age);', 'const hasDoctor = !!selectedDoctorId.value;',
+    'const hasExam = cart.value.length > 0;', "mode.value === 'internal'", '? !!selectedPatient.value', ': (extForm.value.full_name && extAgeDays.value !== null);', 'const hasDoctor = !!selectedDoctorId.value;',
     'return hasExam && hasPatient && hasDoctor;', '@click="submitRequest"', ':disabled="!canSubmit || labStore.loading"', 'if (cart.value.length === 0) return;',
     'examen_id: item.id,', 'valeur: null,', "unite: item.unite || ''", 'patient_id: null,', 'origin_prescription_id: null,', 'prescribed_by_id: selectedDoctorId.value,',
     'prescribed_by_name: doc ? doc.full_name : null,', 'external_patient_info: null', 'payload.patient_id = selectedPatient.value.id;',
-    'selectedPatient.value.prescription_id || selectedPatient.value.last_prescription_id || null', 'nom: extForm.value.full_name,', "prenom: '',", 'age: extForm.value.age,',
+    'selectedPatient.value.prescription_id || selectedPatient.value.last_prescription_id || null', 'nom: extForm.value.full_name,', "prenom: '',", 'age: extLegacyYears.value,',
     'sexe: extForm.value.gender,', "telephone: ''", 'await labStore.createBatchRequest(payload);', "notify('alerts.lab_saved', {}, 'success');", "notify('alerts.lab_save_failed');",
     // clés
     "$t('lab.reception.title')", "$t('lab.reception.subtitle')", "$t('lab.reception.section1_title')", "$t('lab.reception.mode_internal')", "$t('lab.reception.mode_external')",
     "$t('lab.reception.search_placeholder')", "$t('lab.reception.no_results')", "$t('lab.reception.patient_internal_label')", "$t('lab.reception.change_patient')",
-    "$t('lab.reception.ext_name_label')", "$t('lab.reception.ext_age_label')", "$t('lab.reception.ext_gender_label')", "$t('lab.gender.m')", "$t('lab.gender.f')", "$t('lab.reception.ext_warning')",
+    "$t('lab.reception.ext_name_label')", "$t('pregnancy.ext_age_value')", "$t('lab.reception.ext_gender_label')", "$t('lab.gender.m')", "$t('lab.gender.f')", "$t('lab.reception.ext_warning')",
     "$t('lab.reception.section2_title')", "$t('lab.reception.select_exam_placeholder')", "$t('lab.reception.add_btn')",
     "'lab.reception.cart_exam_col'", "'lab.reception.cart_action_col'", "$t('lab.reception.cart_empty')", "$t('lab.reception.submit_btn')", 'labStore.successMessage',
 ]);

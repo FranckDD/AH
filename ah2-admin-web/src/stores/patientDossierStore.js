@@ -25,6 +25,9 @@ export const usePatientDossierStore = defineStore('patientDossier', () => {
 
     // --- ÉTAT (STATE) ---
     const patientSummary = ref(null);
+    // Bloc patient du dossier serveur (naissance, sexe et, pour les roles autorises, suivi de grossesse).
+    // Nul hors ligne : la lecture locale ne porte ni l'un ni l'autre des suivis de grossesse.
+    const patientFile = ref(null);
     const medicalHistory = ref([]);
     const prescriptionHistory = ref([]);
     const labHistory = ref([]);
@@ -58,6 +61,7 @@ export const usePatientDossierStore = defineStore('patientDossier', () => {
     }
 
     async function loadDossierFromLocalDb(patientId) {
+        patientFile.value = null;
         const { serverId, localId } = patientKeys(patientId);
         let p = await db.getOptional(
             'SELECT * FROM patients WHERE server_id = ? OR id = ?',
@@ -186,6 +190,7 @@ export const usePatientDossierStore = defineStore('patientDossier', () => {
 
         try {
             const { data } = await api.get(`/patients/${patientId}/dossier`);
+            patientFile.value = data.patient || null;
 
             if (data.resume_clinique) {
                 patientSummary.value = data.resume_clinique;
@@ -338,6 +343,7 @@ export const usePatientDossierStore = defineStore('patientDossier', () => {
 
     return {
         patientSummary,
+        patientFile,
         medicalHistory,
         prescriptionHistory,
         labHistory,

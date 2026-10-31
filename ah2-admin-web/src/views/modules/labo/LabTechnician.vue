@@ -95,14 +95,26 @@
               </div>
             </template>
             <template #cell-unit="{ row: detail }"><span class="text-sm">{{ detail.unite }}</span></template>
-            <template #cell-range="{ row: detail }"><span class="text-sm">{{ getRangeForPatient(detail.ranges, activeDossier.patient_info?.sexe) }}</span></template>
+            <template #cell-range="{ row: detail }"><span class="text-sm">{{ getRangeForPatient(detail, activeDossier.patient_info) }}</span></template>
           </ResponsiveTable>
 
           <section v-if="activeDossier.details && activeDossier.details.length > 0" class="rounded-card border border-tone-neutral-border bg-white p-4 shadow-card">
-            <FormField id="lab-tech-note" :label="t('lab.technician.global_conclusion')" v-slot="{ describedBy }">
-              <textarea id="lab-tech-note" v-model="formGlobalNote" rows="3" :disabled="isLocked" :aria-describedby="describedBy" :placeholder="t('lab.technician.conclusion_placeholder')"
-                        :class="[fieldClass, 'py-2']"></textarea>
-            </FormField>
+            <div class="grid gap-4">
+              <FormField id="lab-tech-conclusion" :label="t('lab.technician.conclusion_label')" :help="t('lab.technician.conclusion_help')" v-slot="{ describedBy }">
+                <textarea id="lab-tech-conclusion" v-model="formConclusion" rows="4" :maxlength="CONCLUSION_MAX" :disabled="isLocked" :aria-describedby="describedBy"
+                          :placeholder="t('lab.technician.conclusion_field_placeholder')" :class="[fieldClass, 'py-2']"></textarea>
+                <p id="lab-tech-conclusion-count" class="mt-1 text-sm text-ink-muted" :class="{ 'font-semibold text-tone-danger-text': formConclusion.length >= CONCLUSION_MAX }">
+                  {{ t('lab.technician.char_count', { n: formConclusion.length, max: CONCLUSION_MAX }) }}
+                </p>
+              </FormField>
+              <FormField id="lab-tech-note" :label="t('lab.technician.global_conclusion')" v-slot="{ describedBy }">
+                <textarea id="lab-tech-note" v-model="formGlobalNote" rows="3" :maxlength="NOTE_MAX" :disabled="isLocked" :aria-describedby="describedBy" :placeholder="t('lab.technician.conclusion_placeholder')"
+                          :class="[fieldClass, 'py-2']"></textarea>
+                <p id="lab-tech-note-count" class="mt-1 text-sm text-ink-muted" :class="{ 'font-semibold text-tone-danger-text': formGlobalNote.length >= NOTE_MAX }">
+                  {{ t('lab.technician.char_count', { n: formGlobalNote.length, max: NOTE_MAX }) }}
+                </p>
+              </FormField>
+            </div>
           </section>
 
           <!-- Resultat valide : correction avec motif obligatoire (le medecin prescripteur est prevenu). -->
@@ -155,7 +167,7 @@ import {
 import { AppButton, AppCard, FormField, StatusBadge, EmptyState, ResponsiveTable, ActionBar } from '@/components/ui';
 import LabPassageCard from '@/components/lab/LabPassageCard.vue';
 import { groupPaillasse } from '@/utils/labPassages';
-import { rangeLabelForPatient } from '@/utils/labRanges';
+import { rangeLabelForDetail } from '@/utils/labRanges';
 import { toneClasses } from '@/design/tones';
 
 const labStore = useLabStore();
@@ -191,6 +203,12 @@ const formValues = ref({});
 const formFlags = ref({});
 const formInterpretations = ref({});
 const formGlobalNote = ref('');
+const formConclusion = ref('');
+// Valeur chargee : hors ligne le serveur n'a pas livre la conclusion, un champ vide inchange ne doit pas l'effacer.
+const loadedConclusion = ref('');
+// Limites des contraintes de la base (lab_results.note 1000, lab_results.conclusion 5000).
+const NOTE_MAX = 1000;
+const CONCLUSION_MAX = 5000;
 
 // Récupère le dossier complet depuis le store
 const activeDossier = computed(() => labStore.currentResult);
@@ -255,6 +273,8 @@ const openDossier = async (id) => {
   formFlags.value = {};
   formInterpretations.value = {};
   formGlobalNote.value = '';
+  formConclusion.value = '';
+  loadedConclusion.value = '';
   
   // Appel API
   const data = await labStore.fetchResultDetail(id);
@@ -263,6 +283,8 @@ const openDossier = async (id) => {
   if (data) {
     // 🟢 Remplissage de la note globale depuis le champ "note" (si sauvegardé en brouillon)
     formGlobalNote.value = data.note || '';
+    formConclusion.value = data.conclusion || '';
+    loadedConclusion.value = formConclusion.value;
 
     if (data.details) {
       data.details.forEach(d => {
@@ -278,6 +300,9 @@ const openDossier = async (id) => {
     }
   }
 };
+
+const conclusionToSend = () =>
+  (formConclusion.value === '' && loadedConclusion.value === '') ? null : formConclusion.value;
 
 const submit = async (isCompleted, shouldPrint) => {
   // Sécurité: On s'assure d'avoir un ID valide
@@ -302,7 +327,9 @@ const submit = async (isCompleted, shouldPrint) => {
   const fullPayload = {
       values: payloadValues,
       completed: isCompleted,
-      note: formGlobalNote.value
+      note: formGlobalNote.value,
+      // null = conclusion non modifiee (champ vide et inchange)
+      conclusion: conclusionToSend()
   };
 
   // ⚠️ ATTENTION : Assure-toi que ta fonction `labStore.saveValues`
@@ -323,6 +350,8 @@ const submit = async (isCompleted, shouldPrint) => {
           formFlags.value = {};
           formInterpretations.value = {};
           formGlobalNote.value = '';
+          formConclusion.value = '';
+          loadedConclusion.value = '';
       }
   }
 };
@@ -357,7 +386,7 @@ const submitAmend = async () => {
       interpretation: formInterpretations.value[detailId] || ''
     };
   }
-  const ok = await labStore.amendResult(targetId, { reason, values: payloadValues, note: formGlobalNote.value });
+  const ok = await labStore.amendResult(targetId, { reason, values: payloadValues, note: formGlobalNote.value, conclusion: conclusionToSend() });
   if (ok) {
     await openDossier(targetId);
     amendNotice.value = t('lab.technician.amend_success');
@@ -366,9 +395,9 @@ const submitAmend = async () => {
 
 // --- HELPERS D'AFFICHAGE ---
 
-// Trouve la bonne plage de référence selon le sexe (M/F)
-// Plage du sexe du patient (a defaut la plage generique) ; jamais celle de l'autre sexe.
-const getRangeForPatient = (ranges, sexePatient) => rangeLabelForPatient(ranges, sexePatient);
+// Norme affichee = celle que le serveur a retenue pour le drapeau (applicable_range) ; hors ligne, meme regle
+// appliquee localement avec l'age en jours du dossier (patient externe).
+const getRangeForPatient = (detail, info) => rangeLabelForDetail(detail, info?.sexe, info?.age_days ?? null, null);
 </script>
 <style scoped>
 input[type=number]::-webkit-inner-spin-button,

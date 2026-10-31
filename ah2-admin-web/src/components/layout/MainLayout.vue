@@ -25,7 +25,7 @@ import {
   ExclamationCircleIcon,
   CheckBadgeIcon, ClockIcon, ReceiptPercentIcon,
   ClipboardDocumentCheckIcon, ArrowsRightLeftIcon, AdjustmentsHorizontalIcon,
-  ShoppingCartIcon, LockClosedIcon, PresentationChartLineIcon, BookOpenIcon
+  ShoppingCartIcon, LockClosedIcon, PresentationChartLineIcon, BookOpenIcon, HeartIcon
 } from '@heroicons/vue/24/outline';
 
 const authStore = useAuthStore();
@@ -113,6 +113,12 @@ const menuItems = [
     path: '/dashboard/reports',
     labelKey: 'reports.menu',
     icon: PresentationChartLineIcon,
+    roles: [ROLES.ADMIN, ROLES.PROMOTEUR]
+  },
+  {
+    path: '/dashboard/pregnancy-report',
+    labelKey: 'pregnancy.report_menu',
+    icon: HeartIcon,
     roles: [ROLES.ADMIN, ROLES.PROMOTEUR]
   },
   {

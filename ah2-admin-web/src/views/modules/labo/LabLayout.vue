@@ -54,7 +54,7 @@ const canSeeReception = computed(() => authStore.hasRole(['admin', 'laborantin',
 const canSeePaillasse = computed(() => authStore.hasRole(['admin', 'laborantin', 'ToxicoManager']));
 const canSeeHistory = computed(() => authStore.hasRole(['admin', 'laborantin', 'ToxicoManager']));
 const canSeeSyncFailures = computed(() => authStore.hasRole(['admin', 'laborantin', 'ToxicoManager']));
-const canConfigure = computed(() => authStore.hasRole(['admin', 'manager', 'biologiste']));
+const canConfigure = computed(() => authStore.hasRole(['admin', 'laborantin']));
 
 // Un onglet par route reelle, dans l'ordre d'origine ; seuls les onglets autorises sont affiches.
 const items = computed(() => [

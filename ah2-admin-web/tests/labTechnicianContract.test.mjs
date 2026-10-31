@@ -42,7 +42,7 @@ check('LabTechnician', view, [
     // saisie
     'detail.input_type === \'numeric\'', 'v-model.number="formValues[detail.detail_id]"', 'step="any"', '@wheel="$event.target.blur()"', 'v-model="formValues[detail.detail_id]"',
     'v-if="hasValue(formValues[detail.detail_id])"', 'v-model="formFlags[detail.detail_id]"', "value: 'H'", "value: 'L'", "value: 'N'", "value: 'A'", "value: ''", 'v-model="formInterpretations[detail.detail_id]"',
-    'detail.unite', 'getRangeForPatient(detail.ranges, activeDossier.patient_info?.sexe)', '!activeDossier.details || activeDossier.details.length === 0',
+    'detail.unite', 'getRangeForPatient(detail, activeDossier.patient_info)', '!activeDossier.details || activeDossier.details.length === 0',
     'v-model="formGlobalNote"', 'v-if="activeDossier.details && activeDossier.details.length > 0"',
     // charge envoyée
     'const targetId = activeId.value || activeDossier.value?.result_id;', 'notifyText(t(\'lab.technician.no_file_selected\'));', 'const payloadValues = {};', 'for (const detailId in formValues.value) {',
@@ -51,7 +51,7 @@ check('LabTechnician', view, [
     'activeId.value = null;',
     // plage de référence
     // plage du sexe du patient (labRanges.js), jamais ranges[0] en repli
-    'rangeLabelForPatient(ranges, sexePatient)',
+    'rangeLabelForDetail(detail, info?.sexe, info?.age_days ?? null, null)',
     // clés
     "t('lab.technician.title')", "t('lab.technician.nothing_to_enter')", "t('lab.technician.select_file')", "t('lab.technician.save_draft')", "t('lab.technician.validate_close')",
     "t('lab.technician.validate_print')", "t('lab.technician.value')", "t('lab.result_modal.param')", "t('lab.result_modal.unit')", "t('lab.technician.reference')", "t('lab.technician.result_placeholder')", "t('lab.technician.flag_normal')", "t('lab.technician.interp_placeholder')", "t('lab.technician.no_params')", "t('lab.technician.global_conclusion')", "t('lab.technician.conclusion_placeholder')",

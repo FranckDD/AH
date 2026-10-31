@@ -114,6 +114,17 @@
                 <FormField id="cfg-rccm" :label="t('configScreens.rccm')" v-slot="{ describedBy }">
                   <input id="cfg-rccm" v-model="formStructure.rccm" type="text" :aria-describedby="describedBy" :class="fieldClass" />
                 </FormField>
+                <FormField id="cfg-agrement" :label="t('configScreens.agrement_number')" :help="t('configScreens.agrement_number_help')" v-slot="{ describedBy }">
+                  <input id="cfg-agrement" v-model="formStructure.agrement_number" type="text" maxlength="200" :aria-describedby="describedBy" :class="fieldClass" />
+                </FormField>
+                <FormField id="cfg-signature-default" :label="t('configScreens.signature_label_default')" :help="t('configScreens.signature_label_default_help')" v-slot="{ describedBy }">
+                  <input id="cfg-signature-default" v-model="formStructure.signature_label_default" type="text" maxlength="120" :aria-describedby="describedBy" :class="fieldClass" />
+                </FormField>
+                <div class="md:col-span-2">
+                  <FormField id="cfg-footer-text" :label="t('configScreens.footer_text')" :help="t('configScreens.footer_text_help')" v-slot="{ describedBy }">
+                    <textarea id="cfg-footer-text" v-model="formStructure.footer_text" rows="3" maxlength="1000" :aria-describedby="describedBy" :class="fieldClass"></textarea>
+                  </FormField>
+                </div>
               </div>
             </div>
           </div>
@@ -280,6 +291,7 @@ const openSections = reactive({
 const formStructure = ref({
     name: '', slogan: '', phone: '', phone2: '', email: '', website: '',
     address: '', city: '', po_box: '', niu: '', rccm: '',
+    agrement_number: '', footer_text: '', signature_label_default: '',
     label_width_mm: 50, label_height_mm: 30
 });
 const logoFile = ref(null);

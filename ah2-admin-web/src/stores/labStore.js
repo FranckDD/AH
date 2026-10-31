@@ -31,7 +31,10 @@ export const useLabStore = defineStore('lab', {
         // --- UI STATE ---
         loading: false,
         error: null,
-        successMessage: null
+        successMessage: null,
+        // Numero de dossier du dernier enregistrement : texte officiel, ou null (hors ligne : attribue a la synchronisation).
+        lastDossier: null,
+        lastDossierPending: false
     }),
 
     getters: {
@@ -214,6 +217,8 @@ export const useLabStore = defineStore('lab', {
             this.loading = true;
             this.error = null;
             this.successMessage = null;
+            this.lastDossier = null;
+            this.lastDossierPending = false;
 
             try {
                 const { useAuthStore } = await import('@/stores/auth');
@@ -223,6 +228,8 @@ export const useLabStore = defineStore('lab', {
                     const { db } = await import('@/powersync-client/client');
                     const batchUuid = crypto.randomUUID();
                     let createdCount = 0;
+                    // Une seule date de reception pour tout le lot : le serveur en tire le jour du numero de dossier.
+                    const receivedAt = new Date().toISOString();
 
                     await db.writeTransaction(async (tx) => {
                         for (const item of payload.results) {
@@ -232,18 +239,22 @@ export const useLabStore = defineStore('lab', {
                                     id, patient_id, patient_uuid, test_type, status,
                                     examen_id, prescribed_by, prescribed_by_name,
                                     origin_prescription_id, batch_uuid, external_patient_info,
-                                    origin_caisse_item_id
-                                 ) VALUES (?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?)`,
+                                    origin_caisse_item_id, test_date, gestational_age_weeks,
+                                    external_pregnancy_info, pregnancy_status_at_result
+                                 ) VALUES (?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                                 [
                                     resultUuid, payload.patient_id || null, payload.patient_uuid || null,
                                     'Analyse Labo', item.examen_id, payload.prescribed_by_id || null,
                                     payload.prescribed_by_name || null, payload.origin_prescription_id || null,
                                     batchUuid, payload.external_patient_info ? JSON.stringify(payload.external_patient_info) : null,
-                                    item.origin_caisse_item_id || null,
+                                    item.origin_caisse_item_id || null, receivedAt,
+                                    Number.isInteger(payload.gestational_age_weeks) ? payload.gestational_age_weeks : null,
+                                    payload.external_pregnancy_info ? JSON.stringify(payload.external_pregnancy_info) : null,
+                                    payload.pregnancy_status_at_result || null,
                                 ]
                             );
                             const params = await tx.getAll(
-                                'SELECT id FROM reference_lab_params WHERE examen_id = ?',
+                                'SELECT id FROM reference_lab_params WHERE examen_id = ? AND COALESCE(is_active, 1) = 1',
                                 [item.examen_id]
                             );
                             for (const p of params) {
@@ -257,6 +268,7 @@ export const useLabStore = defineStore('lab', {
                         }
                     });
 
+                    this.lastDossierPending = true;
                     this.successMessage = `${createdCount} examen(s) enregistré(s) localement, en attente de synchronisation.`;
                     return { success: true, count: createdCount, shared_code: null, batch_id: batchUuid };
                 }
@@ -264,6 +276,7 @@ export const useLabStore = defineStore('lab', {
                 const response = await LabGateway.createBatchResults(payload);
                 const data = response.data;
                 const count = data.count || 0;
+                this.lastDossier = data.dossier || null;
                 const codeAffiche = data.shared_code || "EN_COURS...";
                 this.successMessage = `Succès : ${count} Examens créés sous le numéro ${codeAffiche}.`;
                 return data;

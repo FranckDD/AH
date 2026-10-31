@@ -6,7 +6,10 @@
 
     <div v-else-if="dossierStore.patientSummary" class="grid gap-6">
 
-        <PatientHeader :patient="dossierStore.patientSummary" @back="goBack" />
+        <PatientHeader :patient="dossierStore.patientSummary" :age-label="exactAgeLabel" @back="goBack" />
+
+        <!-- Grossesse : jamais montee pour la secretaire ni pour un role hors liste (aucun libelle, aucun champ) -->
+        <PatientPregnancyBlock v-if="showPregnancyBlock" :patient-id="route.params.id" :patient-file="dossierStore.patientFile" @saved="onPregnancySaved" />
 
         <div class="flex flex-col gap-2 sm:flex-row sm:justify-end">
           <AppButton variant="secondary" @click="exportDossier('pdf')" :disabled="isExportingDossier">
@@ -186,6 +189,9 @@ import api from '@/services/api';
 import { usePatientDossierStore } from '@/stores/patientDossierStore';
 
 import PatientHeader from '@/components/patients/PatientHeader.vue';
+import PatientPregnancyBlock from '@/components/patients/PatientPregnancyBlock.vue';
+import { ageLabelFromBirth, localTodayIso } from '@/utils/labAge';
+import { canSeePregnancy, pregnancyApplies } from '@/utils/pregnancy';
 import VitalsCard from '@/components/patients/medical/VitalsCard.vue';
 import MedicalRecordTimeline from '@/components/patients/medical/MedicalRecordTimeline.vue';
 import LabResultTable from '@/components/patients/labs/LabResultTable.vue';
@@ -219,6 +225,16 @@ const appointmentStore = useAppointmentStore();
 const authStore = useAuthStore();
 
 const canCreateConsultation = computed(() => authStore.hasRole(['medecin', 'nurse']));
+
+// Age exact depuis la naissance du dossier serveur (vide hors ligne : ancien affichage en annees).
+const exactAgeLabel = computed(() => ageLabelFromBirth(dossierStore.patientFile?.birth_date, localTodayIso()));
+
+// Bloc grossesse : roles qui peuvent la voir (hasRole), patiente de sexe feminin ou inconnu.
+const showPregnancyBlock = computed(() => canSeePregnancy(authStore)
+    && pregnancyApplies(dossierStore.patientSummary?.gender ?? dossierStore.patientFile?.gender));
+function onPregnancySaved(values) {
+    if (dossierStore.patientFile) Object.assign(dossierStore.patientFile, values);
+}
 
 const currentTab = ref('MEDICAL');
 

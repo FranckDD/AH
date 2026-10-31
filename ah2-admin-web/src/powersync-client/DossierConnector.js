@@ -370,6 +370,17 @@ export class DossierConnector {
             if (await isLabResultQuarantined(database, op.id)) {
               break;
             }
+            // Date de reception (horloge de l'appareil, ecrite dans test_date a la creation locale) : le
+            // serveur en deduit le JOUR du numero de dossier. Lue sur la ligne locale complete (comme les
+            // cas voisins), jamais sur op.opData seul.
+            const localLab = await database.getOptional('SELECT test_date, gestational_age_weeks, external_pregnancy_info, pregnancy_status_at_result FROM lab_results WHERE id = ?', [op.id]);
+            const receivedAt = (localLab && localLab.test_date) || op.opData.test_date || null;
+            // Semaines d'amenorrhee de la demande : relues sur la ligne locale complete (jamais op.opData seul).
+            const gestationalWeeks = Number.isInteger(localLab && localLab.gestational_age_weeks) ? localLab.gestational_age_weeks : null;
+            // Grossesse de l'externe et statut a la reception : colonnes locales dediees (hors external_patient_info).
+            let externalPregnancy = null;
+            try { externalPregnancy = localLab && localLab.external_pregnancy_info ? JSON.parse(localLab.external_pregnancy_info) : null; } catch (e) { externalPregnancy = null; }
+            const statusAtResult = (localLab && localLab.pregnancy_status_at_result) || null;
             // Appel HTTP direct (pas LabGateway) : le connecteur doit
             // echouer reellement si l'API est injoignable, jamais retomber
             // sur une ecriture locale - meme motif que les autres cas.
@@ -381,6 +392,10 @@ export class DossierConnector {
               external_patient_info: op.opData.external_patient_info ? JSON.parse(op.opData.external_patient_info) : null,
               origin_prescription_id: op.opData.origin_prescription_id || null,
               batch_uuid: op.opData.batch_uuid,
+              received_at: receivedAt,
+              ...(gestationalWeeks !== null ? { gestational_age_weeks: gestationalWeeks } : {}),
+              ...(externalPregnancy ? { external_pregnancy_info: externalPregnancy } : {}),
+              ...(statusAtResult ? { pregnancy_status_at_result: statusAtResult } : {}),
               results: [{ examen_id: op.opData.examen_id, uuid: op.id, origin_caisse_item_id: op.opData.origin_caisse_item_id || null }],
             }), {
               kind: 'lab_result',
@@ -519,7 +534,7 @@ export class DossierConnector {
             // brouillon en ligne - sinon une note saisie hors ligne en
             // brouillon n'atteindrait jamais le serveur.
             const current = await database.getOptional(
-              'SELECT status, note, patient_uuid FROM lab_results WHERE id = ?',
+              'SELECT status, note, conclusion, patient_uuid FROM lab_results WHERE id = ?',
               [op.id]
             );
             if (!current) {
@@ -536,11 +551,13 @@ export class DossierConnector {
               values: {},
               completed: completing,
               note: current.note ?? null,
+              // null = conclusion non modifiee cote serveur (ligne locale jamais saisie)
+              conclusion: current.conclusion ?? null,
             }), {
               kind: 'lab_result',
               localId: op.id,
               patientUuid: current.patient_uuid || null,
-              payload: { ...op.opData, status: current.status, note: current.note },
+              payload: { ...op.opData, status: current.status, note: current.note, conclusion: current.conclusion },
               error: 'Dossier labo refuse par le serveur.',
             });
             break;

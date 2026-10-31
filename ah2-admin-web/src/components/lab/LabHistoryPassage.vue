@@ -30,6 +30,9 @@ const canPrintBatch = computed(() => isMulti.value && !!props.passage.batch_id &
 
 // Etat d'un examen : meme mot, meme icone et meme couleur que la paillasse (termine = vert).
 const statusMeta = (status) => examStatusMeta(status);
+
+// Numero de dossier officiel (attribue par le serveur) : absent tant que la reception hors ligne n'est pas synchronisee.
+const dossierLabel = computed(() => (props.passage.exams || []).map((e) => e.dossier).find(Boolean) || null);
 </script>
 
 <template>
@@ -43,6 +46,7 @@ const statusMeta = (status) => examStatusMeta(status);
                     {{ t('labScreens.sex_age', { sex: passage.patient_sexe, age: passage.patient_age, years: t('lab.result_modal.years') }) }}
                     <StatusBadge v-if="passage.is_external" tone="warning" :label="t('lab.result_modal.external')" />
                 </p>
+                <p class="text-sm font-medium" :class="dossierLabel ? 'text-ink' : 'text-ink-muted'">{{ dossierLabel ? t('labScreens.dossier_label', { n: dossierLabel }) : t('labScreens.dossier_pending') }}</p>
             </div>
 
             <div class="min-w-0 text-sm">

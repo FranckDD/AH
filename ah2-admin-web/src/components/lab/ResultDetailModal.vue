@@ -71,12 +71,17 @@
             </span>
           </template>
           <template #cell-unit="{ row: detail }">{{ detail.unite || detail.unit || '-' }}</template>
-          <template #cell-ref="{ row: detail }"><span class="whitespace-nowrap">{{ getRange(detail.ranges, result.patient_info?.sexe) }}</span></template>
+          <template #cell-ref="{ row: detail }"><span class="whitespace-nowrap">{{ getRange(detail, result.patient_info) }}</span></template>
           <template #cell-interp="{ row: detail }">
             <StatusBadge v-if="detail.interpretation" :tone="isAbnormal(detail) ? 'danger' : 'neutral'" :label="detail.interpretation" />
             <span v-else class="text-ink-muted">-</span>
           </template>
         </ResponsiveTable>
+      </section>
+
+      <section v-if="result.conclusion" aria-labelledby="lab-detail-conclusion" class="rounded-card border p-4" :class="toneClasses('info')">
+        <h3 id="lab-detail-conclusion" class="mb-1 text-sm font-semibold">{{ t('lab.result_modal.conclusion') }}</h3>
+        <p class="whitespace-pre-line text-sm">{{ result.conclusion }}</p>
       </section>
 
       <section v-if="result.note || result.comments" aria-labelledby="lab-detail-notes" class="rounded-card border p-4" :class="toneClasses('warning')">
@@ -103,7 +108,7 @@ import { useI18n } from 'vue-i18n';
 import { PencilSquareIcon, PrinterIcon, ArrowUpIcon, ArrowDownIcon, ExclamationTriangleIcon } from '@heroicons/vue/24/outline';
 import { AppButton, StatusBadge, ResponsiveTable, FullScreenPanel, ActionBar } from '@/components/ui';
 import { toneClasses } from '@/design/tones';
-import { rangeLabelForPatient } from '@/utils/labRanges';
+import { rangeLabelForDetail } from '@/utils/labRanges';
 import dayjs from 'dayjs';
 
 const props = defineProps({
@@ -157,7 +162,7 @@ const formatDate = (date) => {
 };
 
 // Fonction récupérée de ta paillasse pour lire la valeur de référence correctement
-const getRange = (ranges, sexePatient) => rangeLabelForPatient(ranges, sexePatient);
+const getRange = (detail, info) => rangeLabelForDetail(detail, info?.sexe, info?.age_days ?? null, null);
 
 // Le backend (GET /labo/results/{id}) renvoie `is_abnormal` par parametre ;
 // `flag`/`flagged` restent lus en repli (autres sources, ex. saisie en cours).

@@ -137,6 +137,9 @@ const lab_results = new Table(
     test_date: column.text,
     status: column.text,
     note: column.text,
+    // Conclusion libre du laborantin (5000 car. max, CHECK serveur). Ecrite localement, envoyee par le connecteur
+    // avec la note, jamais telechargee (aucun flux ne la livre).
+    conclusion: column.text,
     examen_id: column.integer,
     code_lab_patient: column.text,
     prescribed_by_name: column.text,
@@ -147,6 +150,14 @@ const lab_results = new Table(
     origin_caisse_item_id: column.integer,
     batch_uuid: column.text,
     external_patient_info: column.text,
+    // Semaines d'amenorrhee de la demande (donnee de grossesse). Ecrit a la reception (laboratoire), jamais
+    // telecharge : aucun flux de synchronisation ne la livre (voir powersync/sync-config.yaml).
+    gestational_age_weeks: column.integer,
+    // Grossesse d'un patient EXTERNE (JSON texte) et statut choisi pour cette demande : ecrits a la reception
+    // (laboratoire), envoyes par le connecteur, JAMAIS telecharges (aucun flux ne les selectionne). Ils sont
+    // volontairement hors de external_patient_info, que le flux lab_active_results livre.
+    external_pregnancy_info: column.text,
+    pregnancy_status_at_result: column.text,
   },
   { indexes: { by_patient: ['patient_id'], by_batch_uuid: ['batch_uuid'] } }
 );
@@ -210,6 +221,15 @@ const reference_lab_params = new Table({
   input_type: column.text,
   options_list: column.text,
   ordre: column.integer,
+  // Catalogue etendu (migration 041) : libelle imprime, type de resultat (numeric, text, choice,
+  // pos_neg), choix possibles (JSON en texte), actif (1/0). Lecture seule.
+  print_label: column.text,
+  result_kind: column.text,
+  choices: column.text,
+  is_active: column.integer,
+  // Migration 045 : sous-titre de la fiche et texte de norme imprime (lecture seule).
+  group_label: column.text,
+  norm_text: column.text,
 }, { indexes: { by_examen: ['examen_id'] } });
 
 // Valeurs de reference par age/sexe - affichage INDICATIF uniquement cote
@@ -221,8 +241,16 @@ const reference_lab_ranges = new Table({
   sexe: column.text,
   age_min: column.integer,
   age_max: column.integer,
+  // Bornes d'age en jours et de SA de la plage (donnees du catalogue, pas de la grossesse d'une personne) :
+  // le banc hors ligne applique la meme selection que le serveur (labRanges.js::selectRange).
+  age_min_days: column.integer,
+  age_max_days: column.integer,
+  ga_min_weeks: column.integer,
+  ga_max_weeks: column.integer,
   valeur_min: column.text,
   valeur_max: column.text,
+  // Migration 045 : texte imprime de la plage (zeros de precision), lecture seule.
+  display_text: column.text,
 }, { indexes: { by_parametre: ['parametre_id'] } });
 
 const caisse = new Table(
@@ -323,6 +351,16 @@ const exam_catalog = new Table({
   nom: column.text,
   categorie: column.text,
   prix: column.text,
+  // Catalogue etendu (migration 041), lecture seule.
+  section: column.text,
+  method: column.text,
+  layout_family: column.text,
+  signature_label: column.text,
+  print_title: column.text,
+  sort_order: column.integer,
+  is_active: column.integer,
+  // Migration 045 : notes fixes de la fiche (liste JSON en texte), lecture seule.
+  fixed_notes: column.text,
 });
 
 // Regles de reduction personnel, lecture seule (stream

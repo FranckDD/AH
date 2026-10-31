@@ -8,6 +8,9 @@
         <CheckCircleIcon class="h-5 w-5 shrink-0" aria-hidden="true" />
         <span class="font-medium">{{ labStore.successMessage || $t('lab.reception.success_message') }}</span>
       </p>
+      <p v-if="labStore.successMessage && (labStore.lastDossier || labStore.lastDossierPending)" class="-mt-3 text-sm font-medium text-ink" data-testid="lab-dossier-state">
+        {{ labStore.lastDossier ? $t('labScreens.dossier_assigned_receipt', { n: labStore.lastDossier }) : $t('labScreens.dossier_pending_receipt') }}
+      </p>
 
       <!-- Patient -->
       <AppCard :title="$t('lab.reception.section1_title')" class="relative z-30">
@@ -75,6 +78,35 @@
             </div>
             <AppButton variant="secondary" @click="resetPatient">{{ $t('lab.reception.change_patient') }}</AppButton>
           </div>
+
+          <p v-if="selectedPatient && internalAgeLabel" class="text-sm font-medium text-ink" data-testid="internal-age">
+            {{ $t('pregnancy.internal_age', { label: internalAgeLabel }) }}
+          </p>
+
+          <!-- Grossesse du dossier patient (lecture seule ici), SA de la demande modifiable -->
+          <fieldset v-if="showInternalPregnancy" class="grid gap-4 rounded-card border border-tone-neutral-border p-4 md:grid-cols-2" data-testid="pregnancy-block-internal">
+            <legend class="px-2 text-sm font-semibold text-ink">{{ $t('pregnancy.block_title') }}</legend>
+            <p class="text-sm text-ink-muted md:col-span-2">{{ $t('pregnancy.read_only_note') }}</p>
+            <dl class="grid gap-1 text-sm md:col-span-2">
+              <div><dt class="inline font-medium">{{ $t('pregnancy.status_label') }} :</dt> <dd class="inline">{{ $t('pregnancy.status_' + (selectedPatient.pregnancy_status || 'inconnu')) }}</dd></div>
+              <div v-if="selectedPatient.expected_delivery_date"><dt class="inline font-medium">{{ $t('pregnancy.dpa_short') }} :</dt> <dd class="inline">{{ frDate(selectedPatient.expected_delivery_date) }}</dd></div>
+              <div v-if="selectedPatient.pregnancy_program_number"><dt class="inline font-medium">{{ $t('pregnancy.program_label_short') }} :</dt> <dd class="inline">{{ selectedPatient.pregnancy_program_number }}</dd></div>
+            </dl>
+            <FormField id="lab-int-status" :label="$t('pregnancy.request_status_label')" :help="$t('pregnancy.request_status_help')" v-slot="{ describedBy }">
+              <select id="lab-int-status" v-model="internalStatus" :aria-describedby="describedBy" :class="fieldClass" data-testid="internal-request-status">
+                <option v-for="st in PREGNANCY_STATUSES" :key="st" :value="st">{{ $t('pregnancy.status_' + st) }}</option>
+              </select>
+            </FormField>
+            <template v-if="internalStatus === 'enceinte'">
+              <FormField id="lab-int-ga" :label="$t('pregnancy.ga_label')" :help="gaInvalid ? $t('pregnancy.ga_invalid') : $t('pregnancy.ga_help')" v-slot="{ describedBy }">
+                <input id="lab-int-ga" v-model="gaWeeks" type="number" min="0" max="45" step="1" inputmode="numeric" :aria-describedby="describedBy" :aria-invalid="gaInvalid" :class="fieldClass" />
+              </FormField>
+              <div v-if="gaSuggestion !== null" class="flex flex-col justify-end gap-2 text-sm">
+                <p class="text-ink-muted" data-testid="ga-suggestion">{{ $t('pregnancy.ga_suggested', { n: gaSuggestion }) }}</p>
+                <AppButton v-if="String(gaWeeks) !== String(gaSuggestion)" variant="secondary" @click="gaWeeks = String(gaSuggestion)">{{ $t('pregnancy.ga_use_suggested', { n: gaSuggestion }) }}</AppButton>
+              </div>
+            </template>
+          </fieldset>
         </div>
 
         <div v-else class="grid gap-4">
@@ -82,18 +114,59 @@
             <FormField id="lab-ext-name" :label="$t('lab.reception.ext_name_label')" v-slot="{ describedBy }">
               <input id="lab-ext-name" v-model="extForm.full_name" type="text" :placeholder="$t('labScreens.ext_name_placeholder')" :aria-describedby="describedBy" :class="fieldClass" />
             </FormField>
-            <div class="grid grid-cols-2 gap-4">
-              <FormField id="lab-ext-age" :label="$t('lab.reception.ext_age_label')" v-slot="{ describedBy }">
-                <input id="lab-ext-age" v-model.number="extForm.age" type="number" :aria-describedby="describedBy" :class="fieldClass" />
-              </FormField>
-              <FormField id="lab-ext-gender" :label="$t('lab.reception.ext_gender_label')" v-slot="{ describedBy }">
-                <select id="lab-ext-gender" v-model="extForm.gender" :aria-describedby="describedBy" :class="fieldClass">
-                  <option value="M">{{ $t('lab.gender.m') }}</option>
-                  <option value="F">{{ $t('lab.gender.f') }}</option>
-                </select>
-              </FormField>
-            </div>
+            <FormField id="lab-ext-gender" :label="$t('lab.reception.ext_gender_label')" v-slot="{ describedBy }">
+              <select id="lab-ext-gender" v-model="extForm.gender" :aria-describedby="describedBy" :class="fieldClass">
+                <option value="M">{{ $t('lab.gender.m') }}</option>
+                <option value="F">{{ $t('lab.gender.f') }}</option>
+                <option value="X">{{ $t('pregnancy.sex_unknown') }}</option>
+              </select>
+            </FormField>
           </div>
+
+          <!-- Age : nombre + unite, OU date de naissance -->
+          <div class="grid gap-4 md:grid-cols-4" data-testid="external-age">
+            <FormField id="lab-ext-age" :label="$t('pregnancy.ext_age_value')" :help="$t('pregnancy.ext_age_help')" v-slot="{ describedBy }">
+              <input id="lab-ext-age" v-model="extForm.age_value" type="number" min="0" step="1" inputmode="numeric" :disabled="!!extForm.birth_date"
+                     :aria-describedby="describedBy" :class="fieldClass" />
+            </FormField>
+            <FormField id="lab-ext-age-unit" :label="$t('pregnancy.ext_age_unit')" v-slot="{ describedBy }">
+              <select id="lab-ext-age-unit" v-model="extForm.age_unit" :disabled="!!extForm.birth_date" :aria-describedby="describedBy" :class="fieldClass">
+                <option v-for="u in AGE_UNITS" :key="u" :value="u">{{ $t('pregnancy.unit_' + u) }}</option>
+              </select>
+            </FormField>
+            <FormField id="lab-ext-birth" :label="$t('pregnancy.ext_birth_or')" v-slot="{ describedBy }">
+              <input id="lab-ext-birth" v-model="extForm.birth_date" type="date" :max="todayIso()" :aria-describedby="describedBy" :class="fieldClass" />
+            </FormField>
+            <p class="flex items-end pb-2 text-sm font-medium" :class="extAgeEntered && extAgeDays === null ? 'text-tone-danger-text' : 'text-ink'" role="status" data-testid="external-age-label">
+              <template v-if="extAgeDays !== null">{{ $t('pregnancy.ext_age_kept', { label: extAgeLabel }) }}</template>
+              <template v-else-if="extAgeEntered">{{ $t('pregnancy.ext_age_invalid') }}</template>
+            </p>
+          </div>
+
+          <!-- Grossesse (laboratoire, medecin, infirmier, admin) : femme ou sexe inconnu -->
+          <fieldset v-if="showExternalPregnancy" class="grid gap-4 rounded-card border border-tone-neutral-border p-4 md:grid-cols-2" data-testid="pregnancy-block-external">
+            <legend class="px-2 text-sm font-semibold text-ink">{{ $t('pregnancy.block_title') }}</legend>
+            <FormField id="lab-ext-preg-status" :label="$t('pregnancy.status_label')" v-slot="{ describedBy }">
+              <select id="lab-ext-preg-status" v-model="extForm.pregnancy_status" :aria-describedby="describedBy" :class="fieldClass">
+                <option v-for="st in PREGNANCY_STATUSES" :key="st" :value="st">{{ $t('pregnancy.status_' + st) }}</option>
+              </select>
+            </FormField>
+            <template v-if="extForm.pregnancy_status === 'enceinte'">
+              <FormField id="lab-ext-ga" :label="$t('pregnancy.ga_label')" :help="gaInvalid ? $t('pregnancy.ga_invalid') : $t('pregnancy.ga_help')" v-slot="{ describedBy }">
+                <input id="lab-ext-ga" v-model="gaWeeks" type="number" min="0" max="45" step="1" inputmode="numeric" :aria-describedby="describedBy" :aria-invalid="gaInvalid" :class="fieldClass" />
+              </FormField>
+              <FormField id="lab-ext-dpa" :label="$t('pregnancy.dpa_label')" v-slot="{ describedBy }">
+                <input id="lab-ext-dpa" v-model="extForm.expected_delivery_date" type="date" :aria-describedby="describedBy" :class="fieldClass" />
+              </FormField>
+              <FormField id="lab-ext-program" :label="$t('pregnancy.program_label')" v-slot="{ describedBy }">
+                <input id="lab-ext-program" v-model="extForm.pregnancy_program_number" type="text" maxlength="50" autocomplete="off" :aria-describedby="describedBy" :class="fieldClass" />
+              </FormField>
+              <div v-if="gaSuggestion !== null" class="flex flex-col justify-end gap-2 text-sm md:col-span-2">
+                <p class="text-ink-muted" data-testid="ga-suggestion">{{ $t('pregnancy.ga_suggested', { n: gaSuggestion }) }}</p>
+                <AppButton v-if="String(gaWeeks) !== String(gaSuggestion)" variant="secondary" @click="gaWeeks = String(gaSuggestion)">{{ $t('pregnancy.ga_use_suggested', { n: gaSuggestion }) }}</AppButton>
+              </div>
+            </template>
+          </fieldset>
           <p class="flex items-start gap-2 rounded-control border p-3 text-sm" :class="toneClasses('warning')">
             <ExclamationCircleIcon class="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
             {{ $t('lab.reception.ext_warning') }}
@@ -103,7 +176,22 @@
 
       <!-- Prescripteur -->
       <AppCard :title="$t('labScreens.prescriber_section')" class="relative z-20">
-        <div class="max-w-md">
+        <div v-if="mode === 'external'" class="grid max-w-2xl gap-4 md:grid-cols-2" data-testid="external-prescriber">
+          <FormField id="lab-ext-prescriber-title" :label="$t('labScreens.ext_prescriber_title')" required v-slot="{ describedBy }">
+            <select id="lab-ext-prescriber-title" v-model="extPrescriber.title" :aria-describedby="describedBy" :class="fieldClass">
+              <option value="">{{ $t('labScreens.ext_prescriber_choose_title') }}</option>
+              <option v-for="title in PRESCRIBER_TITLES" :key="title" :value="title">{{ title }}</option>
+            </select>
+          </FormField>
+          <FormField id="lab-ext-prescriber-name" :label="$t('labScreens.ext_prescriber_name')" :help="extPrescriber.title === 'Volontaire' ? $t('labScreens.ext_prescriber_name_optional') : $t('labScreens.ext_prescriber_name_help')" v-slot="{ describedBy }">
+            <input id="lab-ext-prescriber-name" v-model="extPrescriber.name" type="text" maxlength="80" autocomplete="off" list="lab-ext-prescriber-list"
+                   :aria-describedby="describedBy" :class="fieldClass" @input="onPrescriberNameInput" />
+            <datalist id="lab-ext-prescriber-list">
+              <option v-for="s in prescriberSuggestions" :key="s.label" :value="s.name">{{ s.label }}</option>
+            </datalist>
+          </FormField>
+        </div>
+        <div v-else class="max-w-md">
           <FormField id="lab-reception-doctor" :label="$t('labScreens.prescribed_by')" :help="$t('labScreens.prescriber_help')" v-slot="{ describedBy }">
             <select id="lab-reception-doctor" v-model="selectedDoctorId" :aria-describedby="describedBy" :class="fieldClass">
               <option :value="null">{{ $t('labScreens.choose_prescriber') }}</option>
@@ -170,6 +258,12 @@ import { notify } from '@/utils/notify';
   import { toneClasses } from '@/design/tones';
   import api from '@/services/api';
   import { useAuthStore } from '@/stores/auth';
+  import {
+    AGE_UNITS, ageLabelFromBirth, formatAge, gestationalFromDpa, localTodayIso, tryAgeFromExternal, tryAgeInDays,
+  } from '@/utils/labAge';
+  import {
+    PREGNANCY_STATUSES, batchGestationalWeeks, canWritePregnancy, pregnancyStatusAtResult, externalPregnancyPayload, parseGestationalWeeks, pregnancyApplies,
+  } from '@/utils/pregnancy';
 
   const { t } = useI18n();
   const labStore = useLabStore();
@@ -195,7 +289,56 @@ import { notify } from '@/utils/notify';
   const selectedPatient = ref(null); 
   const doctors = ref([]); // Liste des médecins récupérée du backend
   const selectedDoctorId = ref(null);
-  const extForm = ref({ full_name: '', age: '', gender: 'M' }); 
+  const newExtForm = () => ({
+    full_name: '', gender: 'M',
+    age_value: '', age_unit: 'ans', birth_date: '',
+    pregnancy_status: 'inconnu', expected_delivery_date: '', pregnancy_program_number: '',
+  });
+  const extForm = ref(newExtForm());
+  // SA de la demande (patient interne enceinte ou patient externe enceinte)
+  const gaWeeks = ref('');
+  // Statut de grossesse choisi pour CETTE demande d'un patient interne (depart : statut du dossier, qui reste inchange)
+  const internalStatus = ref('inconnu');
+  // --- Age et grossesse ---
+  const todayIso = () => localTodayIso();
+  const frDate = (iso) => (iso ? String(iso).slice(0, 10).split('-').reverse().join('/') : '');
+
+  // Patient interne : age exact depuis la date de naissance (vide hors ligne : la recherche locale n'a pas la naissance).
+  const internalAgeLabel = computed(() => (selectedPatient.value ? ageLabelFromBirth(selectedPatient.value.birth_date, todayIso()) : ''));
+
+  // Patient externe : age en jours depuis (nombre + unite) ou la date de naissance.
+  const extAgeEntered = computed(() => !!extForm.value.birth_date || (extForm.value.age_value !== '' && extForm.value.age_value !== null));
+  const extAgeDays = computed(() => {
+    const f = extForm.value;
+    if (f.birth_date) return tryAgeInDays(f.birth_date, todayIso());
+    if (f.age_value === '' || f.age_value === null || f.age_value === undefined) return null;
+    return tryAgeFromExternal(Number(f.age_value), f.age_unit);
+  });
+  const extAgeLabel = computed(() => (extAgeDays.value === null ? '' : formatAge(extAgeDays.value)));
+  // Ancien champ "age" (annees entieres) conserve pour les ecrans qui le lisent encore.
+  const extLegacyYears = computed(() => (extAgeDays.value === null ? null : Math.floor(extAgeDays.value / 365.25)));
+
+  const showExternalPregnancy = computed(() => mode.value === 'external' && canWritePregnancy(authStore) && pregnancyApplies(extForm.value.gender));
+  const showInternalPregnancy = computed(() => mode.value === 'internal' && !!selectedPatient.value && canWritePregnancy(authStore)
+    && selectedPatient.value.pregnancy_status !== undefined && pregnancyApplies(selectedPatient.value.gender));
+  const pregnancyStatusNow = computed(() => (mode.value === 'external'
+    ? (showExternalPregnancy.value ? extForm.value.pregnancy_status : 'inconnu')
+    : (showInternalPregnancy.value ? internalStatus.value : 'inconnu')));
+  const dpaNow = computed(() => (mode.value === 'external' ? extForm.value.expected_delivery_date : selectedPatient.value?.expected_delivery_date) || '');
+  watch(internalStatus, (st) => {
+    if (st !== 'enceinte') gaWeeks.value = '';
+  });
+  // SA proposee : 40 - floor((DPA - date de reception) / 7), bornee a 0..45 ; la saisie reste libre.
+  const gaSuggestion = computed(() => (pregnancyStatusNow.value === 'enceinte' && dpaNow.value ? gestationalFromDpa(dpaNow.value, todayIso()) : null));
+  const gaInvalid = computed(() => pregnancyStatusNow.value === 'enceinte' && !parseGestationalWeeks(gaWeeks.value).ok);
+  watch(gaSuggestion, (n) => {
+    if (n !== null && (gaWeeks.value === '' || gaWeeks.value === null)) gaWeeks.value = String(n);
+  });
+
+  // Prescripteur libre du patient externe (le patient interne garde la liste des medecins).
+  const PRESCRIBER_TITLES = ['Dr', 'I.D.E.', 'Fr', 'Br', 'M.', 'Mme', 'Volontaire', 'Autre'];
+  const extPrescriber = ref({ title: '', name: '' });
+  const prescriberSuggestions = ref([]);
   const cart = ref([]); 
   const autoImportedCount = ref(0);
   const invoicedImportedCount = ref(0);
@@ -244,6 +387,26 @@ import { notify } from '@/utils/notify';
   }
 };
   
+  // Suggestions de prescripteurs deja saisis (en ligne seulement ; hors ligne, la saisie libre reste possible).
+  const fetchPrescriberSuggestions = debounce(async (q) => {
+    try {
+      const response = await api.get('/labo/external-prescribers', { params: { q: (q || '').trim() } });
+      prescriberSuggestions.value = Array.isArray(response.data) ? response.data : [];
+    } catch (e) {
+      prescriberSuggestions.value = [];
+    }
+  }, 250);
+
+  const onPrescriberNameInput = () => {
+    fetchPrescriberSuggestions(extPrescriber.value.name);
+    const match = prescriberSuggestions.value.find((s) => s.name === extPrescriber.value.name);
+    if (match && !extPrescriber.value.title) extPrescriber.value.title = match.title;
+  };
+
+  watch(mode, (m) => {
+    if (m === 'external') fetchPrescriberSuggestions('');
+  });
+
   // --- 1. LOGIQUE RECHERCHE ---
   
   const performSearch = debounce(async (val) => {
@@ -279,6 +442,12 @@ import { notify } from '@/utils/notify';
 
   const selectInternalPatient = (p) => {
     selectedPatient.value = p;
+    gaWeeks.value = '';
+    internalStatus.value = PREGNANCY_STATUSES.includes(p && p.pregnancy_status) ? p.pregnancy_status : 'inconnu';
+    if (p && p.expected_delivery_date && p.pregnancy_status === 'enceinte') {
+      const n = gestationalFromDpa(p.expected_delivery_date, todayIso());
+      if (n !== null) gaWeeks.value = String(n);
+    }
     searchQuery.value = ''; 
     showResults.value = false; 
     
@@ -329,7 +498,10 @@ import { notify } from '@/utils/notify';
   const resetPatient = () => {
     selectedPatient.value = null;
     selectedDoctorId.value = null;
-    extForm.value = { full_name: '', age: '', gender: 'M' };
+    extForm.value = newExtForm();
+    gaWeeks.value = '';
+    internalStatus.value = 'inconnu';
+    extPrescriber.value = { title: '', name: '' };
     searchQuery.value = '';
     cart.value = []; 
     autoImportedCount.value = 0;
@@ -359,11 +531,14 @@ import { notify } from '@/utils/notify';
     const hasExam = cart.value.length > 0;
     const hasPatient = mode.value === 'internal' 
       ? !!selectedPatient.value 
-      : (extForm.value.full_name && extForm.value.age);
+      : (extForm.value.full_name && extAgeDays.value !== null);
     
-    // On peut rendre le médecin obligatoire si on veut
+    // Interne : medecin obligatoire. Externe : titre obligatoire, nom obligatoire sauf pour Volontaire.
     const hasDoctor = !!selectedDoctorId.value;
+    if (gaInvalid.value) return false;
+    const hasExtPrescriber = !!extPrescriber.value.title && (extPrescriber.value.title === 'Volontaire' || !!extPrescriber.value.name.trim());
     
+    if (mode.value === 'external') return hasExam && hasPatient && hasExtPrescriber;
     return hasExam && hasPatient && hasDoctor;
   });
   
@@ -397,11 +572,27 @@ import { notify } from '@/utils/notify';
           payload.external_patient_info = { 
               nom: extForm.value.full_name, 
               prenom: '', 
-              age: extForm.value.age,
+              age: extLegacyYears.value,
+              age_days: extAgeDays.value,
               sexe: extForm.value.gender, 
-              telephone: '' 
+              telephone: '',
+              // Le serveur compose "<titre> <nom>" dans prescribed_by_name, le valide et le retire d'ici.
+              prescriber_title: extPrescriber.value.title,
+              prescriber_name: extPrescriber.value.name
           };
       }
+
+      // SA de la demande (colonne du lot) : seulement si la patiente est enceinte et le role ecrit la grossesse
+      const ga = batchGestationalWeeks(pregnancyStatusNow.value, gaWeeks.value, authStore);
+      if (ga !== null) payload.gestational_age_weeks = ga;
+      // Grossesse de l'externe : bloc SEPARE d'external_patient_info (que les flux de synchronisation livrent).
+      // Seul un role qui ecrit la grossesse envoie ces cles (aucune cle pour les autres).
+      if (!selectedPatient.value) {
+        const extPreg = externalPregnancyPayload(extForm.value, authStore);
+        if (Object.keys(extPreg).length) payload.external_pregnancy_info = extPreg;
+      }
+      const atResult = pregnancyStatusAtResult(pregnancyStatusNow.value, showInternalPregnancy.value || showExternalPregnancy.value, authStore);
+      if (atResult) payload.pregnancy_status_at_result = atResult;
 
       await labStore.createBatchRequest(payload);
       

@@ -122,7 +122,9 @@ const routes = [
                 path: 'config',
                 name: 'lab-config',
                 component: () => import('@/views/modules/labo/LabConfig.vue'),
-                meta: { requiresAuth: true, roles: ['admin', 'ToxicoManager'] }
+                // Lecture : admin et laborantin ; l'edition (admin ou cheffe du laboratoire) est jugee par le serveur
+                // et par authStore.canEditLabCatalogue.
+                meta: { requiresAuth: true, roles: ['admin', 'laborantin'] }
             },
             
             // 5. VALIDATION (ecran historique retire)
@@ -383,6 +385,14 @@ const routes = [
         path: 'reports',
         name: 'reports',
         component: () => import('@/views/modules/reports/Reports.vue'),
+        meta: { requiresAuth: true, roles: [ROLES.ADMIN, ROLES.PROMOTEUR] }
+      },
+
+      // 7f. Rapport de suivi de grossesse (justificatif de subvention, nominatif) : promoteur et admin seulement
+      {
+        path: 'pregnancy-report',
+        name: 'pregnancy-report',
+        component: () => import('@/views/modules/reports/PregnancyReport.vue'),
         meta: { requiresAuth: true, roles: [ROLES.ADMIN, ROLES.PROMOTEUR] }
       },
 

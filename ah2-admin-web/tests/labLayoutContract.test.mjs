@@ -25,7 +25,7 @@ check('LabLayout', view, [
     "const canSeePaillasse = computed(() => authStore.hasRole(['admin', 'laborantin', 'ToxicoManager']));",
     "const canSeeHistory = computed(() => authStore.hasRole(['admin', 'laborantin', 'ToxicoManager']));",
     "const canSeeSyncFailures = computed(() => authStore.hasRole(['admin', 'laborantin', 'ToxicoManager']));",
-    "const canConfigure = computed(() => authStore.hasRole(['admin', 'manager', 'biologiste']));",
+    "const canConfigure = computed(() => authStore.hasRole(['admin', 'laborantin']));",
     "'lab-reception'", "'lab-technician'", "'lab-history'", "'lab-sync-failures'", "'lab-config'",
     // zone des écrans enfants
     '<router-view', '<component :is="Component" />', 'name="fade"',

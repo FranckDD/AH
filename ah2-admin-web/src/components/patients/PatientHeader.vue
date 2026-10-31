@@ -9,7 +9,8 @@
             <h2 class="text-2xl font-bold text-ink">{{ patient.full_name }}</h2>
             <div class="flex flex-wrap items-center text-ink-muted text-base mt-1 gap-x-3 gap-y-1">
                 <span class="font-mono bg-tone-neutral-bg px-2 py-0.5 rounded-control text-tone-neutral-text">{{ patient.code }}</span>
-                <span>{{ t('screens.header.years', { n: patient.age }) }}</span>
+                <span v-if="ageLabel" data-testid="patient-age">{{ ageLabel }}</span>
+                <span v-else>{{ t('screens.header.years', { n: patient.age }) }}</span>
                 <span>{{ patient.gender === 'M' ? t('screens.header.man') : t('screens.header.woman') }}</span>
             </div>
         </div>
@@ -34,7 +35,9 @@ import { XMarkIcon } from '@heroicons/vue/24/outline';
 import { AppButton, StatusBadge } from '@/components/ui';
 
 defineProps({
-    patient: { type: Object, required: true }
+    patient: { type: Object, required: true },
+    // Age exact (ex. "2 semaines 3 jours") calcule depuis la date de naissance ; vide = ancien affichage en ans
+    ageLabel: { type: String, default: '' }
 });
 defineEmits(['back']);
 const { t } = useI18n();

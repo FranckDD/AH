@@ -104,7 +104,7 @@ test('UserModal : mot de passe avec bouton afficher/masquer nommé, interrupteur
     assert.match(t, /usersScreens\.show_password/);
     assert.match(t, /usersScreens\.hide_password/);
     assert.match(t, /autocomplete="new-password"/);
-    assert.equal((t.match(/type="checkbox"/g) || []).length, 3, 'compte actif, chef infirmier et psychologue limite');
+    assert.equal((t.match(/type="checkbox"/g) || []).length, 4, 'compte actif, chef infirmier, cheffe du laboratoire et psychologue limite');
     assert.doesNotMatch(t, /sr-only peer/);
 });
 

@@ -5,7 +5,7 @@ import { db } from '@/powersync-client/client';
 // les ecrans consommateurs (modale de prescription, caisse) n'ont ainsi rien
 // a adapter entre le chemin en ligne et le secours hors ligne.
 export async function getExamCatalogLocal() {
-  const rows = await db.getAll('SELECT * FROM exam_catalog ORDER BY nom');
+  const rows = await db.getAll('SELECT * FROM exam_catalog WHERE COALESCE(is_active, 1) = 1 ORDER BY nom');
   return rows.map((r) => ({
     id: r.server_id,
     code: r.code,

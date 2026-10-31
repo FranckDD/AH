@@ -61,7 +61,7 @@ test('le lien ligne de facture -> dossier labo traverse les 4 couches PowerSync'
 });
 
 // ---------------------------------------------------------------- defaut 9 : plage par sexe
-test('les plages de reference passent par rangeLabelForPatient (jamais ranges[0] en repli)', () => {
+test('les plages de reference passent par rangeLabelForDetail (jamais ranges[0] en repli)', () => {
   for (const [name, src] of [['LabTechnician', tech], ['ResultDetailModal', modal]]) {
     assert.ok(src.includes("from '@/utils/labRanges'"), name);
     assert.ok(!src.includes('|| ranges[0]'), `${name} retombe encore sur ranges[0]`);

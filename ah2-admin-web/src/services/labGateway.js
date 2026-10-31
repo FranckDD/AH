@@ -3,6 +3,33 @@ import api from './api';
 import { useAuthStore } from '@/stores/auth';
 import { getExamCatalogLocal } from '@/powersync-client/referenceData';
 
+// Infos patient d'un dossier ouvert hors ligne. Seul un patient externe porte son age et son sexe dans
+// le dossier local (JSON) : l'age en jours suit parse_external_age cote serveur (age_days, sinon annees x 365.25).
+// Un patient interne n'a pas ces colonnes en local : age et sexe inconnus, donc seules les plages sans
+// critere d'age s'appliquent (meme regle que le serveur pour un age inconnu).
+export function offlinePatientInfo(result) {
+    let info = null;
+    try {
+        info = result?.external_patient_info ? JSON.parse(result.external_patient_info) : null;
+    } catch {
+        info = null;
+    }
+    const toInt = (v) => (v === null || v === undefined || v === '' || !Number.isFinite(Number(v)) || Number(v) !== Math.trunc(Number(v)) ? null : Number(v));
+    let ageDays = null;
+    if (info && typeof info === 'object') {
+        const d = toInt(info.age_days);
+        const y = toInt(info.age);
+        if (d !== null) ageDays = d >= 0 && d <= 47500 ? d : null;
+        else if (y !== null && y >= 0 && y <= 130) ageDays = Math.round(365.25 * y);
+    }
+    return {
+        nom: result?.patient_nom || '',
+        sexe: (info && (info.sexe || info.gender)) || '-',
+        age: info && toInt(info.age) !== null ? toInt(info.age) : '-',
+        age_days: ageDays,
+    };
+}
+
 export const LabGateway = {
 
     // ============================================================
@@ -156,7 +183,7 @@ export const LabGateway = {
             if (!err.response && authStore.hasRole(['laborantin'])) {
                 const { db } = await import('@/powersync-client/client');
                 const result = await db.get(
-                    `SELECT lr.id AS result_id, lr.code_lab_patient AS code, lr.status, lr.note,
+                    `SELECT lr.id AS result_id, lr.code_lab_patient AS code, lr.status, lr.note, lr.conclusion,
                             lr.patient_id, lr.examen_id, lr.external_patient_info,
                             COALESCE(p.first_name || ' ' || p.last_name, json_extract(lr.external_patient_info, '$.nom')) AS patient_nom,
                             ec.nom AS examen_nom
@@ -213,13 +240,19 @@ export const LabGateway = {
                 if (paramIds.length) {
                     const placeholders = paramIds.map(() => '?').join(',');
                     const rangeRows = await db.getAll(
-                        `SELECT parametre_id, sexe, valeur_min AS min, valeur_max AS max
+                        `SELECT server_id AS id, parametre_id, sexe, age_min, age_max, age_min_days, age_max_days,
+                                ga_min_weeks, ga_max_weeks, valeur_min AS min, valeur_max AS max
                          FROM reference_lab_ranges
                          WHERE parametre_id IN (${placeholders})`,
                         paramIds
                     );
                     rangesByParam = rangeRows.reduce((acc, r) => {
-                        (acc[r.parametre_id] ||= []).push({ sexe: r.sexe, min: r.min, max: r.max });
+                        (acc[r.parametre_id] ||= []).push({
+                            id: r.id, sexe: r.sexe, min: r.min, max: r.max,
+                            age_min: r.age_min, age_max: r.age_max,
+                            age_min_days: r.age_min_days, age_max_days: r.age_max_days,
+                            ga_min_weeks: r.ga_min_weeks, ga_max_weeks: r.ga_max_weeks,
+                        });
                         return acc;
                     }, {});
                 }
@@ -231,9 +264,10 @@ export const LabGateway = {
                         code: result?.code ?? null,
                         status: result?.status ?? null,
                         note: result?.note ?? null,
+                        conclusion: result?.conclusion ?? null,
                         // Best-effort seulement : pas d'acces local a l'age/sexe pour
                         // un patient interne (patients_lookup n'a pas ces colonnes).
-                        patient_info: { nom: result?.patient_nom || '', sexe: '-', age: '-' },
+                        patient_info: offlinePatientInfo(result),
                         examen_nom: result?.examen_nom || '',
                         details: details.map((d) => ({
                             detail_id: d.detail_id,
@@ -341,6 +375,9 @@ export const LabGateway = {
                     if (payload.note !== undefined && payload.note !== null) {
                         await tx.execute('UPDATE lab_results SET note = ? WHERE id = ?', [payload.note, localResultId]);
                     }
+                    if (payload.conclusion !== undefined && payload.conclusion !== null) {
+                        await tx.execute('UPDATE lab_results SET conclusion = ? WHERE id = ?', [payload.conclusion, localResultId]);
+                    }
                 });
                 return { data: { success: true } };
             }
@@ -350,7 +387,7 @@ export const LabGateway = {
 
     // Correction d'un resultat deja valide : motif obligatoire, serveur seulement (jamais d'ecriture
     // locale hors ligne : une correction doit etre tracee et notifiee au medecin).
-    // payload = { reason, values: { detailId: { valeur, flag, interpretation } }, note }
+    // payload = { reason, values: { detailId: { valeur, flag, interpretation } }, note, conclusion }
     async amendResult(resultId, payload) {
         return api.post(`/labo/results/${resultId}/amend`, payload);
     },

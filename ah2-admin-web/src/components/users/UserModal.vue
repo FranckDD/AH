@@ -78,6 +78,14 @@
           <span>{{ t('users.modal.is_head_nurse') }}</span>
         </label>
 
+        <div v-if="showHeadLabField" class="md:col-span-2">
+          <label class="flex min-h-11 items-center gap-3 text-base font-medium text-ink">
+            <input type="checkbox" v-model="form.is_head_lab" class="h-5 w-5 accent-brand-600" />
+            <span>{{ t('users.modal.is_head_lab') }}</span>
+          </label>
+          <p class="text-base text-ink-muted">{{ t('users.modal.is_head_lab_hint') }}</p>
+        </div>
+
         <div v-if="showOwnToxicoField" class="md:col-span-2">
           <label class="flex min-h-11 items-center gap-3 text-base font-medium text-ink">
             <input type="checkbox" v-model="form.sees_own_toxico_only" class="h-5 w-5 accent-brand-600" />
@@ -110,8 +118,10 @@ import { reactive, computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { EyeIcon, EyeSlashIcon } from '@heroicons/vue/24/outline'
 import { AppButton, FormField, FormSection, ActionBar, FullScreenPanel } from '@/components/ui'
+import { useAuthStore } from '@/stores/auth'
 
 const { t } = useI18n()
+const authStore = useAuthStore()
 
 // Style commun des champs : zone tactile >= 44 px, focus visible.
 const fieldClass = 'block w-full min-h-11 lg:min-h-10 rounded-control border border-tone-neutral-border bg-white px-3 text-base text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand-600'
@@ -146,6 +156,7 @@ const form = reactive({
   specialty_id: null,
   is_active: true,
   is_head_nurse: false,
+  is_head_lab: false,
   sees_own_toxico_only: false
 })
 
@@ -188,6 +199,16 @@ const showHeadNurseField = computed(() => {
   return (selectedRole.role_name || '').toLowerCase().trim() === 'nurse'
 })
 
+// Cheffe du laboratoire : l'admin seul la designe, et seulement sur un compte laborantin.
+const showHeadLabField = computed(() => {
+  if (!authStore.hasRole(['admin'])) return false
+  const selectedRole = props.applicationRoles.find(
+    (r) => (r.id === form.role_id) || (r.role_id === form.role_id)
+  )
+  if (!selectedRole) return false
+  return (selectedRole.role_name || '').toLowerCase().trim() === 'laborantin'
+})
+
 const showOwnToxicoField = computed(() => {
   const selectedRole = props.applicationRoles.find(
     (r) => (r.id === form.role_id) || (r.role_id === form.role_id)
@@ -209,6 +230,9 @@ const handleRoleChange = () => {
   }
   if (!showHeadNurseField.value) {
     form.is_head_nurse = false
+  }
+  if (!showHeadLabField.value) {
+    form.is_head_lab = false
   }
   if (!showOwnToxicoField.value) {
     form.sees_own_toxico_only = false
@@ -250,6 +274,7 @@ onMounted(() => {
       specialty_id: u.specialty_id,
       is_active: u.isActive,
       is_head_nurse: u.isHeadNurse || false,
+      is_head_lab: u.isHeadLab || false,
       sees_own_toxico_only: u.seesOwnToxicoOnly || false
     })
   }

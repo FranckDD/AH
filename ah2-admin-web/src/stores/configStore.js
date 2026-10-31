@@ -37,7 +37,10 @@ export const useConfigStore = defineStore('config', () => {
         // Infos Légales
         niu: '',
         rccm: '',
-        legal_info: ''
+        legal_info: '',
+        agrement_number: '',
+        footer_text: '',
+        signature_label_default: ''
     };
 
     const STRUCTURE_INFO_STORAGE_KEY = 'structureInfoCache';
