@@ -9,12 +9,8 @@ const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
 const pick = (o, path) => path.split('.').reduce((x, k) => x?.[k], o);
 
 const panelPath = '../src/components/config/ExamParamsPanel.vue';
-test('le panneau des parametres existe et appelle les routes du catalogue', () => {
-    assert.ok(existsSync(new URL(panelPath, import.meta.url)));
-    const panel = read(panelPath);
-    for (const n of ['labStore.addParam', 'labStore.updateParam', 'labStore.deleteParam', 'labStore.addRange', 'labStore.deleteRange', 'describeServerError']) {
-        assert.ok(panel.includes(n), n);
-    }
+test('le panneau des parametres retire n existe plus', () => {
+    assert.ok(!existsSync(new URL(panelPath, import.meta.url)));
 });
 test('gateway et store exposent modification et plages', () => {
     const gw = read('../src/services/labGateway.js');
@@ -38,12 +34,6 @@ test('libelles FR et EN identiques', () => {
 });
 
 test('ordre des parametres : boutons monter/descendre, route et libelles FR/EN', () => {
-    const panel = read(panelPath);
-    assert.ok(panel.includes('labStore.reorderParams'), 'panneau appelle reorderParams');
-    assert.ok(panel.includes('labParams.move_up') && panel.includes('labParams.move_down'));
-    assert.ok(/aria-label="t\('labParams\.move_up'|:aria-label="t\('labParams\.move_up'/.test(panel), 'boutons nommes');
-    assert.ok(panel.includes('canReorder'), 'reserve a l admin');
-    assert.ok(!panel.includes("pas de colonne d'ordre"), 'ancien commentaire retire');
     assert.ok(read('../src/services/labGateway.js').includes('`/labo/exams/${examId}/params/order`'));
     assert.ok(read('../src/stores/labStore.js').includes('reorderParams'));
     for (const l of ['fr', 'en']) for (const k of ['labParams.move_up', 'labParams.move_down']) {

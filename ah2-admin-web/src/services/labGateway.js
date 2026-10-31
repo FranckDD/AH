@@ -168,6 +168,11 @@ export const LabGateway = {
         return api.post('/labo/results/batch', payload);
     },
 
+    // Numero de dossier attribue par le serveur a un passage recu hors ligne (batch_uuid du client)
+    async getDossierByBatchUuid(batchUuid) {
+        return api.get(`/labo/batch-uuid/${encodeURIComponent(batchUuid)}/dossier`);
+    },
+
     // 🔗 Récupérer les frères et sœurs d'un lot
     async getResultsByBatch(batchId) {
         return api.get(`/labo/batch/${batchId}`);

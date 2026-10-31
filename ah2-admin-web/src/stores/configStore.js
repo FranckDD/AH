@@ -40,7 +40,8 @@ export const useConfigStore = defineStore('config', () => {
         legal_info: '',
         agrement_number: '',
         footer_text: '',
-        signature_label_default: ''
+        signature_label_default: '',
+        lab_sheet_title_variant: 'centered_results'
     };
 
     const STRUCTURE_INFO_STORAGE_KEY = 'structureInfoCache';

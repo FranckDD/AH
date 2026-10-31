@@ -1,8 +1,25 @@
 // src/stores/labStore.js
-import { describeServerError } from '@/utils/serverError';
+import { describeServerError, readBlobDetail } from '@/utils/serverError';
+import { localizeDetail } from '@/utils/serverErrorLocalize';
+import { notifyText } from '@/utils/notify';
+import i18n from '@/i18n';
 import { defineStore } from 'pinia';
 import { isLoadFailure } from '@/utils/loadFailure';
 import { LabGateway } from '@/services/labGateway';
+
+// Message d'un echec de telechargement de PDF : le refus du serveur (ex. numero de dossier non attribue) est lu
+// dans le Blob de la reponse et rendu dans la langue de l'interface ; sinon texte par defaut.
+export async function pdfFailureMessage(err, fallback) {
+    const detail = await readBlobDetail(err);
+    if (typeof detail === 'string' && detail) {
+        const { t, te, locale } = i18n.global;
+        return localizeDetail(detail, err?.response?.status, locale.value, t, te) ?? detail;
+    }
+    return fallback;
+}
+
+// Compteur de receptions : une relecture de numero de dossier en cours s'arrete des qu'une autre commence.
+let dossierPollSeq = 0;
 
 export const useLabStore = defineStore('lab', {
     state: () => ({
@@ -219,6 +236,7 @@ export const useLabStore = defineStore('lab', {
             this.successMessage = null;
             this.lastDossier = null;
             this.lastDossierPending = false;
+            dossierPollSeq += 1;
 
             try {
                 const { useAuthStore } = await import('@/stores/auth');
@@ -270,6 +288,9 @@ export const useLabStore = defineStore('lab', {
 
                     this.lastDossierPending = true;
                     this.successMessage = `${createdCount} examen(s) enregistré(s) localement, en attente de synchronisation.`;
+                    // En ligne, le serveur attribue le numero des que le lot est envoye : on le relit quelques
+                    // secondes (sans bloquer la reception). Hors ligne, le message « sera attribue » reste.
+                    this.pollDossierForBatch(batchUuid);
                     return { success: true, count: createdCount, shared_code: null, batch_id: batchUuid };
                 }
 
@@ -296,6 +317,28 @@ export const useLabStore = defineStore('lab', {
                 this.loading = false;
             }
         },
+        // Relit le numero de dossier d'un passage recu hors ligne (laborantin) pendant ~20 s ; s'arrete des qu'une
+        // nouvelle reception demarre (lastDossierPending remis a faux) ou que le navigateur est hors ligne.
+        async pollDossierForBatch(batchUuid, { attempts = 10, delayMs = 2000 } = {}) {
+            const seq = dossierPollSeq;
+            for (let i = 0; i < attempts; i += 1) {
+                await new Promise((resolve) => setTimeout(resolve, delayMs));
+                if (seq !== dossierPollSeq || !this.lastDossierPending || this.lastDossier) return null;
+                if (typeof navigator !== 'undefined' && navigator.onLine === false) continue;
+                try {
+                    const response = await LabGateway.getDossierByBatchUuid(batchUuid);
+                    const dossier = response && response.data && response.data.dossier;
+                    if (dossier && seq === dossierPollSeq && this.lastDossierPending) {
+                        this.lastDossier = dossier;
+                        this.lastDossierPending = false;
+                        return dossier;
+                    }
+                } catch (err) {
+                    // reponse refusee ou reseau coupe : on reessaie, le message « en attente » reste affiche
+                }
+            }
+            return null;
+        },
         async downloadPDF(resultId, filename = 'resultat.pdf') {
             try {
                 const response = await LabGateway.downloadResultPDF(resultId);
@@ -313,7 +356,8 @@ export const useLabStore = defineStore('lab', {
                 return true;
             } catch (err) {
                 console.error("Erreur PDF", err);
-                this.error = "Erreur lors de la génération du PDF.";
+                this.error = await pdfFailureMessage(err, "Erreur lors de la génération du PDF.");
+                notifyText(this.error);
                 return false;
             }
         },
@@ -334,7 +378,8 @@ export const useLabStore = defineStore('lab', {
                 return true;
             } catch (err) {
                 console.error("Erreur PDF dossier", err);
-                this.error = "Erreur lors de la génération du PDF du dossier.";
+                this.error = await pdfFailureMessage(err, "Erreur lors de la génération du PDF du dossier.");
+                notifyText(this.error);
                 return false;
             }
         },

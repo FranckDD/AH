@@ -120,6 +120,12 @@
                 <FormField id="cfg-signature-default" :label="t('configScreens.signature_label_default')" :help="t('configScreens.signature_label_default_help')" v-slot="{ describedBy }">
                   <input id="cfg-signature-default" v-model="formStructure.signature_label_default" type="text" maxlength="120" :aria-describedby="describedBy" :class="fieldClass" />
                 </FormField>
+                <FormField id="cfg-lab-variant" :label="t('configScreens.lab_sheet_title_variant')" :help="t('configScreens.lab_sheet_title_variant_help')" v-slot="{ describedBy }">
+                  <select id="cfg-lab-variant" v-model="formStructure.lab_sheet_title_variant" :aria-describedby="describedBy" :class="fieldClass">
+                    <option value="centered_results">{{ t('configScreens.lab_variant_centered') }}</option>
+                    <option value="left_laboratory">{{ t('configScreens.lab_variant_left') }}</option>
+                  </select>
+                </FormField>
                 <div class="md:col-span-2">
                   <FormField id="cfg-footer-text" :label="t('configScreens.footer_text')" :help="t('configScreens.footer_text_help')" v-slot="{ describedBy }">
                     <textarea id="cfg-footer-text" v-model="formStructure.footer_text" rows="3" maxlength="1000" :aria-describedby="describedBy" :class="fieldClass"></textarea>
@@ -291,7 +297,7 @@ const openSections = reactive({
 const formStructure = ref({
     name: '', slogan: '', phone: '', phone2: '', email: '', website: '',
     address: '', city: '', po_box: '', niu: '', rccm: '',
-    agrement_number: '', footer_text: '', signature_label_default: '',
+    agrement_number: '', footer_text: '', signature_label_default: '', lab_sheet_title_variant: 'centered_results',
     label_width_mm: 50, label_height_mm: 30
 });
 const logoFile = ref(null);
