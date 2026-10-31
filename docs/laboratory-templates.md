@@ -23,12 +23,12 @@ La source de verite du chargement est `scripts/data/lab_catalogue.json` (script 
 | `table` | tableau | NFS, PROLACTINE, CRACHAT_BAAR, HEPB_5EN1, TOXICO_UR, SPERMOGRAMME |
 | `three_columns` | trois colonnes | HB, VS, GLY_JEUN, GLY_PP, HB1C, UREE, CREAT, ASAT, ALAT, IONO, IONO_EXT, CALCIUM, MAGNESIUM, PHOSPHORE, ACIDE_URIQUE, ALBUMINE, LIPIDES, BIL_TOTAL, BIL_DIRECT, PROTEINES, AMYLASE, PAL, GGT, AFP, PSA |
 | `label_value` | lignes libelle : valeur | GR_ABO_RH, TP_TCA, G_TEST, BANDE_UR, ALB_SUCRE_UR, GE, TDR_PALU, HEMOPARA, MICROFIL, SKIN_SNIP, SCOTCH, TYPHOIDE, ASLO, RHUMATO, CRP, HEPB_AGHBS, HEPC, SYPHILIS, TOXO, RUBE, HPYLORI, HIV, HIV_ORAL, HIV_SYPH |
-| `narrative` | compte rendu narratif | ELECTRO_HB, ECBU, CULOT_UR, PCV, PU, CULT_SIMPLE, CULT_ATB, SPH_PUS, PLAIE_ATB, OEIL_ATB, HEMOCULTURE, SPERMOCULTURE, MYCOPLASMES, COPRO, COPROCULTURE, FCU, CYTO_SANG |
+| `narrative` | compte rendu narratif | ELECTRO_HB, ECBU, CULOT_UR, PCV, PU, CULT_SIMPLE, CULT_ATB, SPH_PUS, PLAIE_ATB, OEIL_ATB, HEMOCULTURE, SPERMOCULTURE, ECBC_CRACHATS, ECBC_CRACHATS_ATB, MYCOPLASMES, COPRO, COPROCULTURE, FCU, CYTO_SANG |
 | `boxed` | formulaire en cases | CHLAMYDIA |
 
 Defaut pour un nouvel examen : `label_value`. Types de resultat : `numeric`, `text`, `choice` (liste `choices`), `pos_neg` (POSITIF / NEGATIF).
 
-## Examens (73)
+## Examens (75)
 
 | Ordre | Code | Catalogue avant | Section | Titre imprime | Famille | Signature |
 |---|---|---|---|---|---|---|
@@ -77,6 +77,8 @@ Defaut pour un nouvel examen : `label_value`. Types de resultat : `numeric`, `te
 | 430 | `HEMOCULTURE` | oui | LABORATOIRE DE BACTERIOLOGIE | HEMOCULTURE + ATB | narrative | LE RESPONSABLE DE LABORATOIRE |
 | 440 | `SPERMOCULTURE` | oui | LABORATOIRE DE BACTERIOLOGIE | SPERMOCULTURE + ANTIBIOGRAMME (ATB) | narrative | LE RESPONSABLE DE LABORATOIRE |
 | 450 | `CRACHAT_BAAR` | oui | LABORATOIRE DE BACTERIOLOGIE | CRACHATS - BAAR | table | LE RESPONSABLE DE LABORATOIRE |
+| 455 | `ECBC_CRACHATS` | **nouveau** | LABORATOIRE DE BACTERIOLOGIE | EXAMEN CYTOBACTERIOLOGIQUE DES CRACHATS | narrative | LE RESPONSABLE DE LABORATOIRE |
+| 457 | `ECBC_CRACHATS_ATB` | **nouveau** | LABORATOIRE DE BACTERIOLOGIE | EXAMEN CYTOBACTERIOLOGIQUE DES CRACHATS + ATB | narrative | LE RESPONSABLE DE LABORATOIRE |
 | 460 | `MYCOPLASMES` | **nouveau** | - | RECHERCHE DE MYCOPLASMES Uro-Génitaux | narrative | LE RESPONSABLE DE LABORATOIRE |
 | 470 | `COPRO` | oui | - | COPROLOGIE / KOAP (Kystes Oeufs Amibes Parasites) | narrative | LE RESPONSABLE DE LABORATOIRE |
 | 480 | `COPROCULTURE` | **nouveau** | COPROCULTURE / COPROLOGIE | COPROCULTURE | narrative | LE RESPONSABLE DE LABORATOIRE |
@@ -409,10 +411,11 @@ Defaut pour un nouvel examen : `label_value`. Types de resultat : `numeric`, `te
 ### PROLACTINE - DOSAGE D'HORMONE
 
 - Catalogue : nouvel examen (prix 0, fixe par l'admin) ; categorie `Biochimie` ; section : aucune ; famille : `table` ; signature : LE RESPONSABLE DU LABORATOIRE
+- Note : A confirmer par la cheffe du laboratoire: phase de 2-20 et 2-15
 
 | # | Libelle imprime | Unite | Type | Norme imprimee | Plages chargees | Variantes |
 |---|---|---|---|---|---|---|
-| 1 | PROLACTINE | ng/ml | numeric | HOMME 2 - 15 / FEMME 2 - 20 | M tous ages: 2 - 15; F tous ages: 2 - 20 | colonnes FEMME par phase (folliculaire, pic ovulation, luteale, post menopause) vides sur la fiche |
+| 1 | PROLACTINE | ng/ml | numeric | HOMME 2 - 15 / FEMME 2 - 20 | M tous ages: 2 - 15; F tous ages: 2 - 20 | grille FEMME par phase (folliculaire, pic ovulation, luteale, post menopause) : 2 - 20 entre folliculaire et ovulation, 2 - 15 entre luteale et post menopause (position mesuree sur la fiche, phase a confirmer) |
 
 ### BANDE_UR - CHIMIE URINAIRE (URS 11)
 
@@ -456,14 +459,15 @@ Defaut pour un nouvel examen : `label_value`. Types de resultat : `numeric`, `te
 | 2 | PH | - | text | - | - | - |
 | 3 | Hématies *[CYTOLOGIE]* | /mm3 | numeric | - | - | - |
 | 4 | Leucocytes *[CYTOLOGIE]* | /mm3 | numeric | - | - | - |
-| 5 | CYTOLOGIE *[CYTOLOGIE]* | - | text | - | - | - |
-| 6 | EXAMEN GRAM | - | text | - | - | - |
-| 7 | CULTURE | - | text | - | - | - |
-| 8 | BACTERIURIE QUANTITATIVE | - | text | - | - | - |
-| 9 | GERME ISOLE | - | text | - | - | - |
-| 10 | Sensible à *[ANTIBIOGRAMME (ATB)]* | - | text | - | - | - |
-| 11 | Intermédiaire à *[ANTIBIOGRAMME (ATB)]* | - | text | - | - | - |
-| 12 | Résistant à *[ANTIBIOGRAMME (ATB)]* | - | text | - | - | - |
+| 5 | Cellules épithéliales *[CYTOLOGIE]* | /mm3 | text | - | - | - |
+| 6 | CYTOLOGIE *[CYTOLOGIE]* | - | text | - | - | - |
+| 7 | EXAMEN GRAM | - | text | - | - | - |
+| 8 | CULTURE | - | text | - | - | - |
+| 9 | BACTERIURIE QUANTITATIVE | - | text | - | - | - |
+| 10 | GERME ISOLE | - | text | - | - | - |
+| 11 | Sensible à *[ANTIBIOGRAMME (ATB)]* | - | text | - | - | - |
+| 12 | Intermédiaire à *[ANTIBIOGRAMME (ATB)]* | - | text | - | - | - |
+| 13 | Résistant à *[ANTIBIOGRAMME (ATB)]* | - | text | - | - | - |
 
 ### CULOT_UR - EXAMEN : CULOT URINAIRE
 
@@ -475,7 +479,10 @@ Defaut pour un nouvel examen : `label_value`. Types de resultat : `numeric`, `te
 | 2 | PH | - | text | - | - | - |
 | 3 | Hématies | /mm3 | numeric | - | - | - |
 | 4 | Leucocytes | /mm3 | numeric | - | - | - |
-| 5 | CYTOLOGIE | - | text | - | - | - |
+| 5 | Cellules épithéliales | /mm3 | text | - | - | - |
+| 6 | Levures | /mm3 | numeric | - | - | - |
+| 7 | CYTOLOGIE | - | text | - | - | - |
+| 8 | BACTERIURIE QUANTITATIVE | - | text | - | - | - |
 
 ### PCV - EXAMEN : PRELEVEMENT CERVICO-VAGINAL (PCV + ATB)
 
@@ -532,13 +539,16 @@ Defaut pour un nouvel examen : `label_value`. Types de resultat : `numeric`, `te
 |---|---|---|---|---|---|---|
 | 1 | ASPECT *[EXAMEN MACROSCOPIQUE]* | - | text | - | - | - |
 | 2 | EXAMEN MICROSCOPIQUE *[EXAMEN MICROSCOPIQUE]* | - | text | - | - | - |
-| 3 | EXAMEN GRAM *[EXAMEN GRAM]* | - | text | - | - | - |
-| 4 | CULTURE *[CULTURE]* | - | text | - | - | - |
-| 5 | GERME(S) ISOLE(S) *[CULTURE]* | - | text | - | - | - |
-| 6 | Sensible à *[ANTIBIOGRAMME (ATB)]* | - | text | - | - | - |
-| 7 | Intermédiaire à *[ANTIBIOGRAMME (ATB)]* | - | text | - | - | - |
-| 8 | Résistant à *[ANTIBIOGRAMME (ATB)]* | - | text | - | - | - |
-| 9 | ANTIFONGIGRAMME (AFG) | - | text | - | - | - |
+| 3 | Hématies *[CYTOLOGIE]* | /mm3 | text | - | - | - |
+| 4 | Leucocytes *[CYTOLOGIE]* | /mm3 | text | - | - | - |
+| 5 | Cellules épithéliales *[CYTOLOGIE]* | /mm3 | text | - | - | - |
+| 6 | EXAMEN GRAM *[EXAMEN GRAM]* | - | text | - | - | - |
+| 7 | CULTURE *[CULTURE]* | - | text | - | - | - |
+| 8 | GERME(S) ISOLE(S) *[CULTURE]* | - | text | - | - | - |
+| 9 | Sensible à *[ANTIBIOGRAMME (ATB)]* | - | text | - | - | - |
+| 10 | Intermédiaire à *[ANTIBIOGRAMME (ATB)]* | - | text | - | - | - |
+| 11 | Résistant à *[ANTIBIOGRAMME (ATB)]* | - | text | - | - | - |
+| 12 | ANTIFONGIGRAMME (AFG) | - | text | - | - | - |
 
 ### SPH_PUS - PUS / ATB
 
@@ -548,13 +558,15 @@ Defaut pour un nouvel examen : `label_value`. Types de resultat : `numeric`, `te
 |---|---|---|---|---|---|---|
 | 1 | ASPECT *[EXAMEN MACROSCOPIQUE]* | - | text | - | - | - |
 | 2 | EXAMEN MICROSCOPIQUE *[EXAMEN MICROSCOPIQUE]* | - | text | - | - | - |
-| 3 | EXAMEN GRAM *[EXAMEN GRAM]* | - | text | - | - | - |
-| 4 | CULTURE *[CULTURE]* | - | text | - | - | - |
-| 5 | GERME(S) ISOLE(S) *[CULTURE]* | - | text | - | - | - |
-| 6 | Sensible à *[ANTIBIOGRAMME (ATB)]* | - | text | - | - | - |
-| 7 | Intermédiaire à *[ANTIBIOGRAMME (ATB)]* | - | text | - | - | - |
-| 8 | Résistant à *[ANTIBIOGRAMME (ATB)]* | - | text | - | - | - |
-| 9 | ANTIFONGIGRAMME (AFG) | - | text | - | - | - |
+| 3 | Pyocytes *[CYTOLOGIE]* | /mm3 | text | - | - | - |
+| 4 | Leucocytes *[CYTOLOGIE]* | /mm3 | text | - | - | - |
+| 5 | EXAMEN GRAM *[EXAMEN GRAM]* | - | text | - | - | - |
+| 6 | CULTURE *[CULTURE]* | - | text | - | - | - |
+| 7 | GERME(S) ISOLE(S) *[CULTURE]* | - | text | - | - | - |
+| 8 | Sensible à *[ANTIBIOGRAMME (ATB)]* | - | text | - | - | - |
+| 9 | Intermédiaire à *[ANTIBIOGRAMME (ATB)]* | - | text | - | - | - |
+| 10 | Résistant à *[ANTIBIOGRAMME (ATB)]* | - | text | - | - | - |
+| 11 | ANTIFONGIGRAMME (AFG) | - | text | - | - | - |
 
 ### PLAIE_ATB - ECOUVILLONAGE ET CULTURE DE BLESSURE
 
@@ -700,6 +712,7 @@ Defaut pour un nouvel examen : `label_value`. Types de resultat : `numeric`, `te
 | # | Libelle imprime | Unite | Type | Norme imprimee | Plages chargees | Variantes |
 |---|---|---|---|---|---|---|
 | 1 | RESULTAT | - | pos_neg | NEGATIF | - | - |
+| 2 | Parasitemie | - | text | - | - | - |
 
 ### HEMOPARA - EXAMEN: RECHERCHE D'HEMOPARASITES
 
@@ -1024,7 +1037,36 @@ Defaut pour un nouvel examen : `label_value`. Types de resultat : `numeric`, `te
 | # | Libelle imprime | Unite | Type | Norme imprimee | Plages chargees | Variantes |
 |---|---|---|---|---|---|---|
 | 1 | CYTOLOGIE | - | text | - | - | - |
-| 2 | GRAM | - | text | - | - | - |
+| 2 | Hématies | /mm3 | numeric | - | - | - |
+| 3 | Leucocytes | /mm3 | numeric | - | - | - |
+| 4 | GRAM | - | text | - | - | - |
+
+### ECBC_CRACHATS - EXAMEN CYTOBACTERIOLOGIQUE DES CRACHATS
+
+- Catalogue : nouvel examen (prix 0, fixe par l'admin) ; categorie `Bacteriologie` ; section : LABORATOIRE DE BACTERIOLOGIE ; famille : `narrative` ; signature : LE RESPONSABLE DE LABORATOIRE
+- Note : titre d'origine EXAMEN CYTOBACTERIOLOGQUE (faute) ; NB libre = champ NB de la fiche ; lignes Culture, ATB et antifongigramme seulement dans la version + ATB
+
+| # | Libelle imprime | Unite | Type | Norme imprimee | Plages chargees | Variantes |
+|---|---|---|---|---|---|---|
+| 1 | Aspect | - | text | - | - | - |
+| 2 | Cytologie | - | text | - | - | - |
+| 3 | Gram | - | text | - | - | - |
+
+### ECBC_CRACHATS_ATB - EXAMEN CYTOBACTERIOLOGIQUE DES CRACHATS + ATB
+
+- Catalogue : nouvel examen (prix 0, fixe par l'admin) ; categorie `Bacteriologie` ; section : LABORATOIRE DE BACTERIOLOGIE ; famille : `narrative` ; signature : LE RESPONSABLE DE LABORATOIRE
+- Note : titre d'origine EXAMEN CYTOBACTERIOLOGQUE (faute) ; NB libre = champ NB de la fiche ; lignes Culture, ATB et antifongigramme seulement dans la version + ATB
+
+| # | Libelle imprime | Unite | Type | Norme imprimee | Plages chargees | Variantes |
+|---|---|---|---|---|---|---|
+| 1 | Aspect | - | text | - | - | - |
+| 2 | Cytologie | - | text | - | - | - |
+| 3 | Gram | - | text | - | - | - |
+| 4 | Culture sur milieux usuels | - | text | - | - | - |
+| 5 | Sensible à *[ANTIBIOGRAMME (ATB)]* | - | text | - | - | - |
+| 6 | Intermédiaire à *[ANTIBIOGRAMME (ATB)]* | - | text | - | - | - |
+| 7 | Résistant à *[ANTIBIOGRAMME (ATB)]* | - | text | - | - | - |
+| 8 | ANTIFONGIGRAMME (AFG) | - | text | - | - | - |
 
 ## Examens de test du catalogue
 
